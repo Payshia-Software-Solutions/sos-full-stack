@@ -1,0 +1,235 @@
+
+"use client";
+
+import { useState, useMemo, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { AlertTriangle, CheckCircle, HeartPulse, Users, Clock, ArrowRight, Search } from 'lucide-react';
+import { getCeylonPharmacyPrescriptions } from '@/lib/actions/games';
+import type { GamePatient } from '@/lib/types';
+import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { Input } from '@/components/ui/input';
+
+
+const PatientStatusCard = ({ patient }: { patient: GamePatient }) => {
+    const initialTime = 3600; // 1 hour
+    const startTime = patient.start_data ? new Date(patient.start_data.time).getTime() : null;
+    
+    const calculateTimeLeft = () => {
+        if (!startTime) return initialTime;
+        const nowInColombo = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' }));
+        const elapsed = Math.floor((nowInColombo.getTime() - startTime) / 1000);
+        return Math.max(0, initialTime - elapsed);
+    };
+    
+    const timeLeft = calculateTimeLeft();
+    
+    const isLost = patient.start_data && patient.start_data.patient_status !== 'Recovered' && timeLeft <= 0;
+    const isRecovered = patient.start_data && patient.start_data.patient_status === 'Recovered';
+
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    
+    return (
+        <Card className="shadow-lg hover:shadow-xl hover:border-primary/50 transition-all duration-200 h-full flex flex-col">
+            <CardHeader className="flex-grow">
+                <div className="flex justify-between items-start gap-2">
+                    <CardTitle className="text-lg">{patient.Pres_Name}</CardTitle>
+                    {isRecovered ? (
+                         <Badge variant="default" className="bg-green-600">Recovered</Badge>
+                    ) : isLost ? (
+                        <Badge variant="destructive">Lost</Badge>
+                    ) : patient.start_data ? (
+                         <Badge variant="secondary">
+                            <Clock className="mr-1.5 h-3.5 w-3.5" />
+                            {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
+                        </Badge>
+                    ) : (
+                        <Badge variant="outline">Not Started</Badge>
+                    )}
+                </div>
+                <CardDescription>
+                    {patient.prescription_id} | Age: {patient.Pres_Age}
+                </CardDescription>
+            </CardHeader>
+            <CardFooter>
+                 <Button asChild className="w-full" disabled={isLost}>
+                    <Link href={`/dashboard/ceylon-pharmacy/${patient.prescription_id}`}>
+                        {isRecovered ? 'View Case' : 'Treat Patient'}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                </Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
+// --- MAIN PAGE ---
+export default function CeylonPharmacyPage() {
+    const { user } = useAuth();
+    const router = useRouter();
+    const [courseCode, setCourseCode] = useState<string | null>(null);
+    const [currentTime, setCurrentTime] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Colombo', hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    useEffect(() => {
+        const storedCourseCode = localStorage.getItem('selected_course');
+        if (storedCourseCode) {
+            setCourseCode(storedCourseCode);
+        } else {
+            router.replace('/dashboard/select-course');
+        }
+    }, [router]);
+
+    const { data: patients, isLoading, isError, error } = useQuery<GamePatient[]>({
+        queryKey: ['ceylonPharmacyPrescriptions', user?.username, courseCode],
+        queryFn: () => getCeylonPharmacyPrescriptions(user!.username!, courseCode!),
+        enabled: !!user?.username && !!courseCode,
+    });
+
+    const stats = useMemo(() => {
+        if (!patients) return { waiting: 0, recovered: 0, lost: 0 };
+        
+        let recovered = 0;
+        let lost = 0;
+        const nowInColombo = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' }));
+        
+        patients.forEach(p => {
+            if (p.start_data?.patient_status === 'Recovered') {
+                recovered++;
+            } else if (p.start_data) {
+                 const startTime = new Date(p.start_data.time).getTime();
+                 const elapsed = Math.floor((nowInColombo.getTime() - startTime) / 1000);
+                 if (elapsed > 3600) {
+                    lost++;
+                 }
+            }
+        });
+
+        return {
+            waiting: patients.length - recovered - lost,
+            recovered,
+            lost,
+        };
+    }, [patients]);
+    
+    const filteredPatients = useMemo(() => {
+        if (!patients) return [];
+        if (!searchTerm) return patients;
+        const lowercasedSearch = searchTerm.toLowerCase();
+        return patients.filter(patient =>
+            (patient.Pres_Name?.toLowerCase() || '').includes(lowercasedSearch) ||
+            (patient.prescription_id?.toLowerCase() || '').includes(lowercasedSearch)
+        );
+    }, [patients, searchTerm]);
+
+  return (
+    <div className="p-4 md:p-8 space-y-8 pb-20">
+      <header>
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div>
+                 <h1 className="text-3xl font-headline font-semibold">Ceylon Pharmacy Challenge</h1>
+                 <p className="text-muted-foreground">Treat patients by completing dispensing tasks before time runs out.</p>
+            </div>
+            {currentTime && (
+                <Card className="p-2 px-4 shadow-sm">
+                    <p className="text-sm text-muted-foreground font-medium">Sri Lanka Time</p>
+                    <p className="text-xl font-bold font-mono text-primary">{currentTime}</p>
+                </Card>
+            )}
+        </div>
+      </header>
+      
+       <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Waiting</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent><div className="text-2xl font-bold">{isLoading ? <Skeleton className="h-8 w-12" /> : stats.waiting}</div></CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Recovered</CardTitle>
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent><div className="text-2xl font-bold">{stats.recovered}</div></CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Lost</CardTitle>
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                </CardHeader>
+                <CardContent><div className="text-2xl font-bold">{stats.lost}</div></CardContent>
+            </Card>
+             <Card className="bg-destructive/10 border-destructive/30">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-destructive">Patient Recovery</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <Button asChild variant="destructive" className="w-full" disabled={stats.lost === 0}>
+                        <Link href="/dashboard/ceylon-pharmacy/recover">
+                            <HeartPulse className="mr-2 h-4 w-4" />
+                            Recover a Patient
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+       </section>
+
+      <section>
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">
+            <h2 className="text-xl font-semibold">Waiting Room</h2>
+            <div className="relative w-full sm:max-w-xs">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                    placeholder="Search patient or PRE code..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                />
+            </div>
+        </div>
+
+        {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(3)].map((_, i) => (
+                    <Card key={i} className="animate-pulse">
+                        <CardHeader><Skeleton className="h-5 w-3/4" /><Skeleton className="h-4 w-1/2 mt-2" /></CardHeader>
+                        <CardFooter><Skeleton className="h-10 w-full" /></CardFooter>
+                    </Card>
+                ))}
+            </div>
+        ) : isError ? (
+            <div className="text-center py-10 text-destructive">
+                <p>Error loading patients: {error.message}</p>
+            </div>
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredPatients && filteredPatients.length > 0 ? (
+                    filteredPatients.map(patient => (
+                        <PatientStatusCard key={patient.id} patient={patient} />
+                    ))
+                ) : (
+                    <p className="md:col-span-3 text-center text-muted-foreground py-10">
+                        {searchTerm ? "No patients match your search." : "No patients are currently waiting for this course."}
+                    </p>
+                )}
+            </div>
+        )}
+      </section>
+    </div>
+  );
+}

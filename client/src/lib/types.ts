@@ -1,0 +1,1184 @@
+import type { BnfChapter, BnfPage } from './bnf-data';
+
+export interface ApiStaffMember {
+  id: string;
+  fname: string;
+  lname: string;
+  username: string;
+  email: string;
+  created_at: string;
+}
+
+export interface Attachment {
+  type: 'image' | 'document';
+  url: string; 
+  name: string;
+  file?: File;
+  id?: string;
+}
+
+export interface Message {
+  id: string;
+  from: 'student' | 'staff';
+  text: string;
+  time: string; 
+  avatar?: string;
+  attachments?: Attachment[];
+  readStatus?: 'Read' | 'Unread';
+}
+
+export interface Chat {
+  id:string;
+  userName: string;
+  userAvatar: string;
+  studentNumber?: string;
+  lastMessagePreview?: string;
+  lastMessageTime?: string; 
+  unreadCount?: number;
+}
+
+export type TicketStatus = 'Open' | 'In Progress' | 'Closed' | 'Snooze';
+export type TicketPriority = 'Low' | 'Medium' | 'High';
+export type TicketCategory = 'Course' | 'Payment' | 'Games' | 'Study Packs' | 'Recordings' | 'Assignments' | 'Quiz' | 'Exam' | 'Other' | 'Convocation' | 'Registration' | 'English Course' | 'Technical Issue';
+
+export interface Ticket {
+  id: string;
+  subject: string;
+  description: string;
+  priority: TicketPriority;
+  category: TicketCategory;
+  status: TicketStatus;
+  createdAt: string; 
+  updatedAt?: string; 
+  studentNumber: string;
+  studentName: string;
+  studentAvatar: string;
+  assignedTo?: string; 
+  assigneeAvatar?: string;
+  isLocked?: boolean;
+  lockedByStaffId?: string;
+  attachments?: Attachment[];
+  lastMessagePreview?: string;
+  rating?: number;
+}
+
+export interface UserProfile {
+  id: string;
+  username?: string;
+  name: string;
+  email: string;
+  role: 'student' | 'staff';
+  userlevel?: string; // e.g. "Admin", "Staff", "Student"
+  avatar: string;
+  joinedDate: string;
+  lastLogin?: string;
+}
+
+export interface PaymentRecord {
+  id: string;
+  userId: string;
+  userName: string;
+  amount: number;
+  currency: string;
+  date: string;
+  status: 'Completed' | 'Pending' | 'Failed';
+  description: string;
+}
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string;
+  email: string;
+}
+
+export interface Batch {
+  id: string;
+  name: string;
+  parent_course_id: string;
+  courseCode: string;
+  description: string;
+  duration: string;
+  fee: string;
+  registration_fee: string;
+  enroll_key: string;
+  course_img?: string | null;
+  certification?: string;
+  mini_description?: string;
+}
+
+export interface Recording {
+  id: string;
+  courseId: string;
+  title: string;
+  description: string;
+  youtubeUrl: string;
+  thumbnailUrl: string;
+  dataAiHint?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+}
+
+export type CreateTicketPayload = Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateTicketPayload = Partial<Ticket> & { id: string };
+
+export type CreateTicketMessageClientPayload = { 
+  from: 'student' | 'staff';
+  text: string;
+  attachments?: Attachment[];
+  time: string;
+  createdBy: string;
+};
+
+export type CreateChatMessageClientPayload = {
+  chatId: string;
+  from: 'student' | 'staff';
+  text: string;
+  attachments?: Attachment[];
+};
+
+export interface StudentSearchResult {
+  student_id: string;
+  full_name: string;
+}
+
+export interface UserFullDetails {
+  id: string;
+  student_id: string;
+  username: string;
+  civil_status: string;
+  first_name: string;
+  last_name: string;
+  gender: string;
+  address_line_1: string;
+  address_line_2: string;
+  city: string;
+  district: string;
+  postal_code: string;
+  telephone_1: string;
+  telephone_2: string;
+  nic: string;
+  e_mail: string;
+  birth_day: string;
+  updated_by: string;
+  updated_at: string;
+  full_name: string;
+  name_with_initials: string;
+  name_on_certificate: string;
+}
+
+export interface TempUser {
+  id: string;
+  email_address: string;
+  civil_status: string;
+  first_name: string;
+  last_name: string;
+  nic_number: string;
+  phone_number: string;
+  whatsapp_number: string;
+  address_l1: string;
+  address_l2: string;
+  city: string;
+  district: string;
+  postal_code: string;
+}
+
+
+export interface UpdateCertificateNamePayload {
+  student_number: string;
+  name_on_certificate: string;
+  updated_by: string;
+}
+
+export interface ConvocationRegistration {
+    registration_id: string;
+    reference_number: string;
+    student_number: string;
+    course_id: string;
+    package_id: string;
+    event_id: string | null;
+    payment_status: string;
+    payment_amount: string;
+    registration_status: string;
+    registered_at: string;
+    updated_at: string;
+    hash_value: string;
+    image_path: string;
+    additional_seats: string;
+    session: string;
+    ceremony_number: string;
+    certificate_print_status: string;
+    advanced_print_status: string;
+    certificate_id: string;
+    advanced_id: string;
+    convocation_id: string;
+    name_on_certificate: string;
+    telephone_1?: string;
+}
+
+export interface CertificateOrder {
+  id: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  course_code: string;
+  mobile: string;
+  address_line1: string;
+  address_line2: string;
+  city_id: string;
+  district: string;
+  type: string;
+  payment: string;
+  package_id: string;
+  certificate_id: string;
+  certificate_status: 'Pending' | 'Printed' | 'Delivered';
+  cod_amount: string;
+  is_active: string;
+  name_on_certificate: string;
+  telephone_1?: string;
+  print_status: string;
+  // New fields
+  garlent?: string;
+  scroll?: string;
+  certificate_file?: string;
+  payment_slip?: string | null;
+}
+
+export interface CreateCertificateOrderPayload {
+    created_by: string;
+    mobile: string;
+    address_line1: string;
+    address_line2?: string;
+    city_id: string;
+    district: string;
+    type: 'Delivery' | string;
+    payment_amount: string;
+    package_id: string;
+    certificate_id: string;
+    certificate_status: 'Pending' | string;
+    'course_id[]': string[];
+    is_active?: '1' | '0';
+    garlent?: '1';
+    scroll?: '1';
+    certificate_file?: '1';
+    payment_slip?: File;
+}
+
+export interface SendSmsPayload {
+  mobile: string;
+  studentNameOnCertificate: string;
+  studenNumber: string;
+}
+
+export interface ConvocationCourse {
+  id: string;
+  course_name: string;
+  course_code: string;
+}
+
+export interface FilteredConvocationRegistration {
+  registration_id: string;
+  reference_number: string;
+  student_number: string;
+  course_id: string;
+  ceremony_number: string;
+}
+
+export interface CeylonPharmacyInfo {
+    title: string;
+    userName: string;
+    recoveredCount: number;
+}
+
+export interface PharmaHunterInfo {
+    title: string;
+    userName: string;
+    correctCount: string;
+    pendingCount: number;
+    wrongCount: string;
+    gemCount: number;
+    coinCount: number;
+    ProgressValue: number;
+}
+
+export interface PharmaHunterProInfo {
+    "report-title": string;
+    studentNumber: string;
+    courseCode: string;
+    progressValue: number;
+    pendingCount: number;
+    correctCount: number;
+    gemCount: number;
+    coinCount: number;
+    results: {
+        progressPercentage: number;
+        pendingCount: number;
+        correctCount: number;
+        gemCount: number;
+        coinCount: number;
+    };
+}
+
+
+// --- Types for Find Student Page ---
+export interface StudentInfo {
+    id: string;
+    student_id: string;
+    username: string;
+    full_name: string;
+    name_with_initials: string;
+    name_on_certificate: string;
+    e_mail: string;
+    telephone_1: string;
+    telephone_2: string;
+    address_line_1: string;
+    address_line_2: string;
+    city: string;
+    district: string;
+    postal_code: string;
+    nic: string;
+    gender: string;
+}
+
+export interface ApiPaymentRecord {
+  id: string;
+  receipt_number: string;
+  course_code: string;
+  student_id: string;
+  paid_amount: string;
+  discount_amount: string;
+  payment_status: string;
+  payment_type: string;
+  paid_date: string;
+  created_at: string;
+  created_by: string;
+}
+
+export interface StudentBalance {
+    totalPaymentAmount: number;
+    TotalStudentPaymentRecords: number;
+    studentBalance: number;
+    TotalRegistrationFee: number;
+    paymentRecords: Record<string, ApiPaymentRecord>;
+}
+
+export interface AssignmentGrade {
+    assignment_id: string;
+    assignment_name: string;
+    grade: string;
+}
+
+export interface DeliveryOrder {
+  id: string;
+  delivery_id: string;
+  tracking_number: string;
+  order_date: string;
+  current_status: string;
+  delivery_title: string;
+  active_status: string;
+  order_recived_status?: 'Received' | 'Not Received' | null;
+  received_date?: string | null;
+  course_code?: string;
+}
+
+export interface CertificateRecord {
+    id: string;
+    certificate_id: string;
+    print_date: string;
+    print_status: string;
+    type: string;
+    course_code: string;
+    parent_course_id: string;
+}
+
+export interface CriteriaDetail {
+    id: string;
+    list_name: string;
+    moq: string;
+    evaluation: {
+        completed: boolean;
+        currentValue: number;
+        requiredValue: number;
+    };
+}
+
+export interface StudentEnrollment {
+    id: string;
+    course_code: string;
+    batch_name: string;
+    parent_course_name: string;
+    parent_course_id: string;
+    assignment_grades: {
+        assignments: AssignmentGrade[];
+        average_grade: string;
+    };
+    deliveryOrders: DeliveryOrder[];
+    certificateRecords: CertificateRecord[];
+    studentBalance: number;
+    certificate_eligibility: boolean;
+    criteria_details: CriteriaDetail[];
+    ceylon_pharmacy?: CeylonPharmacyInfo;
+    pharma_hunter?: PharmaHunterInfo;
+    pharma_hunter_pro?: PharmaHunterProInfo;
+}
+
+export interface FullStudentData {
+    studentInfo: StudentInfo;
+    studentBalance: StudentBalance;
+    studentEnrollments: Record<string, StudentEnrollment>;
+}
+// --- End Types for Find Student Page ---
+
+
+export interface UpdateConvocationCoursesPayload {
+  registrationId: string;
+  courseIds: number[];
+}
+
+export interface UpdateCertificateOrderCoursesPayload {
+  orderId: string;
+  courseCodes: string;
+}
+
+export interface UserCertificatePrintStatus {
+    id: string;
+    student_number: string;
+    certificate_id: string;
+    print_date: string;
+    print_status: "0" | "1";
+    print_by: string;
+    type: string;
+    course_code: string;
+    parent_course_id: string;
+}
+
+export interface GenerateCertificatePayload {
+  student_number: string;
+  print_status: string;
+  print_by: string;
+  type: string;
+  parentCourseCode: number;
+  referenceId: number;
+  course_code: string; 
+  source: string;
+}
+
+
+export interface StudentInBatch {
+    student_course_id: string;
+    course_code: string;
+    student_id: string;
+    username: string;
+    full_name: string;
+    address_line_1: string;
+    address_line_2: string;
+    city: string;
+    telephone_1: string;
+}
+
+export interface DeliverySetting {
+    id: string;
+    course_id: string;
+    delivery_title: string;
+    is_active: string;
+    icon: string;
+    value: string;
+}
+
+export interface CreateDeliveryOrderPayload {
+    studentNumber: string;
+    courseCode: string;
+    deliverySetting: DeliverySetting;
+    notes: string;
+    address: string;
+    fullName: string;
+    phone: string;
+    currentStatus: string;
+    trackingNumber?: string;
+}
+
+export interface ApiCourse {
+    id: string;
+    course_name: string;
+    parent_course_id: string;
+    course_code: string;
+    course_fee: string;
+    course_description: string;
+    course_duration: string;
+    registration_fee: string;
+    enroll_key: string;
+    course_img: string | null;
+    certification: string;
+    mini_description: string;
+    start_date?: string;
+    end_date?: string;
+}
+
+export interface ApiCourseResponse {
+    [courseCode: string]: ApiCourse;
+}
+
+export interface DeliveryOrderPayload {
+    delivery_id: string;
+    tracking_number: string;
+    index_number: string;
+    order_date: string;
+    packed_date: string | null;
+    send_date: string | null;
+    removed_date: string | null;
+    current_status: string;
+    delivery_partner: string;
+    value: string;
+    payment_method: string;
+    course_code: string;
+    estimate_delivery: string | null;
+    full_name: string;
+    street_address: string;
+    city: string;
+    district: string;
+    phone_1: string;
+    phone_2: string;
+    is_active: string;
+    received_date: string | null;
+    cod_amount: string;
+    package_weight: string;
+    delivery_title: string; 
+    notes?: string;
+}
+
+export interface PaymentRequest {
+    id: string;
+    unique_number: string;
+    number_type: "student_number" | "ref_number";
+    payment_reson: string;
+    paid_amount: string;
+    payment_reference: string;
+    bank: string;
+    branch: string;
+    slip_path: string;
+    paid_date: string; 
+    created_at: string; 
+    is_active: "1" | "0";
+    hash_value: string;
+    payment_status: "Pending" | "Approved" | "Rejected";
+}
+
+export interface StudentEnrollmentInfo {
+  student_course_id: string;
+  course_code: string;
+  student_id: string;
+  username: string;
+  full_name: string;
+  name_on_certificate: string;
+}
+
+export interface CreatePaymentPayload {
+  course_code: string;
+  student_id: string;
+  paid_amount: string;
+  discount_amount: string;
+  payment_status: 'Paid' | 'Pending' | 'Failed';
+  payment_type: string;
+  paid_date: string; // "YYYY-MM-DD"
+  created_by: string;
+}
+
+export interface StudentBalanceData {
+  title: string;
+  userName: string;
+  totalPaymentAmount: number;
+  TotalStudentPaymentRecords: number;
+  studentBalance: number;
+  TotalRegistrationFee: number;
+  paymentRecords: Record<string, ApiPaymentRecord>;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  createdAt: string;
+  imageUrl?: string;
+}
+
+export interface Book {
+  book_id: string;
+  book_name: string;
+  author: string;
+  created_by: string;
+  created_at: string;
+  update_by: string;
+  updated_at: string;
+}
+
+export interface CreateBookPayload {
+    book_name: string;
+    author: string;
+    created_by: string;
+    update_by: string;
+}
+
+export interface Chapter {
+  chapter_id: string;
+  book_id: string;
+  chapter_number: string;
+  chapter_title: string;
+  created_at: string;
+  update_by: string;
+  updated_at: string;
+  created_by: string;
+}
+
+export interface CreateChapterPayload {
+    book_id: string;
+    chapter_number: string;
+    chapter_title: string;
+    created_by: string;
+    update_by: string;
+}
+
+export interface UpdateChapterPayload extends Partial<Omit<CreateChapterPayload, 'created_by'>> {
+  book_id: string;
+}
+
+export interface Section {
+  section_id: string;
+  chapter_id: string;
+  section_order: string;
+  section_heading: string;
+  created_at: string;
+  update_by: string;
+  updated_at: string;
+  created_by: string;
+}
+
+export interface CreateSectionPayload {
+  chapter_id: string;
+  section_order: string;
+  section_heading: string;
+  created_by: string;
+  update_by: string;
+}
+
+export interface UpdateSectionPayload extends Partial<Omit<CreateSectionPayload, 'created_by'>> {}
+
+export interface PageContent {
+    pege_entry_id: string;
+    book_id: string;
+    chapter_id: string;
+    section_id: string;
+    page_number: string;
+    content_order: string;
+    page_type: 'text' | 'image';
+    page_content_text: string | null;
+    image_url: string | null;
+    keywords: string;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CreatePagePayload {
+    book_id: string;
+    chapter_id: string;
+    section_id: string;
+    page_number: string;
+    content_order: string;
+    page_type: 'text' | 'image';
+    page_content_text?: string | null;
+    image_file?: File | null;
+    keywords?: string;
+    created_by: string;
+}
+
+export interface UpdatePagePayload extends Partial<Omit<CreatePagePayload, 'created_by' | 'image_file'>> {
+    image_file?: File | null;
+}
+
+
+export interface ParentCourseListItem {
+    id: string;
+    course_name: string;
+}
+
+export interface ParentCourse {
+    id: string;
+    course_name: string;
+    course_code: string;
+    instructor_id: string | null;
+    course_duration: string | null;
+    course_fee: string | null;
+    registration_fee: string | null;
+    course_img: string | null;
+    mini_description: string | null;
+    course_description: string | null;
+    certification: string | null;
+    lecture_count: string | null;
+    hours_per_lecture: string | null;
+    assessments: string | null;
+    language: string | null;
+    quizzes: string | null;
+    skill_level: string | null;
+    head_count: string | null;
+    course_mode: string | null;
+    is_active: string;
+    created_at: string;
+    updated_at: string;
+    slug: string | null;
+    criteria_list: string | null;
+}
+
+export interface Course {
+  id: string;
+  name: string;
+  courseCode: string;
+}
+
+export interface BnfWordIndexEntry {
+  keyword: string;
+  page_number: string;
+}
+
+// Sentence Builder Game Types
+export interface Sentence {
+  id: number;
+  level_id: number;
+  correct_sentence: string;
+  hint: string;
+  translation: string;
+  words?: string[];
+}
+
+export interface GameLevel {
+  id: number;
+  level_number: number;
+  pattern: string;
+  sentences: Sentence[];
+}
+
+export interface StudentAnswerPayload {
+  student_number: string;
+  sentence_id: number;
+  submitted_answer: string;
+  is_correct: boolean;
+  score_awarded: number;
+}
+
+export interface StudentAnswer {
+    id: string;
+    student_number: string;
+    sentence_id: string;
+    submitted_answer: string;
+    is_correct: '1' | '0';
+    score_awarded: string;
+    submitted_at: string;
+}
+
+// MediMind Game Types
+export interface MediMindItem {
+  id: string;
+  medicine_name: string;
+  medicine_image_url: string;
+  created_at: string;
+  created_by: string;
+}
+
+export interface MediMindLevel {
+  id: string;
+  level_name: string;
+  created_at: string;
+  created_by: string;
+}
+
+export interface MediMindQuestion {
+  id: string;
+  question: string;
+  created_at: string;
+  created_by: string;
+}
+
+export interface MediMindAnswer {
+  id: string;
+  question_id: string;
+  answer: string;
+  created_by: string;
+  created_at: string;
+  question?: string;
+}
+
+export interface MediMindLevelQuestion {
+  id: string;
+  level_id: string;
+  question_id: string;
+  level_name: string;
+  question: string;
+}
+
+export interface MediMindMedicineAnswer {
+  id: string;
+  medicine_id: string;
+  question_id: string;
+  answer_id: string;
+  created_at: string;
+  created_by: string;
+  medicine_name?: string | null;
+  question?: string;
+  answer?: string;
+}
+
+export interface MediMindLevelMedicine {
+  id: string;
+  level_id: string;
+  medicine_id: string;
+  created_at: string;
+  created_by: string;
+  level_name?: string;
+  medicine_name?: string;
+}
+
+export interface MediMindStudentAnswer {
+  id: string;
+  medicine_id: string;
+  question_id: string;
+  answer_id: string;
+  correct_status: 'Correct' | 'Wrong';
+  created_by: string;
+  created_at: string;
+  medicine_name?: string | null;
+  question?: string;
+  answer?: string;
+}
+
+export interface MediMindStudentStats {
+  correct_count: number;
+  wrong_count: number;
+  total_count: number;
+}
+
+export interface ConvocationCeremony {
+    id: string;
+    convocation_name: string;
+    held_on: string;
+    session_count: string;
+    parent_seats: string;
+    student_seats: string;
+    session_2: string;
+    created_by: string;
+    created_at: string;
+    accept_booking: string;
+}
+
+export interface ConvocationPackage {
+    package_id: string;
+    package_name: string;
+    description: string | null;
+    price: string;
+    parent_seat_count: string;
+    student_seat: '0' | '1';
+    vip_seat: string;
+    garland: '0' | '1';
+    scroll: '0' | '1';
+    graduation_cloth: '0' | '1';
+    certificate_file: '0' | '1';
+    photo_package: '0' | '1';
+    video_360: '0' | '1';
+    refreshments: '0' | '1';
+    is_active: '0' | '1';
+    created_at: string;
+    updated_at: string;
+    course_list: string;
+    cover_image: string;
+    convocation_id: string;
+}
+    
+export interface CreateConvocationRegistrationPayload {
+    student_number: string;
+    course_id: string; // Comma-separated parent course IDs
+    package_id: string;
+    convocation_id: string;
+    payment_amount: string;
+    additional_seats: string;
+    session: '1' | '2';
+    image: File; // The payment slip
+    name_on_certificate: string;
+    telephone_1: string;
+}
+
+export interface SessionCount {
+    session: '1' | '2';
+    sessionCounts: string;
+}
+
+
+// Ceylon Pharmacy Game Types
+export interface GamePatient {
+  id: string;
+  prescription_id: string;
+  prescription_name: string;
+  prescription_status: string;
+  created_at: string;
+  created_by: string;
+  Pres_Name: string;
+  pres_date: string;
+  Pres_Age: string;
+  Pres_Method: string;
+  doctor_name: string;
+  notes: string;
+  patient_description: string;
+  address: string;
+  start_data: TreatmentStartRecord | null;
+}
+
+export interface PrescriptionDetail {
+  id: string;
+  pres_code: string;
+  cover_id: string;
+  content: string;
+  status: string;
+  pres_name?: string;
+  pres_date?: string;
+}
+
+export interface DispensingAnswer {
+  answer_id: string;
+  pres_id: string;
+  cover_id: string;
+  date: string;
+  name: string;
+  drug_name: string;
+  drug_type: string;
+  drug_qty: string;
+  morning_qty: string;
+  afternoon_qty: string;
+  evening_qty: string;
+  night_qty: string;
+  meal_type: string;
+  using_type: string;
+  additional_description: string;
+  created_by: string;
+  at_a_time: string;
+  hour_qty: string | null;
+}
+
+export interface FormSelectionData {
+    name: string[];
+    drug_name: string[];
+    drug_qty: string[];
+    drug_type: string[];
+    meal_type: string[];
+    using_type: string[];
+    additional_description: string[];
+    at_a_time: string[];
+    hour_qty: string[];
+}
+
+export interface TreatmentStartRecord {
+    id: string;
+    student_id: string;
+    PresCode: string;
+    time: string; // "HH:mm:ss"
+    created_at: string; // "YYYY-MM-DD HH:mm:ss"
+    patient_status: 'Pending' | 'Recovered' | 'Dead';
+}
+
+export interface ValidateAnswerPayload {
+  created_by: string;
+  user_level: string;
+  pres_id: string;
+  cover_id: string;
+  date: string;
+  name: string;
+  drug_name: string;
+  drug_type: string;
+  drug_qty: string;
+  morning_qty: string;
+  afternoon_qty: string;
+  evening_qty: string;
+  night_qty: string;
+  meal_type: string;
+  using_type: string;
+  at_a_time: string;
+  hour_qty: string | null;
+  additional_description: string;
+}
+
+export interface ValidateAnswerResponse {
+    answer_status: 'Correct' | 'In-Correct';
+    incorrect_values: string[];
+}
+
+export interface Instruction {
+    id: string;
+    instruction: string;
+    created_by?: string;
+    content: string; // This seems to hold the instruction ID for shuffled results
+}
+
+export interface SaveCounselingAnswerPayload {
+  LoggedUser: string;
+  PresCode: string;
+  Instruction: string;
+  CoverCode: string;
+  ans_status: 'Correct' | 'Incorrect';
+}
+
+export interface DispensingSubmissionStatus {
+    answer_id: string | null;
+    error?: string;
+}
+
+
+export interface MasterProduct {
+  product_id: string;
+  product_code: string;
+  ProductName: string;
+  DisplayName: string;
+  PrintName: string;
+  SectionID: number;
+  DepartmentID: number;
+  CategoryID: number;
+  BrandId: number;
+  UOMeasurement: string;
+  ReOderLevel: number;
+  LeadDays: number;
+  CostPrice: string;
+  SellingPrice: string;
+  MinimumPrice: string;
+  WholesalePrice: string;
+  ItemType: string;
+  ItemLocation: string;
+  ImagePath: string | null;
+  CreatedBy: string;
+  CreatedAt: string;
+  active_status: string;
+  GenericID: number;
+  Pos_Category: string;
+}
+
+export interface POSCorrectAnswer {
+  id: string;
+  PresCode: string;
+  value: string;
+  created_at: string;
+}
+
+export interface POSSubmissionPayload {
+  student_id: string;
+  PresCode: string;
+  answer: string;
+  created_at: string;
+  ans_status: 'Answer Correct' | 'Answer Incorrect';
+}
+
+export interface POSSubmissionStatus {
+  id: string;
+  student_id: string;
+  PresCode: string;
+  answer: string;
+  created_at: string;
+  ans_status: string;
+}
+
+export interface RecoveryRecord {
+    id: string;
+    student_number: string;
+    patient_id: string;
+    created_at: string;
+}
+
+export interface PrescriptionSubmissionPayload {
+  prescription_name: string;
+  prescription_status: string;
+  created_at: string;
+  created_by: string;
+  Pres_Name: string;
+  pres_date: string;
+  Pres_Age: number;
+  Pres_Method: string;
+  doctor_name: string;
+  notes: string;
+  patient_description: string;
+  address: string;
+}
+
+export interface TcPaymentRecord {
+    id: string;
+    transaction_id: string;
+    rec_time: string;
+    reference: string;
+    ref_id: string;
+    created_by: string;
+    created_at: string;
+    student_number: string;
+    transaction_type: string;
+    reference_key: string;
+    record_status: string;
+    payment_amount: string;
+}
+
+export interface GeneratedCertificateBatchInfo {
+    student_number: string;
+    full_name: string;
+    name_on_certificate: string;
+    course_code: string;
+    document_type: string;
+    print_status: string;
+    certificate_id: string;
+    enrollment_key: string;
+}
+
+// WinPharma Game Types
+export interface WinPharmaLevel {
+  id: string;
+  level_id?: string;
+  course_code: string;
+  level_name: string;
+  is_active: number;
+  created_at: string;
+  created_by: string;
+}
+
+
+
+export interface WinPharmaTask {
+  id?: string; // Keep for compatibility if needed elsewhere
+  resource_id: string;
+  level_id: string;
+  resource_title: string;
+  resource_data: string; // Can be HTML string
+  task_cover?: string;
+  video_url?: string;
+  is_active: string | number;
+  created_at?: string;
+  created_by: string;
+  level_name?: string;
+}
+export interface WinPharmaSubmission {
+  submission_id?: string | number;
+  id?: string | number;
+  index_number: string;
+  level_id: string | number;
+  resource_id: string | number;
+  submission: string; // URL or filename
+  course_code: string;
+  date_time: string;
+  attempt: number;
+  grade_status: string; // "Pending", "Completed", etc.
+  payment_status: string;
+}
+
+export interface WinPharmaSubmissionResults {
+  success: boolean;
+  data: {
+    UserName: string;
+    winpharmaCurrentTopLevel: number;
+    gradePercentage: number;
+    submissionCount: number;
+    taskCounts: Record<string, {
+      levelTasks: number;
+      levelTaskSubmissions: number;
+    }>;
+  };
+}

@@ -1,0 +1,3 @@
+Dear Student ({{STUDENT_NUMBER}}),
+Your certificate is ready to print. Name on certificate: {{NAME_ON_CERTIFICATE}}.
+Thank You!

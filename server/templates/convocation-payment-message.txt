@@ -1,0 +1,12 @@
+Hello [STUDENT_NAME],
+
+We are pleased to inform you that your convocation payment of LKR [PAYMENT_AMOUNT] has been successfully approved.
+
+Reference Number: REF-[REFERENCE_NUMBER]
+Receipt Number: REC-[RECEIPT_NUMBER]
+
+You will receive further instructions regarding the convocation ceremony soon.
+
+Thank you,
+Ceylon Pharma College
+www.pharmacollege.lk

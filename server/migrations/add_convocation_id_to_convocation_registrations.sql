@@ -1,0 +1,1 @@
+ALTER TABLE `convocation_registrations` ADD `convocation_id` INT NULL;

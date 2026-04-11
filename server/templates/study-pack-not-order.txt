@@ -1,0 +1,6 @@
+Dear {{FIRST_NAME}},
+You have not yet ordered your study pack.
+
+Order now via: https://lms.pharmacollege.lk
+
+Ceylon Pharma College

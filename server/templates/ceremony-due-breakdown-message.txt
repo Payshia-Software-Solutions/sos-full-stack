@@ -1,0 +1,8 @@
+Dear {{FIRST_NAME}},
+Your Ceremony Number is not processed due to unpaid balances:
+Course: Rs. {{COURSE_BALANCE}}
+Convocation: Rs. {{CONVOCATION_BALANCE}}
+Total: Rs. {{TOTAL_DUE}}
+
+Please complete payment.
+-Ceylon Pharma College

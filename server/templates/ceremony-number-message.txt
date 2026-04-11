@@ -1,0 +1,5 @@
+Dear {{FIRST_NAME}},
+Your ceremony registration was successfully completed.
+Ceremony No: {{CEREMONY_NUMBER}}
+
+-Ceylon Pharma College

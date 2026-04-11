@@ -1,0 +1,1 @@
+ALTER TABLE `packages` ADD `convocation_id` INT NULL;

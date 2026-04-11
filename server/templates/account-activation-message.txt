@@ -1,0 +1,10 @@
+Dear {{FIRST_NAME}},
+
+You have been successfully enrolled in {{COURSE_NAME}}.
+Index No: {{GENERATED_USER_NAME}}
+Temporary Password: {{TEMP_PASSWORD}}
+
+Login here: https://lms.pharmacollege.lk/login?UserName={{GENERATED_USER_NAME}}&TempPassword={{TEMP_PASSWORD}}
+
+Ceylon Pharma College
+www.pharmacollege.lk
