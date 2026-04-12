@@ -10,10 +10,22 @@ class WinPharmaSubmission
         $this->pdo = $pdo;
     }
 
-    public function getAllWinPharmaSubmissions()
+    public function getAllWinPharmaSubmissions($course_code = null)
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM `win_pharma_submission`");
-        $stmt->execute();
+        $sql = "SELECT s.*, r.resource_title 
+                FROM `win_pharma_submission` s
+                LEFT JOIN `win_pharma_level_resources` r ON s.resource_id = r.resource_id";
+        
+        $params = [];
+        if ($course_code) {
+            $sql .= " WHERE s.course_code = ?";
+            $params[] = $course_code;
+        }
+
+        $sql .= " ORDER BY s.submission_id DESC";
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -257,25 +269,32 @@ class WinPharmaSubmission
 
     public function updateWinPharmaSubmission($id, $data)
     {
-        $stmt = $this->pdo->prepare("UPDATE `win_pharma_submission` SET `submission_id` = ?, `index_number` = ?, `level_id` = ?, `resource_id`= ?, `submission` = ?, `grade` = ?, `grade_status` = ?, `date_time` = ?, `attempt` = ?, `course_code` = ?, `reason` = ?, `update_by` = ?, `update_at` = ?, `recorrection_count` = ?, `payment_status` = ? WHERE `submission_id` = ?");
-        $stmt->execute([
-            $data['submission_id'],
-            $data['index_number'],
-            $data['level_id'],
-            $data['resource_id'],
-            $data['submission'],
-            $data['grade'],
-            $data['grade_status'],
-            $data['date_time'],
-            $data['attempt'],
-            $data['course_code'],
-            $data['reason'],
-            $data['update_by'],
-            $data['update_at'],
-            $data['recorrection_count'],
-            $data['payment_status'],
-            $id
-        ]);
+        // Only update fields that are provided in the $data array
+        $fields = [];
+        $params = [];
+        
+        $updatableFields = [
+            'grade', 'grade_status', 'reason', 'update_by', 'update_at', 
+            'submission', 'index_number', 'level_id', 'resource_id', 
+            'date_time', 'attempt', 'course_code', 'recorrection_count', 'payment_status'
+        ];
+
+        foreach ($updatableFields as $field) {
+            if (isset($data[$field])) {
+                $fields[] = "`$field` = ?";
+                $params[] = $data[$field];
+            }
+        }
+
+        if (empty($fields)) {
+            return false;
+        }
+
+        $params[] = $id;
+        $sql = "UPDATE `win_pharma_submission` SET " . implode(', ', $fields) . " WHERE `submission_id` = ?";
+        
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute($params);
     }
 
     public function deleteWinPharmaSubmission($id)

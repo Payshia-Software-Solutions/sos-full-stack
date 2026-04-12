@@ -37,9 +37,10 @@ import {
     getWinPharmaTasks, 
     getWinPharmaLevelsOfficial, 
     createWinPharmaSubmission, 
+    updateWinPharmaSubmission,
     getWinPharmaSubmissions,
     getWinPharmaSubmissionResults,
-    getWinPharmaCommonReason,
+    getWinpharmaCommonReasons,
     QA_API_BASE_URL
 } from "@/lib/actions/games";
 import type { WinPharmaTask, WinPharmaLevel, WinPharmaSubmission, WinPharmaSubmissionResults } from "@/lib/types";
@@ -72,12 +73,13 @@ export default function WinPharmaTaskDetailPage() {
     const [selectedCourseCode, setSelectedCourseCode] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     
-    // Preview States
+    // Preview & Feedback States
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isModalPreviewOpen, setIsModalPreviewOpen] = useState(false);
     const [modalPreviewSrc, setModalPreviewSrc] = useState<string | null>(null);
     const [modalPreviewType, setModalPreviewType] = useState<'image' | 'pdf' | 'video' | null>(null);
+    const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
     useEffect(() => {
         const storedCourseCode = localStorage.getItem('selected_course');
@@ -135,12 +137,31 @@ export default function WinPharmaTaskDetailPage() {
         return unitSubmissions[0] || null;
     }, [allStudentSubmissions, taskId]);
 
-    // Fetch common reason if rejected
-    const { data: commonReason } = useQuery({
-        queryKey: ['winPharmaCommonReason', currentSubmission?.reason],
-        queryFn: () => getWinPharmaCommonReason(currentSubmission!.reason),
-        enabled: !!currentSubmission?.reason && currentSubmission.grade_status === 'Try Again' && !isNaN(Number(currentSubmission.reason))
+    // Fetch all common reasons to map the IDs properly
+    const { data: commonReasonsList = [] } = useQuery({
+        queryKey: ['winpharmaCommonReasons'],
+        queryFn: () => getWinpharmaCommonReasons().then(res => res || []),
     });
+
+    const parsedFeedback = useMemo(() => {
+        if (!currentSubmission?.reason || currentSubmission.grade_status !== 'Try Again') return [];
+        
+        const rawReason = currentSubmission.reason;
+        const mappedReasons: string[] = [];
+        
+        const potentialIds = rawReason.split(',').map(s => s.trim()).filter(s => /^\d+$/.test(s));
+        
+        if (potentialIds.length > 0 && commonReasonsList.length > 0) {
+            potentialIds.forEach(id => {
+                const found = commonReasonsList.find((r: any) => String(r.id) === id);
+                if (found) mappedReasons.push(found.reason);
+            });
+        } else if (rawReason.length > 0 && potentialIds.length === 0) {
+            mappedReasons.push(rawReason);
+        }
+        
+        return mappedReasons;
+    }, [currentSubmission, commonReasonsList]);
 
     const activeTasks = useMemo(() => tasks.filter(t => Number(t.is_active) === 1), [tasks]);
     const task = useMemo(() => activeTasks.find(t => String(t.resource_id || t.id) === taskId), [activeTasks, taskId]);
@@ -202,6 +223,36 @@ export default function WinPharmaTaskDetailPage() {
         submissionMutation.mutate(formData);
     };
 
+    const submissionUpdateMutation = useMutation({
+        mutationFn: ({ id, formData }: { id: string | number, formData: FormData }) => updateWinPharmaSubmission(id, formData),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['winPharmaSubmissions', user?.username, selectedCourseCode] });
+            queryClient.invalidateQueries({ queryKey: ['winPharmaResults', user?.username, selectedCourseCode] });
+            setIsUploading(false);
+            toast({ title: "Status Updated", description: "Your submission has been flagged for re-correction." });
+        },
+        onError: (error: any) => {
+            setIsUploading(false);
+            toast({ variant: "destructive", title: "Error", description: error.message });
+        }
+    });
+
+    const requestRecorrection = () => {
+        if (!currentSubmission || !user?.username || !selectedCourseCode) return;
+        setIsUploading(true);
+        const formData = new FormData();
+        
+        // We only need to overwrite the state for the server on the existing row.
+        formData.append('grade_status', 'Re-Correction');
+        formData.append('update_by', user.username);
+        formData.append('update_at', new Date().toISOString().slice(0, 19).replace('T', ' '));
+        
+        submissionUpdateMutation.mutate({ 
+            id: currentSubmission.submission_id || currentSubmission.id!, 
+            formData 
+        });
+    };
+
     const cancelSelection = () => {
         setSelectedFile(null);
         if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -248,81 +299,94 @@ export default function WinPharmaTaskDetailPage() {
     const isVideo = task.resource_data.toLowerCase().includes('youtube') || task.resource_data.toLowerCase().includes('iframe') || !!helpVideoUrl;
 
     return (
-        <div className="p-4 md:p-8 space-y-8 pb-32 animate-in fade-in duration-700">
-            <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
-                <div className="flex flex-col gap-5">
-                    <Button onClick={() => router.push(`/dashboard/winpharma/${levelId}`)} variant="ghost" className="h-12 hover:bg-primary/10 rounded-full group">
-                        <ArrowLeft className="mr-2 h-6 w-6 group-hover:-translate-x-1" /> <span className="font-black uppercase tracking-widest text-[10px]">Back to Level</span>
+        <div className="p-3 md:p-8 space-y-6 md:space-y-8 pb-32 animate-in fade-in duration-700">
+            <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 md:gap-8">
+                <div className="flex flex-col gap-3 md:gap-5">
+                    <Button onClick={() => router.push(`/dashboard/winpharma/${levelId}`)} variant="ghost" className="h-10 md:h-12 hover:bg-primary/10 rounded-full group self-start">
+                        <ArrowLeft className="mr-2 h-5 w-5 md:h-6 md:w-6 group-hover:-translate-x-1" /> <span className="font-black uppercase tracking-widest text-[10px]">Back</span>
                     </Button>
-                    <div className="flex items-center gap-6">
-                        <div className="h-16 w-16 bg-primary text-white rounded-[1.5rem] flex items-center justify-center text-3xl font-black">{isVideo ? <Video className="h-8 w-8" /> : <FileText className="h-8 w-8" />}</div>
-                        <div><h1 className="text-5xl font-black tracking-tighter mb-2">{task.resource_title}</h1>{getStatusBadge(currentSubmission?.grade_status)}</div>
+                    <div className="flex items-center gap-3 md:gap-6">
+                        <div className="h-12 w-12 md:h-16 md:w-16 bg-primary text-white rounded-[1rem] md:rounded-[1.5rem] flex items-center justify-center text-xl md:text-3xl font-black">{isVideo ? <Video className="h-6 w-6 md:h-8 md:w-8" /> : <FileText className="h-6 w-6 md:h-8 md:w-8" />}</div>
+                        <div><h1 className="text-2xl md:text-5xl font-black tracking-tighter mb-1 md:mb-2 leading-none">{task.resource_title}</h1>{getStatusBadge(currentSubmission?.grade_status)}</div>
                     </div>
                 </div>
-                <div className="flex items-center gap-4">
-                    {prevTask && <Button onClick={() => router.push(`/dashboard/winpharma/${levelId}/${prevTask.resource_id || prevTask.id}`)} variant="outline" className="h-14 w-14 rounded-2xl"><ChevronLeft className="h-6 w-6" /></Button>}
-                    {nextTask && <Button onClick={() => router.push(`/dashboard/winpharma/${levelId}/${nextTask.resource_id || nextTask.id}`)} variant="outline" className="h-14 w-14 rounded-2xl"><ChevronRight className="h-6 w-6" /></Button>}
+                <div className="flex items-center gap-2 md:gap-4 ml-auto lg:ml-0 mt-4 lg:mt-0">
+                    {prevTask && <Button onClick={() => router.push(`/dashboard/winpharma/${levelId}/${prevTask.resource_id || prevTask.id}`)} variant="outline" className="h-10 w-10 md:h-14 md:w-14 rounded-xl md:rounded-2xl"><ChevronLeft className="h-5 w-5 md:h-6 md:w-6" /></Button>}
+                    {nextTask && <Button onClick={() => router.push(`/dashboard/winpharma/${levelId}/${nextTask.resource_id || nextTask.id}`)} variant="outline" className="h-10 w-10 md:h-14 md:w-14 rounded-xl md:rounded-2xl"><ChevronRight className="h-5 w-5 md:h-6 md:w-6" /></Button>}
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-12">
-                <div className="min-w-0 space-y-10">
-                    <Card className="border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-white dark:bg-zinc-900 ring-1 ring-black/5">
-                        {task.task_cover && (
-                            <div className="relative aspect-video lg:aspect-[21/9] w-full group overflow-hidden border-b-2 border-primary/5">
-                                <Image 
-                                    src={`${CONTENT_PROVIDER_BASE_URL}/${task.task_cover}`} 
-                                    alt="Task Cover" 
-                                    layout="fill" 
-                                    objectFit="cover" 
-                                    className="transition-transform duration-1000 group-hover:scale-105"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-10">
-                                    <div className="space-y-2">
-                                        <Badge className="bg-white/20 backdrop-blur-md text-white border-white/30 uppercase text-[10px] font-black">Visual Reference</Badge>
-                                        <h2 className="text-3xl font-black text-white drop-shadow-lg">{task.resource_title}</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6 md:gap-12">
+                <div className="min-w-0 space-y-6 md:space-y-10">
+                    <Card className="border-none shadow-2xl rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden bg-white dark:bg-zinc-900 ring-1 ring-black/5">
+                        <div className="p-4 md:p-10 space-y-6 md:space-y-8">
+                            {task.task_cover && task.task_cover !== 'null' && task.task_cover.trim() !== '' && (
+                                <div className="space-y-4">
+                                    <Badge className="bg-primary/10 text-primary border-primary/20 uppercase text-[10px] font-black px-4 py-1">Main Task Reference</Badge>
+                                    <div className="relative w-full group overflow-hidden rounded-[1.5rem] md:rounded-[2rem] border-4 border-primary/5 shadow-2xl">
+                                        <div className="relative aspect-auto min-h-[200px] md:min-h-[400px]">
+                                            <Image 
+                                                src={`${CONTENT_PROVIDER_BASE_URL}/${task.task_cover}`} 
+                                                alt="Task Cover" 
+                                                width={1920}
+                                                height={1080}
+                                                className="w-full h-auto object-contain transition-transform duration-1000 group-hover:scale-[1.02]"
+                                            />
+                                        </div>
+                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 md:p-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                            <h2 className="text-xl md:text-3xl font-black text-white drop-shadow-lg">{task.resource_title}</h2>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
-                        <div className="p-10 md:p-14">
+                            )}
+
                             {helpVideoUrl && (
-                                <div className="mb-10 flex justify-center">
-                                    <Button 
-                                        onClick={() => openPreviewModal(helpVideoUrl, 'video')} 
-                                        className="h-16 px-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-500/20 group"
-                                    >
-                                        <Video className="h-6 w-6 mr-3 transition-transform group-hover:scale-125" /> 
-                                        Watch Helping Video
-                                    </Button>
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 bg-indigo-600/10 text-indigo-600 rounded-xl flex items-center justify-center">
+                                            <Video className="h-5 w-5" />
+                                        </div>
+                                        <h3 className="text-xl font-black uppercase tracking-tight">Helping Video</h3>
+                                    </div>
+                                    <div className="relative aspect-video w-full rounded-[2.5rem] overflow-hidden shadow-2xl ring-1 ring-black/5">
+                                        <iframe
+                                            src={getEmbedUrl(helpVideoUrl)}
+                                            className="absolute inset-0 w-full h-full border-none"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                            allowFullScreen
+                                        />
+                                    </div>
                                 </div>
                             )}
 
                             {task.resource_data && task.resource_data.trim() !== "" ? (
-                                <div className="prose prose-xl dark:prose-invert max-w-none winpharma-content font-medium leading-relaxed">
-                                    {parse(task.resource_data)}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
+                                            <FileText className="h-5 w-5" />
+                                        </div>
+                                        <h3 className="text-lg md:text-xl font-black uppercase tracking-tight">Additional Instructions</h3>
+                                    </div>
+                                    <div className="prose md:prose-xl dark:prose-invert max-w-none winpharma-content font-medium leading-relaxed bg-primary/5 p-6 md:p-10 rounded-[1.5rem] md:rounded-[2.5rem] border border-primary/10">
+                                        {parse(task.resource_data)}
+                                    </div>
                                 </div>
-                            ) : (
-                                <div className="py-20 text-center space-y-4 opacity-40">
-                                    <FileQuestion className="h-16 w-16 mx-auto" />
-                                    <p className="text-sm font-black uppercase tracking-[0.3em]">Module Content Not Available</p>
-                                </div>
-                            )}
+                            ) : null}
                         </div>
                     </Card>
                 </div>
                 
-                <aside className="space-y-10 sticky top-10 self-start">
-                    <Card className="border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-gradient-to-br from-primary/5 to-primary/10">
-                        <div className="p-10 space-y-8">
-                            <h3 className="text-2xl font-black uppercase">Submission</h3>
+                <aside className="space-y-6 md:space-y-10 sticky top-4 md:top-10 self-start">
+                    <Card className="border-none shadow-2xl rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden bg-gradient-to-br from-primary/5 to-primary/10">
+                        <div className="p-6 md:p-10 space-y-6 md:space-y-8">
+                            <h3 className="text-xl md:text-2xl font-black uppercase">Submission</h3>
                             {selectedFile ? (
-                                <div className="space-y-6">
-                                    <div className="bg-background/90 p-8 rounded-[2.5rem] border-4 border-primary/20 shadow-2xl relative cursor-pointer" onClick={() => openPreviewModal(previewUrl || '', selectedFile.type === 'application/pdf' ? 'pdf' : 'image')}>
-                                        {selectedFile.type.startsWith('image/') ? <img src={previewUrl!} className="w-full h-48 object-cover rounded-xl" /> : <div className="h-32 flex flex-col items-center justify-center p-4 bg-muted/20 rounded-2xl"><FileText className="h-12 w-12 text-primary" /><p className="text-xs mt-2 font-bold">{selectedFile.name}</p></div>}
-                                        <Badge className="bg-primary text-white font-black absolute -top-4 right-4">Click to Preview</Badge>
+                                <div className="space-y-4 md:space-y-6">
+                                    <div className="bg-background/90 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border-4 border-primary/20 shadow-2xl relative cursor-pointer" onClick={() => openPreviewModal(previewUrl || '', selectedFile.type === 'application/pdf' ? 'pdf' : 'image')}>
+                                        {selectedFile.type.startsWith('image/') ? <img src={previewUrl!} className="w-full h-32 md:h-48 object-cover rounded-xl" /> : <div className="h-24 md:h-32 flex flex-col items-center justify-center p-4 bg-muted/20 rounded-2xl"><FileText className="h-8 w-8 md:h-12 md:w-12 text-primary" /><p className="text-[10px] md:text-xs mt-2 font-bold max-w-[90%] truncate">{selectedFile.name}</p></div>}
+                                        <Badge className="bg-primary text-white font-black absolute -top-3 md:-top-4 right-2 md:right-4 text-[9px] md:text-xs">Preview</Badge>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4"><Button variant="outline" onClick={cancelSelection} className="h-16 rounded-2xl"><Trash2 className="h-4 w-4 mr-2" /> Discard</Button><Button onClick={confirmSubmission} disabled={isUploading} className="h-16 rounded-2xl bg-primary text-white font-black shadow-xl">{isUploading ? <RefreshCw className="h-5 w-5 animate-spin" /> : 'Confirm & Send'}</Button></div>
+                                    <div className="grid grid-cols-2 gap-2 md:gap-4"><Button variant="outline" onClick={cancelSelection} className="h-12 md:h-16 rounded-xl md:rounded-2xl text-[10px] md:text-sm"><Trash2 className="h-4 w-4 mr-1 md:mr-2" /> Discard</Button><Button onClick={confirmSubmission} disabled={isUploading} className="h-12 md:h-16 rounded-xl md:rounded-2xl bg-primary text-white font-black shadow-xl text-[10px] md:text-sm">{isUploading ? <RefreshCw className="h-4 w-4 md:h-5 md:w-5 animate-spin" /> : 'Confirm'}</Button></div>
                                 </div>
                             ) : currentSubmission ? (
                                 <div className="space-y-6">
@@ -340,23 +404,44 @@ export default function WinPharmaTaskDetailPage() {
                                         
                                         {currentSubmission.grade_status === 'Try Again' ? (
                                             <div className="space-y-4 mt-4">
-                                                {commonReason && (
+                                                {parsedFeedback.length > 0 && (
                                                     <Alert className="rounded-2xl border-2 border-destructive bg-destructive/10 text-destructive-foreground animate-in slide-in-from-top-2 duration-500 shadow-xl overflow-hidden">
                                                         <div className="absolute top-0 left-0 w-2 h-full bg-destructive" />
                                                         <ShieldAlert className="h-5 w-5 text-destructive" />
                                                         <div className="ml-2">
                                                             <AlertTitle className="font-black uppercase text-[10px] tracking-[0.2em] mb-3 text-destructive">Correction Required</AlertTitle>
-                                                            <AlertDescription className="text-sm font-bold leading-relaxed text-zinc-900 dark:text-zinc-100 bg-white/50 dark:bg-black/20 p-4 rounded-xl border border-destructive/10">
-                                                                {commonReason.reason}
+                                                            <AlertDescription className="text-sm font-bold leading-relaxed text-zinc-900 dark:text-zinc-100 bg-white/50 dark:bg-black/20 p-5 rounded-xl border border-destructive/10">
+                                                                <p className="mb-4">Your submission requires corrections. Please review the specific feedback provided by your grader before re-submitting.</p>
+                                                                <Button 
+                                                                    onClick={() => setIsFeedbackModalOpen(true)}
+                                                                    variant="outline" 
+                                                                    className="w-full h-12 bg-white dark:bg-black text-destructive border-none shadow-md hover:bg-destructive hover:text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-all"
+                                                                >
+                                                                    <Eye className="h-4 w-4 mr-2" /> View Assessor Feedback
+                                                                </Button>
                                                             </AlertDescription>
                                                         </div>
                                                     </Alert>
                                                 )}
-                                                <div className="relative overflow-hidden group">
-                                                    <Button className="w-full h-14 rounded-2xl bg-zinc-900 text-white font-black uppercase text-[10px] shadow-lg group-hover:bg-primary transition-colors">
-                                                        <Upload className="h-4 w-4 mr-2" /> Re-submit New Work
+                                                <div className="flex flex-col gap-3 mt-6">
+                                                    <div className="relative overflow-hidden group">
+                                                        <Button className="w-full h-14 rounded-2xl bg-zinc-900 text-white font-black uppercase text-[10px] shadow-lg group-hover:bg-primary transition-colors">
+                                                            <Upload className="h-4 w-4 mr-2" /> Re-submit New Work
+                                                        </Button>
+                                                        <Input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept=".jpg,.jpeg,.png,.pdf" onChange={handleFileSelect} />
+                                                    </div>
+                                                    <div className="relative flex items-center justify-center my-2">
+                                                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-zinc-900/10 dark:border-white/10"></div></div>
+                                                        <div className="relative flex justify-center text-[10px] uppercase font-black"><span className="bg-[#fcfcfc] dark:bg-zinc-950 px-3 text-zinc-400">OR</span></div>
+                                                    </div>
+                                                    <Button 
+                                                        onClick={requestRecorrection} 
+                                                        disabled={isUploading}
+                                                        className="w-full h-14 rounded-2xl bg-purple-600/10 text-purple-600 dark:text-purple-400 border border-purple-600/20 font-black uppercase text-[10px] shadow-sm hover:bg-purple-600 hover:text-white transition-all"
+                                                    >
+                                                        {isUploading ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <ShieldAlert className="h-4 w-4 mr-2" />}
+                                                        Request Re-Correction
                                                     </Button>
-                                                    <Input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept=".jpg,.jpeg,.png,.pdf" onChange={handleFileSelect} />
                                                 </div>
                                             </div>
                                         ) : (
@@ -369,25 +454,12 @@ export default function WinPharmaTaskDetailPage() {
                                             </div>
                                         )}
                                     </div>
-                                    {currentSubmission.grade_status === 'Completed' && nextTask && <Button onClick={() => router.push(`/dashboard/winpharma/${levelId}/${nextTask.resource_id || nextTask.id}`)} className="w-full h-20 rounded-[2.5rem] bg-zinc-900 text-white font-black text-lg shadow-2xl">Next Task <ChevronRight className="ml-2 h-6 w-6" /></Button>}
+                                    {currentSubmission.grade_status === 'Completed' && nextTask && <Button onClick={() => router.push(`/dashboard/winpharma/${levelId}/${nextTask.resource_id || nextTask.id}`)} className="w-full h-16 md:h-20 rounded-[1.5rem] md:rounded-[2.5rem] bg-zinc-900 text-white font-black text-sm md:text-lg shadow-2xl">Next Task <ChevronRight className="ml-2 h-5 w-5 md:h-6 md:w-6" /></Button>}
                                 </div>
                             ) : (
-                                <div className="space-y-8">
-                                    <div className="py-12 border-4 border-dashed border-primary/20 rounded-[3rem] text-center bg-background/30"><div className="h-20 w-20 bg-primary/20 rounded-[2.5rem] mx-auto flex items-center justify-center text-primary mb-6"><Upload className="h-10 w-10" /></div><h4 className="text-lg font-black uppercase">Select File</h4><p className="text-[10px] font-bold opacity-60">JPG, PNG, PDF</p></div>
-                                    <div className="relative overflow-hidden"><Button className="w-full h-20 rounded-[2.5rem] font-black text-lg shadow-2xl">Upload Work</Button><Input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept=".jpg,.jpeg,.png,.pdf" onChange={handleFileSelect} /></div>
-                                </div>
-                            )}
-                            {task.task_cover && (
-                                <div className="mt-8 pt-8 border-t-2 border-dashed border-primary/20 opacity-30 hover:opacity-100 transition-opacity">
-                                     <div className="relative aspect-video rounded-[2rem] overflow-hidden border-2 border-primary/10 shadow-lg grayscale hover:grayscale-0 transition-all duration-700">
-                                        <Image 
-                                            src={`${CONTENT_PROVIDER_BASE_URL}/${task.task_cover}`} 
-                                            alt="Cover" 
-                                            layout="fill" 
-                                            objectFit="cover" 
-                                        />
-                                    </div>
-                                    <p className="text-[8px] font-black text-center mt-3 uppercase tracking-[0.4em]">Resource Visual Reference</p>
+                                <div className="space-y-6 md:space-y-8">
+                                    <div className="py-8 md:py-12 border-4 border-dashed border-primary/20 rounded-[1.5rem] md:rounded-[3rem] text-center bg-background/30"><div className="h-16 w-16 md:h-20 md:w-20 bg-primary/20 rounded-2xl md:rounded-[2.5rem] mx-auto flex items-center justify-center text-primary mb-4 md:mb-6"><Upload className="h-8 w-8 md:h-10 md:w-10" /></div><h4 className="text-base md:text-lg font-black uppercase">Select File</h4><p className="text-[10px] font-bold opacity-60">JPG, PNG, PDF</p></div>
+                                    <div className="relative overflow-hidden"><Button className="w-full h-16 md:h-20 rounded-[1.5rem] md:rounded-[2.5rem] font-black text-sm md:text-lg shadow-2xl">Upload Work</Button><Input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept=".jpg,.jpeg,.png,.pdf" onChange={handleFileSelect} /></div>
                                 </div>
                             )}
                         </div>
@@ -432,9 +504,45 @@ export default function WinPharmaTaskDetailPage() {
                 </DialogContent>
             </Dialog>
 
+            {/* FEEDBACK SUGGESTIONS DIALOG MODAL */}
+            <Dialog open={isFeedbackModalOpen} onOpenChange={setIsFeedbackModalOpen}>
+                <DialogContent className="max-w-2xl w-[95vw] p-0 rounded-[3rem] overflow-hidden border-none shadow-2xl bg-zinc-950">
+                    <DialogHeader className="p-8 pb-4 bg-zinc-900 border-b border-white/5 flex flex-row items-center justify-between relative mt-4">
+                        <DialogTitle className="text-xl font-black uppercase tracking-widest flex items-center gap-3 text-white">
+                            <ShieldAlert className="h-6 w-6 text-destructive" /> Assessor Feedback
+                        </DialogTitle>
+                    </DialogHeader>
+                    <ScrollArea className="max-h-[60vh] p-8 bg-zinc-950">
+                        <div className="space-y-6">
+                            {parsedFeedback.map((fb, idx) => (
+                                <div key={idx} className="flex gap-4 items-start p-6 bg-zinc-900 rounded-2xl border border-white/5 shadow-inner">
+                                    <div className="h-8 w-8 rounded-full bg-destructive/10 text-destructive flex items-center justify-center font-black text-xs shrink-0 ring-4 ring-destructive/5">
+                                        {idx + 1}
+                                    </div>
+                                    <p className="text-sm font-bold text-zinc-300 leading-relaxed mt-0.5">
+                                        {fb}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
+
             <style jsx global>{`
-                .winpharma-content iframe { width: 100% !important; aspect-ratio: 16/9; height: auto !important; border-radius: 3rem; margin: 40px 0; }
-                .winpharma-content h1, .winpharma-content h2 { font-size: 2.5rem !important; font-weight: 900 !important; color: hsl(var(--primary)); margin-bottom: 2rem; }
+                .winpharma-content iframe { 
+                    width: 100% !important; 
+                    aspect-ratio: 16/9; 
+                    height: auto !important; 
+                    border-radius: 1rem; 
+                    margin: 0; 
+                }
+                @media (min-width: 768px) {
+                    .winpharma-content iframe { border-radius: 2rem; margin: 1rem 0; }
+                }
+                .winpharma-content > *:first-child { margin-top: 0 !important; }
+                .winpharma-content > *:last-child { margin-bottom: 0 !important; }
+                .winpharma-content h1, .winpharma-content h2 { font-size: 2.5rem !important; font-weight: 900 !important; color: hsl(var(--primary)); margin-bottom: 1.5rem; }
             `}</style>
         </div>
     );

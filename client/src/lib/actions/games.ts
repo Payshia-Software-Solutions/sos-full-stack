@@ -1173,7 +1173,7 @@ export async function getWinPharmaSubmissions(userName: string, batchCode: strin
 
 export async function updateWinPharmaSubmission(id: string | number, formData: FormData): Promise<any> {
     const response = await fetch(`${QA_API_BASE_URL}/win_pharma_submission/${id}/`, {
-        method: 'PUT',
+        method: 'POST',
         body: formData,
     });
 
@@ -1200,10 +1200,75 @@ export async function getWinPharmaLevelsOfficial(courseCode: string): Promise<Wi
     const data = await response.json();
     return Array.isArray(data) ? data : (data.data || data.levels || []);
 }
+export async function getAllWinPharmaSubmissionsAdmin(courseCode?: string): Promise<WinPharmaSubmission[]> {
+    const url = courseCode 
+        ? `${QA_API_BASE_URL}/win_pharma_submission/?courseCode=${courseCode}` 
+        : `${QA_API_BASE_URL}/win_pharma_submission/`;
+        
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error('Failed to fetch all WinPharma submissions');
+    }
+    return response.json();
+}
+
+export async function getWinPharmaSubmission(id: string | number): Promise<WinPharmaSubmission> {
+    const response = await fetch(`${QA_API_BASE_URL}/win_pharma_submission/${id}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch WinPharma submission');
+    }
+    return response.json();
+}
+
+export async function getWinpharmaCommonReasons(): Promise<{ id: string; reason: string }[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/winpharma_common_resons/`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch common reasons');
+    }
+    return response.json();
+}
+
 export async function getWinPharmaCommonReason(id: string | number): Promise<{ reason: string }> {
     const response = await fetch(`${QA_API_BASE_URL}/winpharma_common_resons/${id}`);
     if (!response.ok) {
         throw new Error('Failed to fetch common reason');
+    }
+    return response.json();
+}
+
+export async function createWinpharmaCommonReason(data: any): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/winpharma_common_resons/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to create common reason' }));
+        throw new Error(errorData.message || 'API Error');
+    }
+    return response.json();
+}
+
+export async function updateWinpharmaCommonReason(id: string | number, data: any): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/winpharma_common_resons/${id}/`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update common reason' }));
+        throw new Error(errorData.message || 'API Error');
+    }
+    return response.json();
+}
+
+export async function deleteWinpharmaCommonReason(id: string | number): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/winpharma_common_resons/${id}/`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to delete common reason' }));
+        throw new Error(errorData.message || 'API Error');
     }
     return response.json();
 }

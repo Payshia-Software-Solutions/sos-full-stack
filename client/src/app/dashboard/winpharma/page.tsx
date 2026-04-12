@@ -226,11 +226,13 @@ export default function WinPharmaPage() {
                             // A level is locked if:
                             // - It exceeds the server's authorized top level AND it's NOT the first one
                             // - OR: The preceding level was not completed
-                            const isLocked = !canAccessNextLevel || (displayLevelNum > serverTopLevel && index > 0);
+                            const isStaff = user?.type && user.type.toLowerCase() !== 'student';
+                            const isLocked = !isStaff && (!canAccessNextLevel || (displayLevelNum > serverTopLevel && index > 0));
                             
                             // 3. Update Sequence Control for NEXT iteration
                             // The NEXT level can only be accessed if THIS level is completed AND THIS level itself was accessible
-                            canAccessNextLevel = !isLocked && levelCompleted;
+                            // Admins don't need to complete it, but we still update the sequence for standard flow if we wanted.
+                            canAccessNextLevel = !isLocked && (levelCompleted || isStaff);
 
                             return (
                                 <Link 

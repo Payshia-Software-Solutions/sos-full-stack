@@ -263,6 +263,7 @@ const managementTasks: ManagementTask[] = [
     href: "/admin/manage/games/winpharma",
     category: "Games Management"
   },
+
   {
     title: "Pharma Reader",
     description: "Manage Pharma Reader game settings.",

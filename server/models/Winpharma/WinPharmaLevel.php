@@ -61,4 +61,5 @@ class WinPharmaLevel
         $stmt->execute([$courseCode]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
 }

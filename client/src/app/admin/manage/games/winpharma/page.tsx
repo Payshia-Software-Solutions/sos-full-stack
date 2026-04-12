@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Layers, LayoutGrid } from "lucide-react";
+import { ArrowLeft, ArrowRight, Layers, LayoutGrid, ClipboardCheck, MessageSquareQuote } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from 'next/link';
 import { WinPharmaIcon } from "@/components/icons/module-icons";
@@ -16,6 +16,18 @@ export default function WinPharmaSetupPage() {
             description: "Create and configure the different levels that players will progress through.",
             href: "/admin/manage/games/winpharma/levels",
             icon: Layers,
+        },
+        {
+            title: "WinPharma Submissions",
+            description: "Review and grade student work submissions from course batches.",
+            href: "/admin/manage/winpharma-submissions",
+            icon: ClipboardCheck,
+        },
+        {
+            title: "Common Reasons Template",
+            description: "Manage standardized feedback templates for student evaluations.",
+            href: "/admin/manage/winpharma-common-reasons",
+            icon: MessageSquareQuote,
         },
     ];
 

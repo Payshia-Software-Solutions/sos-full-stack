@@ -86,9 +86,11 @@ class WinPharmaSubmissionController
 
     public function getWinPharmaSubmissions()
     {
-        $WinPharmaSubmissions = $this->model->getAllWinPharmaSubmissions();
+        $courseCode = $_GET['courseCode'] ?? null;
+        $WinPharmaSubmissions = $this->model->getAllWinPharmaSubmissions($courseCode);
         echo json_encode($WinPharmaSubmissions);
     }
+
 
     public function getWinPharmaSubmission($resource_id)
     {

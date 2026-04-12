@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare, Ticket, LayoutDashboard, LogOut, Search, Wrench, Megaphone, Video, Home, MoreHorizontal, Award } from "lucide-react";
+import { MessageSquare, Ticket, LayoutDashboard, LogOut, Search, Wrench, Megaphone, Video, Home, MoreHorizontal, Award, ClipboardCheck, ChevronRight } from "lucide-react";
 import {
   Sidebar,
   SidebarHeader,
@@ -13,7 +13,11 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarTrigger,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,11 +25,26 @@ import { ThemeSwitcher } from "../ui/ThemeSwitcher";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Image from "next/image";
 
-const navItems = [
+type NavItem = {
+  href?: string;
+  label: string;
+  icon: any;
+  subItems?: { href: string; label: string }[];
+};
+
+const navItems: NavItem[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/tickets", label: "Tickets", icon: Ticket },
   { href: "/admin/chat", label: "Chats", icon: MessageSquare },
   { href: "/admin/manage/convocation-generate", label: "Issue Certificates", icon: Award },
+  { 
+    label: "WinPharma", 
+    icon: ClipboardCheck,
+    subItems: [
+        { href: "/admin/manage/winpharma-submissions", label: "Submissions" },
+        { href: "/admin/manage/winpharma-common-reasons", label: "Common Reasons" }
+    ]
+  },
   { href: "/admin/manage", label: "Manage", icon: Wrench },
   { href: "/admin/more", label: "More", icon: MoreHorizontal },
 ];
@@ -55,19 +74,51 @@ export function AdminSidebarNav() {
       <SidebarContent className="p-2">
         <SidebarMenu>
           {navItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
-              <SidebarMenuButton
+            item.subItems ? (
+              <Collapsible
+                key={item.label}
                 asChild
-                isActive={item.href === '/admin/dashboard' ? pathname === item.href : pathname.startsWith(item.href)}
-                tooltip={{ children: item.label, side: "right" }}
-                className="justify-start"
+                defaultOpen={item.subItems.some((subItem) => pathname.startsWith(subItem.href))}
+                className="group/collapsible"
               >
-                <Link href={item.href}>
-                  <item.icon className="h-5 w-5" />
-                  <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip={{ children: item.label, side: "right" }}>
+                      <item.icon className="h-5 w-5" />
+                      <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden h-4 w-4" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {item.subItems.map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.label}>
+                          <SidebarMenuSubButton asChild isActive={pathname.startsWith(subItem.href)}>
+                            <Link href={subItem.href}>
+                              <span>{subItem.label}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+            ) : (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={item.href === '/admin/dashboard' ? pathname === item.href : pathname?.startsWith(item.href || '')}
+                  tooltip={{ children: item.label, side: "right" }}
+                  className="justify-start"
+                >
+                  <Link href={item.href || '#'}>
+                    <item.icon className="h-5 w-5" />
+                    <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )
           ))}
            {!isImpersonating && (
             <SidebarMenuItem>

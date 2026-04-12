@@ -63,7 +63,8 @@ export default function WinPharmaLevelTasksPage() {
     // Level sequence logic to check locking based on official CurrentTopLevel
     const currentLevelNum = useMemo(() => levels.findIndex(l => String(l.id || l.level_id) === levelId) + 1, [levels, levelId]);
     const winpharmaCurrentTopLevel = submissionResults?.data?.winpharmaCurrentTopLevel || 1;
-    const isLevelLocked = currentLevelNum > winpharmaCurrentTopLevel;
+    const isStaff = user?.type && user.type.toLowerCase() !== 'student';
+    const isLevelLocked = !isStaff && currentLevelNum > winpharmaCurrentTopLevel;
 
     const currentLevel = useMemo(() => {
         return levels.find(l => String(l.id || l.level_id) === levelId);
