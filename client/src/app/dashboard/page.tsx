@@ -30,6 +30,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+const CONTENT_PROVIDER_URL = process.env.NEXT_PUBLIC_CONTENT_PROVIDER_URL || 'https://content-provider.pharmacollege.lk';
 
 // --- Sub Components ---
 const TicketStats = ({ tickets, isLoading }: { tickets: Ticket[], isLoading: boolean }) => {
@@ -194,7 +195,7 @@ export default function StudentDashboardPage() {
     }
 
     return (
-        <div className="space-y-8 p-4 md:p-8 bg-background pb-20">
+        <div className="space-y-8 p-4 md:p-8 bg-background pb-40">
              <AlertDialog open={!!dialogContent} onOpenChange={() => setDialogContent(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -228,9 +229,18 @@ export default function StudentDashboardPage() {
                 ) : selectedCourse ? (
                     <Card className="shadow-lg bg-gradient-to-r from-primary/10 to-background">
                          <CardContent className="p-4 flex flex-col sm:flex-row items-center gap-4">
-                            <div className="relative w-full sm:w-48 h-28 rounded-lg overflow-hidden shrink-0 bg-muted">
-                                <Image src="https://placehold.co/600x400.png" alt={selectedCourse.name} layout="fill" objectFit="cover" data-ai-hint="online course" />
-                            </div>
+                            {selectedCourse.course_img && (
+                                <div className="relative w-full sm:w-48 h-28 rounded-lg overflow-hidden shrink-0 bg-muted">
+                                    <Image 
+                                      src={`${CONTENT_PROVIDER_URL}/${selectedCourse.course_img}`} 
+                                      alt={selectedCourse.name} 
+                                      fill
+                                      style={{ objectFit: 'cover' }}
+                                      priority
+                                      data-ai-hint="online course" 
+                                    />
+                                </div>
+                            )}
                             <div className="flex-grow text-center sm:text-left">
                                 <p className="text-xs font-semibold text-primary">YOUR CURRENT COURSE</p>
                                 <h3 className="text-xl font-bold text-card-foreground">{selectedCourse.name}</h3>

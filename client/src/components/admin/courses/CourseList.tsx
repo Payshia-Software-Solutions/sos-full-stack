@@ -29,8 +29,8 @@ export function CourseList({ courses, onDelete }: CourseListProps) {
                                 <Image 
                                     src={`https://content-provider.pharmacollege.lk/${course.course_img}`} 
                                     alt={course.course_name} 
-                                    layout="fill" 
-                                    objectFit="cover" 
+                                    fill 
+                                    style={{ objectFit: 'cover' }} 
                                     className="bg-muted"
                                 />
                             </div>

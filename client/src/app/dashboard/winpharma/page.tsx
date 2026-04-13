@@ -50,13 +50,19 @@ export default function WinPharmaPage() {
     });
 
     const enrolledCourseDetails = useMemo(() => {
-        return enrollments.map(en => {
-            const courseDetail = allCourses.find(c => c.courseCode === en.course_code);
-            return {
-                code: en.course_code,
-                name: courseDetail?.name || "Unknown Course"
-            };
-        });
+        return [...enrollments]
+            .sort((a, b) => {
+                const numA = parseInt(a.course_code.replace(/\D/g, '')) || 0;
+                const numB = parseInt(b.course_code.replace(/\D/g, '')) || 0;
+                return numB - numA;
+            })
+            .map(en => {
+                const courseDetail = allCourses.find(c => c.courseCode === en.course_code);
+                return {
+                    code: en.course_code,
+                    name: courseDetail?.name || "Unknown Course"
+                };
+            });
     }, [enrollments, allCourses]);
 
     const activeCourseName = useMemo(() => {
@@ -117,24 +123,24 @@ export default function WinPharmaPage() {
     const currentTopLevel = progressData?.winpharmaCurrentTopLevel || 1;
 
     return (
-        <div className="p-4 md:p-8 space-y-10 pb-20 w-full animate-in fade-in duration-1000">
-            <header className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center">
-                <div className="flex items-center gap-6">
-                    <div className="bg-gradient-to-br from-primary to-indigo-600 p-5 rounded-3xl shadow-2xl shadow-primary/20 ring-8 ring-primary/5">
-                        <WinPharmaIcon className="w-12 h-12 text-white" />
+        <div className="p-3 md:p-8 space-y-6 md:space-y-10 pb-40 w-full animate-in fade-in duration-1000">
+            <header className="flex flex-col lg:flex-row gap-4 md:gap-6 justify-between items-start lg:items-center">
+                <div className="flex items-center gap-3 md:gap-6 w-full lg:w-auto">
+                    <div className="bg-gradient-to-br from-primary to-indigo-600 p-3 md:p-5 rounded-2xl md:rounded-3xl shadow-2xl shadow-primary/20 ring-4 md:ring-8 ring-primary/5 shrink-0">
+                        <WinPharmaIcon className="w-8 h-8 md:w-12 md:h-12 text-white" />
                     </div>
-                    <div className="min-w-0">
-                        <h1 className="text-5xl font-headline font-black tracking-tighter leading-none mb-2">WinPharma</h1>
+                    <div className="min-w-0 flex-1 lg:flex-none">
+                        <h1 className="text-3xl md:text-5xl font-headline font-black tracking-tighter leading-none mb-1 md:mb-2">WinPharma</h1>
                         <div className="flex items-center gap-2">
                              <Dialog open={isCourseModalOpen} onOpenChange={setIsCourseModalOpen}>
                                 <DialogTrigger asChild>
-                                    <Button variant="ghost" className="h-auto p-0 hover:bg-transparent group">
-                                        <div className="text-left">
-                                            <p className="text-base font-bold text-primary flex items-center gap-1 group-hover:underline">
+                                    <Button variant="ghost" className="h-auto p-0 hover:bg-transparent group w-full">
+                                        <div className="text-left w-full">
+                                            <p className="text-sm md:text-base font-bold text-primary flex items-center gap-1 group-hover:underline line-clamp-1">
                                                 {activeCourseName}
-                                                <ChevronRight className={cn("h-4 w-4 opacity-70 transition-transform", isCourseModalOpen && "rotate-90")} />
+                                                <ChevronRight className={cn("h-4 w-4 shrink-0 opacity-70 transition-transform", isCourseModalOpen && "rotate-90")} />
                                             </p>
-                                            <p className="text-xs text-muted-foreground font-black tracking-widest uppercase opacity-60">{selectedCourseCode}</p>
+                                            <p className="text-[10px] md:text-xs text-muted-foreground font-black tracking-widest uppercase opacity-60">{selectedCourseCode}</p>
                                         </div>
                                     </Button>
                                 </DialogTrigger>
@@ -172,7 +178,7 @@ export default function WinPharmaPage() {
                     </div>
                 </div>
                 
-                <Card className="p-6 w-full lg:w-auto lg:min-w-[400px] rounded-[2rem] shadow-2xl border-none bg-gradient-to-br from-card to-muted/30 relative overflow-hidden group">
+                <Card className="p-4 md:p-6 w-full lg:w-auto lg:min-w-[400px] rounded-[1.5rem] md:rounded-[2rem] shadow-2xl border-none bg-gradient-to-br from-card to-muted/30 relative overflow-hidden group">
                     <div className="relative z-10">
                         <div className="flex justify-between items-center mb-4">
                             <CardTitle className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground">Certified Performance</CardTitle>
@@ -242,55 +248,54 @@ export default function WinPharmaPage() {
                                     onClick={(e) => isLocked && e.preventDefault()}
                                 >
                                     <Card className={cn(
-                                        "h-full border-2 transition-all duration-500 rounded-[2.5rem] overflow-hidden bg-card shadow-lg hover:shadow-primary/20 group flex flex-col min-h-[320px]",
+                                        "h-full border-2 transition-all duration-500 rounded-[2rem] overflow-hidden bg-card shadow-lg hover:shadow-primary/20 group flex flex-col min-h-[260px]",
                                         isLocked ? "border-muted opacity-60 grayscale bg-muted/5" : "border-muted hover:border-primary hover:bg-gradient-to-br hover:from-card hover:to-primary/5 shadow-xl",
                                         levelCompleted && "border-green-500/50 bg-green-500/[0.02]"
                                     )}>
-                                        <div className="p-8 space-y-6 flex-1">
+                                        <div className="p-6 space-y-4 flex-1">
                                             <div className="flex justify-between items-start">
                                                 <div className={cn(
-                                                    "h-16 w-16 rounded-2xl flex items-center justify-center text-3xl font-black transition-all shadow-sm",
+                                                    "h-12 w-12 rounded-2xl flex items-center justify-center text-2xl font-black transition-all shadow-sm",
                                                     isLocked ? "bg-muted text-muted-foreground/40" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white",
                                                     levelCompleted && "bg-green-500 text-white"
                                                 )}>
-                                                    {isLocked ? <Lock className="h-8 w-8" /> : (levelCompleted ? <ShieldCheck className="h-8 w-8" /> : displayLevelNum)}
+                                                    {isLocked ? <Lock className="h-6 w-6" /> : (levelCompleted ? <ShieldCheck className="h-8 w-8" /> : displayLevelNum)}
                                                 </div>
-                                                <Badge variant="secondary" className="bg-muted text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
+                                                <Badge variant="secondary" className="bg-muted text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">
                                                     LVL {displayLevelNum}
                                                 </Badge>
                                             </div>
-                                            <div className="space-y-4">
-                                                <h3 className={cn("text-2xl font-black tracking-tight leading-tight line-clamp-2", isLocked ? "text-muted-foreground" : "group-hover:text-primary")}>
+                                            <div className="space-y-3">
+                                                <h3 className={cn("text-xl font-black tracking-tight leading-tight line-clamp-2", isLocked ? "text-muted-foreground" : "group-hover:text-primary")}>
                                                     {level.level_name}
                                                 </h3>
                                                 
                                                 {!isLocked && (
-                                                    <div className="space-y-2 pt-2">
-                                                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
+                                                    <div className="space-y-1.5 pt-1">
+                                                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
                                                             <span>Progress</span>
                                                             <span>{Math.round(levelProgress)}%</span>
                                                         </div>
-                                                        <Progress value={levelProgress} className="h-1.5 rounded-full bg-background" indicatorClassName={cn("transition-all duration-500", levelCompleted ? "bg-green-500" : "bg-primary")} />
+                                                        <Progress value={levelProgress} className="h-1 rounded-full bg-background" indicatorClassName={cn("transition-all duration-500", levelCompleted ? "bg-green-500" : "bg-primary")} />
                                                     </div>
                                                 )}
-
-                                                <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-60">
-                                                    {isLocked ? (
-                                                        <span className="flex items-center gap-1 text-amber-600 font-black"><ShieldAlert className="h-4 w-4" /> Locked Sequence</span>
-                                                    ) : (
-                                                        <span className="flex items-center gap-1 font-black">
-                                                            <BookOpen className="h-4 w-4" /> {levelTasksCount} Units
-                                                        </span>
-                                                    )}
-                                                </div>
                                             </div>
                                         </div>
-                                        <CardFooter className="px-8 pb-8 pt-0 border-t-0 flex justify-end items-center">
+                                        <CardFooter className="px-6 pb-6 pt-0 border-t-0 flex justify-between items-center mt-auto">
+                                            <div className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">
+                                                {isLocked ? (
+                                                    <span className="flex items-center gap-1 text-amber-600 font-black"><ShieldAlert className="h-3 w-3" /> Locked</span>
+                                                ) : (
+                                                    <span className="flex items-center gap-1 font-black">
+                                                        <BookOpen className="h-3 w-3" /> {levelTasksCount} Units
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className={cn(
-                                                "h-12 w-12 rounded-2xl bg-muted group-hover:bg-primary group-hover:text-white flex items-center justify-center transition-all group-hover:translate-x-1 shadow-sm",
+                                                "h-10 w-10 rounded-xl bg-muted group-hover:bg-primary group-hover:text-white flex items-center justify-center transition-all group-hover:translate-x-1 shadow-sm",
                                                 isLocked && "opacity-20 translate-x-0"
                                             )}>
-                                                <ChevronRight className="h-6 w-6" />
+                                                <ChevronRight className="h-5 w-5" />
                                             </div>
                                         </CardFooter>
                                     </Card>

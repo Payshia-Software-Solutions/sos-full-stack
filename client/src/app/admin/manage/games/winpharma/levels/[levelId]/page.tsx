@@ -181,7 +181,9 @@ export default function ManageWinPharmaLevelTasksPage() {
     
     const filteredTasks = useMemo(() => {
         if (!tasks) return [];
-        return tasks.filter(task => task.resource_title.toLowerCase().includes(searchTerm.toLowerCase()));
+        return tasks
+            .filter(task => task.resource_title.toLowerCase().includes(searchTerm.toLowerCase()))
+            .sort((a, b) => a.resource_title.localeCompare(b.resource_title, undefined, { numeric: true, sensitivity: 'base' }));
     }, [tasks, searchTerm]);
 
     const handleCreate = () => {

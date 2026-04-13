@@ -22,7 +22,7 @@ export default function CourseRecordingsPage() {
   );
 
   return (
-    <div className="p-4 md:p-8 space-y-8 pb-20">
+    <div className="p-4 md:p-8 space-y-8 pb-40">
       <header>
         <h1 className="text-3xl font-headline font-semibold">Course Recordings</h1>
         <p className="text-muted-foreground">Access recorded lectures and materials for your enrolled courses.</p>
@@ -61,8 +61,8 @@ export default function CourseRecordingsPage() {
                   <Image
                     src={rec.thumbnailUrl}
                     alt={`Thumbnail for ${rec.title}`}
-                    layout="fill"
-                    objectFit="cover"
+                    fill
+                    style={{ objectFit: 'cover' }}
                     className="group-hover:scale-105 transition-transform duration-300"
                     data-ai-hint={rec.dataAiHint}
                   />

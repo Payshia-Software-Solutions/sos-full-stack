@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getBatches } from '@/lib/actions/courses';
 import type { Batch } from '@/lib/types';
@@ -17,6 +18,20 @@ export default function WinPharmaAdminSubmissionsIndexPage() {
         queryKey: ['adminBatches'],
         queryFn: getBatches,
     });
+
+    // Sort batches in descending order by course code number
+    const sortedBatches = useMemo(() => {
+        return [...batches].sort((a, b) => {
+            const numA = parseInt(a.courseCode.replace(/\D/g, '')) || 0;
+            const numB = parseInt(b.courseCode.replace(/\D/g, '')) || 0;
+            
+            // If both have numbers, sort by that descending
+            if (numA !== 0 && numB !== 0) return numB - numA;
+            
+            // Fallback to ID comparison
+            return b.id.localeCompare(a.id);
+        });
+    }, [batches]);
 
     if (isCoursesLoading) {
         return (
@@ -37,7 +52,7 @@ export default function WinPharmaAdminSubmissionsIndexPage() {
             </header>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {batches.map((batch) => (
+                {sortedBatches.map((batch) => (
                     <Card 
                         key={batch.courseCode} 
                         className="group cursor-pointer border-none bg-zinc-900/50 hover:bg-zinc-800 transition-all duration-300 rounded-[2.5rem] overflow-hidden shadow-2xl ring-1 ring-white/5"

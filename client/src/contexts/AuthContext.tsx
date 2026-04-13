@@ -187,14 +187,20 @@ export const useAuth = () => {
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !isLoading && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [mounted, isLoading, isAuthenticated, router]);
 
-  if (isLoading || !isAuthenticated) {
+  // Handle hydration mismatch by ensuring the initial render matches the server (Preloader)
+  if (!mounted || isLoading || !isAuthenticated) {
     return <Preloader message="Loading your dashboard..." />;
   }
 

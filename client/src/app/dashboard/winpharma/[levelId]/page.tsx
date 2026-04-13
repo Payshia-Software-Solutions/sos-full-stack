@@ -77,7 +77,9 @@ export default function WinPharmaLevelTasksPage() {
     });
 
     const activeTasks = useMemo(() => {
-        return tasks.filter(t => Number(t.is_active) === 1);
+        return tasks
+            .filter(t => Number(t.is_active) === 1)
+            .sort((a, b) => a.resource_title.localeCompare(b.resource_title, undefined, { numeric: true, sensitivity: 'base' }));
     }, [tasks]);
 
     // Fetch student's submissions to show status per task
@@ -149,45 +151,45 @@ export default function WinPharmaLevelTasksPage() {
     const verifiedCount = activeTasks.filter(t => getTaskSubmission(String(t.resource_id || t.id))?.grade_status === 'Completed').length;
 
     return (
-        <div className="p-4 md:p-8 space-y-8 pb-20 w-full animate-in fade-in duration-500">
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div className="flex flex-col gap-4">
+        <div className="p-3 md:p-8 space-y-6 md:space-y-8 pb-40 w-full animate-in fade-in duration-500">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
+                <div className="flex flex-col gap-2 md:gap-4 w-full">
                     <Button 
                         onClick={() => router.push('/dashboard/winpharma')} 
                         variant="ghost" 
-                        className="-ml-4 h-10 px-4 hover:bg-primary/10 rounded-full group transition-all"
+                        className="-ml-3 h-8 md:h-10 px-3 md:px-4 hover:bg-primary/10 rounded-full group transition-all w-fit"
                     >
-                        <ArrowLeft className="mr-2 h-5 w-5 group-hover:-translate-x-1 transition-transform" /> 
-                        <span className="font-bold tracking-tight">Back to Curriculum</span>
+                        <ArrowLeft className="mr-2 h-4 w-4 md:h-5 md:w-5 group-hover:-translate-x-1 transition-transform" /> 
+                        <span className="font-bold tracking-tight text-xs md:text-sm">Back to Curriculum</span>
                     </Button>
-                    <div className="flex items-center gap-5">
-                        <div className="h-14 w-14 bg-primary text-white rounded-2xl flex items-center justify-center text-3xl font-black shadow-lg shadow-primary/30 rotate-3">
+                    <div className="flex items-center gap-3 md:gap-5">
+                        <div className="h-10 w-10 md:h-14 md:w-14 bg-primary text-white rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-3xl font-black shadow-lg shadow-primary/30 rotate-3 shrink-0">
                             {currentLevelNum}
                         </div>
-                        <div>
-                            <h1 className="text-4xl font-headline font-black tracking-tighter leading-none mb-1">
+                        <div className="min-w-0">
+                            <h1 className="text-2xl md:text-4xl font-headline font-black tracking-tighter leading-tight mb-0.5 md:mb-1 line-clamp-1">
                                 {currentLevel?.level_name || `Level ${levelId}`}
                             </h1>
-                            <p className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground opacity-60 text-primary">
+                            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-muted-foreground opacity-60 text-primary truncate">
                                 Resource Hub • Level {currentLevelNum}
                             </p>
                         </div>
                     </div>
                 </div>
                 
-                <Card className="p-6 h-fit bg-gradient-to-br from-card to-muted/20 border-none rounded-3xl shadow-xl min-w-[280px]">
-                    <div className="flex justify-between items-center mb-4">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Level Metrics</span>
-                        <Trophy className="h-4 w-4 text-amber-500" />
+                <Card className="p-4 md:p-6 h-fit bg-gradient-to-br from-card to-muted/20 border-none rounded-2xl md:rounded-3xl shadow-xl w-full md:w-auto md:min-w-[260px]">
+                    <div className="flex justify-between items-center mb-3 md:mb-4">
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-muted-foreground">Level Metrics</span>
+                        <Trophy className="h-3.5 w-3.5 md:h-4 md:w-4 text-amber-500" />
                     </div>
-                    <div className="flex justify-between items-end">
+                    <div className="flex justify-between items-end gap-8">
                         <div>
-                            <p className="text-2xl font-black">{activeTasks.length}</p>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">Tasks</p>
+                            <p className="text-xl md:text-2xl font-black">{activeTasks.length}</p>
+                            <p className="text-[9px] md:text-[10px] font-bold text-muted-foreground uppercase opacity-60">Tasks</p>
                         </div>
                         <div className="text-right">
-                             <p className="text-2xl font-black text-green-500">{verifiedCount}</p>
-                             <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">Verified</p>
+                             <p className="text-xl md:text-2xl font-black text-green-500">{verifiedCount}</p>
+                             <p className="text-[9px] md:text-[10px] font-bold text-muted-foreground uppercase opacity-60">Verified</p>
                         </div>
                     </div>
                 </Card>
@@ -209,30 +211,29 @@ export default function WinPharmaLevelTasksPage() {
                         return (
                             <Link key={taskId} href={`/dashboard/winpharma/${levelId}/${taskId}`} className="group block h-full">
                                 <Card className={cn(
-                                    "h-full border-2 transition-all duration-500 rounded-[2.5rem] overflow-hidden bg-card shadow-lg hover:shadow-primary/20",
+                                    "h-full border-2 transition-all duration-500 rounded-[2rem] overflow-hidden bg-card shadow-lg hover:shadow-primary/20",
                                     sub?.grade_status === 'Completed' ? "border-green-500/50 bg-green-500/[0.02]" : "border-muted hover:border-primary"
                                 )} style={{ animationDelay: `${index * 50}ms` }}>
-                                    <div className="p-8 space-y-6">
+                                    <div className="p-4 space-y-3">
                                         <div className="flex justify-between items-start">
                                             <div className={cn(
-                                                "h-12 w-12 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-sm",
+                                                "h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-500 shadow-sm",
                                                 sub?.grade_status === 'Completed' ? "bg-green-500 text-white shadow-green-500/30" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white"
                                             )}>
-                                                {sub?.grade_status === 'Completed' ? <ShieldCheck className="h-6 w-6" /> : (isVideo ? <Video className="h-5 w-5" /> : <FileText className="h-5 w-5" />)}
+                                                {sub?.grade_status === 'Completed' ? <ShieldCheck className="h-4 w-4" /> : (isVideo ? <Video className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />)}
                                             </div>
                                             {getStatusBadge(sub?.grade_status)}
                                         </div>
-                                        <div className="space-y-2">
-                                            <h3 className={cn("text-xl font-black tracking-tight leading-tight transition-colors duration-300 min-h-[3rem] line-clamp-2", sub?.grade_status === 'Completed' ? "text-green-700" : "group-hover:text-primary")}>
+                                        <div className="space-y-1">
+                                            <h3 className={cn("text-base font-black tracking-tight leading-tight transition-colors duration-300 min-h-[2rem] line-clamp-2", sub?.grade_status === 'Completed' ? "text-green-700" : "group-hover:text-primary")}>
                                                 {task.resource_title}
                                             </h3>
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">ID: {taskId}</p>
                                         </div>
                                     </div>
-                                    <CardFooter className="px-8 pb-8 pt-0 border-t-0 flex justify-between items-center">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary group-hover:opacity-100 opacity-0 transition-all">Begin Study</span>
-                                        <div className="h-10 w-10 rounded-xl bg-muted group-hover:bg-primary group-hover:text-white flex items-center justify-center transition-all duration-500 group-hover:translate-x-1 shadow-sm">
-                                            <ChevronRight className="h-5 w-5" />
+                                    <CardFooter className="px-4 pb-4 pt-0 border-t-0 flex justify-between items-center">
+                                        <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary group-hover:opacity-100 opacity-0 transition-all">Begin Study</span>
+                                        <div className="h-7 w-7 rounded-lg bg-muted group-hover:bg-primary group-hover:text-white flex items-center justify-center transition-all duration-500 group-hover:translate-x-1 shadow-sm">
+                                            <ChevronRight className="h-4 w-4" />
                                         </div>
                                     </CardFooter>
                                 </Card>
