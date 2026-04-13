@@ -734,6 +734,7 @@ export interface Course {
   id: string;
   name: string;
   courseCode: string;
+  course_img?: string | null;
 }
 
 export interface BnfWordIndexEntry {

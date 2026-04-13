@@ -88,8 +88,8 @@ const ImageViewerDialog = ({ imageUrl, onOpenChange }: { imageUrl: string | null
                     <Image
                         src={imageUrl}
                         alt="Full size image view"
-                        layout="fill"
-                        objectFit="contain"
+                        fill
+                        style={{ objectFit: 'contain' }}
                         className="transition-transform duration-200"
                     />
                 </div>
@@ -496,8 +496,8 @@ const TicketInfoContent = memo(({
                     <Image
                       src={att.url}
                       alt={att.name}
-                      layout="fill"
-                      objectFit="cover"
+                      fill
+                      style={{ objectFit: 'cover' }}
                       className="group-hover:scale-110 transition-transform duration-200"
                     />
                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

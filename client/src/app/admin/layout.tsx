@@ -10,8 +10,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { ProtectedRoute } from "@/contexts/AuthContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { AdminBottomDock } from "@/components/admin/AdminBottomDock";
 import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
 
@@ -22,6 +22,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const { user, isLoading, isImpersonating, stopImpersonating } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (!isLoading && user?.role !== 'staff') {
@@ -60,7 +68,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             "flex-1 flex flex-col bg-background animate-in fade-in-50 slide-in-from-bottom-4 duration-500 min-w-0"
           )}
         >
-          <div className="flex-1 flex flex-col overflow-y-auto">
+          <div ref={scrollContainerRef} className="flex-1 flex flex-col overflow-y-auto">
             <SidebarInset 
                 className={cn(
                   "flex-1 flex flex-col",

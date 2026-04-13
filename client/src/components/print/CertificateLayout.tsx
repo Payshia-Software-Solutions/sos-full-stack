@@ -40,7 +40,7 @@ export const CertificateLayout = ({ studentName, studentIndex, courseName, issue
         {/* Logo Section */}
         <div className="w-full flex justify-start -mt-8 ml-8">
             <div className="relative h-24 w-24">
-                <Image src="https://content-provider.pharmacollege.lk/certificates/logo-cropped.png" alt="Logo" layout="fill" objectFit="contain" />
+                <Image src="https://content-provider.pharmacollege.lk/certificates/logo-cropped.png" alt="Logo" fill style={{ objectFit: 'contain' }} />
             </div>
         </div>
 
@@ -72,7 +72,7 @@ export const CertificateLayout = ({ studentName, studentIndex, courseName, issue
             <div className="flex gap-12">
                 <div className="text-center">
                     <div className="relative h-16 w-48">
-                    <Image src="https://content-provider.pharmacollege.lk/certificates/hansi-sign-1.png" alt="Academic Instructor Signature" layout="fill" objectFit="contain"/>
+                    <Image src="https://content-provider.pharmacollege.lk/certificates/hansi-sign-1.png" alt="Academic Instructor Signature" fill style={{ objectFit: 'contain' }}/>
                     </div>
                     <div className="border-t border-gray-600 w-48 mt-1"></div>
                     <p className="text-sm font-semibold mt-1">Academic Instructor</p>
@@ -80,7 +80,7 @@ export const CertificateLayout = ({ studentName, studentIndex, courseName, issue
                 
                 <div className="text-center">
                     <div className="relative h-16 w-48">
-                    <Image src="https://content-provider.pharmacollege.lk/certificates/sign.png" alt="Director Signature" layout="fill" objectFit="contain"/>
+                    <Image src="https://content-provider.pharmacollege.lk/certificates/sign.png" alt="Director Signature" fill style={{ objectFit: 'contain' }}/>
                     </div>
                     <div className="border-t border-gray-600 w-48 mt-1"></div>
                     <p className="text-sm font-semibold mt-1">Director</p>

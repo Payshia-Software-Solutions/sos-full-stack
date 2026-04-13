@@ -58,6 +58,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const CONTENT_PROVIDER_BASE_URL = 'https://content-provider.pharmacollege.lk';
 const SUBMISSION_BASE_URL = 'https://content-provider.pharmacollege.lk/content-provider/uploads/winpharma-submissions/';
@@ -67,13 +68,16 @@ export default function WinPharmaTaskDetailPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { user } = useAuth();
+    const isMobile = useIsMobile();
     const levelId = params.levelId as string;
     const taskId = params.taskId as string;
     
     const [selectedCourseCode, setSelectedCourseCode] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     
-    // Preview & Feedback States
+    // UI & Navigation States
+    const [activeTab, setActiveTab] = useState<'task' | 'submission'>('task');
+    const [imageError, setImageError] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isModalPreviewOpen, setIsModalPreviewOpen] = useState(false);
@@ -204,6 +208,11 @@ export default function WinPharmaTaskDetailPage() {
         } else {
             setPreviewUrl(null);
         }
+
+        // Auto-switch to submission tab on mobile so they see the feedback/buttons
+        if (isMobile) {
+            setActiveTab('submission');
+        }
     };
 
     const confirmSubmission = () => {
@@ -299,28 +308,67 @@ export default function WinPharmaTaskDetailPage() {
     const isVideo = task.resource_data.toLowerCase().includes('youtube') || task.resource_data.toLowerCase().includes('iframe') || !!helpVideoUrl;
 
     return (
-        <div className="p-3 md:p-8 space-y-6 md:space-y-8 pb-32 animate-in fade-in duration-700">
-            <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 md:gap-8">
-                <div className="flex flex-col gap-3 md:gap-5">
-                    <Button onClick={() => router.push(`/dashboard/winpharma/${levelId}`)} variant="ghost" className="h-10 md:h-12 hover:bg-primary/10 rounded-full group self-start">
-                        <ArrowLeft className="mr-2 h-5 w-5 md:h-6 md:w-6 group-hover:-translate-x-1" /> <span className="font-black uppercase tracking-widest text-[10px]">Back</span>
-                    </Button>
-                    <div className="flex items-center gap-3 md:gap-6">
-                        <div className="h-12 w-12 md:h-16 md:w-16 bg-primary text-white rounded-[1rem] md:rounded-[1.5rem] flex items-center justify-center text-xl md:text-3xl font-black">{isVideo ? <Video className="h-6 w-6 md:h-8 md:w-8" /> : <FileText className="h-6 w-6 md:h-8 md:w-8" />}</div>
-                        <div><h1 className="text-2xl md:text-5xl font-black tracking-tighter mb-1 md:mb-2 leading-none">{task.resource_title}</h1>{getStatusBadge(currentSubmission?.grade_status)}</div>
+        <div className="p-4 md:p-8 space-y-4 md:space-y-8 pb-32 animate-in fade-in duration-700">
+            <header className="flex items-center justify-between gap-4 md:gap-8 overflow-hidden">
+                <Button 
+                    onClick={() => router.push(`/dashboard/winpharma/${levelId}`)} 
+                    variant="ghost" 
+                    className="h-10 md:h-12 hover:bg-primary/10 rounded-full group px-3 shrink-0"
+                >
+                    <ArrowLeft className="mr-1 h-5 w-5 md:h-6 md:w-6 group-hover:-translate-x-1" /> 
+                    <span className="font-black uppercase tracking-widest text-[10px]">Back</span>
+                </Button>
+                
+                <div className="flex items-center gap-3 md:gap-6 ml-auto min-w-0">
+                    <div className="flex flex-col items-end min-w-0">
+                        <div className="flex flex-wrap items-center justify-end gap-2 md:gap-4">
+                            <h1 className="text-lg md:text-5xl font-black tracking-tighter leading-none truncate">{task.resource_title}</h1>
+                            {getStatusBadge(currentSubmission?.grade_status)}
+                        </div>
+                    </div>
+                    <div className="h-10 w-10 md:h-16 md:w-16 bg-primary text-white rounded-xl md:rounded-[1.5rem] flex items-center justify-center text-xl md:text-3xl font-black shrink-0 shadow-lg shadow-primary/20">
+                        {isVideo ? <Video className="h-5 w-5 md:h-8 md:w-8" /> : <FileText className="h-5 w-5 md:h-8 md:w-8" />}
                     </div>
                 </div>
-                <div className="flex items-center gap-2 md:gap-4 ml-auto lg:ml-0 mt-4 lg:mt-0">
-                    {prevTask && <Button onClick={() => router.push(`/dashboard/winpharma/${levelId}/${prevTask.resource_id || prevTask.id}`)} variant="outline" className="h-10 w-10 md:h-14 md:w-14 rounded-xl md:rounded-2xl"><ChevronLeft className="h-5 w-5 md:h-6 md:w-6" /></Button>}
-                    {nextTask && <Button onClick={() => router.push(`/dashboard/winpharma/${levelId}/${nextTask.resource_id || nextTask.id}`)} variant="outline" className="h-10 w-10 md:h-14 md:w-14 rounded-xl md:rounded-2xl"><ChevronRight className="h-5 w-5 md:h-6 md:w-6" /></Button>}
-                </div>
             </header>
+            
+            {/* Mobile Tab Switcher */}
+            {isMobile && (
+                <div className="flex bg-zinc-900/50 p-1 rounded-xl md:rounded-[2rem] border border-white/5 backdrop-blur-md sticky top-4 z-40">
+                    <button 
+                        onClick={() => setActiveTab('task')}
+                        className={cn(
+                            "flex-1 h-10 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all",
+                            activeTab === 'task' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-zinc-500 hover:text-zinc-300"
+                        )}
+                    >
+                        Task Details
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('submission')}
+                        className={cn(
+                            "flex-1 h-10 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all",
+                            activeTab === 'submission' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-zinc-500 hover:text-zinc-300"
+                        )}
+                    >
+                        My Submission
+                    </button>
+                </div>
+            )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6 md:gap-12">
-                <div className="min-w-0 space-y-6 md:space-y-10">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6 md:gap-12 pb-20">
+                <div className={cn(
+                    "min-w-0 space-y-6 md:space-y-10",
+                    isMobile && activeTab !== 'task' ? "hidden" : "block"
+                )}>
                     <Card className="border-none shadow-2xl rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden bg-white dark:bg-zinc-900 ring-1 ring-black/5">
                         <div className="p-4 md:p-10 space-y-6 md:space-y-8">
-                            {task.task_cover && task.task_cover !== 'null' && task.task_cover.trim() !== '' && (
+                            {!imageError && 
+                             task.task_cover && 
+                             task.task_cover !== 'null' && 
+                             task.task_cover !== 'undefined' &&
+                             task.task_cover.trim() !== '' && 
+                             !task.task_cover.toLowerCase().includes('placeholder') && (
                                 <div className="space-y-4">
                                     <Badge className="bg-primary/10 text-primary border-primary/20 uppercase text-[10px] font-black px-4 py-1">Main Task Reference</Badge>
                                     <div className="relative w-full group overflow-hidden rounded-[1.5rem] md:rounded-[2rem] border-4 border-primary/5 shadow-2xl">
@@ -331,6 +379,7 @@ export default function WinPharmaTaskDetailPage() {
                                                 width={1920}
                                                 height={1080}
                                                 className="w-full h-auto object-contain transition-transform duration-1000 group-hover:scale-[1.02]"
+                                                onError={() => setImageError(true)}
                                             />
                                         </div>
                                         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 md:p-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
@@ -376,7 +425,10 @@ export default function WinPharmaTaskDetailPage() {
                     </Card>
                 </div>
                 
-                <aside className="space-y-6 md:space-y-10 sticky top-4 md:top-10 self-start">
+                <aside className={cn(
+                    "space-y-6 md:space-y-10 lg:sticky lg:top-10 self-start",
+                    isMobile && activeTab !== 'submission' ? "hidden" : "block"
+                )}>
                     <Card className="border-none shadow-2xl rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden bg-gradient-to-br from-primary/5 to-primary/10">
                         <div className="p-6 md:p-10 space-y-6 md:space-y-8">
                             <h3 className="text-xl md:text-2xl font-black uppercase">Submission</h3>
@@ -457,9 +509,25 @@ export default function WinPharmaTaskDetailPage() {
                                     {currentSubmission.grade_status === 'Completed' && nextTask && <Button onClick={() => router.push(`/dashboard/winpharma/${levelId}/${nextTask.resource_id || nextTask.id}`)} className="w-full h-16 md:h-20 rounded-[1.5rem] md:rounded-[2.5rem] bg-zinc-900 text-white font-black text-sm md:text-lg shadow-2xl">Next Task <ChevronRight className="ml-2 h-5 w-5 md:h-6 md:w-6" /></Button>}
                                 </div>
                             ) : (
-                                <div className="space-y-6 md:space-y-8">
-                                    <div className="py-8 md:py-12 border-4 border-dashed border-primary/20 rounded-[1.5rem] md:rounded-[3rem] text-center bg-background/30"><div className="h-16 w-16 md:h-20 md:w-20 bg-primary/20 rounded-2xl md:rounded-[2.5rem] mx-auto flex items-center justify-center text-primary mb-4 md:mb-6"><Upload className="h-8 w-8 md:h-10 md:w-10" /></div><h4 className="text-base md:text-lg font-black uppercase">Select File</h4><p className="text-[10px] font-bold opacity-60">JPG, PNG, PDF</p></div>
-                                    <div className="relative overflow-hidden"><Button className="w-full h-16 md:h-20 rounded-[1.5rem] md:rounded-[2.5rem] font-black text-sm md:text-lg shadow-2xl">Upload Work</Button><Input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept=".jpg,.jpeg,.png,.pdf" onChange={handleFileSelect} /></div>
+                                <div className="space-y-6 md:space-y-8 relative group cursor-pointer">
+                                    <div className="py-8 md:py-12 border-4 border-dashed border-primary/20 rounded-[1.5rem] md:rounded-[3rem] text-center bg-background/30 transition-all group-hover:bg-primary/5 group-hover:border-primary/40">
+                                        <div className="h-16 w-16 md:h-20 md:w-20 bg-primary/20 rounded-2xl md:rounded-[2.5rem] mx-auto flex items-center justify-center text-primary mb-4 md:mb-6">
+                                            <Upload className="h-8 w-8 md:h-10 md:w-10" />
+                                        </div>
+                                        <h4 className="text-base md:text-lg font-black uppercase">Select File</h4>
+                                        <p className="text-[10px] font-bold opacity-60">JPG, PNG, PDF</p>
+                                    </div>
+                                    <div className="relative">
+                                        <Button className="w-full h-16 md:h-20 rounded-[1.5rem] md:rounded-[2.5rem] font-black text-sm md:text-lg shadow-2xl transition-all group-hover:bg-primary/90">
+                                            Upload Work
+                                        </Button>
+                                    </div>
+                                    <Input 
+                                        type="file" 
+                                        className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                                        accept=".jpg,.jpeg,.png,.pdf" 
+                                        onChange={handleFileSelect} 
+                                    />
                                 </div>
                             )}
                         </div>
@@ -469,12 +537,16 @@ export default function WinPharmaTaskDetailPage() {
 
             {/* PREVIEW DIALOG MODAL */}
             <Dialog open={isModalPreviewOpen} onOpenChange={setIsModalPreviewOpen}>
-                <DialogContent className="max-w-6xl w-[95vw] h-[90vh] p-0 rounded-[3rem] overflow-hidden border-none shadow-2xl bg-background/80 backdrop-blur-xl">
+                <DialogContent hideCloseButton className="max-w-6xl w-[95vw] h-[90vh] p-0 rounded-2xl md:rounded-[2rem] overflow-hidden border-none shadow-2xl bg-background/80 backdrop-blur-xl">
                     <DialogHeader className="p-8 pb-4 absolute top-0 left-0 w-full z-50 bg-gradient-to-b from-background/90 to-transparent flex flex-row items-center justify-between">
                         <DialogTitle className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
                             <Eye className="h-6 w-6 text-primary" /> Submission Preview
                         </DialogTitle>
-                        <Button variant="ghost" className="h-12 w-12 rounded-2xl hover:bg-primary/10" onClick={() => setIsModalPreviewOpen(false)}>
+                        <Button 
+                            variant="ghost" 
+                            className="h-10 w-10 rounded-xl hover:bg-primary/10 flex items-center justify-center shrink-0 z-[60]" 
+                            onClick={() => setIsModalPreviewOpen(false)}
+                        >
                             <X className="h-6 w-6" />
                         </Button>
                     </DialogHeader>
@@ -484,19 +556,19 @@ export default function WinPharmaTaskDetailPage() {
                                 <img 
                                     src={modalPreviewSrc!} 
                                     alt="Preview" 
-                                    className="max-w-full h-auto rounded-[2rem] shadow-2xl ring-4 ring-primary/5"
+                                    className="max-w-full h-auto rounded-xl md:rounded-2xl shadow-2xl ring-4 ring-primary/5"
                                 />
                             ) : modalPreviewType === 'video' ? (
                                 <iframe
                                     src={getEmbedUrl(modalPreviewSrc!)}
-                                    className="w-full h-[75vh] rounded-[2rem] shadow-2xl border-none"
+                                    className="w-full h-[75vh] rounded-xl md:rounded-2xl shadow-2xl border-none"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                     allowFullScreen
                                 />
                             ) : (
                                 <iframe 
                                     src={modalPreviewSrc!} 
-                                    className="w-full h-[75vh] rounded-[2rem] shadow-2xl border-none"
+                                    className="w-full h-[75vh] rounded-xl md:rounded-2xl shadow-2xl border-none"
                                 />
                             )}
                         </div>
@@ -506,11 +578,18 @@ export default function WinPharmaTaskDetailPage() {
 
             {/* FEEDBACK SUGGESTIONS DIALOG MODAL */}
             <Dialog open={isFeedbackModalOpen} onOpenChange={setIsFeedbackModalOpen}>
-                <DialogContent className="max-w-2xl w-[95vw] p-0 rounded-[3rem] overflow-hidden border-none shadow-2xl bg-zinc-950">
+                <DialogContent hideCloseButton className="max-w-2xl w-[95vw] p-0 rounded-2xl md:rounded-[2rem] overflow-hidden border-none shadow-2xl bg-zinc-950">
                     <DialogHeader className="p-8 pb-4 bg-zinc-900 border-b border-white/5 flex flex-row items-center justify-between relative mt-4">
                         <DialogTitle className="text-xl font-black uppercase tracking-widest flex items-center gap-3 text-white">
                             <ShieldAlert className="h-6 w-6 text-destructive" /> Assessor Feedback
                         </DialogTitle>
+                        <Button 
+                            variant="ghost" 
+                            className="h-10 w-10 rounded-xl hover:bg-white/10 flex items-center justify-center shrink-0 text-white" 
+                            onClick={() => setIsFeedbackModalOpen(false)}
+                        >
+                            <X className="h-6 w-6" />
+                        </Button>
                     </DialogHeader>
                     <ScrollArea className="max-h-[60vh] p-8 bg-zinc-950">
                         <div className="space-y-6">

@@ -38,6 +38,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const SUBMISSION_BASE_URL = 'https://content-provider.pharmacollege.lk/content-provider/uploads/winpharma-submissions/';
 
@@ -46,11 +47,13 @@ export default function WinPharmaNestedGradingPage() {
     const router = useRouter();
     const { user } = useAuth();
     const queryClient = useQueryClient();
+    const isMobile = useIsMobile();
     
     const courseCode = params.courseCode as string;
     const submissionId = params.id as string;
 
     // States
+    const [activeTab, setActiveTab] = useState<'preview' | 'grading'>('preview');
     const [rotation, setRotation] = useState(0);
     const [editStatus, setEditStatus] = useState<string>('');
     const [editGrade, setEditGrade] = useState<string>('0.00');
@@ -65,6 +68,9 @@ export default function WinPharmaNestedGradingPage() {
         queryFn: () => getWinPharmaSubmission(submissionId),
         enabled: !!submissionId,
     });
+
+    const isPdf = useMemo(() => submission?.submission?.toLowerCase().endsWith('.pdf'), [submission]);
+    const fileUrl = useMemo(() => submission ? `${SUBMISSION_BASE_URL}${submission.submission}` : '', [submission]);
 
     // Fetch common reasons
     const { data: commonReasonsRaw } = useQuery({
@@ -167,28 +173,66 @@ export default function WinPharmaNestedGradingPage() {
                 </div>
             </header>
 
-            <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
-                {/* LEFT: IMAGE PREVIEW */}
-                <div className="flex-1 bg-zinc-900/50 p-4 md:p-8 flex flex-col overflow-hidden relative">
-                    <div className="flex-1 relative bg-zinc-950 rounded-[2.5rem] shadow-2xl border border-white/5 flex items-center justify-center overflow-auto p-4 md:p-8 m-auto w-full group">
-                        <div 
-                            className="transition-transform duration-500 ease-out origin-center"
-                            style={{ transform: `rotate(${rotation}deg)` }}
+            <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+                {/* Mobile Tab Switcher */}
+                {isMobile && (
+                    <div className="flex bg-zinc-950 p-2 border-b border-white/5 sticky top-0 z-40">
+                        <button 
+                            onClick={() => setActiveTab('preview')}
+                            className={cn(
+                                "flex-1 h-12 rounded-xl font-black text-xs uppercase tracking-widest transition-all",
+                                activeTab === 'preview' ? "bg-white/10 text-white" : "text-zinc-500 hover:text-zinc-300"
+                            )}
                         >
-                            <img 
-                                src={`${SUBMISSION_BASE_URL}${submission.submission}`} 
-                                alt="Student Submission" 
-                                className="max-w-full h-auto shadow-[0_30px_60px_-12px_rgba(0,0,0,0.5)] rounded-lg md:rounded-2xl"
+                            Submission File
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('grading')}
+                            className={cn(
+                                "flex-1 h-12 rounded-xl font-black text-xs uppercase tracking-widest transition-all",
+                                activeTab === 'grading' ? "bg-white/10 text-white" : "text-zinc-500 hover:text-zinc-300"
+                            )}
+                        >
+                            Grading Console
+                        </button>
+                    </div>
+                )}
+
+                {/* LEFT: IMAGE/FILE PREVIEW */}
+                <div className={cn(
+                    "flex-1 bg-zinc-900/50 p-4 md:p-8 flex flex-col overflow-hidden relative",
+                    isMobile ? "pb-36" : "pb-8",
+                    isMobile && activeTab !== 'preview' ? 'hidden' : 'flex'
+                )}>
+                    <div className="flex-1 relative bg-zinc-950 rounded-[2.5rem] shadow-2xl border border-white/5 flex items-center justify-center overflow-hidden p-0 m-auto w-full group">
+                        {isPdf ? (
+                            <iframe 
+                                src={`${fileUrl}#toolbar=0`} 
+                                className="w-full h-full border-none rounded-[2.5rem]"
+                                title="Submission PDF"
                             />
-                        </div>
+                        ) : (
+                            <div 
+                                className="transition-transform duration-500 ease-out origin-center overflow-auto p-4 md:p-8"
+                                style={{ transform: `rotate(${rotation}deg)` }}
+                            >
+                                <img 
+                                    src={fileUrl} 
+                                    alt="Student Submission" 
+                                    className="max-w-full h-auto shadow-[0_30px_60px_-12px_rgba(0,0,0,0.5)] rounded-lg md:rounded-2xl"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-6 md:mt-10 flex flex-wrap gap-3 md:gap-5 shrink-0 justify-center">
-                        <Button onClick={() => setRotation(r => r + 90)} className="h-12 md:h-14 px-6 md:px-10 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-white font-black text-sm uppercase tracking-widest transition-all">
-                            <RotateCw className="h-5 w-5 mr-3" /> Rotate View
-                        </Button>
+                        {!isPdf && (
+                            <Button onClick={() => setRotation(r => r + 90)} className="h-12 md:h-14 px-6 md:px-10 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-white font-black text-sm uppercase tracking-widest transition-all">
+                                <RotateCw className="h-5 w-5 mr-3" /> Rotate View
+                            </Button>
+                        )}
                         <Button asChild className="h-12 md:h-14 px-6 md:px-10 rounded-2xl bg-[#FFC107] text-[#333] hover:bg-[#e0a800] font-black text-sm uppercase tracking-widest transition-all">
-                            <a href={`${SUBMISSION_BASE_URL}${submission.submission}`} download={`${submission.index_number}_L${submission.level_id}.jpg`}>
+                            <a href={fileUrl} download={`${submission.index_number}_L${submission.level_id}.${isPdf ? 'pdf' : 'jpg'}`}>
                                 <Download className="h-5 w-5 mr-3" /> Save Local Copy
                             </a>
                         </Button>
@@ -196,7 +240,11 @@ export default function WinPharmaNestedGradingPage() {
                 </div>
 
                 {/* RIGHT: GRADING CONSOLE */}
-                <aside className="w-full lg:w-[420px] p-6 md:p-10 space-y-8 bg-zinc-950 border-t lg:border-t-0 lg:border-l border-white/5 overflow-y-auto">
+                <aside className={cn(
+                    "w-full md:w-[400px] p-6 md:p-10 space-y-8 bg-zinc-950 border-t md:border-t-0 md:border-l border-white/5 overflow-y-auto",
+                    isMobile ? "pb-36" : "pb-10",
+                    isMobile && activeTab !== 'grading' ? 'hidden' : 'block'
+                )}>
                     <div className="space-y-6">
                         <header className="space-y-2">
                             <div className="flex items-center justify-between">

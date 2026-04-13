@@ -15,6 +15,7 @@ export const getCourses = async (): Promise<Course[]> => {
         id: courseDetails.id,
         name: courseDetails.course_name,
         courseCode: courseDetails.course_code,
+        course_img: courseDetails.course_img,
     }));
 };
 

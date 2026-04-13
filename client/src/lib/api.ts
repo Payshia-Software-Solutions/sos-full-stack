@@ -17,5 +17,33 @@ export const getPaymentRequestsByReference = async (reference: string): Promise<
 };
 
 // Re-exporting functions from their new locations for compatibility until all components are updated.
-export { getCoursesForFilter, getFilteredConvocationRegistrations, getStudentFullInfo, updateConvocationCourses, getUserCertificatePrintStatus } from '@/lib/actions/certificates';
-export { getStudentEnrollments, getAllStudents } from '@/lib/actions/users';
+export { 
+    getCoursesForFilter, 
+    getFilteredConvocationRegistrations, 
+    updateConvocationCourses, 
+    getUserCertificatePrintStatus,
+    updateCertificateName 
+} from '@/lib/actions/certificates';
+
+export { 
+    getStudentEnrollments, 
+    getAllStudents,
+    getAllUserFullDetails,
+    getStudentBalance,
+    getStudentDetailsByUsername,
+    getTempUserDetailsById,
+    addStudentEnrollment,
+    removeStudentEnrollment,
+    getStudentFullInfo
+} from '@/lib/actions/users';
+
+export {
+    getPaymentRequests,
+    updatePaymentRequestStatus,
+    checkDuplicateSlips,
+    createStudentPayment
+} from '@/lib/actions/payments';
+
+export {
+    getCourses
+} from '@/lib/actions/courses';

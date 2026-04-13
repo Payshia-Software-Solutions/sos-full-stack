@@ -75,7 +75,7 @@ export default function LuckyWheelPage() {
         
         {/* Wheel */}
         <div
-          className="relative w-full h-full rounded-full border-8 border-primary shadow-2xl transition-transform duration-[5000ms] ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+          className="relative w-full h-full rounded-full border-8 border-primary shadow-2xl transition-transform [transition-duration:5000ms] [transition-timing-function:cubic-bezier(0.25,0.1,0.25,1)]"
           style={{ transform: `rotate(${rotation}deg)` }}
         >
           {segments.map((segment, index) => (
