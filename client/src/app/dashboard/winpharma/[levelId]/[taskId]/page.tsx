@@ -522,9 +522,9 @@ export default function WinPharmaTaskDetailPage() {
                                             Upload Work
                                         </Button>
                                     </div>
-                                    <Input 
+                                    <input 
                                         type="file" 
-                                        className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50" 
                                         accept=".jpg,.jpeg,.png,.pdf" 
                                         onChange={handleFileSelect} 
                                     />
