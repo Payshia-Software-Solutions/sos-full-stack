@@ -77,8 +77,13 @@ try {
         $studentId = $user['student_id'] ?? '';
         $nameWithInitials = $user['name_with_initials'] ?? '';
         $nic = $user['nic'] ?? '';
-        $mobile = $user['telephone_1'] ?? $user['telephone_2'] ?? '';
+        $mobile = trim($user['telephone_1'] ?? $user['telephone_2'] ?? '');
         $email = $user['e_mail'] ?? '';
+
+        // Normalize Phone Number (ensure it starts with '0')
+        if (!empty($mobile) && !preg_match('/^0/', $mobile) && strlen($mobile) === 9) {
+            $mobile = '0' . $mobile;
+        }
 
         $placeholders = ['{{FIRST_NAME}}', '{{LAST_NAME}}', '{{FULL_NAME}}', '{{STUDENT_ID}}', '{{NAME_WITH_INITIALS}}', '{{NIC}}', '{{EMAIL}}'];
         $values = [$firstName, $lastName, $fullName, $studentId, $nameWithInitials, $nic, $email];
