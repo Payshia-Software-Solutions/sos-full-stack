@@ -78,4 +78,12 @@ class UserFullDetails
         $stmt = $this->pdo->prepare("DELETE FROM user_full_details WHERE id = :id");
         $stmt->execute(['id' => $id]);
     }
+
+    public function getUsersWithBirthdayToday($month, $day)
+    {
+        $sql = "SELECT * FROM user_full_details WHERE MONTH(birth_day) = :month AND DAY(birth_day) = :day";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['month' => $month, 'day' => $day]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

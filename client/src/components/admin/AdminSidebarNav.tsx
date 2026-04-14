@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare, Ticket, LayoutDashboard, LogOut, Search, Wrench, Megaphone, Video, Home, MoreHorizontal, Award, ClipboardCheck, ChevronRight } from "lucide-react";
+import { MessageSquare, Ticket, LayoutDashboard, LogOut, Search, Wrench, Megaphone, Video, Home, MoreHorizontal, Award, ClipboardCheck, ChevronRight, Cake } from "lucide-react";
 import {
   Sidebar,
   SidebarHeader,
@@ -46,6 +46,7 @@ const navItems: NavItem[] = [
     ]
   },
   { href: "/admin/manage", label: "Manage", icon: Wrench },
+  { href: "/admin/birthday-wishes", label: "Birthday Wishes", icon: Cake },
   { href: "/admin/more", label: "More", icon: MoreHorizontal },
 ];
 
