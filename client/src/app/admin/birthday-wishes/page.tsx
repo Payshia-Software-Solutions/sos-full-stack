@@ -29,7 +29,8 @@ import {
     CheckCircle2, 
     AlertCircle,
     Calendar,
-    ArrowRight
+    ArrowRight,
+    Eye
 } from "lucide-react";
 import {
     Dialog,
@@ -58,7 +59,7 @@ export default function BirthdayWishesPage() {
         is_email_enabled: false
     });
     const [loading, setLoading] = useState(true);
-    const [serverTime, setServerTime] = useState<{server_time: string, server_timezone: string, local_time: string} | null>(null);
+    const [serverTime, setServerTime] = useState<{server_time: string, server_timezone: string, local_time: string, uk_time: string} | null>(null);
     const [testRecipient, setTestRecipient] = useState("");
     const [testType, setTestType] = useState<"sms" | "email" | null>(null);
     const [isTestLoading, setIsTestLoading] = useState(false);
@@ -78,10 +79,21 @@ export default function BirthdayWishesPage() {
     const [history, setHistory] = useState<any[]>([]);
     const [activeTab, setActiveTab] = useState("today");
     const [customDate, setCustomDate] = useState<Date | undefined>(new Date());
+    const [currentTime, setCurrentTime] = useState(new Date());
+    const [selectedLogContent, setSelectedLogContent] = useState<{name: string, content: string, type: string} | null>(null);
+    const [isViewMessageDialogOpen, setIsViewMessageDialogOpen] = useState(false);
     const [isListLoading, setIsListLoading] = useState(false);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     const [isManualSendLoading, setIsManualSendLoading] = useState(false);
     
+    // Update local clock every second
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
     // Manual Send Dialog State
     const [isManualDialogOpen, setIsManualDialogOpen] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState<any>(null);
@@ -689,9 +701,26 @@ export default function BirthdayWishesPage() {
                                                         {log.status.toUpperCase()}
                                                     </Badge>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                                    {log.type === 'sms' ? <MessageSquare className="h-3 w-3" /> : <Mail className="h-3 w-3" />}
-                                                    {log.recipient}
+                                                <div className="flex items-center justify-between gap-2 mt-2">
+                                                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                                        {log.type === 'sms' ? <MessageSquare className="h-3 w-3" /> : <Mail className="h-3 w-3" />}
+                                                        {log.recipient}
+                                                    </div>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        className="h-6 gap-1 px-1.5 text-[9px] hover:bg-primary/10 hover:text-primary rounded-lg transition-colors"
+                                                        onClick={() => {
+                                                            setSelectedLogContent({
+                                                                name: log.student_name,
+                                                                content: log.message_content,
+                                                                type: log.type
+                                                            });
+                                                            setIsViewMessageDialogOpen(true);
+                                                        }}
+                                                    >
+                                                        <Eye className="h-3 w-3" /> View Msg
+                                                    </Button>
                                                 </div>
                                                 {log.error_message && (
                                                     <p className="text-[9px] text-rose-500 mt-1 font-mono uppercase bg-rose-50 dark:bg-rose-950/20 px-1 py-0.5 rounded italic">
@@ -715,31 +744,43 @@ export default function BirthdayWishesPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {serverTime && (
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-end">
-                                        <div>
-                                            <p className="text-[10px] uppercase opacity-50 font-bold">Server</p>
-                                            <p className="text-xl font-mono font-bold leading-none">{serverTime.server_time.split(' ')[1]}</p>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-end">
+                                    <div className="group cursor-default">
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-sky-500 animate-pulse"></div>
+                                            <p className="text-[10px] uppercase opacity-50 font-bold tracking-wider">Server (UK)</p>
                                         </div>
-                                        <ArrowRight className="h-4 w-4 opacity-30 mb-1" />
-                                        <div className="text-right">
-                                            <p className="text-[10px] uppercase opacity-50 font-bold">Lanka</p>
-                                            <p className="text-xl font-mono font-bold leading-none text-rose-400">{serverTime.local_time.split(' ')[1]}</p>
-                                        </div>
+                                        <p className="text-2xl font-mono font-bold leading-none">
+                                            {currentTime.toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour12: false })}
+                                        </p>
                                     </div>
+                                    <ArrowRight className="h-5 w-5 opacity-20 mb-1" />
+                                    <div className="text-right group cursor-default">
+                                        <div className="flex items-center justify-end gap-1.5 mb-1">
+                                            <p className="text-[10px] uppercase opacity-50 font-bold tracking-wider text-rose-400">Lanka</p>
+                                            <div className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse"></div>
+                                        </div>
+                                        <p className="text-2xl font-mono font-bold leading-none text-rose-400">
+                                            {currentTime.toLocaleTimeString('en-GB', { timeZone: 'Asia/Colombo', hour12: false })}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                {(() => {
+                                    // Calculate hours difference between UK and Lanka
+                                    const ukStr = currentTime.toLocaleString('en-US', { timeZone: 'Europe/London' });
+                                    const lkStr = currentTime.toLocaleString('en-US', { timeZone: 'Asia/Colombo' });
+                                    const ukDate = new Date(ukStr);
+                                    const lkDate = new Date(lkStr);
+                                    const diffHours = (lkDate.getTime() - ukDate.getTime()) / (1000 * 60 * 60);
                                     
-                                    {(() => {
-                                        const sTime = new Date(serverTime.server_time.replace(' ', 'T'));
-                                        const lTime = new Date(serverTime.local_time.replace(' ', 'T'));
-                                        const diffMs = lTime.getTime() - sTime.getTime();
-                                        const diffHours = diffMs / (1000 * 60 * 60);
-                                        let targetHour = 7 - diffHours;
-                                        if (targetHour < 0) targetHour += 24;
-                                        if (targetHour >= 24) targetHour -= 24;
-                                        const wholeHour = Math.floor(targetHour);
-                                        const mins = Math.round((targetHour - wholeHour) * 60);
-                                        const cronExpr = `${mins} ${wholeHour} * * *`;
+                                    // To trigger at 07:00 AM Lanka Time on a UK Server:
+                                    let targetHour = 7 - diffHours;
+                                    if (targetHour < 0) targetHour += 24;
+                                    const wholeHour = Math.floor(targetHour);
+                                    const mins = Math.round((targetHour - wholeHour) * 60);
+                                    const cronExpr = `${mins} ${wholeHour} * * *`;
 
                                         return (
                                             <div className="space-y-2 pt-2 border-t border-white/10">
@@ -756,7 +797,6 @@ export default function BirthdayWishesPage() {
                                         );
                                     })()}
                                 </div>
-                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -847,6 +887,33 @@ export default function BirthdayWishesPage() {
                         >
                             {isTestLoading ? "Sending..." : "Send Test Message"}
                         </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* View History Message Dialog */}
+            <Dialog open={isViewMessageDialogOpen} onOpenChange={setIsViewMessageDialogOpen}>
+                <DialogContent className="sm:max-w-md rounded-3xl">
+                    <DialogHeader>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className={`p-2 rounded-lg ${selectedLogContent?.type === 'sms' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                                {selectedLogContent?.type === 'sms' ? <MessageSquare className="h-5 w-5" /> : <Mail className="h-5 w-5" />}
+                            </div>
+                            <DialogTitle>Sent Message</DialogTitle>
+                        </div>
+                        <DialogDescription>
+                            Historical {selectedLogContent?.type.toUpperCase()} sent to <strong>{selectedLogContent?.name}</strong>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-2">
+                        <ScrollArea className="h-[250px] rounded-xl border border-border/50 p-4 bg-slate-50 dark:bg-slate-900/50">
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed italic">
+                                "{selectedLogContent?.content}"
+                            </p>
+                        </ScrollArea>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={() => setIsViewMessageDialogOpen(false)} className="w-full rounded-xl">Close</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
