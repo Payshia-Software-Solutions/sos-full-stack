@@ -51,7 +51,13 @@ class BirthdaySettingsController
             }
 
             $type = $data['type'];
-            $recipient = $data['recipient'];
+            $recipient = trim($data['recipient']);
+            
+            // Normalize Phone Number (ensure it starts with '0' for Sri Lanka)
+            if ($type === 'sms' && !preg_match('/^0/', $recipient) && strlen($recipient) === 9) {
+                $recipient = '0' . $recipient;
+            }
+
             $template = $data['template'];
             $subject = $data['subject'] ?? 'Test Birthday Wish';
 
