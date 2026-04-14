@@ -29,6 +29,7 @@ export default function BirthdayWishesPage() {
         is_email_enabled: false
     });
     const [loading, setLoading] = useState(true);
+    const [serverTime, setServerTime] = useState<{server_time: string, server_timezone: string, local_time: string} | null>(null);
     const [testRecipient, setTestRecipient] = useState("");
     const [testType, setTestType] = useState<"sms" | "email" | null>(null);
     const [isTestLoading, setIsTestLoading] = useState(false);
@@ -42,7 +43,20 @@ export default function BirthdayWishesPage() {
 
     useEffect(() => {
         fetchSettings();
+        fetchServerTime();
     }, []);
+
+    const fetchServerTime = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/birthday-settings/system-time/`);
+            const result = await response.json();
+            if (result.status === "success") {
+                setServerTime(result.data);
+            }
+        } catch (error) {
+            console.error("Error fetching server time:", error);
+        }
+    };
 
     const fetchSettings = async () => {
         try {
@@ -342,6 +356,82 @@ export default function BirthdayWishesPage() {
                     <p className="text-base text-muted-foreground mb-6 max-w-2xl leading-relaxed">
                         To activate these automated wishes, you must configure a CRON job on your server hosting the backend. This job should trigger precisely once every morning to check for student birthdays.
                     </p>
+
+                    {serverTime && (() => {
+                        const sTime = new Date(serverTime.server_time.replace(' ', 'T'));
+                        const lTime = new Date(serverTime.local_time.replace(' ', 'T'));
+                        const diffMs = lTime.getTime() - sTime.getTime();
+                        const diffHours = diffMs / (1000 * 60 * 60);
+                        
+                        // Calculate target cron hour (7:00 AM SL time)
+                        // If SL is 7:00 AM, server should be 7 - diffHours
+                        let targetHour = 7 - diffHours;
+                        if (targetHour < 0) targetHour += 24;
+                        if (targetHour >= 24) targetHour -= 24;
+                        
+                        const wholeHour = Math.floor(targetHour);
+                        const mins = Math.round((targetHour - wholeHour) * 60);
+                        const cronExpr = `${mins} ${wholeHour} * * *`;
+
+                        return (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    <div className="bg-white/50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
+                                            <Info className="h-3 w-3" /> Literal Server Time
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-2xl font-mono font-bold text-slate-700 dark:text-slate-300">
+                                                {serverTime.server_time.split(' ')[1]}
+                                            </span>
+                                            <span className="text-[10px] bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-muted-foreground font-bold">
+                                                {serverTime.server_timezone}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-blue-500/5 p-4 rounded-2xl border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-blue-500 mb-1 flex items-center gap-1">
+                                            <Cake className="h-3 w-3" /> Target Local Time (Sri Lanka)
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-2xl font-mono font-bold text-blue-600 dark:text-blue-400">
+                                                {serverTime.local_time.split(' ')[1]}
+                                            </span>
+                                            <span className="text-[10px] bg-blue-500/10 px-2 py-0.5 rounded text-blue-500 font-bold">
+                                                GMT +5:30
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-amber-500/10 border border-amber-500/20 p-5 rounded-2xl mb-8">
+                                    <h4 className="text-amber-700 dark:text-amber-400 font-bold mb-2 flex items-center gap-2">
+                                        <Info className="h-4 w-4" /> Personalized CRON Setup Guide
+                                    </h4>
+                                    <p className="text-sm text-amber-800/80 dark:text-amber-400/80 mb-4 leading-relaxed">
+                                        Based on your current server offset ({diffHours > 0 ? `+${diffHours}` : diffHours} hours), to send messages exactly at <strong>7:00 AM Sri Lanka time</strong>, you should schedule your CRON job for <strong>{wholeHour.toString().padStart(2, '0')}:{mins.toString().padStart(2, '0')}</strong> on your server.
+                                    </p>
+                                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                                        <div className="bg-amber-500/20 px-4 py-2 rounded-xl text-amber-700 dark:text-amber-300 font-mono text-lg font-bold">
+                                            {cronExpr}
+                                        </div>
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20"
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(cronExpr);
+                                                toast({ title: "Copied Expression", description: "Standard cron expression copied." });
+                                            }}
+                                        >
+                                            Copy Expression
+                                        </Button>
+                                    </div>
+                                </div>
+                            </>
+                        );
+                    })()}
+
                     <div className="group relative">
                         <div className="absolute -inset-1 bg-gradient-to-r from-slate-500 to-slate-400 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
                         <div className="relative bg-slate-900 text-slate-100 p-6 rounded-2xl font-mono text-sm shadow-xl flex items-center justify-between">
@@ -363,7 +453,7 @@ export default function BirthdayWishesPage() {
                     </div>
                     <p className="mt-4 text-xs text-muted-foreground/60 flex items-center gap-2">
                         <Info className="h-3 w-3" />
-                         Recommended schedule: <code>0 8 * * *</code> (Once daily at 08:00 AM)
+                         Recommended schedule: <code>0 7 * * *</code> (Once daily at 07:00 AM)
                     </p>
                 </CardContent>
             </Card>

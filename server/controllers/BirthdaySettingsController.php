@@ -101,4 +101,29 @@ class BirthdaySettingsController
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
     }
+
+    public function getSystemTime()
+    {
+        try {
+            $serverTimezone = date_default_timezone_get();
+            $serverTime = date('Y-m-d H:i:s');
+            
+            $colomboTimezone = new DateTimeZone('Asia/Colombo');
+            $date = new DateTime('now', $colomboTimezone);
+            $localTime = $date->format('Y-m-d H:i:s');
+
+            echo json_encode([
+                'status' => 'success',
+                'data' => [
+                    'server_time' => $serverTime,
+                    'server_timezone' => $serverTimezone,
+                    'local_time' => $localTime,
+                    'local_timezone' => 'Asia/Colombo'
+                ]
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
 }

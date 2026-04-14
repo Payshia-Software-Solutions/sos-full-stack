@@ -14,5 +14,8 @@ return [
     },
     'POST /birthday-settings/send-test/$' => function () use ($birthdaySettingsController) {
         $birthdaySettingsController->sendTestMessage();
+    },
+    'GET /birthday-settings/system-time/$' => function () use ($birthdaySettingsController) {
+        $birthdaySettingsController->getSystemTime();
     }
 ];
