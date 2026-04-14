@@ -9,6 +9,7 @@ require_once __DIR__ . '/../models/SMSModel.php';
 require_once __DIR__ . '/../models/EmailModel.php';
 
 require_once __DIR__ . '/../models/UserFullDetails.php';
+require_once __DIR__ . '/../models/BirthdayWishLog.php';
 
 date_default_timezone_set('Asia/Colombo');
 
@@ -56,6 +57,7 @@ try {
     logMessage("Found " . count($users) . " birthday(s) today.");
 
     // 3. Initialize Communication Models
+    $birthdayWishLogModel = new BirthdayWishLog($pdo);
     $authToken = $_ENV['SMS_AUTH_TOKEN'] ?? '';
     $senderId = $_ENV['SMS_SENDER_ID'] ?? 'Pharma C.';
 
@@ -73,7 +75,7 @@ try {
     foreach ($users as $user) {
         $firstName = $user['first_name'] ?? 'Student';
         $lastName = $user['last_name'] ?? '';
-        $fullName = ($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '');
+        $fullName = ($firstName . ' ' . $lastName);
         $studentId = $user['student_id'] ?? '';
         $nameWithInitials = $user['name_with_initials'] ?? '';
         $nic = $user['nic'] ?? '';
@@ -93,11 +95,26 @@ try {
             $smsMessage = str_replace($placeholders, $values, $settings['sms_template']);
             logMessage("Sending SMS to $mobile (Student ID: $studentId)...");
             $result = $smsModel->sendSMS($mobile, $senderId, $smsMessage);
-            if (isset($result['status']) && $result['status'] == 'success') {
+            
+            $status = (isset($result['status']) && $result['status'] == 'success') ? 'success' : 'failed';
+            $error = ($status == 'failed') ? ($result['message'] ?? 'Unknown SMS error') : null;
+            
+            if ($status == 'success') {
                 logMessage("SMS sent successfully.");
             } else {
-                logMessage("SMS FAILED: " . ($result['message'] ?? 'Unknown error'), true);
+                logMessage("SMS FAILED: " . $error, true);
             }
+
+            // Log to database
+            $birthdayWishLogModel->createLog([
+                'student_id' => $studentId,
+                'student_name' => $fullName,
+                'type' => 'sms',
+                'recipient' => $mobile,
+                'status' => $status,
+                'error_message' => $error,
+                'message_content' => $smsMessage
+            ]);
         }
 
         // Process Email
@@ -113,11 +130,25 @@ try {
                 $resultArr = $result;
             }
 
-            if (isset($resultArr['status']) && $resultArr['status'] == 'success') {
+            $status = (isset($resultArr['status']) && $resultArr['status'] == 'success') ? 'success' : 'failed';
+            $error = ($status == 'failed') ? ($resultArr['message'] ?? 'Unknown Email error') : null;
+
+            if ($status == 'success') {
                 logMessage("Email sent successfully.");
             } else {
-                logMessage("Email FAILED: " . ($resultArr['message'] ?? 'Unknown error'), true);
+                logMessage("Email FAILED: " . $error, true);
             }
+
+            // Log to database
+            $birthdayWishLogModel->createLog([
+                'student_id' => $studentId,
+                'student_name' => $fullName,
+                'type' => 'email',
+                'recipient' => $email,
+                'status' => $status,
+                'error_message' => $error,
+                'message_content' => $emailBody
+            ]);
         }
     }
 

@@ -17,5 +17,14 @@ return [
     },
     'GET /birthday-settings/system-time/$' => function () use ($birthdaySettingsController) {
         $birthdaySettingsController->getSystemTime();
+    },
+    'GET /birthday-wishes/list/$' => function () use ($birthdaySettingsController) {
+        $birthdaySettingsController->getBirthdayList();
+    },
+    'POST /birthday-wishes/send-manual/$' => function () use ($birthdaySettingsController) {
+        $birthdaySettingsController->sendManualWish();
+    },
+    'GET /birthday-wishes/history/$' => function () use ($birthdaySettingsController) {
+        $birthdaySettingsController->getHistory();
     }
 ];
