@@ -308,7 +308,8 @@ $routes['GET /'] = function () {
 
 // Get request method and URI
 $method = $_SERVER['REQUEST_METHOD'];
-$uri = trim($_SERVER['REQUEST_URI'], '/');
+$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$uri = trim($uri, '/');
 
 // Ensure URI always has a trailing slash
 if (substr($uri, -1) !== '/') {
@@ -318,7 +319,7 @@ if (substr($uri, -1) !== '/') {
 // Determine if the application is running on localhost
 if ($_SERVER['HTTP_HOST'] === 'localhost') {
     // Adjust URI if needed (only on localhost)
-    $uri = str_replace('pharma-college-project/server', '', $uri);
+    $uri = str_replace('sos-full-stack/server', '', $uri);
 } else {
     // Adjust URI if needed (if using a subdirectory)
     $uri = '/' . $uri;
