@@ -43,6 +43,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export default function BirthdayWishesPage() {
     const [settings, setSettings] = useState({
@@ -68,10 +72,12 @@ export default function BirthdayWishesPage() {
     const [birthdayLists, setBirthdayLists] = useState<Record<string, any[]>>({
         yesterday: [],
         today: [],
-        tomorrow: []
+        tomorrow: [],
+        custom: []
     });
     const [history, setHistory] = useState<any[]>([]);
     const [activeTab, setActiveTab] = useState("today");
+    const [customDate, setCustomDate] = useState<Date | undefined>(new Date());
     const [isListLoading, setIsListLoading] = useState(false);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     const [isManualSendLoading, setIsManualSendLoading] = useState(false);
@@ -92,8 +98,12 @@ export default function BirthdayWishesPage() {
     }, []);
 
     useEffect(() => {
-        fetchBirthdayList(activeTab);
-    }, [activeTab]);
+        if (activeTab === "custom") {
+            if (customDate) fetchBirthdayList("custom", customDate);
+        } else {
+            fetchBirthdayList(activeTab);
+        }
+    }, [activeTab, customDate]);
 
     const fetchHistory = async () => {
         setIsHistoryLoading(true);
@@ -110,16 +120,33 @@ export default function BirthdayWishesPage() {
         }
     };
 
-    const fetchBirthdayList = async (day: string) => {
+    const fetchBirthdayList = async (tabName: string, specificDate?: Date) => {
         setIsListLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/birthday-wishes/list/?day=${day}`);
+            // Calculate the actual date string to send
+            const date = specificDate ? new Date(specificDate) : new Date();
+            
+            if (!specificDate) {
+                if (tabName === 'yesterday') {
+                    date.setDate(date.getDate() - 1);
+                } else if (tabName === 'tomorrow') {
+                    date.setDate(date.getDate() + 1);
+                }
+            }
+            
+            // Format as YYYY-MM-DD in local time
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
+
+            const response = await fetch(`${API_BASE_URL}/birthday-wishes/list/?day=${dateStr}`);
             const result = await response.json();
             if (result.status === "success") {
-                setBirthdayLists(prev => ({ ...prev, [day]: result.data }));
+                setBirthdayLists(prev => ({ ...prev, [tabName]: result.data }));
             }
         } catch (error) {
-            console.error(`Error fetching ${day} birthdays:`, error);
+            console.error(`Error fetching ${tabName} birthdays:`, error);
         } finally {
             setIsListLoading(false);
         }
@@ -377,14 +404,59 @@ export default function BirthdayWishesPage() {
                             <CardDescription>View upcoming birthdays and send manual wishes.</CardDescription>
                         </CardHeader>
                         <CardContent>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
+                                    <TabsList className="grid grid-cols-3 sm:flex sm:grid-cols-none gap-1 p-1 bg-slate-100 dark:bg-slate-800/50 rounded-2xl h-12">
+                                        <TabsTrigger value="yesterday" className="rounded-xl px-4 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all">Yesterday</TabsTrigger>
+                                        <TabsTrigger value="today" className="rounded-xl px-4 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all">Today</TabsTrigger>
+                                        <TabsTrigger value="tomorrow" className="rounded-xl px-4 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all">Tomorrow</TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+
+                                <div className="flex items-center gap-2">
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                    "w-[240px] justify-start text-left font-normal rounded-xl h-12 border-border/50 bg-white/50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-900 transition-all",
+                                                    !customDate && "text-muted-foreground",
+                                                    activeTab === "custom" && "ring-2 ring-primary border-primary/50"
+                                                )}
+                                                onClick={() => setActiveTab("custom")}
+                                            >
+                                                <Calendar className="mr-2 h-4 w-4" />
+                                                {customDate ? format(customDate, "PPP") : <span>Pick a date</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0 rounded-3xl overflow-hidden border-border/50 shadow-2xl" align="end">
+                                            <CalendarComponent
+                                                mode="single"
+                                                selected={customDate}
+                                                onSelect={(date) => {
+                                                    setCustomDate(date);
+                                                    setActiveTab("custom");
+                                                }}
+                                                initialFocus
+                                                className="p-3"
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                    {activeTab === "custom" && (
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-12 w-12 rounded-xl text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10"
+                                            onClick={() => setActiveTab("today")}
+                                        >
+                                            <ArrowRight className="h-5 w-5 rotate-180" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+
                             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                                <TabsList className="grid w-full grid-cols-3 mb-6 p-1 bg-slate-100 dark:bg-slate-800/50 rounded-2xl h-12">
-                                    <TabsTrigger value="yesterday" className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">Yesterday</TabsTrigger>
-                                    <TabsTrigger value="today" className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">Today</TabsTrigger>
-                                    <TabsTrigger value="tomorrow" className="rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">Tomorrow</TabsTrigger>
-                                </TabsList>
-                                
-                                {["yesterday", "today", "tomorrow"].map((day) => (
+                                {["yesterday", "today", "tomorrow", "custom"].map((day) => (
                                     <TabsContent key={day} value={day} className="mt-0 focus-visible:ring-0">
                                         {isListLoading ? (
                                             <div className="space-y-4 py-8">
