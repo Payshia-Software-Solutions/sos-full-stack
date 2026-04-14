@@ -224,7 +224,7 @@ const managementTasks: ManagementTask[] = [
     title: "Birthday Wishes",
     description: "Send birthday greetings to students.",
     icon: <Cake className="w-8 h-8 text-white" />,
-    href: "/admin/manage/birthday-wishes",
+    href: "/admin/birthday-wishes",
     category: "Student Management"
   },
   {
