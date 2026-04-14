@@ -2,7 +2,7 @@ name: 🚀 Deploy website on push QA API
 on:
   push:
     branches:
-      - live  # Trigger deployment on push to the main branch
+      - server-live  # Trigger deployment on push to the main branch
       
 jobs:
   web-deploy:
