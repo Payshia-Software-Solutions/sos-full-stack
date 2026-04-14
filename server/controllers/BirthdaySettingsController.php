@@ -9,9 +9,11 @@ require_once './models/EmailModel.php';
 class BirthdaySettingsController
 {
     private $birthdaySettingsModel;
+    private $pdo;
 
     public function __construct($pdo)
     {
+        $this->pdo = $pdo;
         $this->birthdaySettingsModel = new BirthdaySettings($pdo);
     }
 
@@ -141,19 +143,28 @@ class BirthdaySettingsController
     {
         try {
             $dayParam = $_GET['day'] ?? 'today';
-            $date = new DateTime('now', new DateTimeZone('Asia/Colombo'));
             
-            if ($dayParam === 'yesterday') {
-                $date->modify('-1 day');
-            } else if ($dayParam === 'tomorrow') {
-                $date->modify('+1 day');
+            // Determine the target date: handle both aliases and literal date strings
+            if (in_array($dayParam, ['yesterday', 'today', 'tomorrow'])) {
+                $date = new DateTime('now', new DateTimeZone('Asia/Colombo'));
+                if ($dayParam === 'yesterday') {
+                    $date->modify('-1 day');
+                } else if ($dayParam === 'tomorrow') {
+                    $date->modify('+1 day');
+                }
+            } else {
+                // Assume it's a date string (e.g. 2026-04-14)
+                try {
+                    $date = new DateTime($dayParam);
+                } catch (Exception $e) {
+                    $date = new DateTime('now', new DateTimeZone('Asia/Colombo'));
+                }
             }
 
             $month = $date->format('m');
             $day = $date->format('d');
 
-            global $pdo;
-            $userModel = new UserFullDetails($pdo);
+            $userModel = new UserFullDetails($this->pdo);
             $users = $userModel->getUsersWithBirthdayToday($month, $day);
 
             echo json_encode(['status' => 'success', 'data' => $users]);
@@ -209,8 +220,7 @@ class BirthdaySettingsController
             }
 
             // Log the attempt
-            global $pdo;
-            $logModel = new BirthdayWishLog($pdo);
+            $logModel = new BirthdayWishLog($this->pdo);
             $logModel->createLog([
                 'student_id' => $studentId,
                 'student_name' => $studentName,
@@ -235,8 +245,7 @@ class BirthdaySettingsController
     public function getHistory()
     {
         try {
-            global $pdo;
-            $logModel = new BirthdayWishLog($pdo);
+            $logModel = new BirthdayWishLog($this->pdo);
             $logs = $logModel->getRecentLogs(50);
             echo json_encode(['status' => 'success', 'data' => $logs]);
         } catch (Exception $e) {
