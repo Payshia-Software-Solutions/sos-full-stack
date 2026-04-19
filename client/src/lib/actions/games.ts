@@ -1272,3 +1272,11 @@ export async function deleteWinpharmaCommonReason(id: string | number): Promise<
     }
     return response.json();
 }
+
+export async function getWinPharmaGraderPerformance(courseCode: string): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/win_pharma_submission/performance/?courseCode=${courseCode}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch grader performance data');
+    }
+    return response.json();
+}

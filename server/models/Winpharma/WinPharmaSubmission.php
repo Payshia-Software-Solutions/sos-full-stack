@@ -309,4 +309,44 @@ class WinPharmaSubmission
         $stmt->execute([$UserName, $batchCode]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function getBatchGradingStats($batchCode)
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT 
+                COUNT(*) as total_submissions,
+                COUNT(CASE WHEN grade_status = 'Pending' THEN 1 END) as total_to_grade
+            FROM `win_pharma_submission` 
+            WHERE `course_code` = ?
+        ");
+        $stmt->execute([$batchCode]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getGraderPerformance($courseCode)
+    {
+        $sql = "SELECT 
+                    s.update_by AS grader_username,
+                    u.fname AS first_name,
+                    u.lname AS last_name,
+                    COUNT(CASE WHEN s.grade_status = 'Pending' THEN 1 END) AS pending_count,
+                    COUNT(CASE WHEN s.grade_status = 'Completed' THEN 1 END) AS completed_count,
+                    COUNT(CASE WHEN s.grade_status = 'Rejected' THEN 1 END) AS rejected_count,
+                    COUNT(*) AS total_graded,
+                    COALESCE(cs.per_rate, 0) AS commission_rate,
+                    (COUNT(CASE WHEN s.grade_status = 'Completed' THEN 1 END) * COALESCE(cs.per_rate, 0)) AS total_earnings
+                FROM `win_pharma_submission` s
+                LEFT JOIN `users` u ON s.update_by = u.username
+                LEFT JOIN `commision_setup` cs ON cs.task_reference = 'WinpharmaGrading'
+                WHERE s.course_code = ? 
+                  AND s.update_by IS NOT NULL 
+                  AND s.update_by != 'System' 
+                  AND s.update_by != ''
+                  AND u.userlevel != 'Student'
+                GROUP BY s.update_by, cs.per_rate, u.fname, u.lname";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$courseCode]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

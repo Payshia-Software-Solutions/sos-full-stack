@@ -151,8 +151,8 @@ class WinPharmaSubmissionController
             'attempt'           => $data['attempt'] ?? 1,
             'course_code'       => $data['course_code'] ?? '',
             'reason'            => $data['reason'] ?? '',
-            'update_by'         => $data['update_by'] ?? ($data['index_number'] ?? 'System'),
-            'update_at'         => $data['update_at'] ?? date('Y-m-d H:i:s'),
+            'update_by'         => null, // Set to NULL initially as per requirement
+            'update_at'         => null, // Set to NULL initially
             'recorrection_count'=> $data['recorrection_count'] ?? 0,
             'payment_status'    => $data['payment_status'] ?? 'Pending'
         ];
@@ -170,8 +170,15 @@ class WinPharmaSubmissionController
 
     public function updateWinPharmaSubmission($id)
     {
-        $data = $_POST;
+        // 1. Try reading JSON input first
+        $data = json_decode(file_get_contents('php://input'), true);
 
+        // 2. If no JSON data, fallback to $_POST (FormData)
+        if (empty($data)) {
+            $data = $_POST;
+        }
+
+        // 3. Handle File Upload (FormData pattern)
         if (isset($_FILES['submission']) && $_FILES['submission']['error'] === UPLOAD_ERR_OK) {
             $uploadResult = $this->uploadSubmissionToFTP($_FILES['submission']);
 
@@ -182,6 +189,12 @@ class WinPharmaSubmissionController
             }
 
             $data['submission'] = $uploadResult['path'];
+        }
+
+        // Ensure update_by and update_at are set if grading
+        if (isset($data['grade']) || isset($data['grade_status'])) {
+            $data['update_by'] = $data['update_by'] ?? 'System';
+            $data['update_at'] = date('Y-m-d H:i:s');
         }
 
         $this->model->updateWinPharmaSubmission($id, $data);
@@ -229,5 +242,28 @@ class WinPharmaSubmissionController
 
         $submissions = $this->model->getSubmissionsByFilters($UserName, $batchCode);
         echo json_encode($submissions);
+    }
+
+    public function getGraderPerformance()
+    {
+        $courseCode = $_GET['courseCode'] ?? null;
+
+        if (!$courseCode) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Missing required parameter: courseCode'
+            ]);
+            return;
+        }
+
+        $performance = $this->model->getGraderPerformance($courseCode);
+        $batchStats = $this->model->getBatchGradingStats($courseCode);
+
+        echo json_encode([
+            'success' => true,
+            'data' => $performance,
+            'stats' => $batchStats
+        ]);
     }
 }

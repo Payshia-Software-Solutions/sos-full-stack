@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Layers, LayoutGrid, ClipboardCheck, MessageSquareQuote } from "lucide-react";
+import { ArrowLeft, ArrowRight, Layers, LayoutGrid, ClipboardCheck, MessageSquareQuote, BarChart3 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from 'next/link';
 import { WinPharmaIcon } from "@/components/icons/module-icons";
@@ -28,6 +28,12 @@ export default function WinPharmaSetupPage() {
             description: "Manage standardized feedback templates for student evaluations.",
             href: "/admin/manage/winpharma-common-reasons",
             icon: MessageSquareQuote,
+        },
+        {
+            title: "Grading Performance",
+            description: "View employee grading counts and payment overview for this game.",
+            href: "/admin/manage/games/winpharma/performance",
+            icon: BarChart3,
         },
     ];
 

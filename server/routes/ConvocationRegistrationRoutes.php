@@ -31,8 +31,8 @@ return [
     },
 
     // GET a single registration by reference number (same as ID)
-    'GET /convocation-registrations/check-hash\?hashValue=[A-Za-z0-9]+/$' => function () use ($convocationRegistrationController) {
-        $hashValue = isset($_GET['hashValue']) ? $_GET['hashValue'] : null;
+    'GET /convocation-registrations/check-hash/$' => function () use ($convocationRegistrationController) {
+        $hashValue = $_GET['hashValue'] ?? null;
         if (!$hashValue) {
             http_response_code(400);
             echo json_encode(['error' => 'Missing required parameter: hashValue']);
@@ -42,19 +42,17 @@ return [
     },
 
     // GET a single registration by reference number (same as ID)
-    'GET /convocation-registrations\?referenceNumber=[\d]+/$' => function () use ($convocationRegistrationController) {
-        $reference_number = isset($_GET['referenceNumber']) ? $_GET['referenceNumber'] : null;
-        if (!$reference_number) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Missing required parameter: referenceNumber']);
-            return;
+    'GET /convocation-registrations/$' => function () use ($convocationRegistrationController) {
+        $reference_number = $_GET['referenceNumber'] ?? null;
+        if ($reference_number) {
+            return $convocationRegistrationController->getRegistrationByReference($reference_number);
         }
-        return $convocationRegistrationController->getRegistrationByReference($reference_number);
+        return $convocationRegistrationController->getRegistrations();
     },
 
     // Trigger SMS notification for ceremony number
     // GET /convocation-registrations/notify-ceremony?referenceNumber=12345
-    'GET /convocation-registrations/notify-ceremony\?referenceNumber=[\d]+/$' => function () use ($convocationRegistrationController) {
+    'GET /convocation-registrations/notify-ceremony/$' => function () use ($convocationRegistrationController) {
         $reference_number = $_GET['referenceNumber'] ?? null;
         if (!$reference_number) {
             http_response_code(400);
@@ -107,16 +105,20 @@ return [
         return $convocationRegistrationController->deleteConvocationPayment($registration_id, $transaction_id);
     },
 
-    'GET /convocation-registrations-certificate\?courseCode=([A-Za-z0-9]+)&viewSession=([A-Za-z0-9]+)/$' => function ($courseCode, $viewSession) use ($convocationRegistrationController) {
-        return $convocationRegistrationController->GetListbyCourseAndSession($courseCode, $viewSession);
-    },
+    'GET /convocation-registrations-certificate/$' => function () use ($convocationRegistrationController) {
+        $courseCode = $_GET['courseCode'] ?? null;
+        $viewSession = $_GET['viewSession'] ?? null;
 
-    'GET /convocation-registrations-certificate\?courseCode=([A-Za-z0-9]+)/$' => function ($courseCode) use ($convocationRegistrationController) {
-        return $convocationRegistrationController->GetListbyCourse($courseCode);
-    },
+        if ($courseCode && $viewSession) {
+            return $convocationRegistrationController->GetListbyCourseAndSession($courseCode, $viewSession);
+        } elseif ($courseCode) {
+            return $convocationRegistrationController->GetListbyCourse($courseCode);
+        } elseif ($viewSession) {
+            return $convocationRegistrationController->GetListbySession($viewSession);
+        }
 
-    'GET /convocation-registrations-certificate\?viewSession=([A-Za-z0-9]+)/$' => function ($viewSession) use ($convocationRegistrationController) {
-        return $convocationRegistrationController->GetListbySession($viewSession);
+        http_response_code(400);
+        echo json_encode(['error' => 'Missing required parameters: courseCode or viewSession']);
     },
 
     // PUT update ceremony number only

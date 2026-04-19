@@ -53,7 +53,7 @@ return [
     },
 
     // GET a single registration by reference number (same as ID)
-    'GET /payment-portal-requests/check-hash\?hashValue=[A-Za-z0-9]+/$' => function () use ($paymentRequestController) {
+    'GET /payment-portal-requests/check-hash/$' => function () use ($paymentRequestController) {
         $hashValue = isset($_GET['hashValue']) ? $_GET['hashValue'] : null;
         if (!$hashValue) {
             http_response_code(400);
@@ -65,7 +65,7 @@ return [
 
 
     // GET a single registration by reference number (same as ID)
-    'GET /payment-portal-requests/get-records\?UniqueNumber=[A-Za-z0-9]+&Reason=[A-Za-z0-9]+/$' => function () use ($paymentRequestController) {
+    'GET /payment-portal-requests/get-records/$' => function () use ($paymentRequestController) {
         $UniqueNumber = isset($_GET['UniqueNumber']) ? $_GET['UniqueNumber'] : null;
         $Reason = isset($_GET['Reason']) ? $_GET['Reason'] : null;
 
