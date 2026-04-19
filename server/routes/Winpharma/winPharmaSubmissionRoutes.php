@@ -61,4 +61,9 @@ return [
         $batchCode = $_GET['batchCode'] ?? null;
         return $WinPharmaSubmissionController->getWinPharmaSubmissionsByFilters($UserName, $batchCode);
     },
+
+    // Get Grader Performance report
+    'GET /win_pharma_submission/performance/' => function () use ($WinPharmaSubmissionController) {
+        return $WinPharmaSubmissionController->getGraderPerformance();
+    },
 ];
