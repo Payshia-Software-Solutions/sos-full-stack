@@ -310,6 +310,19 @@ class WinPharmaSubmission
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function getBatchGradingStats($batchCode)
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT 
+                COUNT(*) as total_submissions,
+                COUNT(CASE WHEN grade_status = 'Pending' THEN 1 END) as total_to_grade
+            FROM `win_pharma_submission` 
+            WHERE `course_code` = ?
+        ");
+        $stmt->execute([$batchCode]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     public function getGraderPerformance($courseCode)
     {
         $sql = "SELECT 
@@ -329,6 +342,7 @@ class WinPharmaSubmission
                   AND s.update_by IS NOT NULL 
                   AND s.update_by != 'System' 
                   AND s.update_by != ''
+                  AND u.userlevel != 'Student'
                 GROUP BY s.update_by, cs.per_rate, u.fname, u.lname";
 
         $stmt = $this->pdo->prepare($sql);

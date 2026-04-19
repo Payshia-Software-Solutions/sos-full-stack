@@ -151,8 +151,8 @@ class WinPharmaSubmissionController
             'attempt'           => $data['attempt'] ?? 1,
             'course_code'       => $data['course_code'] ?? '',
             'reason'            => $data['reason'] ?? '',
-            'update_by'         => $data['update_by'] ?? ($data['index_number'] ?? 'System'),
-            'update_at'         => $data['update_at'] ?? date('Y-m-d H:i:s'),
+            'update_by'         => null, // Set to NULL initially as per requirement
+            'update_at'         => null, // Set to NULL initially
             'recorrection_count'=> $data['recorrection_count'] ?? 0,
             'payment_status'    => $data['payment_status'] ?? 'Pending'
         ];
@@ -258,9 +258,12 @@ class WinPharmaSubmissionController
         }
 
         $performance = $this->model->getGraderPerformance($courseCode);
+        $batchStats = $this->model->getBatchGradingStats($courseCode);
+
         echo json_encode([
             'success' => true,
-            'data' => $performance
+            'data' => $performance,
+            'stats' => $batchStats
         ]);
     }
 }
