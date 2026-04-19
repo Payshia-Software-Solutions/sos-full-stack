@@ -10,10 +10,10 @@ $CcEvaluationController = new CcEvaluationController($pdo);
 // Define an array of routes
 return [
     // Define a GET route to handle the "recovered-patients" endpoint with dynamic parameters
-    'GET /get-ceylon-pharmacy-recovered-count\?CourseCode=[\w]+&loggedUser=[\w]+/$' => function () use ($CcEvaluationController) {
+    'GET /get-ceylon-pharmacy-recovered-count/$' => function () use ($CcEvaluationController) {
         // Access query parameters using $_GET
-        $courseCode = isset($_GET['CourseCode']) ? $_GET['CourseCode'] : null;
-        $loggedUser = isset($_GET['loggedUser']) ? $_GET['loggedUser'] : null;
+        $courseCode = $_GET['CourseCode'] ?? null;
+        $loggedUser = $_GET['loggedUser'] ?? null;
 
         // Validate parameters
         if (!$courseCode || !$loggedUser) {
@@ -25,9 +25,8 @@ return [
         return $CcEvaluationController->GetCeylonPharmacyRecoveredCount($courseCode, $loggedUser);
     },
 
-    'GET /get-pharma-hunter-progress\?loggedUser=[\w]+/$' => function () use ($CcEvaluationController) {
-
-        $loggedUser = isset($_GET['loggedUser']) ? $_GET['loggedUser'] : null;
+    'GET /get-pharma-hunter-progress/$' => function () use ($CcEvaluationController) {
+        $loggedUser = $_GET['loggedUser'] ?? null;
 
         // Validate parameters
         if (!$loggedUser) {
@@ -39,10 +38,9 @@ return [
         return $CcEvaluationController->GetPharmaHunterProgress($loggedUser);
     },
 
-    'GET /get-pharma-hunter-pro-progress\?CourseCode=[\w]+&loggedUser=[\w]+/$' => function () use ($CcEvaluationController) {
-
-        $loggedUser = isset($_GET['loggedUser']) ? $_GET['loggedUser'] : null;
-        $courseCode = isset($_GET['CourseCode']) ? $_GET['CourseCode'] : null;
+    'GET /get-pharma-hunter-pro-progress/$' => function () use ($CcEvaluationController) {
+        $loggedUser = $_GET['loggedUser'] ?? null;
+        $courseCode = $_GET['CourseCode'] ?? null;
 
         // Validate parameters
         if (!$loggedUser) {
@@ -53,10 +51,9 @@ return [
 
         return $CcEvaluationController->getHunterProProgress($courseCode, $loggedUser);
     },
-    'GET /get-assignments-results\?CourseCode=[\w]+&loggedUser=[\w]+/$' => function () use ($CcEvaluationController) {
-
-        $loggedUser = isset($_GET['loggedUser']) ? $_GET['loggedUser'] : null;
-        $courseCode = isset($_GET['CourseCode']) ? $_GET['CourseCode'] : null;
+    'GET /get-assignments-results/$' => function () use ($CcEvaluationController) {
+        $loggedUser = $_GET['loggedUser'] ?? null;
+        $courseCode = $_GET['CourseCode'] ?? null;
 
         // Validate parameters
         if (!$loggedUser) {
@@ -67,9 +64,8 @@ return [
 
         return $CcEvaluationController->GetAssignmentGrades($courseCode, $loggedUser);
     },
-    'GET /get-student-balance\?loggedUser=[\w]+/$' => function () use ($CcEvaluationController) {
-
-        $loggedUser = isset($_GET['loggedUser']) ? $_GET['loggedUser'] : null;
+    'GET /get-student-balance/$' => function () use ($CcEvaluationController) {
+        $loggedUser = $_GET['loggedUser'] ?? null;
 
         // Validate parameters
         if (!$loggedUser) {
@@ -80,10 +76,9 @@ return [
 
         return $CcEvaluationController->GetStudentBalance($loggedUser);
     },
-    'GET /get-certificate-evaluation\?CourseCode=[\w]+&loggedUser=[\w]+/$' => function () use ($CcEvaluationController) {
-
-        $loggedUser = isset($_GET['loggedUser']) ? $_GET['loggedUser'] : null;
-        $courseCode = isset($_GET['CourseCode']) ? $_GET['CourseCode'] : null;
+    'GET /get-certificate-evaluation/$' => function () use ($CcEvaluationController) {
+        $loggedUser = $_GET['loggedUser'] ?? null;
+        $courseCode = $_GET['CourseCode'] ?? null;
 
         // Validate parameters
         if (!$loggedUser) {
@@ -94,9 +89,8 @@ return [
 
         return $CcEvaluationController->GetCertificationEvaluation($courseCode, $loggedUser);
     },
-    'GET /get-student-full-info\?loggedUser=[\w]+/$' => function () use ($CcEvaluationController) {
-
-        $loggedUser = isset($_GET['loggedUser']) ? $_GET['loggedUser'] : null;
+    'GET /get-student-full-info/$' => function () use ($CcEvaluationController) {
+        $loggedUser = $_GET['loggedUser'] ?? null;
 
         // Validate parameters
         if (!$loggedUser) {
