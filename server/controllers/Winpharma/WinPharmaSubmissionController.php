@@ -170,8 +170,15 @@ class WinPharmaSubmissionController
 
     public function updateWinPharmaSubmission($id)
     {
-        $data = $_POST;
+        // 1. Try reading JSON input first
+        $data = json_decode(file_get_contents('php://input'), true);
 
+        // 2. If no JSON data, fallback to $_POST (FormData)
+        if (empty($data)) {
+            $data = $_POST;
+        }
+
+        // 3. Handle File Upload (FormData pattern)
         if (isset($_FILES['submission']) && $_FILES['submission']['error'] === UPLOAD_ERR_OK) {
             $uploadResult = $this->uploadSubmissionToFTP($_FILES['submission']);
 
@@ -182,6 +189,12 @@ class WinPharmaSubmissionController
             }
 
             $data['submission'] = $uploadResult['path'];
+        }
+
+        // Ensure update_by and update_at are set if grading
+        if (isset($data['grade']) || isset($data['grade_status'])) {
+            $data['update_by'] = $data['update_by'] ?? 'System';
+            $data['update_at'] = date('Y-m-d H:i:s');
         }
 
         $this->model->updateWinPharmaSubmission($id, $data);
@@ -229,5 +242,14 @@ class WinPharmaSubmissionController
 
         $submissions = $this->model->getSubmissionsByFilters($UserName, $batchCode);
         echo json_encode($submissions);
+    }
+
+    public function getGraderPerformance()
+    {
+        $performance = $this->model->getGraderPerformance();
+        echo json_encode([
+            'success' => true,
+            'data' => $performance
+        ]);
     }
 }
