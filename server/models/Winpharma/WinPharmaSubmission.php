@@ -310,7 +310,7 @@ class WinPharmaSubmission
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getGraderPerformance()
+    public function getGraderPerformance($courseCode)
     {
         $sql = "SELECT 
                     s.update_by AS grader_username,
@@ -325,11 +325,14 @@ class WinPharmaSubmission
                 FROM `win_pharma_submission` s
                 LEFT JOIN `users` u ON s.update_by = u.username
                 LEFT JOIN `commision_setup` cs ON cs.task_reference = 'WinpharmaGrading'
-                WHERE s.update_by IS NOT NULL AND s.update_by != 'System' AND s.update_by != ''
+                WHERE s.course_code = ? 
+                  AND s.update_by IS NOT NULL 
+                  AND s.update_by != 'System' 
+                  AND s.update_by != ''
                 GROUP BY s.update_by, cs.per_rate, u.fname, u.lname";
 
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
+        $stmt->execute([$courseCode]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

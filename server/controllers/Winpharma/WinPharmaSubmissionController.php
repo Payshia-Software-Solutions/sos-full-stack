@@ -246,7 +246,18 @@ class WinPharmaSubmissionController
 
     public function getGraderPerformance()
     {
-        $performance = $this->model->getGraderPerformance();
+        $courseCode = $_GET['courseCode'] ?? null;
+
+        if (!$courseCode) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Missing required parameter: courseCode'
+            ]);
+            return;
+        }
+
+        $performance = $this->model->getGraderPerformance($courseCode);
         echo json_encode([
             'success' => true,
             'data' => $performance
