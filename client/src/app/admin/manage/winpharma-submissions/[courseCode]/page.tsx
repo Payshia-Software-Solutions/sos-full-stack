@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 
-const ITEMS_PER_PAGE = 25;
+// Removing hardcoded ITEMS_PER_PAGE to use state instead
 
 export default function WinPharmaCourseSubmissionsPage() {
     const params = useParams();
@@ -46,6 +46,12 @@ export default function WinPharmaCourseSubmissionsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
+
+    // Reset to page 1 when filters or page size changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, statusFilter, itemsPerPage]);
 
     // Fetch batch details to get course name
     const { data: batches = [] } = useQuery<Batch[]>({
@@ -108,6 +114,7 @@ export default function WinPharmaCourseSubmissionsPage() {
     const filteredSubmissions = useMemo(() => {
         let result = [...submissions];
 
+        // 1. Filter by Status
         if (statusFilter !== 'all') {
             if (statusFilter === 'Re-correction') {
                 result = result.filter(s => Number(s.recorrection_count) > 0);
@@ -116,6 +123,7 @@ export default function WinPharmaCourseSubmissionsPage() {
             }
         }
 
+        // 2. Filter by Search Term
         if (searchTerm) {
             const lowerTerm = searchTerm.toLowerCase();
             result = result.filter(s => 
@@ -125,15 +133,41 @@ export default function WinPharmaCourseSubmissionsPage() {
             );
         }
 
+        // 3. Apply consistent sorting
+        result.sort((a, b) => {
+            const statusOrder = (status: string) => {
+                const s = (status || '').trim().toLowerCase();
+                if (s === 'pending') return 0;
+                if (s === 'sp-pending') return 1;
+                return 2;
+            };
+
+            const orderA = statusOrder(a.grade_status);
+            const orderB = statusOrder(b.grade_status);
+
+            if (orderA !== orderB) return orderA - orderB;
+
+            // Same status group:
+            if (orderA === 0 || orderA === 1) {
+                // Pending: FIFO (Oldest first)
+                return (a.date_time || '').localeCompare(b.date_time || '');
+            } else {
+                // Graded: LIFO (Recently updated first)
+                const timeA = a.update_at || a.date_time || '';
+                const timeB = b.update_at || b.date_time || '';
+                return timeB.localeCompare(timeA);
+            }
+        });
+
         return result;
     }, [submissions, statusFilter, searchTerm]);
 
     const paginatedSubmissions = useMemo(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredSubmissions.slice(start, start + ITEMS_PER_PAGE);
-    }, [filteredSubmissions, currentPage]);
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredSubmissions.slice(start, start + itemsPerPage);
+    }, [filteredSubmissions, currentPage, itemsPerPage]);
 
-    const totalPages = Math.ceil(filteredSubmissions.length / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(filteredSubmissions.length / itemsPerPage);
 
     if (isLoading) return <div className="p-8 space-y-4"><Skeleton className="h-20 w-full rounded-2xl" /><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{[1,2,3].map(i => <Skeleton key={i} className="h-48 rounded-3xl" />)}</div></div>;
 
@@ -185,7 +219,7 @@ export default function WinPharmaCourseSubmissionsPage() {
                         <div className="flex items-center justify-between w-full md:w-auto gap-4">
                             <div className="flex items-center gap-2">
                                 <span className="text-[10px] md:text-sm font-bold text-muted-foreground uppercase tracking-widest">Show</span>
-                                <Select defaultValue="25">
+                                <Select value={String(itemsPerPage)} onValueChange={(val) => setItemsPerPage(Number(val))}>
                                     <SelectTrigger className="w-16 md:w-20 h-9 md:h-10 rounded-lg">
                                         <SelectValue />
                                     </SelectTrigger>
@@ -330,21 +364,56 @@ export default function WinPharmaCourseSubmissionsPage() {
                         size="sm"
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="flex-1 sm:flex-none h-11 md:h-12 w-11 md:w-32 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none font-bold"
+                        className="flex-1 sm:flex-none h-11 md:h-12 w-11 md:w-12 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none font-bold p-0"
                     >
-                        <ChevronLeft className="h-5 w-5 md:mr-2" /> <span className="hidden md:inline">Previous</span>
+                        <ChevronLeft className="h-5 w-5" />
                     </Button>
-                    <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 px-6 h-11 md:h-12 rounded-xl text-sm font-black min-w-[3rem] justify-center">
-                        {currentPage}
+                    
+                    {/* Page Numbers */}
+                    <div className="flex items-center gap-1 md:gap-2">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                            .filter(page => {
+                                // Show first, last, and pages around current
+                                if (totalPages <= 5) return true;
+                                if (page === 1 || page === totalPages) return true;
+                                return Math.abs(page - currentPage) <= 1;
+                            })
+                            .map((page, index, array) => (
+                                <div key={page} className="flex items-center">
+                                    {index > 0 && array[index - 1] !== page - 1 && (
+                                        <span className="text-muted-foreground px-1 md:px-2">...</span>
+                                    )}
+                                    <Button
+                                        variant={currentPage === page ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setCurrentPage(page)}
+                                        className={cn(
+                                            "h-11 md:h-12 min-w-[2.75rem] md:min-w-[3rem] rounded-xl border-none font-black text-xs md:text-sm transition-all duration-200",
+                                            currentPage === page 
+                                                ? "bg-primary text-white shadow-lg scale-105" 
+                                                : "bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                        )}
+                                    >
+                                        {page}
+                                    </Button>
+                                </div>
+                            ))
+                        }
+                        {totalPages === 0 && (
+                            <div className="h-11 md:h-12 min-w-[3rem] rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center font-black text-sm opacity-50">
+                                0
+                            </div>
+                        )}
                     </div>
+
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages || totalPages === 0}
-                        className="flex-1 sm:flex-none h-11 md:h-12 w-11 md:w-32 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none font-bold"
+                        className="flex-1 sm:flex-none h-11 md:h-12 w-11 md:w-12 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none font-bold p-0"
                     >
-                        <span className="hidden md:inline">Next</span> <ChevronRight className="h-5 w-5 md:ml-2" />
+                        <ChevronRight className="h-5 w-5" />
                     </Button>
                 </div>
             </div>
