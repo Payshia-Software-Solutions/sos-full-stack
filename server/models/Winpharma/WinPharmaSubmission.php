@@ -22,7 +22,17 @@ class WinPharmaSubmission
             $params[] = $course_code;
         }
 
-        $sql .= " ORDER BY s.submission_id DESC";
+        $sql .= " ORDER BY 
+                    CASE 
+                        WHEN LOWER(TRIM(s.grade_status)) = 'pending' THEN 0 
+                        WHEN LOWER(TRIM(s.grade_status)) = 'sp-pending' THEN 1
+                        ELSE 2 
+                    END ASC,
+                    CASE 
+                        WHEN LOWER(TRIM(s.grade_status)) IN ('pending', 'sp-pending') THEN s.date_time 
+                    END ASC,
+                    s.update_at DESC,
+                    s.submission_id DESC";
         
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
