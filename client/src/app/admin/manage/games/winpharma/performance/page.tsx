@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { 
     Banknote, Users, ClipboardCheck, Clock, XCircle, 
     ArrowLeft, BarChart3, Search, GraduationCap,
-    FilterX, LayoutList, History
+    FilterX, LayoutList, History, RotateCw
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
@@ -48,7 +48,7 @@ export default function WinPharmaGraderPerformancePage() {
     };
 
     const performanceData = data?.data || [];
-    const batchStats = data?.stats || { total_submissions: 0, total_to_grade: 0 };
+    const batchStats = data?.stats || { total_submissions: 0, total_to_grade: 0, total_completed: 0, total_try_again: 0, total_rejected: 0 };
 
     return (
         <div className="p-4 md:p-8 space-y-8 pb-20">
@@ -119,7 +119,7 @@ export default function WinPharmaGraderPerformancePage() {
                 </div>
             ) : (
                 <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-700">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
                         <Card className="bg-zinc-900/50 border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
                             <CardContent className="p-6 flex items-center gap-4">
                                 <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-500">
@@ -163,9 +163,19 @@ export default function WinPharmaGraderPerformancePage() {
                                 </div>
                                 <div className="text-left">
                                     <p className="text-sm font-medium text-zinc-500 uppercase tracking-wider text-[10px]">Completed</p>
-                                    <p className="text-2xl font-black text-white">
-                                        {performanceData.reduce((acc: number, curr: any) => acc + parseInt(curr.completed_count), 0)}
-                                    </p>
+                                    <p className="text-2xl font-black text-white">{batchStats.total_completed || 0}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="bg-zinc-900/50 border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
+                            <CardContent className="p-6 flex items-center gap-4">
+                                <div className="p-3 bg-rose-500/10 rounded-2xl text-rose-500">
+                                    <RotateCw className="w-6 h-6" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="text-sm font-medium text-zinc-500 uppercase tracking-wider text-[10px]">Try Again</p>
+                                    <p className="text-2xl font-black text-white">{batchStats.total_try_again || 0}</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -198,7 +208,9 @@ export default function WinPharmaGraderPerformancePage() {
                                             <TableHead className="py-6 px-8 text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Employee</TableHead>
                                             <TableHead className="py-6 px-8 text-zinc-400 font-bold uppercase tracking-wider text-[10px] text-center">Pending</TableHead>
                                             <TableHead className="py-6 px-8 text-zinc-400 font-bold uppercase tracking-wider text-[10px] text-center">Completed</TableHead>
+                                            <TableHead className="py-6 px-8 text-zinc-400 font-bold uppercase tracking-wider text-[10px] text-center">Try Again</TableHead>
                                             <TableHead className="py-6 px-8 text-zinc-400 font-bold uppercase tracking-wider text-[10px] text-center">Rejected</TableHead>
+                                            <TableHead className="py-6 px-8 text-zinc-400 font-bold uppercase tracking-wider text-[10px] text-center">Special</TableHead>
                                             <TableHead className="py-6 px-8 text-zinc-400 font-bold uppercase tracking-wider text-[10px] text-center">Total</TableHead>
                                             <TableHead className="py-6 px-8 text-zinc-400 font-bold uppercase tracking-wider text-[10px] text-right">Rate</TableHead>
                                             <TableHead className="py-6 px-8 text-zinc-400 font-bold uppercase tracking-wider text-[10px] text-right">Payable</TableHead>
@@ -214,16 +226,22 @@ export default function WinPharmaGraderPerformancePage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="py-6 px-8 text-center font-bold text-yellow-500/80">
-                                                    {row.pending_count}
+                                                    {row.pending_count || 0}
                                                 </TableCell>
                                                 <TableCell className="py-6 px-8 text-center font-bold text-green-500">
-                                                    {row.completed_count}
+                                                    {row.completed_count || 0}
                                                 </TableCell>
-                                                <TableCell className="py-6 px-8 text-center font-bold text-rose-500/70">
-                                                    {row.rejected_count}
+                                                <TableCell className="py-6 px-8 text-center font-bold text-rose-400">
+                                                    {row.try_again_count || 0}
                                                 </TableCell>
-                                                <TableCell className="py-6 px-8 text-center font-bold text-zinc-400">
-                                                    {row.total_graded}
+                                                <TableCell className="py-6 px-8 text-center font-bold text-zinc-500">
+                                                    {row.rejected_count || 0}
+                                                </TableCell>
+                                                <TableCell className="py-6 px-8 text-center font-bold text-amber-500">
+                                                    {row.special_count || 0}
+                                                </TableCell>
+                                                <TableCell className="py-6 px-8 text-center font-bold text-white/50">
+                                                    {row.total_graded || 0}
                                                 </TableCell>
                                                 <TableCell className="py-6 px-8 text-right font-medium text-zinc-500 text-sm">
                                                     {formatPrice(row.commission_rate)}
@@ -231,13 +249,13 @@ export default function WinPharmaGraderPerformancePage() {
                                                 <TableCell className="py-6 px-8 text-right">
                                                     <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-none font-black text-xs px-4 py-1.5 rounded-xl transition-colors">
                                                         {formatPrice(row.total_earnings)}
-                                            </Badge>
+                                                    </Badge>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
                                         {performanceData.length === 0 && (
                                             <TableRow>
-                                                <TableCell colSpan={7} className="py-24 text-center space-y-4 opacity-50">
+                                                <TableCell colSpan={9} className="py-24 text-center space-y-4 opacity-50">
                                                     <div className="flex flex-col items-center gap-4">
                                                         <FilterX className="h-16 w-16 text-zinc-600" />
                                                         <div className="space-y-1">
