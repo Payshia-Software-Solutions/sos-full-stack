@@ -339,6 +339,7 @@ class WinPharmaSubmission
 
     public function getGraderPerformance($courseCode)
     {
+        die("HERE");
         $sql = "SELECT 
                     s.update_by AS grader_username,
                     u.fname AS first_name,

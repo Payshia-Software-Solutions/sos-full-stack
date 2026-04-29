@@ -263,6 +263,7 @@ class WinPharmaSubmissionController
 
         echo json_encode([
             'success' => true,
+            'debug_info' => 'v2',
             'data' => $performance,
             'stats' => $batchStats
         ]);
