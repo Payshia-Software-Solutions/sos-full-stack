@@ -325,7 +325,10 @@ class WinPharmaSubmission
         $stmt = $this->pdo->prepare("
             SELECT 
                 COUNT(*) as total_submissions,
-                COUNT(CASE WHEN grade_status = 'Pending' THEN 1 END) as total_to_grade
+                COUNT(CASE WHEN grade_status = 'Pending' THEN 1 END) as total_to_grade,
+                COUNT(CASE WHEN grade_status = 'Completed' THEN 1 END) as total_completed,
+                COUNT(CASE WHEN grade_status = 'Try Again' THEN 1 END) as total_try_again,
+                COUNT(CASE WHEN grade_status = 'Rejected' THEN 1 END) as total_rejected
             FROM `win_pharma_submission` 
             WHERE `course_code` = ?
         ");
@@ -341,7 +344,9 @@ class WinPharmaSubmission
                     u.lname AS last_name,
                     COUNT(CASE WHEN s.grade_status = 'Pending' THEN 1 END) AS pending_count,
                     COUNT(CASE WHEN s.grade_status = 'Completed' THEN 1 END) AS completed_count,
+                    COUNT(CASE WHEN s.grade_status = 'Try Again' THEN 1 END) AS try_again_count,
                     COUNT(CASE WHEN s.grade_status = 'Rejected' THEN 1 END) AS rejected_count,
+                    COUNT(CASE WHEN s.grade_status = 'Sp-Pending' THEN 1 END) AS special_count,
                     COUNT(*) AS total_graded,
                     COALESCE(cs.per_rate, 0) AS commission_rate,
                     (COUNT(CASE WHEN s.grade_status = 'Completed' THEN 1 END) * COALESCE(cs.per_rate, 0)) AS total_earnings
