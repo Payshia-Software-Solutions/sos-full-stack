@@ -246,6 +246,7 @@ class WinPharmaSubmissionController
 
     public function getGraderPerformance()
     {
+        error_log("WinPharma Performance API hit for courseCode: " . ($_GET['courseCode'] ?? 'none'));
         $courseCode = $_GET['courseCode'] ?? null;
 
         if (!$courseCode) {
@@ -262,6 +263,7 @@ class WinPharmaSubmissionController
 
         echo json_encode([
             'success' => true,
+            'debug_info' => 'v2',
             'data' => $performance,
             'stats' => $batchStats
         ]);
