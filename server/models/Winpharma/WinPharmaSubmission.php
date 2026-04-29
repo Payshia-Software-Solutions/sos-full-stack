@@ -325,11 +325,10 @@ class WinPharmaSubmission
         $stmt = $this->pdo->prepare("
             SELECT 
                 COUNT(*) as total_submissions,
-                COUNT(CASE WHEN LOWER(TRIM(grade_status)) = 'pending' THEN 1 END) as total_to_grade,
-                COUNT(CASE WHEN LOWER(TRIM(grade_status)) = 'completed' THEN 1 END) as total_completed,
-                COUNT(CASE WHEN LOWER(TRIM(grade_status)) = 'try again' THEN 1 END) as total_try_again,
-                COUNT(CASE WHEN LOWER(TRIM(grade_status)) = 'rejected' THEN 1 END) as total_rejected,
-                COUNT(CASE WHEN LOWER(TRIM(grade_status)) = 'sp-pending' THEN 1 END) as total_special
+                COUNT(CASE WHEN grade_status = 'Pending' THEN 1 END) as total_to_grade,
+                COUNT(CASE WHEN grade_status = 'Completed' THEN 1 END) as total_completed,
+                COUNT(CASE WHEN grade_status = 'Try Again' THEN 1 END) as total_try_again,
+                COUNT(CASE WHEN grade_status = 'Rejected' THEN 1 END) as total_rejected
             FROM `win_pharma_submission` 
             WHERE `course_code` = ?
         ");
@@ -339,19 +338,18 @@ class WinPharmaSubmission
 
     public function getGraderPerformance($courseCode)
     {
-        die("HERE");
         $sql = "SELECT 
                     s.update_by AS grader_username,
                     u.fname AS first_name,
                     u.lname AS last_name,
-                    COUNT(CASE WHEN LOWER(TRIM(s.grade_status)) = 'pending' THEN 1 END) AS pending_count,
-                    COUNT(CASE WHEN LOWER(TRIM(s.grade_status)) = 'completed' THEN 1 END) AS completed_count,
-                    COUNT(CASE WHEN LOWER(TRIM(s.grade_status)) = 'try again' THEN 1 END) AS try_again_count,
-                    COUNT(CASE WHEN LOWER(TRIM(s.grade_status)) = 'rejected' THEN 1 END) AS rejected_count,
-                    COUNT(CASE WHEN LOWER(TRIM(s.grade_status)) = 'sp-pending' THEN 1 END) AS special_count,
+                    COUNT(CASE WHEN s.grade_status = 'Pending' THEN 1 END) AS pending_count,
+                    COUNT(CASE WHEN s.grade_status = 'Completed' THEN 1 END) AS completed_count,
+                    COUNT(CASE WHEN s.grade_status = 'Try Again' THEN 1 END) AS try_again_count,
+                    COUNT(CASE WHEN s.grade_status = 'Rejected' THEN 1 END) AS rejected_count,
+                    COUNT(CASE WHEN s.grade_status = 'Sp-Pending' THEN 1 END) AS special_count,
                     COUNT(*) AS total_graded,
                     COALESCE(cs.per_rate, 0) AS commission_rate,
-                    (COUNT(CASE WHEN LOWER(TRIM(s.grade_status)) = 'completed' THEN 1 END) * COALESCE(cs.per_rate, 0)) AS total_earnings
+                    (COUNT(CASE WHEN s.grade_status = 'Completed' THEN 1 END) * COALESCE(cs.per_rate, 0)) AS total_earnings
                 FROM `win_pharma_submission` s
                 LEFT JOIN `users` u ON s.update_by = u.username
                 LEFT JOIN `commision_setup` cs ON cs.task_reference = 'WinpharmaGrading'
