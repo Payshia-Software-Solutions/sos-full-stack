@@ -51,7 +51,12 @@ class WinPharmaSubmissionController
                 mkdir($tempDir, 0777, true);
             }
 
-            $tempPath = $tempDir . '/' . basename($file['name']);
+            $originalName = basename($file['name']);
+            $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+            $filenameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
+            $newFileName = $filenameWithoutExt . '_' . time() . '_' . rand(1000, 9999) . '.' . $extension;
+
+            $tempPath = $tempDir . '/' . $newFileName;
             if (!move_uploaded_file($file['tmp_name'], $tempPath)) {
                 throw new Exception("Failed to move uploaded file to temporary directory.");
             }
@@ -70,7 +75,7 @@ class WinPharmaSubmissionController
 
             $this->ensureDirectoryExists($ftp_conn, $ftp_target_dir);
 
-            $remoteFilePath = $ftp_target_dir . basename($file['name']);
+            $remoteFilePath = $ftp_target_dir . $newFileName;
             if (!ftp_put($ftp_conn, $remoteFilePath, $tempPath, FTP_BINARY)) {
                 throw new Exception("Failed to upload file to FTP: $remoteFilePath");
             }
@@ -78,7 +83,7 @@ class WinPharmaSubmissionController
             unlink($tempPath);
             ftp_close($ftp_conn);
 
-            return ['status' => 'success', 'message' => 'File uploaded successfully.', 'path' => basename($file['name'])];
+            return ['status' => 'success', 'message' => 'File uploaded successfully.', 'path' => $newFileName];
         } catch (Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
         }
