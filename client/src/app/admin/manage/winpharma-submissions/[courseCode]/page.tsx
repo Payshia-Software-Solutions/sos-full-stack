@@ -104,7 +104,7 @@ export default function WinPharmaCourseSubmissionsPage() {
             total: submissions.length,
             pending: submissions.filter(s => s.grade_status === 'Pending').length,
             spPending: submissions.filter(s => s.grade_status === 'Sp-Pending').length,
-            reCorrection: submissions.filter(s => Number(s.recorrection_count) > 0).length,
+            reCorrection: submissions.filter(s => s.grade_status === 'Re-Correction' || Number(s.recorrection_count) > 0).length,
             completed: submissions.filter(s => s.grade_status === 'Completed').length,
             tryAgain: submissions.filter(s => s.grade_status === 'Try Again').length,
         };
@@ -116,8 +116,8 @@ export default function WinPharmaCourseSubmissionsPage() {
 
         // 1. Filter by Status
         if (statusFilter !== 'all') {
-            if (statusFilter === 'Re-correction') {
-                result = result.filter(s => Number(s.recorrection_count) > 0);
+            if (statusFilter === 'Re-Correction') {
+                result = result.filter(s => s.grade_status === 'Re-Correction' || Number(s.recorrection_count) > 0);
             } else {
                 result = result.filter(s => s.grade_status === statusFilter);
             }
@@ -193,7 +193,7 @@ export default function WinPharmaCourseSubmissionsPage() {
                         { label: 'All', value: stats.total, color: 'bg-black', active: statusFilter === 'all', filter: 'all' },
                         { label: 'Pending', value: stats.pending, color: 'bg-[#FFB700]', active: statusFilter === 'Pending', filter: 'Pending' },
                         { label: 'Sp-Pending', value: stats.spPending, color: 'bg-[#DE3E44]', active: statusFilter === 'Sp-Pending', filter: 'Sp-Pending' },
-                        { label: 'Re-correction', value: stats.reCorrection, color: 'bg-[#00D0FF]', active: statusFilter === 'Re-correction', filter: 'Re-correction' },
+                        { label: 'Re-Correction', value: stats.reCorrection, color: 'bg-[#00D0FF]', active: statusFilter === 'Re-Correction', filter: 'Re-Correction' },
                         { label: 'Completed', value: stats.completed, color: 'bg-[#1D794D]', active: statusFilter === 'Completed', filter: 'Completed' },
                         { label: 'Try Again', value: stats.tryAgain, color: 'bg-[#6D757D]', active: statusFilter === 'Try Again', filter: 'Try Again' },
                     ].map((s) => (
@@ -286,6 +286,7 @@ export default function WinPharmaCourseSubmissionsPage() {
                                                     "rounded-[4px] px-3 py-1 font-bold shadow-sm",
                                                     s.grade_status === 'Pending' ? "bg-[#FFB700] text-white" :
                                                     s.grade_status === 'Completed' ? "bg-[#198754] text-white" :
+                                                    s.grade_status === 'Re-Correction' ? "bg-[#00D0FF] text-white" :
                                                     "bg-[#6D757D] text-white"
                                                 )}
                                             >
@@ -318,6 +319,7 @@ export default function WinPharmaCourseSubmissionsPage() {
                                                     "rounded-[4px] px-2 py-0.5 font-bold text-[9px] uppercase",
                                                     s.grade_status === 'Pending' ? "bg-[#FFB700] text-white" :
                                                     s.grade_status === 'Completed' ? "bg-[#198754] text-white" :
+                                                    s.grade_status === 'Re-Correction' ? "bg-[#00D0FF] text-white" :
                                                     "bg-[#6D757D] text-white"
                                                 )}
                                             >
