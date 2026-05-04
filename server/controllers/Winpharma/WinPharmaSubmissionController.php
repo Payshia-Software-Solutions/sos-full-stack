@@ -32,6 +32,54 @@ class WinPharmaSubmissionController
         }
     }
 
+    private function compressImage($sourcePath, $destinationPath, $quality = 60)
+    {
+        $info = getimagesize($sourcePath);
+        if ($info === false) {
+            return false;
+        }
+
+        $mime = $info['mime'];
+        $image = null;
+
+        switch ($mime) {
+            case 'image/jpeg':
+                if (function_exists('imagecreatefromjpeg')) {
+                    $image = @imagecreatefromjpeg($sourcePath);
+                }
+                break;
+            case 'image/png':
+                if (function_exists('imagecreatefrompng')) {
+                    $image = @imagecreatefrompng($sourcePath);
+                }
+                break;
+            case 'image/webp':
+                if (function_exists('imagecreatefromwebp')) {
+                    $image = @imagecreatefromwebp($sourcePath);
+                }
+                break;
+        }
+
+        if ($image) {
+            switch ($mime) {
+                case 'image/jpeg':
+                    imagejpeg($image, $destinationPath, $quality);
+                    break;
+                case 'image/png':
+                    $pngQuality = (int)floor((100 - $quality) / 10);
+                    imagepng($image, $destinationPath, $pngQuality);
+                    break;
+                case 'image/webp':
+                    imagewebp($image, $destinationPath, $quality);
+                    break;
+            }
+            imagedestroy($image);
+            return true;
+        }
+
+        return false;
+    }
+
     private function uploadSubmissionToFTP($file)
     {
         try {
@@ -59,6 +107,12 @@ class WinPharmaSubmissionController
             $tempPath = $tempDir . '/' . $newFileName;
             if (!move_uploaded_file($file['tmp_name'], $tempPath)) {
                 throw new Exception("Failed to move uploaded file to temporary directory.");
+            }
+
+            // Compress if it's an image
+            $extension_lower = strtolower($extension);
+            if (in_array($extension_lower, ['jpg', 'jpeg', 'png', 'webp'])) {
+                $this->compressImage($tempPath, $tempPath, 60);
             }
 
             $ftp_conn = ftp_connect($ftp_server);
