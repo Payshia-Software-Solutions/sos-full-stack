@@ -1280,3 +1280,58 @@ export async function getWinPharmaGraderPerformance(courseCode: string): Promise
     }
     return response.json();
 }
+
+// MediMind Course-Level Assignments
+export async function getMediMindCourseLevels(): Promise<any[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/medi-mind-course-levels/`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch MediMind course-level assignments');
+    }
+    return response.json();
+}
+
+export async function getMediMindLevelsByCourse(courseCode: string): Promise<MediMindLevel[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/medi-mind-course-levels/course/${courseCode}/`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch levels for course');
+    }
+    return response.json();
+}
+
+export async function getMediMindStudentLevels(courseCodes: string[]): Promise<MediMindLevel[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/medi-mind-course-levels/student-levels/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_codes: courseCodes }),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch student-specific levels');
+    }
+    return response.json();
+}
+
+export async function assignMediMindLevelToCourse(data: { course_code: string; level_id: number; assigned_by: string }): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/medi-mind-course-levels/assign/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to assign level' }));
+        throw new Error(errorData.message || 'API Error');
+    }
+    return response.json();
+}
+
+export async function unassignMediMindLevelFromCourse(data: { course_code: string; level_id: number }): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/medi-mind-course-levels/unassign/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to unassign level' }));
+        throw new Error(errorData.message || 'API Error');
+    }
+    return response.json();
+}

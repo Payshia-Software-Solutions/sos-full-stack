@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, BookCopy, BrainCircuit, FileQuestion, HelpCircle, Layers, Pill } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookCopy, BrainCircuit, FileQuestion, HelpCircle, Layers, Pill, History as HistoryIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from 'next/link';
 import { MediMindIcon } from "@/components/icons/module-icons";
@@ -43,10 +43,16 @@ export default function MediMindSetupPage() {
             icon: BrainCircuit,
         },
         {
+            title: "Manage Course Assignments",
+            description: "Assign specific game levels to different student batches or courses.",
+            href: "/admin/manage/games/medimind/course-assignments",
+            icon: BookCopy,
+        },
+        {
             title: "Student Submissions",
             description: "Monitor and manage student performance data and game attempts.",
             href: "/admin/manage/games/medimind/submissions",
-            icon: BookCopy,
+            icon: HistoryIcon, // Changed from BookCopy to distinguish
         },
     ];
 
