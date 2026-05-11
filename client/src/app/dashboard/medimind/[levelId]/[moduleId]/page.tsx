@@ -196,6 +196,7 @@ export default function MediMindGamePage() {
         // Submit to server
         if (user?.username) {
             submitMutation.mutate({
+                level_id: parseInt(levelId, 10),
                 medicine_id: parseInt(moduleId, 10),
                 question_id: parseInt(currentQuestion.question_id as string, 10),
                 answer_id: parseInt(selectedAnswerId, 10),
