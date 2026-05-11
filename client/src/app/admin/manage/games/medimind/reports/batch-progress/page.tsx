@@ -68,12 +68,12 @@ export default function BatchProgressReportPage() {
         const csvData = filteredReport.map(s => {
             const accuracy = s.total_attempts > 0 ? ((s.correct_answers / s.total_attempts) * 100).toFixed(1) : "0";
             return [
-                `${s.fname} ${s.lname}`,
+                `"${s.fname} ${s.lname}"`,
                 s.username,
                 s.total_attempts,
                 s.correct_answers,
                 s.wrong_answers,
-                `${accuracy}%`
+                `"${accuracy}%"`
             ].join(",");
         });
         

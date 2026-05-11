@@ -18,7 +18,8 @@ import {
     User, 
     Pill, 
     FileQuestion,
-    Filter
+    Filter,
+    Download
 } from "lucide-react";
 import { 
     Table, 
@@ -80,6 +81,33 @@ export default function StudentSubmissionsPage() {
         }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }, [submissions, searchTerm, statusFilter]);
 
+    const handleExport = () => {
+        if (filteredSubmissions.length === 0) return;
+        
+        const headers = ["Student ID", "Medicine", "Question", "Answer", "Status", "Date"];
+        const csvData = filteredSubmissions.map(sub => {
+            return [
+                sub.created_by,
+                `"${sub.medicine_name || 'Unknown'}"`,
+                `"${sub.question}"`,
+                `"${sub.answer}"`,
+                sub.correct_status,
+                format(new Date(sub.created_at), 'yyyy-MM-dd HH:mm')
+            ].join(",");
+        });
+        
+        const csvContent = [headers.join(","), ...csvData].join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `MediMind_Submissions_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="p-4 md:p-8 space-y-6 pb-20">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -90,31 +118,38 @@ export default function StudentSubmissionsPage() {
                     <h1 className="text-3xl font-headline font-semibold mt-2">Student Submissions</h1>
                     <p className="text-muted-foreground">Monitor and manage all student attempts in the MediMind game.</p>
                 </div>
-                <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg border">
-                    <Button 
-                        variant={statusFilter === 'All' ? 'secondary' : 'ghost'} 
-                        size="sm" 
-                        onClick={() => setStatusFilter('All')}
-                        className="text-xs h-8"
-                    >
-                        All
-                    </Button>
-                    <Button 
-                        variant={statusFilter === 'Correct' ? 'secondary' : 'ghost'} 
-                        size="sm" 
-                        onClick={() => setStatusFilter('Correct')}
-                        className="text-xs h-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                    >
-                        Correct
-                    </Button>
-                    <Button 
-                        variant={statusFilter === 'Wrong' ? 'secondary' : 'ghost'} 
-                        size="sm" 
-                        onClick={() => setStatusFilter('Wrong')}
-                        className="text-xs h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                        Wrong
-                    </Button>
+                <div className="flex items-center gap-4">
+                    {filteredSubmissions.length > 0 && (
+                        <Button onClick={handleExport} variant="outline" size="sm" className="flex items-center gap-2">
+                            <Download className="h-4 w-4" /> Export CSV
+                        </Button>
+                    )}
+                    <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg border">
+                        <Button 
+                            variant={statusFilter === 'All' ? 'secondary' : 'ghost'} 
+                            size="sm" 
+                            onClick={() => setStatusFilter('All')}
+                            className="text-xs h-8"
+                        >
+                            All
+                        </Button>
+                        <Button 
+                            variant={statusFilter === 'Correct' ? 'secondary' : 'ghost'} 
+                            size="sm" 
+                            onClick={() => setStatusFilter('Correct')}
+                            className="text-xs h-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        >
+                            Correct
+                        </Button>
+                        <Button 
+                            variant={statusFilter === 'Wrong' ? 'secondary' : 'ghost'} 
+                            size="sm" 
+                            onClick={() => setStatusFilter('Wrong')}
+                            className="text-xs h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                            Wrong
+                        </Button>
+                    </div>
                 </div>
             </header>
 
