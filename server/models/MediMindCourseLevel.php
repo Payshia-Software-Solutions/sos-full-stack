@@ -56,4 +56,26 @@ class MediMindCourseLevel
         $stmt->execute([$course_code]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function getBatchProgressReport($course_code)
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT 
+                u.fname, 
+                u.lname, 
+                u.username,
+                sc.course_code,
+                COUNT(sa.id) as total_attempts,
+                SUM(CASE WHEN sa.correct_status = 'Correct' THEN 1 ELSE 0 END) as correct_answers,
+                SUM(CASE WHEN sa.correct_status = 'Wrong' THEN 1 ELSE 0 END) as wrong_answers
+            FROM student_course sc
+            JOIN users u ON sc.student_id = u.userid
+            LEFT JOIN medi_mind_student_answers sa ON u.username = sa.created_by
+            WHERE sc.course_code = ?
+            GROUP BY u.userid
+            ORDER BY u.fname ASC
+        ");
+        $stmt->execute([$course_code]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

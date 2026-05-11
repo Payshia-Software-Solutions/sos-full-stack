@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, BookCopy, BrainCircuit, FileQuestion, HelpCircle, Layers, Pill, History as HistoryIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookCopy, BrainCircuit, FileQuestion, HelpCircle, Layers, Pill, History as HistoryIcon, BarChart3 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from 'next/link';
 import { MediMindIcon } from "@/components/icons/module-icons";
@@ -53,6 +53,12 @@ export default function MediMindSetupPage() {
             description: "Monitor and manage student performance data and game attempts.",
             href: "/admin/manage/games/medimind/submissions",
             icon: HistoryIcon, // Changed from BookCopy to distinguish
+        },
+        {
+            title: "Batch Progress Report",
+            description: "View comprehensive performance reports for students grouped by their course batch.",
+            href: "/admin/manage/games/medimind/reports/batch-progress",
+            icon: BarChart3,
         },
     ];
 

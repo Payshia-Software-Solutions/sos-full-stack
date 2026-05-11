@@ -10,4 +10,5 @@ return [
     'POST /medi-mind-course-levels/student-levels/' => [$controller, 'getLevelsForStudent'],
     'POST /medi-mind-course-levels/assign/' => [$controller, 'assignLevel'],
     'POST /medi-mind-course-levels/unassign/' => [$controller, 'unassignLevel'],
+    'GET /medi-mind-course-levels/report/{course_code}/' => [$controller, 'getBatchProgressReport'],
 ];

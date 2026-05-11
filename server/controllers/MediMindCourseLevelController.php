@@ -79,4 +79,9 @@ class MediMindCourseLevelController
 
         echo json_encode($uniqueLevels);
     }
+
+    public function getBatchProgressReport($course_code)
+    {
+        echo json_encode($this->model->getBatchProgressReport($course_code));
+    }
 }
