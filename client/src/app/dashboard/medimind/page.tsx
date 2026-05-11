@@ -6,8 +6,9 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ChevronRight, Loader2, AlertTriangle } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
-import { getMediMindLevels, getMediMindLevelMedicines, getMediMindStudentAnswersByStudent } from '@/lib/actions/games';
-import type { MediMindLevel, MediMindLevelMedicine, MediMindStudentAnswer } from '@/lib/types';
+import { getMediMindLevels, getMediMindLevelMedicines, getMediMindStudentAnswersByStudent, getMediMindStudentLevels } from '@/lib/actions/games';
+import { getStudentEnrollments } from '@/lib/actions/users';
+import type { MediMindLevel, MediMindLevelMedicine, MediMindStudentAnswer, StudentEnrollmentInfo } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Coins, History as HistoryIcon } from 'lucide-react';
 
@@ -15,9 +16,18 @@ export default function MediMindLevelsPage() {
     const router = useRouter();
     const { user } = useAuth();
 
+    const { data: studentEnrollments = [], isLoading: isLoadingEnrollments } = useQuery<StudentEnrollmentInfo[]>({
+        queryKey: ['studentEnrollments', user?.username],
+        queryFn: () => getStudentEnrollments(user!.username!),
+        enabled: !!user?.username,
+    });
+
+    const courseCodes = useMemo(() => studentEnrollments.map(e => e.course_code), [studentEnrollments]);
+
     const { data: levels = [], isLoading: isLoadingLevels } = useQuery<MediMindLevel[]>({
-        queryKey: ['mediMindLevels'],
-        queryFn: getMediMindLevels,
+        queryKey: ['mediMindLevels', courseCodes],
+        queryFn: () => getMediMindStudentLevels(courseCodes),
+        enabled: courseCodes.length > 0,
     });
 
     const { data: levelMedicines = [], isLoading: isLoadingLevelMedicines } = useQuery<MediMindLevelMedicine[]>({
@@ -37,7 +47,7 @@ export default function MediMindLevelsPage() {
         return (correct * 10) - (wrong * 2);
     }, [studentAnswers]);
 
-    const isLoading = isLoadingLevels || isLoadingLevelMedicines || (!!user?.username && isLoadingHistory);
+    const isLoading = isLoadingLevels || isLoadingLevelMedicines || (!!user?.username && isLoadingHistory) || isLoadingEnrollments;
 
     if (isLoading) {
         return (
