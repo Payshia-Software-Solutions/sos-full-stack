@@ -245,6 +245,19 @@ export default function LevelDetailsPage() {
     const itemsInLevel = useMemo(() => {
         return allItems.filter(item => currentLevelMedicines.some(m => String(m.medicine_id) === String(item.id)));
     }, [currentLevelMedicines, allItems]);
+
+    const brokenMedicines = useMemo(() => {
+        // Compare every assignment against the medicines that actually exist
+        return currentLevelMedicines.filter(mapping => 
+            !allItems.some(actualItem => String(actualItem.id) === String(mapping.medicine_id))
+        );
+    }, [currentLevelMedicines, allItems]);
+    
+    console.log('Sync Check:', { 
+        assignments: currentLevelMedicines.length, 
+        actualItemsFound: itemsInLevel.length, 
+        brokenCount: brokenMedicines.length 
+    });
     
     const addMedicineMutation = useMutation({
         mutationFn: (medicineId: string) => addMediMindLevelMedicine({
@@ -256,6 +269,17 @@ export default function LevelDetailsPage() {
             queryClient.invalidateQueries({ queryKey: ['mediMindLevelMedicines'] });
         },
         onError: (err: Error) => toast({ variant: 'destructive', title: 'Action Failed', description: err.message })
+    });
+
+    const cleanBrokenLinksMutation = useMutation({
+        mutationFn: async () => {
+            await Promise.all(brokenMedicines.map(m => removeMediMindLevelMedicine(m.id)));
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['mediMindLevelMedicines'] });
+            toast({ title: 'Cleanup Successful', description: `${brokenMedicines.length} broken medicine links have been removed.` });
+        },
+        onError: (err: Error) => toast({ variant: 'destructive', title: 'Cleanup Failed', description: err.message })
     });
 
     const handleAddItems = async (newItemIds: string[]) => {
@@ -394,11 +418,41 @@ export default function LevelDetailsPage() {
                     <CardHeader className="flex flex-row items-center justify-between pb-2 border-b bg-muted/20">
                         <div>
                             <CardTitle className="text-lg">Level Items</CardTitle>
-                            <CardDescription className="text-[10px] uppercase font-bold text-muted-foreground">{itemsInLevel.length} medicines assigned.</CardDescription>
+                            <div className="flex items-center gap-2">
+                                <CardDescription className="text-[10px] uppercase font-bold text-muted-foreground">{itemsInLevel.length} medicines assigned.</CardDescription>
+                                {brokenMedicines.length > 0 && (
+                                    <Badge variant="destructive" className="text-[8px] h-3 px-1 animate-pulse">
+                                        {brokenMedicines.length} MISSING
+                                    </Badge>
+                                )}
+                            </div>
                         </div>
                         <AddItemDialog onAddItems={handleAddItems} currentItemIds={currentLevelMedicines.map(m => String(m.medicine_id))} allItems={allItems} />
                     </CardHeader>
-                    <CardContent className="pt-4">
+                    <CardContent className="pt-4 space-y-4">
+                        {brokenMedicines.length > 0 && (
+                            <div className="p-4 bg-red-500/10 border-2 border-red-500/30 rounded-xl flex items-center justify-between gap-4 shadow-sm">
+                                <div className="flex items-center gap-3 text-red-600">
+                                    <div className="p-2 bg-red-600/10 rounded-full">
+                                        <AlertTriangle className="h-6 w-6" />
+                                    </div>
+                                    <div className="text-sm">
+                                        <p className="font-black uppercase tracking-tight">Database Inconsistency Detected</p>
+                                        <p className="text-xs opacity-80 font-medium">Found {brokenMedicines.length} mappings for IDs that no longer exist in your medicines list.</p>
+                                    </div>
+                                </div>
+                                <Button 
+                                    size="sm" 
+                                    variant="destructive" 
+                                    className="h-10 px-4 font-black uppercase tracking-tighter shadow-lg hover:scale-105 transition-transform"
+                                    onClick={() => cleanBrokenLinksMutation.mutate()}
+                                    disabled={cleanBrokenLinksMutation.isPending}
+                                >
+                                    {cleanBrokenLinksMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Settings2 className="h-4 w-4 mr-2" />}
+                                    Repair Database
+                                </Button>
+                            </div>
+                        )}
                         <div className="space-y-2">
                             {itemsInLevel.map(item => (
                                 <div key={item.id} className="relative group flex items-center gap-4 p-2 border rounded-md bg-background hover:bg-muted/30 transition-colors">
