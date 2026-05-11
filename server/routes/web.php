@@ -154,6 +154,7 @@ $mediMindMedicineRoutes = require './routes/MediMind/MediMindMedicineRoutes.php'
 $mediMindAnswerRoutes = require './routes/MediMind/MediMindAnswerRoutes.php';
 $mediMindStudentAnswerRoutes = require './routes/MediMind/MediMindStudentAnswerRoutes.php';
 $mediMindLevelMedicineRoutes = require './routes/MediMind/MediMindLevelMedicineRoutes.php';
+$mediMindCourseLevelRoutes = require './routes/MediMind/MediMindCourseLevelRoutes.php';
 $birthdaySettingsRoutes = require './routes/BirthdaySettingsRoutes.php';
 
 
@@ -295,12 +296,30 @@ $routes = array_merge(
     $mediMindAnswerRoutes,
     $mediMindStudentAnswerRoutes,
     $mediMindLevelMedicineRoutes,
+    $mediMindCourseLevelRoutes,
     $birthdaySettingsRoutes,
     $convocationStudentInfoRoutes
 );
 
 
 // Define the home route with trailing slash
+$routes['GET /run-medimind-migration/'] = function () use ($pdo) {
+    try {
+        $sql = "CREATE TABLE IF NOT EXISTS medi_mind_course_levels (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            course_code VARCHAR(255) NOT NULL,
+            level_id INT NOT NULL,
+            assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            assigned_by VARCHAR(255),
+            UNIQUE KEY unique_course_level (course_code, level_id)
+        )";
+        $pdo->exec($sql);
+        echo json_encode(['success' => true, 'message' => 'Table medi_mind_course_levels created successfully']);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+};
+
 $routes['GET /'] = function () {
     // Serve the index.html file
     readfile('./views/index.html');
