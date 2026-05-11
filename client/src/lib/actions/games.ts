@@ -1335,3 +1335,12 @@ export async function unassignMediMindLevelFromCourse(data: { course_code: strin
     }
     return response.json();
 }
+
+export async function getMediMindBatchReport(courseCode: string): Promise<any[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/medi-mind-course-levels/report/${courseCode}/`);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch report' }));
+        throw new Error(errorData.message || 'API Error');
+    }
+    return response.json();
+}
