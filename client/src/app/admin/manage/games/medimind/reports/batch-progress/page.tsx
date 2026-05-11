@@ -24,6 +24,9 @@ interface StudentProgress {
     total_attempts: number;
     correct_answers: number;
     wrong_answers: number;
+    unique_correct_medicines: number;
+    total_medicines_in_batch: number;
+    completion_rate: number;
 }
 
 export default function BatchProgressReportPage() {
@@ -58,22 +61,26 @@ export default function BatchProgressReportPage() {
         const totalWrong = reportData.reduce((acc, curr) => acc + Number(curr.wrong_answers), 0);
         const avgAccuracy = totalAttempts > 0 ? (totalCorrect / totalAttempts) * 100 : 0;
         
-        return { totalAttempts, totalCorrect, totalWrong, avgAccuracy };
+        // Completion stats
+        const avgCompletion = reportData.reduce((acc, curr) => acc + Number(curr.completion_rate), 0) / reportData.length;
+        
+        return { totalAttempts, totalCorrect, totalWrong, avgAccuracy, avgCompletion };
     }, [reportData]);
 
     const handleExport = () => {
         if (filteredReport.length === 0) return;
         
-        const headers = ["Student Name", "Username", "Total Attempts", "Correct", "Wrong", "Accuracy"];
+        const headers = ["Student Name", "Username", "Total Attempts", "Correct", "Wrong", "Accuracy", "Completion Rate"];
         const csvData = filteredReport.map(s => {
             const accuracy = s.total_attempts > 0 ? ((s.correct_answers / s.total_attempts) * 100).toFixed(1) : "0";
             return [
-                `${s.fname} ${s.lname}`,
+                `"${s.fname} ${s.lname}"`,
                 s.username,
                 s.total_attempts,
                 s.correct_answers,
                 s.wrong_answers,
-                `${accuracy}%`
+                `"${accuracy}%"`,
+                `"${s.completion_rate.toFixed(1)}%"`
             ].join(",");
         });
         
@@ -181,17 +188,6 @@ export default function BatchProgressReportPage() {
                                     </div>
                                 </CardContent>
                             </Card>
-                            <Card className="bg-red-500/5 border-red-500/10">
-                                <CardContent className="p-4 flex items-center gap-4">
-                                    <div className="p-2 bg-red-500/10 rounded-lg">
-                                        <XCircle className="h-5 w-5 text-red-600" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground font-medium uppercase">Wrong Answers</p>
-                                        <p className="text-2xl font-bold text-red-600">{stats.totalWrong}</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
                             <Card className="bg-amber-500/5 border-amber-500/10">
                                 <CardContent className="p-4 flex items-center gap-4">
                                     <div className="p-2 bg-amber-500/10 rounded-lg">
@@ -200,6 +196,17 @@ export default function BatchProgressReportPage() {
                                     <div>
                                         <p className="text-xs text-muted-foreground font-medium uppercase">Avg. Accuracy</p>
                                         <p className="text-2xl font-bold text-amber-600">{stats.avgAccuracy.toFixed(1)}%</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-blue-500/5 border-blue-500/10">
+                                <CardContent className="p-4 flex items-center gap-4">
+                                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                                        <TrendingUp className="h-5 w-5 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground font-medium uppercase">Avg. Completion</p>
+                                        <p className="text-2xl font-bold text-blue-600">{stats.avgCompletion.toFixed(1)}%</p>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -240,8 +247,8 @@ export default function BatchProgressReportPage() {
                                             <TableHead className="font-bold">Student Name</TableHead>
                                             <TableHead className="font-bold text-center">Total Attempts</TableHead>
                                             <TableHead className="font-bold text-center">Correct</TableHead>
-                                            <TableHead className="font-bold text-center">Wrong</TableHead>
                                             <TableHead className="font-bold text-center">Accuracy</TableHead>
+                                            <TableHead className="font-bold text-center">Completion</TableHead>
                                             <TableHead className="font-bold text-right">Status</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -267,9 +274,6 @@ export default function BatchProgressReportPage() {
                                                     <TableCell className="text-center text-green-600 font-bold">
                                                         {student.correct_answers}
                                                     </TableCell>
-                                                    <TableCell className="text-center text-red-600 font-bold">
-                                                        {student.wrong_answers}
-                                                    </TableCell>
                                                     <TableCell className="text-center">
                                                         <div className="flex flex-col items-center gap-1">
                                                             <span className="font-bold">{accuracy.toFixed(1)}%</span>
@@ -281,13 +285,27 @@ export default function BatchProgressReportPage() {
                                                             </div>
                                                         </div>
                                                     </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <div className="flex flex-col items-center gap-1">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="font-bold text-primary">{student.completion_rate.toFixed(1)}%</span>
+                                                                <span className="text-[10px] text-muted-foreground">({student.unique_correct_medicines}/{student.total_medicines_in_batch})</span>
+                                                            </div>
+                                                            <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
+                                                                <div 
+                                                                    className="h-full bg-primary" 
+                                                                    style={{ width: `${student.completion_rate}%` }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
                                                     <TableCell className="text-right">
-                                                        {student.total_attempts > 0 ? (
-                                                            <Badge className={accuracy > 70 ? "bg-green-500" : "bg-blue-500"}>
-                                                                {accuracy > 70 ? "Excelent" : "Active"}
-                                                            </Badge>
+                                                        {student.completion_rate >= 100 ? (
+                                                            <Badge className="bg-green-600">Completed</Badge>
+                                                        ) : student.total_attempts > 0 ? (
+                                                            <Badge variant="secondary">In Progress</Badge>
                                                         ) : (
-                                                            <Badge variant="secondary">No Progress</Badge>
+                                                            <Badge variant="outline">Not Started</Badge>
                                                         )}
                                                     </TableCell>
                                                 </TableRow>

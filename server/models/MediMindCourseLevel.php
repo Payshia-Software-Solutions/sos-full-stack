@@ -59,6 +59,18 @@ class MediMindCourseLevel
 
     public function getBatchProgressReport($course_code)
     {
+        // 1. Get total unique medicines assigned to this batch
+        $stmtTotal = $this->pdo->prepare("
+            SELECT COUNT(DISTINCT lm.medicine_id) as total_medicines
+            FROM medi_mind_course_levels cl
+            JOIN medi_mind_level_medicines lm ON cl.level_id = lm.level_id
+            WHERE cl.course_code = ?
+        ");
+        $stmtTotal->execute([$course_code]);
+        $totalMedicinesResult = $stmtTotal->fetch(PDO::FETCH_ASSOC);
+        $totalMedicines = $totalMedicinesResult ? (int)$totalMedicinesResult['total_medicines'] : 0;
+
+        // 2. Get student progress
         $stmt = $this->pdo->prepare("
             SELECT 
                 u.fname, 
@@ -67,7 +79,18 @@ class MediMindCourseLevel
                 sc.course_code,
                 COUNT(sa.id) as total_attempts,
                 SUM(CASE WHEN sa.correct_status = 'Correct' THEN 1 ELSE 0 END) as correct_answers,
-                SUM(CASE WHEN sa.correct_status = 'Wrong' THEN 1 ELSE 0 END) as wrong_answers
+                SUM(CASE WHEN sa.correct_status = 'Wrong' THEN 1 ELSE 0 END) as wrong_answers,
+                COUNT(DISTINCT CASE 
+                    WHEN sa.correct_status = 'Correct' 
+                    AND sa.medicine_id IN (
+                        SELECT DISTINCT lm2.medicine_id 
+                        FROM medi_mind_course_levels cl2 
+                        JOIN medi_mind_level_medicines lm2 ON cl2.level_id = lm2.level_id 
+                        WHERE cl2.course_code = ?
+                    )
+                    THEN sa.medicine_id 
+                    ELSE NULL 
+                END) as unique_correct_medicines
             FROM student_course sc
             JOIN users u ON sc.student_id = u.userid
             LEFT JOIN medi_mind_student_answers sa ON u.username = sa.created_by
@@ -75,7 +98,17 @@ class MediMindCourseLevel
             GROUP BY u.userid
             ORDER BY u.fname ASC
         ");
-        $stmt->execute([$course_code]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->execute([$course_code, $course_code]);
+        $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // 3. Add completion data to each student record
+        foreach ($students as &$student) {
+            $student['total_medicines_in_batch'] = $totalMedicines;
+            $student['completion_rate'] = $totalMedicines > 0 
+                ? round(($student['unique_correct_medicines'] / $totalMedicines) * 100, 2) 
+                : 0;
+        }
+
+        return $students;
     }
 }
