@@ -119,10 +119,11 @@ class MediMindStudentAnswer
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO `medi_mind_student_answers` 
-                (medicine_id, question_id, answer_id, correct_status, created_by, created_at) 
-            VALUES (?, ?, ?, ?, ?, ?)
+                (level_id, medicine_id, question_id, answer_id, correct_status, created_by, created_at) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
+            isset($data['level_id']) ? $data['level_id'] : null,
             $data['medicine_id'],
             $data['question_id'],
             $data['answer_id'],
