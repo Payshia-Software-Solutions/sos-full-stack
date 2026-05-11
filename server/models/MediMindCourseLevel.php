@@ -100,7 +100,7 @@ class MediMindCourseLevel
             GROUP BY u.userid
             ORDER BY u.fname ASC
         ");
-        $stmt->execute([$course_code, $course_code, $course_code]);
+        $stmt->execute([$course_code, $course_code]);
         $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // 3. Add completion data to each student record
