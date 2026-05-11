@@ -1,5 +1,5 @@
 <?php
-require_once 'models/MediMindCourseLevel.php';
+require_once __DIR__ . '/../models/MediMindCourseLevel.php';
 
 class MediMindCourseLevelController
 {
@@ -12,12 +12,12 @@ class MediMindCourseLevelController
 
     public function getAllAssignments()
     {
-        return $this->model->getAll();
+        echo json_encode($this->model->getAll());
     }
 
     public function getByCourse($course_code)
     {
-        return $this->model->getByCourse($course_code);
+        echo json_encode($this->model->getByCourse($course_code));
     }
 
     public function assignLevel()
@@ -25,15 +25,16 @@ class MediMindCourseLevelController
         $data = json_decode(file_get_contents('php://input'), true);
         if (!isset($data['course_code']) || !isset($data['level_id']) || !isset($data['assigned_by'])) {
             http_response_code(400);
-            return ['error' => 'Missing required fields'];
+            echo json_encode(['error' => 'Missing required fields']);
+            return;
         }
 
         try {
             $this->model->assign($data);
-            return ['success' => true, 'message' => 'Level assigned to course successfully'];
+            echo json_encode(['success' => true, 'message' => 'Level assigned to course successfully']);
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => $e->getMessage()];
+            echo json_encode(['error' => $e->getMessage()]);
         }
     }
 
@@ -42,15 +43,16 @@ class MediMindCourseLevelController
         $data = json_decode(file_get_contents('php://input'), true);
         if (!isset($data['course_code']) || !isset($data['level_id'])) {
             http_response_code(400);
-            return ['error' => 'Missing required fields'];
+            echo json_encode(['error' => 'Missing required fields']);
+            return;
         }
 
         try {
             $this->model->unassign($data['course_code'], $data['level_id']);
-            return ['success' => true, 'message' => 'Level unassigned from course successfully'];
+            echo json_encode(['success' => true, 'message' => 'Level unassigned from course successfully']);
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => $e->getMessage()];
+            echo json_encode(['error' => $e->getMessage()]);
         }
     }
 
@@ -60,7 +62,6 @@ class MediMindCourseLevelController
         $course_codes = isset($data['course_codes']) ? $data['course_codes'] : [];
         
         $allLevels = [];
-        // course_codes is an array of strings
         foreach ($course_codes as $code) {
             $levels = $this->model->getLevelsByCourse($code);
             $allLevels = array_merge($allLevels, $levels);
@@ -76,6 +77,6 @@ class MediMindCourseLevelController
             }
         }
 
-        return $uniqueLevels;
+        echo json_encode($uniqueLevels);
     }
 }
