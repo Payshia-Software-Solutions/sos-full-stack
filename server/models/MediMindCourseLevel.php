@@ -63,7 +63,7 @@ class MediMindCourseLevel
         $stmtTotal = $this->pdo->prepare("
             SELECT COUNT(DISTINCT lm.medicine_id) as total_medicines
             FROM medi_mind_course_levels cl
-            JOIN medi_mind_level_medicines lm ON cl.level_id = lm.level_id
+            JOIN medi_mind_level_mediciens lm ON cl.level_id = lm.level_id
             WHERE cl.course_code = ?
         ");
         $stmtTotal->execute([$course_code]);
@@ -85,7 +85,7 @@ class MediMindCourseLevel
                     AND sa.medicine_id IN (
                         SELECT DISTINCT lm2.medicine_id 
                         FROM medi_mind_course_levels cl2 
-                        JOIN medi_mind_level_medicines lm2 ON cl2.level_id = lm2.level_id 
+                        JOIN medi_mind_level_mediciens lm2 ON cl2.level_id = lm2.level_id 
                         WHERE cl2.course_code = ?
                     )
                     THEN sa.medicine_id 
