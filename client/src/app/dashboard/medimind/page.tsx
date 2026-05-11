@@ -35,6 +35,11 @@ export default function MediMindLevelsPage() {
         queryFn: getMediMindLevelMedicines,
     });
 
+    const { data: allMedicines = [], isLoading: isLoadingAllMedicines } = useQuery<MediMindItem[]>({
+        queryKey: ['mediMindItems'],
+        queryFn: getMediMindItems,
+    });
+
     const { data: studentAnswers = [], isLoading: isLoadingHistory } = useQuery<MediMindStudentAnswer[]>({
         queryKey: ['studentMediMindHistory', user?.username],
         queryFn: () => getMediMindStudentAnswersByStudent(user!.username!),
@@ -47,7 +52,7 @@ export default function MediMindLevelsPage() {
         return (correct * 10) - (wrong * 2);
     }, [studentAnswers]);
 
-    const isLoading = isLoadingLevels || isLoadingLevelMedicines || (!!user?.username && isLoadingHistory) || isLoadingEnrollments;
+    const isLoading = isLoadingLevels || isLoadingLevelMedicines || isLoadingAllMedicines || (!!user?.username && isLoadingHistory) || isLoadingEnrollments;
 
     if (isLoading) {
         return (
@@ -93,7 +98,13 @@ export default function MediMindLevelsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {levels.map((level) => {
-                    const medicineCount = levelMedicines.filter(m => String(m.level_id) === String(level.id)).length;
+                    // Count only unique medicines that actually exist in the medicines pool
+                    const medicineCount = allMedicines.filter(item => 
+                        levelMedicines.some(m => 
+                            String(m.level_id) === String(level.id) && 
+                            String(m.medicine_id) === String(item.id)
+                        )
+                    ).length;
                     return (
                         <button 
                             key={level.id} 
