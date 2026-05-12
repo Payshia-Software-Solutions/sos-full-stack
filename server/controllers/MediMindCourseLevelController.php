@@ -17,7 +17,7 @@ class MediMindCourseLevelController
 
     public function getByCourse($course_code)
     {
-        echo json_encode($this->model->getByCourse($course_code));
+        echo json_encode($this->model->getLevelsByCourse($course_code));
     }
 
     public function assignLevel()

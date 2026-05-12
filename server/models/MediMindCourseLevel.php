@@ -48,7 +48,9 @@ class MediMindCourseLevel
     public function getLevelsByCourse($course_code)
     {
         $stmt = $this->pdo->prepare("
-            SELECT l.* 
+            SELECT l.id, l.level_name, 
+                (SELECT COUNT(*) FROM medi_mind_level_mediciens WHERE level_id = l.id) as medicine_count,
+                (SELECT COUNT(*) FROM medi_mind_level_questions WHERE level_id = l.id) as question_count
             FROM medi_mind_levels l
             JOIN medi_mind_course_levels cl ON l.id = cl.level_id
             WHERE cl.course_code = ?
@@ -59,16 +61,31 @@ class MediMindCourseLevel
 
     public function getBatchProgressReport($course_code)
     {
-        // 1. Get total medicine-level tasks assigned to this batch
+        // 1. Get total medicine-level tasks and total questions assigned to this batch
+        // We calculate this level-by-level to handle varying question counts correctly.
         $stmtTotal = $this->pdo->prepare("
-            SELECT COUNT(*) as total_tasks
-            FROM medi_mind_course_levels cl
-            JOIN medi_mind_level_mediciens lm ON cl.level_id = lm.level_id
-            WHERE cl.course_code = ?
+            SELECT 
+                SUM(medicine_count) as total_tasks,
+                SUM(medicine_count * question_count) as total_questions_in_batch
+            FROM (
+                SELECT 
+                    cl.level_id,
+                    (SELECT COUNT(*) FROM medi_mind_level_mediciens lm WHERE lm.level_id = cl.level_id) as medicine_count,
+                    (SELECT COUNT(*) FROM medi_mind_level_questions lq WHERE lq.level_id = cl.level_id) as question_count
+                FROM medi_mind_course_levels cl
+                WHERE cl.course_code = ?
+            ) level_stats
         ");
         $stmtTotal->execute([$course_code]);
         $totalResult = $stmtTotal->fetch(PDO::FETCH_ASSOC);
-        $totalTasks = $totalResult ? (int)$totalResult['total_tasks'] : 0;
+        
+        $totalTasks = 0;
+        $totalQuestionsInBatch = 0;
+        
+        if ($totalResult) {
+            $totalTasks = (int)$totalResult['total_tasks'];
+            $totalQuestionsInBatch = (int)$totalResult['total_questions_in_batch'];
+        }
 
         // 2. Get student progress (Counting unique Level+Medicine pairs mastered)
         $stmt = $this->pdo->prepare("
@@ -106,6 +123,7 @@ class MediMindCourseLevel
         // 3. Add completion data to each student record
         foreach ($students as &$student) {
             $student['total_medicines_in_batch'] = $totalTasks;
+            $student['total_questions_in_batch'] = $totalQuestionsInBatch;
             $student['completion_rate'] = $totalTasks > 0 
                 ? round(($student['unique_correct_tasks'] / $totalTasks) * 100, 2) 
                 : 0;
