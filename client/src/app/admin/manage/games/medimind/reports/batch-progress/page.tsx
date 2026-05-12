@@ -79,6 +79,7 @@ export default function BatchProgressReportPage() {
     // --- Grouped History ---
     const groupedHistory = useMemo(() => {
         const groups: Record<string, {
+            id: string;
             name: string;
             entries: MediMindStudentAnswer[];
             correct: number;
@@ -88,16 +89,19 @@ export default function BatchProgressReportPage() {
         }> = {};
 
         studentHistory.forEach(ans => {
-            const levelKey = ans.level_name || 'Uncategorized';
-            if (!groups[levelKey]) {
-                // Find level info for max score
-                const levelInfo = courseLevels.find(l => l.level_name === levelKey);
+            const levelId = String(ans.level_id);
+            const levelName = ans.level_name || 'Uncategorized';
+            
+            if (!groups[levelId]) {
+                // Find level info for max score by ID
+                const levelInfo = courseLevels.find(l => String(l.id) === levelId);
                 const medicineCount = Number(levelInfo?.medicine_count || 0);
                 const questionCount = Number(levelInfo?.question_count || 0);
                 const maxLevelScore = medicineCount * questionCount * 10;
 
-                groups[levelKey] = { 
-                    name: levelKey, 
+                groups[levelId] = { 
+                    id: levelId,
+                    name: levelName, 
                     entries: [], 
                     correct: 0, 
                     wrong: 0, 
@@ -105,9 +109,9 @@ export default function BatchProgressReportPage() {
                     maxScore: maxLevelScore
                 };
             }
-            groups[levelKey].entries.push(ans);
-            if (ans.correct_status === 'Correct') groups[levelKey].correct++;
-            else groups[levelKey].wrong++;
+            groups[levelId].entries.push(ans);
+            if (ans.correct_status === 'Correct') groups[levelId].correct++;
+            else groups[levelId].wrong++;
         });
 
         // Calculate balance for each group
@@ -116,7 +120,7 @@ export default function BatchProgressReportPage() {
         });
 
         return Object.values(groups);
-    }, [studentHistory]);
+    }, [studentHistory, courseLevels]);
 
     // --- Derived Calculations ---
     const filteredReport = useMemo(() => {
