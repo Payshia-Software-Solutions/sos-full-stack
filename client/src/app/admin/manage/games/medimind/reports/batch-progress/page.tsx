@@ -27,6 +27,7 @@ interface StudentProgress {
     unique_correct_medicines: number;
     total_medicines_in_batch: number;
     completion_rate: number;
+    total_questions_in_batch: number;
 }
 
 export default function BatchProgressReportPage() {
@@ -70,15 +71,17 @@ export default function BatchProgressReportPage() {
     const handleExport = () => {
         if (filteredReport.length === 0) return;
         
-        const headers = ["Student Name", "Username", "Total Attempts", "Correct", "Wrong", "Accuracy", "Completion Rate"];
+        const headers = ["Student Name", "Username", "Total Attempts", "Correct", "Wrong", "Balance", "Accuracy", "Completion Rate"];
         const csvData = filteredReport.map(s => {
             const accuracy = s.total_attempts > 0 ? ((s.correct_answers / s.total_attempts) * 100).toFixed(1) : "0";
+            const balance = (Number(s.correct_answers) * 10) - (Number(s.wrong_answers) * 2);
             return [
                 `"${s.fname} ${s.lname}"`,
                 s.username,
                 s.total_attempts,
                 s.correct_answers,
                 s.wrong_answers,
+                balance,
                 `"${accuracy}%"`,
                 `"${s.completion_rate.toFixed(1)}%"`
             ].join(",");
@@ -247,6 +250,7 @@ export default function BatchProgressReportPage() {
                                             <TableHead className="font-bold">Student Name</TableHead>
                                             <TableHead className="font-bold text-center">Total Attempts</TableHead>
                                             <TableHead className="font-bold text-center">Correct</TableHead>
+                                            <TableHead className="font-bold text-center">Balance</TableHead>
                                             <TableHead className="font-bold text-center">Accuracy</TableHead>
                                             <TableHead className="font-bold text-center">Completion</TableHead>
                                             <TableHead className="font-bold text-right">Status</TableHead>
@@ -273,6 +277,17 @@ export default function BatchProgressReportPage() {
                                                     </TableCell>
                                                     <TableCell className="text-center text-green-600 font-bold">
                                                         {student.correct_answers}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <div className="flex flex-col items-center justify-center gap-0.5">
+                                                            <div className="flex items-center gap-1.5 font-black text-yellow-600">
+                                                                <TrendingUp className="h-3 w-3" />
+                                                                {(Number(student.correct_answers) * 10) - (Number(student.wrong_answers) * 2)}
+                                                            </div>
+                                                            <span className="text-[10px] text-muted-foreground font-bold">
+                                                                Max: {(Number(student.total_questions_in_batch || 0) * 10) || 0}
+                                                            </span>
+                                                        </div>
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         <div className="flex flex-col items-center gap-1">
