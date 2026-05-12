@@ -791,6 +791,8 @@ export interface MediMindLevel {
   level_name: string;
   created_at: string;
   created_by: string;
+  medicine_count?: number;
+  question_count?: number;
 }
 
 export interface MediMindQuestion {

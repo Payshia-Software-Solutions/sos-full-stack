@@ -48,7 +48,9 @@ class MediMindCourseLevel
     public function getLevelsByCourse($course_code)
     {
         $stmt = $this->pdo->prepare("
-            SELECT l.* 
+            SELECT l.*, 
+                (SELECT COUNT(*) FROM medi_mind_level_mediciens lm WHERE lm.level_id = l.id) as medicine_count,
+                (SELECT COUNT(*) FROM medi_mind_level_questions lq WHERE lq.level_id = l.id) as question_count
             FROM medi_mind_levels l
             JOIN medi_mind_course_levels cl ON l.id = cl.level_id
             WHERE cl.course_code = ?

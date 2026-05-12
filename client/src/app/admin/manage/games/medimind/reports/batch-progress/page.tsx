@@ -11,6 +11,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from "@/components/ui/badge";
+import { 
+    Dialog, 
+    DialogContent, 
+    DialogHeader, 
+    DialogTitle, 
+    DialogDescription 
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+    Accordion, 
+    AccordionContent, 
+    AccordionItem, 
+    AccordionTrigger 
+} from "@/components/ui/accordion";
+import { getMediMindStudentAnswersByStudent, getMediMindLevelsByCourse } from '@/lib/actions/games';
+import { format } from 'date-fns';
 
 import { getMediMindBatchReport } from '@/lib/actions/games';
 import { getBatches } from '@/lib/actions/courses';
@@ -34,6 +50,7 @@ export default function BatchProgressReportPage() {
     const router = useRouter();
     const [selectedCourseCode, setSelectedCourseCode] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedStudent, setSelectedStudent] = useState<StudentProgress | null>(null);
 
     // --- Data Fetching ---
     const { data: batches = [], isLoading: isLoadingBatches } = useQuery<Batch[]>({
@@ -46,6 +63,60 @@ export default function BatchProgressReportPage() {
         queryFn: () => getMediMindBatchReport(selectedCourseCode!),
         enabled: !!selectedCourseCode,
     });
+
+    const { data: studentHistory = [], isLoading: isLoadingHistory } = useQuery<MediMindStudentAnswer[]>({
+        queryKey: ['studentHistory', selectedStudent?.username],
+        queryFn: () => getMediMindStudentAnswersByStudent(selectedStudent!.username),
+        enabled: !!selectedStudent?.username,
+    });
+
+    const { data: courseLevels = [] } = useQuery<MediMindLevel[]>({
+        queryKey: ['courseLevels', selectedCourseCode],
+        queryFn: () => getMediMindLevelsByCourse(selectedCourseCode!),
+        enabled: !!selectedCourseCode,
+    });
+
+    // --- Grouped History ---
+    const groupedHistory = useMemo(() => {
+        const groups: Record<string, {
+            name: string;
+            entries: MediMindStudentAnswer[];
+            correct: number;
+            wrong: number;
+            balance: number;
+            maxScore: number;
+        }> = {};
+
+        studentHistory.forEach(ans => {
+            const levelKey = ans.level_name || 'Uncategorized';
+            if (!groups[levelKey]) {
+                // Find level info for max score
+                const levelInfo = courseLevels.find(l => l.level_name === levelKey);
+                const medicineCount = Number(levelInfo?.medicine_count || 0);
+                const questionCount = Number(levelInfo?.question_count || 0);
+                const maxLevelScore = medicineCount * questionCount * 10;
+
+                groups[levelKey] = { 
+                    name: levelKey, 
+                    entries: [], 
+                    correct: 0, 
+                    wrong: 0, 
+                    balance: 0,
+                    maxScore: maxLevelScore
+                };
+            }
+            groups[levelKey].entries.push(ans);
+            if (ans.correct_status === 'Correct') groups[levelKey].correct++;
+            else groups[levelKey].wrong++;
+        });
+
+        // Calculate balance for each group
+        Object.values(groups).forEach(g => {
+            g.balance = (g.correct * 10) - (g.wrong * 2);
+        });
+
+        return Object.values(groups);
+    }, [studentHistory]);
 
     // --- Derived Calculations ---
     const filteredReport = useMemo(() => {
@@ -71,10 +142,11 @@ export default function BatchProgressReportPage() {
     const handleExport = () => {
         if (filteredReport.length === 0) return;
         
-        const headers = ["Student Name", "Username", "Total Attempts", "Correct", "Wrong", "Balance", "Accuracy", "Completion Rate"];
+        const headers = ["Student Name", "Username", "Total Attempts", "Correct", "Wrong", "Balance", "Max Possible", "Accuracy", "Completion Rate"];
         const csvData = filteredReport.map(s => {
             const accuracy = s.total_attempts > 0 ? ((s.correct_answers / s.total_attempts) * 100).toFixed(1) : "0";
             const balance = (Number(s.correct_answers) * 10) - (Number(s.wrong_answers) * 2);
+            const maxScore = Number(s.total_questions_in_batch) * 10;
             return [
                 `"${s.fname} ${s.lname}"`,
                 s.username,
@@ -82,6 +154,7 @@ export default function BatchProgressReportPage() {
                 s.correct_answers,
                 s.wrong_answers,
                 balance,
+                maxScore,
                 `"${accuracy}%"`,
                 `"${s.completion_rate.toFixed(1)}%"`
             ].join(",");
@@ -263,7 +336,11 @@ export default function BatchProgressReportPage() {
                                                 : 0;
                                             
                                             return (
-                                                <TableRow key={student.username} className="hover:bg-muted/20">
+                                                <TableRow 
+                                                    key={student.username} 
+                                                    className="hover:bg-muted/20 cursor-pointer"
+                                                    onClick={() => setSelectedStudent(student)}
+                                                >
                                                     <TableCell className="font-medium">
                                                         <div>
                                                             <p className="font-bold text-base">{student.fname} {student.lname}</p>
@@ -333,6 +410,228 @@ export default function BatchProgressReportPage() {
                     </Card>
                 </div>
             </div>
+
+            {/* Student Breakdown Modal */}
+            <Dialog open={!!selectedStudent} onOpenChange={(open) => !open && setSelectedStudent(null)}>
+                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+                    <DialogHeader className="p-6 pb-2 bg-gradient-to-r from-primary/10 to-transparent">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <DialogTitle className="flex items-center gap-2 text-3xl font-headline font-bold">
+                                    <GraduationCap className="h-8 w-8 text-primary" />
+                                    Performance Breakdown
+                                </DialogTitle>
+                                <DialogDescription className="text-lg">
+                                    Detailed results for <span className="font-bold text-foreground underline decoration-primary/30">{selectedStudent?.fname} {selectedStudent?.lname}</span>
+                                </DialogDescription>
+                            </div>
+                        </div>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-auto p-6 pt-2">
+                        {selectedStudent && (
+                            <Tabs defaultValue="overview" className="w-full">
+                                <TabsList className="grid w-full grid-cols-2 mb-6 h-12">
+                                    <TabsTrigger value="overview" className="text-base font-bold">Overview & Calculation</TabsTrigger>
+                                    <TabsTrigger value="history" className="text-base font-bold">Full Submission History</TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="overview" className="space-y-8 pb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                    {/* Summary Cards */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div className="p-6 rounded-2xl bg-green-500/5 border-2 border-green-500/10 flex items-center justify-between group hover:border-green-500/30 transition-all">
+                                            <div>
+                                                <p className="text-sm font-bold text-green-600 uppercase mb-1 tracking-widest">Correct Answers</p>
+                                                <p className="text-4xl font-black text-green-700">{selectedStudent.correct_answers}</p>
+                                            </div>
+                                            <div className="h-14 w-14 rounded-full bg-green-500/10 flex items-center justify-center">
+                                                <CheckCircle2 className="h-8 w-8 text-green-600" />
+                                            </div>
+                                        </div>
+                                        <div className="p-6 rounded-2xl bg-red-500/5 border-2 border-red-500/10 flex items-center justify-between group hover:border-red-500/30 transition-all">
+                                            <div>
+                                                <p className="text-sm font-bold text-red-600 uppercase mb-1 tracking-widest">Wrong Attempts</p>
+                                                <p className="text-4xl font-black text-red-700">{selectedStudent.wrong_answers}</p>
+                                            </div>
+                                            <div className="h-14 w-14 rounded-full bg-red-500/10 flex items-center justify-center">
+                                                <XCircle className="h-8 w-8 text-red-600" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        {/* Calculation Details */}
+                                        <div className="space-y-4 bg-muted/30 p-6 rounded-2xl border-2 border-muted/50 relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 p-8 opacity-5">
+                                                <TrendingUp className="h-24 w-24" />
+                                            </div>
+                                            <h4 className="text-base font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                                <BarChart3 className="h-5 w-5" />
+                                                Balance Formula
+                                            </h4>
+                                            
+                                            <div className="space-y-4 relative z-10">
+                                                <div className="flex justify-between items-center py-3 border-b border-muted/50">
+                                                    <span className="text-base">Points from Correct ({selectedStudent.correct_answers} × 10)</span>
+                                                    <span className="text-xl font-bold text-green-600">+{Number(selectedStudent.correct_answers) * 10}</span>
+                                                </div>
+
+                                                <div className="flex justify-between items-center py-3 border-b border-muted/50">
+                                                    <span className="text-base">Deductions ({selectedStudent.wrong_answers} × 2)</span>
+                                                    <span className="text-xl font-bold text-red-600">-{Number(selectedStudent.wrong_answers) * 2}</span>
+                                                </div>
+
+                                                <div className="flex justify-between items-center pt-4">
+                                                    <span className="text-lg font-black uppercase tracking-tight">Net Earned Balance</span>
+                                                    <span className="text-4xl font-black text-yellow-600 drop-shadow-sm">
+                                                        {(Number(selectedStudent.correct_answers) * 10) - (Number(selectedStudent.wrong_answers) * 2)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Mastery Progress */}
+                                        <div className="space-y-6 flex flex-col justify-center">
+                                            <div className="space-y-4">
+                                                <div className="flex justify-between items-end">
+                                                    <div className="space-y-1">
+                                                        <h4 className="text-base font-bold uppercase tracking-wider text-muted-foreground">Medicine Mastery</h4>
+                                                        <p className="text-3xl font-black text-primary">
+                                                            {selectedStudent.unique_correct_medicines} <span className="text-lg text-muted-foreground font-medium">/ {selectedStudent.total_medicines_in_batch} Mastered</span>
+                                                        </p>
+                                                    </div>
+                                                    <Badge className="h-8 px-4 text-sm bg-primary/20 text-primary hover:bg-primary/30 border-none">
+                                                        {selectedStudent.completion_rate.toFixed(1)}%
+                                                    </Badge>
+                                                </div>
+                                                <div className="h-4 w-full bg-muted rounded-full overflow-hidden p-1 border shadow-inner">
+                                                    <div 
+                                                        className="h-full bg-primary rounded-full transition-all duration-1000 shadow-lg" 
+                                                        style={{ width: `${selectedStudent.completion_rate}%` }}
+                                                    />
+                                                </div>
+                                                <p className="text-sm text-muted-foreground italic">
+                                                    Student has mastered {selectedStudent.unique_correct_medicines} unique medicine-level tasks assigned to this batch.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="history" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                    <div className="rounded-2xl border-2 overflow-hidden h-[500px] flex flex-col bg-card">
+                                        {isLoadingHistory ? (
+                                            <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                                                <Loader2 className="h-12 w-12 animate-spin text-primary" /> 
+                                                <p className="text-muted-foreground font-medium animate-pulse">Retrieving submission logs...</p>
+                                            </div>
+                                        ) : groupedHistory.length === 0 ? (
+                                            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
+                                                <Search className="h-16 w-16 mb-4 opacity-10" />
+                                                <p className="text-xl font-medium">No submission records found</p>
+                                                <p className="text-sm italic">This student hasn't started the game for this batch yet.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="flex-1 overflow-auto p-4">
+                                                <Accordion type="multiple" className="space-y-4">
+                                                    {groupedHistory.map((group) => (
+                                                        <AccordionItem key={group.name} value={group.name} className="border rounded-2xl overflow-hidden bg-muted/20">
+                                                            <AccordionTrigger className="hover:no-underline px-4 py-4 hover:bg-muted/50 transition-all">
+                                                                <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4 text-left pr-4">
+                                                                    <div className="space-y-1">
+                                                                        <h3 className="text-xl font-black text-primary leading-none">{group.name}</h3>
+                                                                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                                                                            {group.entries.length} Submissions
+                                                                        </p>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-4">
+                                                                        <div className="flex flex-col items-center px-4 border-r border-muted-foreground/20">
+                                                                            <span className="text-[8px] font-bold text-green-600 uppercase">Correct</span>
+                                                                            <span className="text-lg font-black">{group.correct}</span>
+                                                                        </div>
+                                                                        <div className="flex flex-col items-center px-4 border-r border-muted-foreground/20">
+                                                                            <span className="text-[8px] font-bold text-red-600 uppercase">Wrong</span>
+                                                                            <span className="text-lg font-black">{group.wrong}</span>
+                                                                        </div>
+                                                                        <div className="flex flex-col items-center px-4 border-r border-muted-foreground/20">
+                                                                            <span className="text-[8px] font-bold text-muted-foreground uppercase">Level Max</span>
+                                                                            <span className="text-lg font-black text-muted-foreground">{group.maxScore}</span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 px-2">
+                                                                            <div className="flex flex-col items-end">
+                                                                                <span className="text-[8px] font-bold text-yellow-600 uppercase">Net Balance</span>
+                                                                                <span className="text-xl font-black text-yellow-600 leading-none">{group.balance}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </AccordionTrigger>
+                                                            <AccordionContent className="p-4 pt-0">
+                                                                <div className="rounded-xl border bg-card overflow-hidden mt-2">
+                                                                    <Table>
+                                                                        <TableHeader className="bg-muted">
+                                                                            <TableRow>
+                                                                                <TableHead className="w-[180px] font-bold text-xs uppercase">Medicine</TableHead>
+                                                                                <TableHead className="font-bold text-xs uppercase">Question Detail</TableHead>
+                                                                                <TableHead className="w-[100px] text-center font-bold text-xs uppercase">Status</TableHead>
+                                                                                <TableHead className="w-[150px] text-right font-bold text-xs uppercase">Time</TableHead>
+                                                                            </TableRow>
+                                                                        </TableHeader>
+                                                                        <TableBody>
+                                                                            {group.entries.map((ans) => (
+                                                                                <TableRow key={ans.id} className="hover:bg-muted/30 transition-colors">
+                                                                                    <TableCell>
+                                                                                        <p className="font-bold text-sm text-primary">{ans.medicine_name || 'Medicine'}</p>
+                                                                                    </TableCell>
+                                                                                    <TableCell>
+                                                                                        <div className="space-y-1">
+                                                                                            <p className="text-xs font-medium line-clamp-1" title={ans.question}>{ans.question || '...'}</p>
+                                                                                            <p className="text-[10px] text-muted-foreground italic">Answered: <span className="text-foreground">{ans.answer || 'N/A'}</span></p>
+                                                                                        </div>
+                                                                                    </TableCell>
+                                                                                    <TableCell className="text-center">
+                                                                                        <Badge 
+                                                                                            className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-tighter ${
+                                                                                                ans.correct_status === 'Correct' 
+                                                                                                ? 'bg-green-500/20 text-green-700 border-green-500/30' 
+                                                                                                : 'bg-red-500/20 text-red-700 border-red-500/30'
+                                                                                            }`}
+                                                                                        >
+                                                                                            {ans.correct_status}
+                                                                                        </Badge>
+                                                                                    </TableCell>
+                                                                                    <TableCell className="text-right whitespace-nowrap">
+                                                                                        <div className="text-[10px] font-bold">
+                                                                                            {format(new Date(ans.created_at), 'p')}
+                                                                                        </div>
+                                                                                        <div className="text-[8px] text-muted-foreground">
+                                                                                            {format(new Date(ans.created_at), 'MMM dd, yyyy')}
+                                                                                        </div>
+                                                                                    </TableCell>
+                                                                                </TableRow>
+                                                                            ))}
+                                                                        </TableBody>
+                                                                    </Table>
+                                                                </div>
+                                                            </AccordionContent>
+                                                        </AccordionItem>
+                                                    ))}
+                                                </Accordion>
+                                            </div>
+                                        )}
+                                    </div>
+                                </TabsContent>
+                            </Tabs>
+                        )}
+                    </div>
+
+                    <div className="p-6 bg-muted/30 border-t flex justify-end">
+                        <Button className="px-8 h-12 text-lg font-bold rounded-xl shadow-lg" onClick={() => setSelectedStudent(null)}>
+                            Close Breakdown
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
