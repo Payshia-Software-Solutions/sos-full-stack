@@ -8,7 +8,8 @@ import { ArrowLeft, ChevronRight, Loader2, AlertTriangle } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
 import { getMediMindLevels, getMediMindLevelMedicines, getMediMindStudentAnswersByStudent, getMediMindStudentLevels, getMediMindLevelQuestions, getMediMindItems } from '@/lib/actions/games';
 import { getStudentEnrollments } from '@/lib/actions/users';
-import type { MediMindLevel, MediMindLevelMedicine, MediMindStudentAnswer, StudentEnrollmentInfo, MediMindLevelQuestion, MediMindItem } from '@/lib/types';
+import { MediMindLevel, MediMindLevelMedicine, MediMindStudentAnswer, StudentEnrollmentInfo, MediMindLevelQuestion, MediMindItem } from '@/lib/types';
+import { Target, Trophy, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Coins, History as HistoryIcon } from 'lucide-react';
 
@@ -57,6 +58,52 @@ export default function MediMindLevelsPage() {
         return (correct * 10) - (wrong * 2);
     }, [studentAnswers]);
 
+    const overallStats = useMemo(() => {
+        if (levels.length === 0) return { accuracy: 0, completion: 0, mastered: 0, total: 0 };
+
+        const totalAttempts = studentAnswers.length;
+        const totalCorrect = studentAnswers.filter(a => a.correct_status === 'Correct').length;
+        const accuracy = totalAttempts > 0 ? (totalCorrect / totalAttempts) * 100 : 0;
+
+        let totalMedicinesAcrossLevels = 0;
+        let totalMasteredAcrossLevels = 0;
+
+        levels.forEach(level => {
+            const levelSpecificQuestions = levelQuestions.filter(q => String(q.level_id) === String(level.id));
+            const questionsInLevelCount = levelSpecificQuestions.length;
+            if (questionsInLevelCount === 0) return;
+
+            const levelMedicinesForThisLevel = levelMedicines.filter(lm => String(lm.level_id) === String(level.id));
+            const levelSpecificAnswers = studentAnswers.filter(ans => String(ans.level_id) === String(level.id));
+
+            totalMedicinesAcrossLevels += levelMedicinesForThisLevel.length;
+
+            levelMedicinesForThisLevel.forEach(lm => {
+                const medicineAnswers = levelSpecificAnswers.filter(ans => 
+                    String(ans.medicine_id) === String(lm.medicine_id) && 
+                    ans.correct_status === 'Correct'
+                );
+                const uniqueCorrectQIds = new Set(medicineAnswers.map(ans => String(ans.question_id)));
+                const relevantCorrectQIds = Array.from(uniqueCorrectQIds).filter(qid => 
+                    levelSpecificQuestions.some(lq => String(lq.question_id) === String(qid))
+                );
+
+                if (relevantCorrectQIds.length === questionsInLevelCount) {
+                    totalMasteredAcrossLevels++;
+                }
+            });
+        });
+
+        const completion = totalMedicinesAcrossLevels > 0 ? (totalMasteredAcrossLevels / totalMedicinesAcrossLevels) * 100 : 0;
+
+        return { 
+            accuracy, 
+            completion, 
+            mastered: totalMasteredAcrossLevels, 
+            total: totalMedicinesAcrossLevels 
+        };
+    }, [levels, studentAnswers, levelMedicines, levelQuestions]);
+
     const isLoading = isLoadingLevels || isLoadingLevelMedicines || isLoadingAllMedicines || (!!user?.username && isLoadingHistory) || isLoadingEnrollments || isLoadingLevelQuestions;
 
     if (isLoading) {
@@ -79,25 +126,48 @@ export default function MediMindLevelsPage() {
                     <p className="text-muted-foreground text-lg">Pick a challenge level to test your medical knowledge.</p>
                 </div>
                 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Accuracy Card */}
+                    <div className="bg-green-500/5 px-4 py-3 rounded-2xl border-2 border-green-500/20 shadow-sm flex items-center gap-3 animate-in fade-in slide-in-from-right-2 duration-500">
+                        <div className="p-2 bg-green-500/10 rounded-xl">
+                            <Target className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-bold text-green-600/60 leading-none mb-1 uppercase tracking-wider">Accuracy</p>
+                            <p className="text-xl font-black text-green-700 leading-none">{overallStats.accuracy.toFixed(1)}%</p>
+                        </div>
+                    </div>
+
+                    {/* Completion Card */}
+                    <div className="bg-blue-500/5 px-4 py-3 rounded-2xl border-2 border-blue-500/20 shadow-sm flex items-center gap-3 animate-in fade-in slide-in-from-right-3 duration-700">
+                        <div className="p-2 bg-blue-500/10 rounded-xl">
+                            <Trophy className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-bold text-blue-600/60 leading-none mb-1 uppercase tracking-wider">Completion</p>
+                            <p className="text-xl font-black text-blue-700 leading-none">{overallStats.completion.toFixed(1)}%</p>
+                        </div>
+                    </div>
+
+                    {/* Balance Card */}
+                    <div className="bg-yellow-500/5 px-4 py-3 rounded-2xl border-2 border-yellow-500/20 shadow-sm flex items-center gap-3 animate-in fade-in slide-in-from-right-4 duration-1000">
+                        <div className="p-2 bg-yellow-500/10 rounded-xl">
+                            <Coins className="h-5 w-5 text-yellow-600 animate-bounce" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-bold text-yellow-600/60 leading-none mb-1 uppercase tracking-wider">Balance</p>
+                            <p className="text-xl font-black text-yellow-700 leading-none">{totalCoins}</p>
+                        </div>
+                    </div>
+
                     <Button 
                         onClick={() => router.push('/dashboard/medimind/history')}
                         variant="outline"
-                        className="rounded-2xl h-14 px-6 border-primary/20 hover:bg-primary/5 group"
+                        className="rounded-2xl h-[52px] px-6 border-primary/20 hover:bg-primary/5 group"
                     >
                         <HistoryIcon className="mr-2 h-5 w-5 text-primary group-hover:rotate-[-45deg] transition-transform" />
-                        <span className="font-bold">Game History</span>
+                        <span className="font-bold">History</span>
                     </Button>
-
-                    <div className="bg-primary/5 px-6 py-3 rounded-2xl border-2 border-yellow-500/20 shadow-sm flex items-center gap-4 animate-in fade-in slide-in-from-right-4 duration-700">
-                        <div className="text-right">
-                           <p className="text-[10px] font-bold text-primary/60 leading-none mb-1">Total Balance</p>
-                           <p className="text-2xl font-black text-foreground leading-none flex items-center gap-2">
-                                <Coins className="h-6 w-6 text-yellow-500 animate-bounce" />
-                                {totalCoins}
-                           </p>
-                        </div>
-                    </div>
                 </div>
             </header>
 
