@@ -177,7 +177,7 @@ export default function BatchProgressReportPage() {
     const handleExport = () => {
         if (filteredReport.length === 0) return;
         
-        const headers = ["Student Name", "Username", "Total Attempts", "Correct", "Wrong", "Balance", "Max Possible", "Grade Score Rate", "Accuracy", "Completion Rate"];
+        const headers = ["Student Name", "Username", "Total Attempts", "Correct", "Wrong", "Balance", "Max Possible", "Grade Score Rate %", "Score Fraction", "Accuracy", "Completion Rate"];
         const csvData = filteredReport.map(s => {
             const accuracy = s.total_attempts > 0 ? ((s.correct_answers / s.total_attempts) * 100).toFixed(1) : "0";
             const balance = (Number(s.correct_answers) * 10) - (Number(s.wrong_answers) * 2);
@@ -191,7 +191,8 @@ export default function BatchProgressReportPage() {
                 s.wrong_answers,
                 balance,
                 maxScore,
-                `"${gradeRate}% (${balance}/${maxScore})"`,
+                `"${gradeRate}%"`,
+                `"(${balance}/${maxScore})"`,
                 `"${accuracy}%"`,
                 `"${s.completion_rate.toFixed(1)}%"`
             ].join(",");
