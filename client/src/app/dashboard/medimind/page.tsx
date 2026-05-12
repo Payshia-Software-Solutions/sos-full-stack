@@ -6,9 +6,9 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ChevronRight, Loader2, AlertTriangle } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
-import { getMediMindLevels, getMediMindLevelMedicines, getMediMindStudentAnswersByStudent, getMediMindStudentLevels } from '@/lib/actions/games';
+import { getMediMindLevels, getMediMindLevelMedicines, getMediMindStudentAnswersByStudent, getMediMindStudentLevels, getMediMindLevelQuestions, getMediMindItems } from '@/lib/actions/games';
 import { getStudentEnrollments } from '@/lib/actions/users';
-import type { MediMindLevel, MediMindLevelMedicine, MediMindStudentAnswer, StudentEnrollmentInfo } from '@/lib/types';
+import type { MediMindLevel, MediMindLevelMedicine, MediMindStudentAnswer, StudentEnrollmentInfo, MediMindLevelQuestion, MediMindItem } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Coins, History as HistoryIcon } from 'lucide-react';
 
@@ -40,6 +40,11 @@ export default function MediMindLevelsPage() {
         queryFn: getMediMindItems,
     });
 
+    const { data: levelQuestions = [], isLoading: isLoadingLevelQuestions } = useQuery<MediMindLevelQuestion[]>({
+        queryKey: ['mediMindLevelQuestions'],
+        queryFn: getMediMindLevelQuestions,
+    });
+
     const { data: studentAnswers = [], isLoading: isLoadingHistory } = useQuery<MediMindStudentAnswer[]>({
         queryKey: ['studentMediMindHistory', user?.username],
         queryFn: () => getMediMindStudentAnswersByStudent(user!.username!),
@@ -52,7 +57,7 @@ export default function MediMindLevelsPage() {
         return (correct * 10) - (wrong * 2);
     }, [studentAnswers]);
 
-    const isLoading = isLoadingLevels || isLoadingLevelMedicines || isLoadingAllMedicines || (!!user?.username && isLoadingHistory) || isLoadingEnrollments;
+    const isLoading = isLoadingLevels || isLoadingLevelMedicines || isLoadingAllMedicines || (!!user?.username && isLoadingHistory) || isLoadingEnrollments || isLoadingLevelQuestions;
 
     if (isLoading) {
         return (
@@ -120,10 +125,58 @@ export default function MediMindLevelsPage() {
                                         <CardTitle className="text-xl group-hover:text-primary transition-colors font-bold truncate">
                                             {level.level_name}
                                         </CardTitle>
-                                        <CardDescription className="text-sm font-semibold flex items-center gap-2">
-                                            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider">
-                                                {medicineCount} Medicines
-                                            </span>
+                                        <CardDescription className="text-sm font-semibold flex flex-col gap-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider">
+                                                    {medicineCount} Medicines
+                                                </span>
+                                            </div>
+                                            {(() => {
+                                                const levelSpecificQuestions = levelQuestions.filter(q => String(q.level_id) === String(level.id));
+                                                const totalQuestions = levelSpecificQuestions.length;
+                                                
+                                                if (totalQuestions === 0) return null;
+
+                                                const levelSpecificAnswers = studentAnswers.filter(ans => String(ans.level_id) === String(level.id));
+                                                
+                                                // Count how many medicines in this level are fully mastered
+                                                let masteredCount = 0;
+                                                const levelMedicinesForThisLevel = levelMedicines.filter(lm => String(lm.level_id) === String(level.id));
+                                                
+                                                levelMedicinesForThisLevel.forEach(lm => {
+                                                    const medicineAnswers = levelSpecificAnswers.filter(ans => 
+                                                        String(ans.medicine_id) === String(lm.medicine_id) && 
+                                                        ans.correct_status === 'Correct'
+                                                    );
+                                                    const uniqueCorrectQIds = new Set(medicineAnswers.map(ans => String(ans.question_id)));
+                                                    
+                                                    // Only check questions that belong to this level
+                                                    const relevantCorrectQIds = Array.from(uniqueCorrectQIds).filter(qid => 
+                                                        levelSpecificQuestions.some(lq => String(lq.question_id) === String(qid))
+                                                    );
+
+                                                    if (relevantCorrectQIds.length === totalQuestions && totalQuestions > 0) {
+                                                        masteredCount++;
+                                                    }
+                                                });
+
+                                                const progressPercent = medicineCount > 0 ? (masteredCount / medicineCount) * 100 : 0;
+
+                                                return (
+                                                    <div className="space-y-1 mt-1">
+                                                        <div className="flex justify-between items-center text-[10px] font-bold">
+                                                            <span className="text-primary/70 uppercase">Mastered</span>
+                                                            <span className="text-foreground">{masteredCount} / {medicineCount}</span>
+                                                        </div>
+                                                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                                                            <div 
+                                                                className="h-full bg-primary transition-all duration-500" 
+                                                                style={{ width: `${progressPercent}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
                                         </CardDescription>
                                     </div>
                                     <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all shrink-0">

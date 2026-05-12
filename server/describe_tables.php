@@ -18,3 +18,4 @@ function describeTable($pdo, $tableName) {
 describeTable($pdo, "medi_mind_level_questions");
 describeTable($pdo, "medi_mind_quetions");
 describeTable($pdo, "medi_mind_levels");
+describeTable($pdo, "medi_mind_student_answers");
