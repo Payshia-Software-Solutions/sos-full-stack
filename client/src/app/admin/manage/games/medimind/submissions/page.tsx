@@ -84,10 +84,11 @@ export default function StudentSubmissionsPage() {
     const handleExport = () => {
         if (filteredSubmissions.length === 0) return;
         
-        const headers = ["Student ID", "Medicine", "Question", "Answer", "Status", "Date"];
+        const headers = ["Student ID", "Level", "Medicine", "Question", "Answer", "Status", "Date"];
         const csvData = filteredSubmissions.map(sub => {
             return [
                 sub.created_by,
+                `"${sub.level_name || 'N/A'}"`,
                 `"${sub.medicine_name || 'Unknown'}"`,
                 `"${sub.question}"`,
                 `"${sub.answer}"`,
@@ -183,6 +184,7 @@ export default function StudentSubmissionsPage() {
                                 <TableHeader>
                                     <TableRow className="bg-muted/50 hover:bg-muted/50">
                                         <TableHead className="w-[120px]">Student ID</TableHead>
+                                        <TableHead>Level</TableHead>
                                         <TableHead>Medicine</TableHead>
                                         <TableHead className="hidden lg:table-cell">Question</TableHead>
                                         <TableHead className="hidden md:table-cell">Selected Answer</TableHead>
@@ -199,6 +201,11 @@ export default function StudentSubmissionsPage() {
                                                     <User className="h-3 w-3 text-muted-foreground" />
                                                     {sub.created_by}
                                                 </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="secondary" className="font-bold bg-primary/5 text-primary border-primary/10">
+                                                    {sub.level_name || 'N/A'}
+                                                </Badge>
                                             </TableCell>
                                             <TableCell className="font-medium">
                                                 <div className="flex items-center gap-2">

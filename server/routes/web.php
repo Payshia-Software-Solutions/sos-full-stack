@@ -303,6 +303,30 @@ $routes = array_merge(
 
 
 // Define the home route with trailing slash
+$routes['GET /run-medimind-migration-v2/'] = function () use ($pdo) {
+    try {
+        // 1. Add level_id column
+        $pdo->exec("ALTER TABLE medi_mind_student_answers ADD COLUMN IF NOT EXISTS level_id INT AFTER medicine_id");
+        
+        // 2. Backfill level_id for existing records (try to find a level that contains the medicine)
+        // This is a best-effort backfill.
+        $pdo->exec("
+            UPDATE medi_mind_student_answers sa
+            SET level_id = (
+                SELECT level_id 
+                FROM medi_mind_level_mediciens lm 
+                WHERE lm.medicine_id = sa.medicine_id 
+                LIMIT 1
+            )
+            WHERE level_id IS NULL
+        ");
+        
+        echo json_encode(['success' => true, 'message' => 'Migration V2 successful: level_id added and backfilled.']);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+};
+
 $routes['GET /'] = function () {
     // Serve the index.html file
     readfile('./views/index.html');

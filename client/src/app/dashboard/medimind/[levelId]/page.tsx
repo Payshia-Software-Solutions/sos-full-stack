@@ -75,6 +75,7 @@ export default function MediMindModulesPage() {
     levelModules.forEach(mod => {
         // Count distinct questions correctly answered for THIS medicine
         const correctAnswers = studentAnswers.filter(ans => 
+            String(ans.level_id) === String(levelId) &&
             String(ans.medicine_id) === String(mod.id) && 
             ans.correct_status === "Correct" &&
             levelQuestions.some(lq => String(lq.question_id) === String(ans.question_id))

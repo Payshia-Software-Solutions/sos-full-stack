@@ -118,7 +118,7 @@ export default function MediMindGamePage() {
         if (!isLoadingHistory && !historyInitialized && studentHistory.length > 0 && levelQuestions.length > 0) {
             const correctlyIds = new Set<string>();
             studentHistory.forEach(ans => {
-                if (String(ans.medicine_id) === String(moduleId) && ans.correct_status === "Correct") {
+                if (String(ans.level_id) === String(levelId) && String(ans.medicine_id) === String(moduleId) && ans.correct_status === "Correct") {
                     // Check if this answer was for one of the questions in this level
                     if (levelQuestions.some(lq => String(lq.question_id) === String(ans.question_id))) {
                         correctlyIds.add(String(ans.question_id));
@@ -196,6 +196,7 @@ export default function MediMindGamePage() {
         // Submit to server
         if (user?.username) {
             submitMutation.mutate({
+                level_id: parseInt(levelId, 10),
                 medicine_id: parseInt(moduleId, 10),
                 question_id: parseInt(currentQuestion.question_id as string, 10),
                 answer_id: parseInt(selectedAnswerId, 10),

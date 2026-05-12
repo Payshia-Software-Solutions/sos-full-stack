@@ -67,7 +67,7 @@ class MediMindLevelMedicine
                 m.medicine_name
             FROM 
                 medi_mind_level_mediciens lm
-            JOIN 
+            LEFT JOIN 
                 medi_mind_medicines m ON lm.medicine_id = m.id
             WHERE 
                 lm.level_id = ?

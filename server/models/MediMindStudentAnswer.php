@@ -15,17 +15,21 @@ class MediMindStudentAnswer
         $stmt = $this->pdo->query("
             SELECT 
                 sa.id, 
+                sa.level_id,
                 sa.medicine_id, 
                 sa.question_id, 
                 sa.answer_id, 
                 sa.correct_status, 
                 sa.created_by, 
                 sa.created_at,
+                l.level_name,
                 m.medicine_name,
                 q.question,
                 qa.answer
             FROM 
                 medi_mind_student_answers sa
+            LEFT JOIN 
+                medi_mind_levels l ON sa.level_id = l.id
             LEFT JOIN 
                 medi_mind_medicines m ON sa.medicine_id = m.id
             LEFT JOIN 
@@ -42,17 +46,21 @@ class MediMindStudentAnswer
         $stmt = $this->pdo->prepare("
             SELECT 
                 sa.id, 
+                sa.level_id,
                 sa.medicine_id, 
                 sa.question_id, 
                 sa.answer_id, 
                 sa.correct_status, 
                 sa.created_by, 
                 sa.created_at,
+                l.level_name,
                 m.medicine_name,
                 q.question,
                 qa.answer
             FROM 
                 medi_mind_student_answers sa
+            LEFT JOIN 
+                medi_mind_levels l ON sa.level_id = l.id
             LEFT JOIN 
                 medi_mind_medicines m ON sa.medicine_id = m.id
             LEFT JOIN 
@@ -72,16 +80,20 @@ class MediMindStudentAnswer
         $stmt = $this->pdo->prepare("
             SELECT 
                 sa.id, 
+                sa.level_id,
                 sa.medicine_id, 
                 sa.question_id, 
                 sa.answer_id, 
                 sa.correct_status, 
                 sa.created_at,
+                l.level_name,
                 m.medicine_name,
                 q.question,
                 qa.answer
             FROM 
                 medi_mind_student_answers sa
+            LEFT JOIN 
+                medi_mind_levels l ON sa.level_id = l.id
             LEFT JOIN 
                 medi_mind_medicines m ON sa.medicine_id = m.id
             LEFT JOIN 
@@ -119,10 +131,11 @@ class MediMindStudentAnswer
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO `medi_mind_student_answers` 
-                (medicine_id, question_id, answer_id, correct_status, created_by, created_at) 
-            VALUES (?, ?, ?, ?, ?, ?)
+                (level_id, medicine_id, question_id, answer_id, correct_status, created_by, created_at) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
+            isset($data['level_id']) ? $data['level_id'] : null,
             $data['medicine_id'],
             $data['question_id'],
             $data['answer_id'],
@@ -138,10 +151,11 @@ class MediMindStudentAnswer
     {
         $stmt = $this->pdo->prepare("
             UPDATE `medi_mind_student_answers` 
-            SET medicine_id = ?, question_id = ?, answer_id = ?, correct_status = ? 
+            SET level_id = ?, medicine_id = ?, question_id = ?, answer_id = ?, correct_status = ? 
             WHERE id = ?
         ");
         return $stmt->execute([
+            $data['level_id'],
             $data['medicine_id'], 
             $data['question_id'], 
             $data['answer_id'], 

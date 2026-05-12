@@ -961,7 +961,7 @@ export async function removeMediMindLevelMedicine(id: string): Promise<void> {
 }
 
 // MediMind Student Side
-export async function submitMediMindStudentAnswer(data: { medicine_id: number; question_id: number; answer_id: number; correct_status: string; created_by: string | number }): Promise<any> {
+export async function submitMediMindStudentAnswer(data: { level_id: number; medicine_id: number; question_id: number; answer_id: number; correct_status: string; created_by: string | number }): Promise<any> {
     const response = await fetch(`${QA_API_BASE_URL}/medi-mind-student-answers/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

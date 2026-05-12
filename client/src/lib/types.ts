@@ -841,12 +841,14 @@ export interface MediMindLevelMedicine {
 
 export interface MediMindStudentAnswer {
   id: string;
+  level_id: string;
   medicine_id: string;
   question_id: string;
   answer_id: string;
   correct_status: 'Correct' | 'Wrong';
   created_by: string;
   created_at: string;
+  level_name?: string | null;
   medicine_name?: string | null;
   question?: string;
   answer?: string;

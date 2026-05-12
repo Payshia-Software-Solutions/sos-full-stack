@@ -59,18 +59,18 @@ class MediMindCourseLevel
 
     public function getBatchProgressReport($course_code)
     {
-        // 1. Get total unique medicines assigned to this batch
+        // 1. Get total medicine-level tasks assigned to this batch
         $stmtTotal = $this->pdo->prepare("
-            SELECT COUNT(DISTINCT lm.medicine_id) as total_medicines
+            SELECT COUNT(*) as total_tasks
             FROM medi_mind_course_levels cl
             JOIN medi_mind_level_mediciens lm ON cl.level_id = lm.level_id
             WHERE cl.course_code = ?
         ");
         $stmtTotal->execute([$course_code]);
-        $totalMedicinesResult = $stmtTotal->fetch(PDO::FETCH_ASSOC);
-        $totalMedicines = $totalMedicinesResult ? (int)$totalMedicinesResult['total_medicines'] : 0;
+        $totalResult = $stmtTotal->fetch(PDO::FETCH_ASSOC);
+        $totalTasks = $totalResult ? (int)$totalResult['total_tasks'] : 0;
 
-        // 2. Get student progress
+        // 2. Get student progress (Counting unique Level+Medicine pairs mastered)
         $stmt = $this->pdo->prepare("
             SELECT 
                 u.fname, 
@@ -82,15 +82,17 @@ class MediMindCourseLevel
                 SUM(CASE WHEN sa.correct_status = 'Wrong' THEN 1 ELSE 0 END) as wrong_answers,
                 COUNT(DISTINCT CASE 
                     WHEN sa.correct_status = 'Correct' 
-                    AND sa.medicine_id IN (
-                        SELECT DISTINCT lm2.medicine_id 
+                    AND EXISTS (
+                        SELECT 1 
                         FROM medi_mind_course_levels cl2 
                         JOIN medi_mind_level_mediciens lm2 ON cl2.level_id = lm2.level_id 
-                        WHERE cl2.course_code = ?
+                        WHERE cl2.course_code = ? 
+                        AND lm2.level_id = sa.level_id 
+                        AND lm2.medicine_id = sa.medicine_id
                     )
-                    THEN sa.medicine_id 
+                    THEN CONCAT(sa.level_id, '-', sa.medicine_id)
                     ELSE NULL 
-                END) as unique_correct_medicines
+                END) as unique_correct_tasks
             FROM student_course sc
             JOIN users u ON sc.student_id = u.userid
             LEFT JOIN medi_mind_student_answers sa ON u.username = sa.created_by
@@ -103,10 +105,12 @@ class MediMindCourseLevel
 
         // 3. Add completion data to each student record
         foreach ($students as &$student) {
-            $student['total_medicines_in_batch'] = $totalMedicines;
-            $student['completion_rate'] = $totalMedicines > 0 
-                ? round(($student['unique_correct_medicines'] / $totalMedicines) * 100, 2) 
+            $student['total_medicines_in_batch'] = $totalTasks;
+            $student['completion_rate'] = $totalTasks > 0 
+                ? round(($student['unique_correct_tasks'] / $totalTasks) * 100, 2) 
                 : 0;
+            // Map key for frontend compatibility
+            $student['unique_correct_medicines'] = $student['unique_correct_tasks'];
         }
 
         return $students;
