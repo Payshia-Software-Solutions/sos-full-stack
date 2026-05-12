@@ -143,10 +143,22 @@ export default function BatchProgressReportPage() {
 
     // --- Derived Calculations ---
     const filteredReport = useMemo(() => {
-        return reportData.filter(student => 
+        const filtered = reportData.filter(student => 
             `${student.fname} ${student.lname}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
             student.username.toLowerCase().includes(searchTerm.toLowerCase())
         );
+
+        return [...filtered].sort((a, b) => {
+            const aEarned = (Number(a.correct_answers) * 10) - (Number(a.wrong_answers) * 2);
+            const aPossible = (Number(a.total_questions_in_batch || 0) * 10);
+            const aRate = aPossible > 0 ? aEarned / aPossible : -1;
+
+            const bEarned = (Number(b.correct_answers) * 10) - (Number(b.wrong_answers) * 2);
+            const bPossible = (Number(b.total_questions_in_batch || 0) * 10);
+            const bRate = bPossible > 0 ? bEarned / bPossible : -1;
+
+            return bRate - aRate;
+        });
     }, [reportData, searchTerm]);
 
     const stats = useMemo(() => {
@@ -165,11 +177,12 @@ export default function BatchProgressReportPage() {
     const handleExport = () => {
         if (filteredReport.length === 0) return;
         
-        const headers = ["Student Name", "Username", "Total Attempts", "Correct", "Wrong", "Balance", "Max Possible", "Accuracy", "Completion Rate"];
+        const headers = ["Student Name", "Username", "Total Attempts", "Correct", "Wrong", "Balance", "Max Possible", "Grade Score Rate", "Accuracy", "Completion Rate"];
         const csvData = filteredReport.map(s => {
             const accuracy = s.total_attempts > 0 ? ((s.correct_answers / s.total_attempts) * 100).toFixed(1) : "0";
             const balance = (Number(s.correct_answers) * 10) - (Number(s.wrong_answers) * 2);
             const maxScore = Number(s.total_questions_in_batch) * 10;
+            const gradeRate = maxScore > 0 ? ((balance / maxScore) * 100).toFixed(1) : "0.0";
             return [
                 `"${s.fname} ${s.lname}"`,
                 s.username,
@@ -178,6 +191,7 @@ export default function BatchProgressReportPage() {
                 s.wrong_answers,
                 balance,
                 maxScore,
+                `"${gradeRate}% (${balance}/${maxScore})"`,
                 `"${accuracy}%"`,
                 `"${s.completion_rate.toFixed(1)}%"`
             ].join(",");
@@ -349,6 +363,7 @@ export default function BatchProgressReportPage() {
                                             <TableHead className="font-bold text-center">Balance</TableHead>
                                             <TableHead className="font-bold text-center">Accuracy</TableHead>
                                             <TableHead className="font-bold text-center">Completion</TableHead>
+                                            <TableHead className="font-bold text-center text-primary">Grade Score Rate</TableHead>
                                             <TableHead className="font-bold text-right">Status</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -413,6 +428,19 @@ export default function BatchProgressReportPage() {
                                                                 />
                                                             </div>
                                                         </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {(() => {
+                                                            const earned = (Number(student.correct_answers) * 10) - (Number(student.wrong_answers) * 2);
+                                                            const possible = (Number(student.total_questions_in_batch || 0) * 10);
+                                                            const rate = possible > 0 ? (earned / possible) * 100 : 0;
+                                                            return (
+                                                                <div className="flex flex-col items-center">
+                                                                    <span className="font-black text-primary text-sm">{rate.toFixed(1)}%</span>
+                                                                    <span className="text-[10px] text-muted-foreground font-medium">({earned}/{possible})</span>
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         {student.completion_rate >= 100 ? (
