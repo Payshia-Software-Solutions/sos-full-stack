@@ -86,6 +86,8 @@ export default function BatchProgressReportPage() {
             wrong: number;
             balance: number;
             maxScore: number;
+            accuracy_rate: number;
+            completion_rate: number;
         }> = {};
 
         studentHistory.forEach(ans => {
@@ -106,7 +108,9 @@ export default function BatchProgressReportPage() {
                     correct: 0, 
                     wrong: 0, 
                     balance: 0,
-                    maxScore: maxLevelScore
+                    maxScore: maxLevelScore,
+                    accuracy_rate: 0,
+                    completion_rate: 0
                 };
             }
             groups[levelId].entries.push(ans);
@@ -114,9 +118,24 @@ export default function BatchProgressReportPage() {
             else groups[levelId].wrong++;
         });
 
-        // Calculate balance for each group
+        // Finalize stats for each group
         Object.values(groups).forEach(g => {
+            const totalAttempts = g.correct + g.wrong;
+            g.accuracy_rate = totalAttempts > 0 ? (g.correct / totalAttempts) * 100 : 0;
             g.balance = (g.correct * 10) - (g.wrong * 2);
+
+            // Level Completion: unique medicines with correct answers in this level
+            const levelInfo = courseLevels.find(l => String(l.id) === g.id);
+            const totalMedicinesInLevel = Number(levelInfo?.medicine_count || 0);
+            
+            if (totalMedicinesInLevel > 0) {
+                const uniqueCorrectMedicines = new Set(
+                    g.entries
+                        .filter(e => e.correct_status === 'Correct')
+                        .map(e => e.medicine_id)
+                ).size;
+                g.completion_rate = (uniqueCorrectMedicines / totalMedicinesInLevel) * 100;
+            }
         });
 
         return Object.values(groups);
@@ -560,6 +579,14 @@ export default function BatchProgressReportPage() {
                                                                         <div className="flex flex-col items-center px-4 border-r border-muted-foreground/20">
                                                                             <span className="text-[8px] font-bold text-muted-foreground uppercase">Level Max</span>
                                                                             <span className="text-lg font-black text-muted-foreground">{group.maxScore}</span>
+                                                                        </div>
+                                                                        <div className="flex flex-col items-center px-4 border-r border-muted-foreground/20">
+                                                                            <span className="text-[8px] font-bold text-blue-600 uppercase">Completion</span>
+                                                                            <span className="text-lg font-black text-blue-600">{group.completion_rate.toFixed(0)}%</span>
+                                                                        </div>
+                                                                        <div className="flex flex-col items-center px-4 border-r border-muted-foreground/20">
+                                                                            <span className="text-[8px] font-bold text-purple-600 uppercase">Accuracy</span>
+                                                                            <span className="text-lg font-black text-purple-600">{group.accuracy_rate.toFixed(0)}%</span>
                                                                         </div>
                                                                         <div className="flex items-center gap-2 px-2">
                                                                             <div className="flex flex-col items-end">
