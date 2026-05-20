@@ -178,7 +178,7 @@ export default function CourseCompletionReportPage() {
                 }
             }
 
-            const headers = ['Course Name', 'Student ID', 'Full Name', 'Phone 1', 'Phone 2', 'Address', 'Batch', 'Status', 'Avg Grade (%)', 'Certificate ID', 'Transcript ID', 'Workshop Cert ID', 'Missing Criteria'];
+            const headers = ['Course Name', 'Student ID', 'Full Name', 'Tel 1', 'Tel 2', 'Address Line 1', 'Address Line 2', 'City', 'District', 'Batch', 'Status', 'Avg Grade (%)', 'Certificate ID', 'Transcript ID', 'Workshop Cert ID', 'Missing Criteria'];
             const rows = students.map((s, idx) => {
                 const data = allFullData[idx];
                 const enrollment = data ? Object.values(data.studentEnrollments).find((e: any) => e.course_code === selectedBatchCode) : null;
@@ -190,15 +190,16 @@ export default function CourseCompletionReportPage() {
                 const transId = certs.find(c => c.document_type === 'Transcript')?.certificate_id || '';
                 const workshopId = certs.find(c => c.document_type === 'Workshop-Certificate')?.certificate_id || '';
 
-                const fullAddress = data ? [data.studentInfo.address_line_1, data.studentInfo.address_line_2, data.studentInfo.city, data.studentInfo.district].filter(Boolean).join(', ') : '';
-
                 return [
                     courseName,
                     s.username,
                     s.full_name,
                     data?.studentInfo.telephone_1 || '',
                     data?.studentInfo.telephone_2 || '',
-                    fullAddress,
+                    data?.studentInfo.address_line_1 || '',
+                    data?.studentInfo.address_line_2 || '',
+                    data?.studentInfo.city || '',
+                    data?.studentInfo.district || '',
                     selectedBatchCode,
                     isCompleted ? 'Completed' : 'Incomplete',
                     enrollment?.assignment_grades.average_grade || '0.00',
