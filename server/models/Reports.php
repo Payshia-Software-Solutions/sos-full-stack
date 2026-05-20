@@ -35,14 +35,15 @@ class Reports
                 uf.telephone_2,
                 c.name_en AS city_name,
                 d.name_en AS district_name
-            FROM users u
-            LEFT JOIN user_full_details uf ON u.username = uf.username
+            FROM student_course sc
+            INNER JOIN user_full_details uf ON sc.student_id = uf.student_id
+            INNER JOIN users u ON u.username = uf.username
             LEFT JOIN cities c ON 
                 (uf.city REGEXP '^[0-9]+$' AND c.id = CAST(uf.city AS UNSIGNED))
                 OR 
                 (uf.city NOT REGEXP '^[0-9]+$' AND LOWER(c.name_en) = LOWER(uf.city))
             LEFT JOIN districts d ON c.district_id = d.id
-            WHERE u.batch_id = :batch_id AND u.status = 'Active'
+            WHERE sc.course_code = :batch_id AND u.status = 'Active'
         ";
         
         $stmt = $this->pdo->prepare($sql);
