@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowRight, UserPlus, CreditCard, ClipboardList, Truck, GraduationCap, Award, Settings, KeyRound, FileSignature, Banknote, Video, Search, UserCheck, Megaphone, UserCog, BookOpen, BarChart, Cake, Library, Percent, Briefcase, BookText, BrainCircuit, ClipboardCheck, FileCheck } from "lucide-react";
+import { ArrowRight, UserPlus, CreditCard, ClipboardList, Truck, GraduationCap, Award, Settings, KeyRound, FileSignature, Banknote, Video, Search, UserCheck, Megaphone, UserCog, BookOpen, BarChart, Cake, Library, Percent, Briefcase, BookText, BrainCircuit, ClipboardCheck, FileCheck, Users } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from 'react';
 import { cn } from "@/lib/utils";
@@ -43,6 +43,13 @@ const managementTasks: ManagementTask[] = [
     description: "View and export completion status for courses and batches.",
     icon: <ClipboardCheck className="w-8 h-8 text-white" />,
     href: "/admin/manage/course-completion-report",
+    category: "Student Management"
+  },
+  {
+    title: "Student Contact Report",
+    description: "View and export student contact information by batch.",
+    icon: <Users className="w-8 h-8 text-white" />,
+    href: "/admin/manage/student-contact-report",
     category: "Student Management"
   },
   {

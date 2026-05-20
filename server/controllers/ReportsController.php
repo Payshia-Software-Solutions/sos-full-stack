@@ -16,4 +16,10 @@ class ReportsController
         $res = $this->model->getUserInfo($username);
         echo json_encode($res);
     }
+
+    public function getStudentContactsByBatch($batch_id)
+    {
+        $res = $this->model->getStudentContactsByBatch($batch_id);
+        echo json_encode(['status' => 'success', 'data' => $res]);
+    }
 }
