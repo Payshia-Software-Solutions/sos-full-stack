@@ -10,4 +10,5 @@ $reportsController = new ReportsController($pdo);
 // Define user routes
 return [
     'GET /users/{username}' => [$reportsController, 'getUserInfo'],
+    'GET /reports/student-contacts/{batch_id}' => [$reportsController, 'getStudentContactsByBatch'],
 ];
