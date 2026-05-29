@@ -28,6 +28,12 @@ class CourseContentTitleController
         }
     }
 
+    public function getByCourseCode($courseCode)
+    {
+        $records = $this->model->getByCourseCode($courseCode);
+        echo json_encode($records);
+    }
+
     public function create()
     {
         $data = json_decode(file_get_contents("php://input"), true);

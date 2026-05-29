@@ -85,7 +85,7 @@ export default function StudentContactReportPage() {
                 </div>
                 {selectedBatch && reportData.length > 0 && (
                     <Button onClick={handleExport} variant="outline" className="flex items-center gap-2">
-                        <Download className="h-4 w-4" /> Export CSV
+                        <Download className="h-4 w-4" /> Export to Excel (CSV)
                     </Button>
                 )}
             </header>
@@ -166,47 +166,49 @@ export default function StudentContactReportPage() {
                                     <TableHeader>
                                         <TableRow className="bg-muted/50">
                                             <TableHead className="font-bold">Student Name</TableHead>
-                                            <TableHead className="font-bold">Phones</TableHead>
-                                            <TableHead className="font-bold">Address</TableHead>
-                                            <TableHead className="font-bold">City / District</TableHead>
+                                            <TableHead className="font-bold">Username</TableHead>
+                                            <TableHead className="font-bold">Email</TableHead>
+                                            <TableHead className="font-bold">Mobile</TableHead>
+                                            <TableHead className="font-bold">Tel 1</TableHead>
+                                            <TableHead className="font-bold">Tel 2</TableHead>
+                                            <TableHead className="font-bold">Address Line 1</TableHead>
+                                            <TableHead className="font-bold">Address Line 2</TableHead>
+                                            <TableHead className="font-bold">City</TableHead>
+                                            <TableHead className="font-bold">District</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {filteredReport.map((student) => (
                                             <TableRow key={student.user_id} className="hover:bg-muted/20">
-                                                <TableCell>
-                                                    <div className="font-medium text-base">
-                                                        {student.fname} {student.lname}
-                                                    </div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {student.username}
-                                                    </div>
-                                                    {student.email && (
-                                                        <div className="text-xs text-blue-600 mt-1">
-                                                            {student.email}
-                                                        </div>
-                                                    )}
+                                                <TableCell className="font-medium text-base whitespace-nowrap">
+                                                    {student.fname} {student.lname}
                                                 </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col gap-1 text-sm">
-                                                        {student.phone && <span><span className="font-semibold text-muted-foreground">M:</span> {student.phone}</span>}
-                                                        {student.telephone_1 && <span><span className="font-semibold text-muted-foreground">T1:</span> {student.telephone_1}</span>}
-                                                        {student.telephone_2 && <span><span className="font-semibold text-muted-foreground">T2:</span> {student.telephone_2}</span>}
-                                                    </div>
+                                                <TableCell className="text-sm text-muted-foreground">
+                                                    {student.username}
                                                 </TableCell>
-                                                <TableCell>
-                                                    <div className="text-sm space-y-0.5">
-                                                        <div>{student.address_line_1}</div>
-                                                        {student.address_line_2 && <div>{student.address_line_2}</div>}
-                                                    </div>
+                                                <TableCell className="text-sm text-blue-600">
+                                                    {student.email || '-'}
                                                 </TableCell>
-                                                <TableCell>
-                                                    <div className="font-medium">
-                                                        {student.city_name || student.original_city || <span className="text-muted-foreground italic">No City</span>}
-                                                    </div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {student.district_name || student.original_district || <span className="italic">No District</span>}
-                                                    </div>
+                                                <TableCell className="text-sm">
+                                                    {student.phone || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-sm">
+                                                    {student.telephone_1 || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-sm">
+                                                    {student.telephone_2 || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-sm">
+                                                    {student.address_line_1 || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-sm">
+                                                    {student.address_line_2 || '-'}
+                                                </TableCell>
+                                                <TableCell className="font-medium text-sm whitespace-nowrap">
+                                                    {student.city_name || student.original_city || <span className="text-muted-foreground italic">N/A</span>}
+                                                </TableCell>
+                                                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                                    {student.district_name || student.original_district || <span className="italic">N/A</span>}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
