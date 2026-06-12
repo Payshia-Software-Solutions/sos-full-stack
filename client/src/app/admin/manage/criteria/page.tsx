@@ -94,8 +94,8 @@ export default function ManageCriteriaPage() {
                                     <TableCell>{criteria.list_name}</TableCell>
                                     <TableCell>{criteria.moq}</TableCell>
                                     <TableCell>
-                                        <Badge variant={criteria.is_active === 1 ? 'default' : 'secondary'}>
-                                            {criteria.is_active === 1 ? 'Active' : 'Inactive'}
+                                        <Badge variant={Number(criteria.is_active) === 1 ? 'default' : 'secondary'}>
+                                            {Number(criteria.is_active) === 1 ? 'Active' : 'Inactive'}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right space-x-2">
