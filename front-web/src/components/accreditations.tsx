@@ -19,7 +19,6 @@ const accreditations = [
   },
   { src: 'https://content-provider.pharmacollege.lk/website/scc.png', alt: 'SCC Accredited CB-MS' },
   { src: 'https://content-provider.pharmacollege.lk/website/iqa.png', alt: 'International Qualifications & Assessments' },
-  { src: 'https://content-provider.pharmacollege.lk/website/acuk.png', alt: 'Accreditation UK' },
   { src: 'https://content-provider.pharmacollege.lk/website/Srp-2.png', alt: 'SRP' },
 ];
 
