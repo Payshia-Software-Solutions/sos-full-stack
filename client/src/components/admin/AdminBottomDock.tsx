@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, MessageSquare, Ticket, Search, Wrench, MoreHorizontal } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Ticket, Search, Wrench, MoreHorizontal, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useMobileDetailActive } from '@/contexts/MobileDetailActiveContext';
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/tickets", label: "Tickets", icon: Ticket },
   { href: "/admin/chat", label: "Chats", icon: MessageSquare },
+  { href: "/admin/blogs", label: "Blogs", icon: Megaphone },
   { href: "/admin/manage", label: "Manage", icon: Wrench },
   { href: "/admin/more", label: "More", icon: MoreHorizontal },
 ];

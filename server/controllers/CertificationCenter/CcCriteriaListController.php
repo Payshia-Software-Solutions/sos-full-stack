@@ -26,21 +26,37 @@ class CcCriteriaListController
 
     public function createCriteriaList()
     {
-        $data = json_decode(file_get_contents('php://input'), true);
-        $this->model->createCriteriaList($data);
-        echo json_encode(['status' => 'Criteria List created']);
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $this->model->createCriteriaList($data);
+            http_response_code(201);
+            echo json_encode(['status' => 'success', 'message' => 'Criteria List created']);
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
     }
 
     public function updateCriteriaList($id)
     {
-        $data = json_decode(file_get_contents('php://input'), true);
-        $this->model->updateCriteriaList($id, $data);
-        echo json_encode(['status' => 'Criteria List updated']);
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $this->model->updateCriteriaList($id, $data);
+            echo json_encode(['status' => 'success', 'message' => 'Criteria List updated']);
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
     }
 
     public function deleteCriteriaList($id)
     {
-        $this->model->deleteCriteriaList($id);
-        echo json_encode(['status' => 'Criteria List deleted']);
+        try {
+            $this->model->deleteCriteriaList($id);
+            echo json_encode(['status' => 'success', 'message' => 'Criteria List deleted']);
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
     }
 }

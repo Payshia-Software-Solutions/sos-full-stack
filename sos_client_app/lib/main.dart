@@ -8,13 +8,19 @@ import 'src/features/auth/presentation/login_screen.dart';
 import 'src/features/dashboard/presentation/main_scaffold.dart';
 import 'src/features/dashboard/presentation/more_screen.dart';
 
+import 'src/core/services/notification_service.dart';
+import 'src/features/dashboard/presentation/notifications_screen.dart';
 import 'src/features/dashboard/presentation/course_provider.dart';
 import 'src/features/dashboard/presentation/select_course_screen.dart';
 
 import 'src/features/dashboard/presentation/dashboard_screen.dart';
 import 'src/features/dashboard/presentation/recordings_screen.dart';
+import 'src/features/dashboard/presentation/video_player_screen.dart';
+import 'src/features/dashboard/presentation/profile_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.instance.init();
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -59,12 +65,31 @@ class MyApp extends ConsumerWidget {
           path: '/select-course',
           builder: (_, __) => const SelectCourseScreen(),
         ),
+        GoRoute(
+          path: '/video-player',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>? ?? {};
+            return VideoPlayerScreen(
+              videoUrl: extra['url'] ?? '',
+              title: extra['title'] ?? 'Video',
+              description: extra['description'] ?? '',
+            );
+          },
+        ),
+        GoRoute(
+          path: '/notifications',
+          builder: (_, __) => const NotificationsScreen(),
+        ),
         ShellRoute(
           builder: (_, __, child) => MainScaffold(child: child),
           routes: [
             GoRoute(
               path: '/dashboard',
               builder: (_, __) => const DashboardScreen(),
+            ),
+            GoRoute(
+              path: '/profile',
+              builder: (_, __) => const ProfileScreen(),
             ),
             GoRoute(
               path: '/games',

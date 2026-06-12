@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'course_provider.dart';
+import 'student_provider.dart';
 import '../../auth/presentation/auth_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -13,6 +14,7 @@ class DashboardScreen extends ConsumerWidget {
     final selectedCourseCode = ref.watch(selectedCourseProvider);
     final enrollmentsAsync = ref.watch(studentEnrollmentsProvider);
     final coursesAsync = ref.watch(allCoursesProvider);
+    final studentInfoAsync = ref.watch(studentFullInfoProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
@@ -33,9 +35,19 @@ class DashboardScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(studentFullInfoProvider);
+            ref.invalidate(studentEnrollmentsProvider);
+            ref.invalidate(allCoursesProvider);
+            try {
+              await ref.read(studentFullInfoProvider.future);
+            } catch (_) {}
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // --- Header ---
@@ -75,6 +87,109 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              
+              // --- KPI Cards Section ---
+              studentInfoAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (err, _) => const SizedBox.shrink(),
+                data: (data) {
+                  final dynamic rawBalance = data['studentBalance']?['studentBalance'];
+                  final num balance = rawBalance is num 
+                      ? rawBalance 
+                      : (rawBalance != null ? num.tryParse(rawBalance.toString()) ?? 0 : 0);
+
+                  // Handle studentEnrollments which could be a Map or a List depending on PHP empty array representation
+                  Map<String, dynamic> enrollments = {};
+                  if (data['studentEnrollments'] is Map) {
+                    enrollments = Map<String, dynamic>.from(data['studentEnrollments'] as Map);
+                  }
+
+                  final courseData = selectedCourseCode != null ? enrollments[selectedCourseCode] as Map<String, dynamic>? : null;
+
+                  final assignmentAvg = courseData?['assignment_grades']?['average_grade'] ?? '0.00';
+                  
+                  final dynamic rawRecovered = courseData?['ceylon_pharmacy']?['recoveredCount'];
+                  final int recoveredPatients = rawRecovered is int 
+                      ? rawRecovered 
+                      : (rawRecovered != null ? int.tryParse(rawRecovered.toString()) ?? 0 : 0);
+                  
+                  final dynamic rawPhGems = courseData?['pharma_hunter']?['gemCount'];
+                  final int phGems = rawPhGems is int 
+                      ? rawPhGems 
+                      : (rawPhGems != null ? int.tryParse(rawPhGems.toString()) ?? 0 : 0);
+
+                  final dynamic rawPhpGems = courseData?['pharma_hunter_pro']?['results']?['gemCount'];
+                  final int phpGems = rawPhpGems is int 
+                      ? rawPhpGems 
+                      : (rawPhpGems != null ? int.tryParse(rawPhpGems.toString()) ?? 0 : 0);
+
+                  final int totalGems = phGems + phpGems;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 28),
+                      Text(
+                        'Your Progress',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 110,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          children: [
+                            _buildKpiCard(
+                              context,
+                              title: 'Outstanding Balance',
+                              value: 'LKR $balance',
+                              subtitle: balance > 0 ? 'Payment Pending' : 'No Dues',
+                              icon: Icons.account_balance_wallet_rounded,
+                              color: balance > 0 ? Colors.redAccent : Colors.green,
+                            ),
+                            const SizedBox(width: 12),
+                            _buildKpiCard(
+                              context,
+                              title: 'Avg Assignment Grade',
+                              value: '$assignmentAvg%',
+                              subtitle: 'Across assignments',
+                              icon: Icons.analytics_rounded,
+                              color: Colors.indigoAccent,
+                            ),
+                            const SizedBox(width: 12),
+                            _buildKpiCard(
+                              context,
+                              title: 'Pharma Hunter Gems',
+                              value: '$totalGems ✨',
+                              subtitle: 'Gems collected',
+                              icon: Icons.auto_awesome_rounded,
+                              color: Colors.amber[700]!,
+                            ),
+                            const SizedBox(width: 12),
+                            _buildKpiCard(
+                              context,
+                              title: 'Recovered Patients',
+                              value: '$recoveredPatients',
+                              subtitle: 'Ceylon Pharmacy',
+                              icon: Icons.healing_rounded,
+                              color: Colors.teal,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+
               const SizedBox(height: 32),
 
               // --- Course Switcher ---
@@ -264,6 +379,7 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -314,6 +430,76 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildKpiCard(
+    BuildContext context, {
+    required String title,
+    required String value,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = Theme.of(context).colorScheme.surface;
+    final textColor = Theme.of(context).colorScheme.onSurface;
+
+    return Container(
+      width: 175,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Icon(icon, color: color, size: 18),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 10,
+              color: isDark ? Colors.grey[500] : Colors.grey[600],
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }

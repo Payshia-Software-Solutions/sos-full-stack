@@ -36,6 +36,7 @@ const navItems: NavItem[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/tickets", label: "Tickets", icon: Ticket },
   { href: "/admin/chat", label: "Chats", icon: MessageSquare },
+  { href: "/admin/blogs", label: "Blogs", icon: Megaphone },
   { href: "/admin/manage/convocation-generate", label: "Issue Certificates", icon: Award },
   { 
     label: "WinPharma", 

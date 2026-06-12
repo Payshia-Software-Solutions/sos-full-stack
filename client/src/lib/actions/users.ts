@@ -74,7 +74,13 @@ export const getStaffMembers = async (): Promise<StaffMember[]> => {
 };
 
 export const getStudentFullInfo = async (studentNumber: string): Promise<any> => {
-    const response = await fetch(`${QA_API_BASE_URL}/get-student-full-info?loggedUser=${studentNumber.trim().toUpperCase()}`);
+    let formattedUser = studentNumber.trim();
+    if (formattedUser.toLowerCase() === 'admin') {
+        formattedUser = 'admin';
+    } else {
+        formattedUser = formattedUser.toUpperCase();
+    }
+    const response = await fetch(`${QA_API_BASE_URL}/get-student-full-info?loggedUser=${encodeURIComponent(formattedUser)}`, { cache: 'no-store' });
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: `Student full info not found for ${studentNumber}` }));
         throw new Error(errorData.message || 'Failed to fetch student full info');

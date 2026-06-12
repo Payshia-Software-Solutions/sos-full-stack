@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'course_provider.dart';
 import '../../auth/presentation/auth_provider.dart';
+import '../../../core/widgets/gradient_background.dart';
 
 class SelectCourseScreen extends ConsumerStatefulWidget {
   const SelectCourseScreen({super.key});
@@ -18,23 +19,28 @@ class _SelectCourseScreenState extends ConsumerState<SelectCourseScreen> {
     final coursesAsync = ref.watch(allCoursesProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).colorScheme.surface;
     final textColor = Theme.of(context).colorScheme.onSurface;
 
+    final currentSelectedCourse = ref.watch(selectedCourseProvider);
+
     // Loading State
     if (enrollmentsAsync.isLoading || coursesAsync.isLoading) {
-      return Scaffold(
-        backgroundColor: bgColor,
-        body: const Center(child: CircularProgressIndicator()),
+      return GradientBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: const Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
     // Error State
     if (enrollmentsAsync.hasError) {
-      return Scaffold(
-        backgroundColor: bgColor,
-        body: Center(child: Text('Error: ${enrollmentsAsync.error}')),
+      return GradientBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Center(child: Text('Error: ${enrollmentsAsync.error}')),
+        ),
       );
     }
 
@@ -48,26 +54,30 @@ class _SelectCourseScreenState extends ConsumerState<SelectCourseScreen> {
         ref.read(selectedCourseProvider.notifier).setSelectedCourse(enrollments[0].courseCode!);
         context.go('/dashboard');
       });
-      return Scaffold(backgroundColor: bgColor, body: const Center(child: CircularProgressIndicator()));
+      return GradientBackground(
+        child: Scaffold(backgroundColor: Colors.transparent, body: const Center(child: CircularProgressIndicator())),
+      );
     }
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        title: Text('Select Course', style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Logout',
-            onPressed: () {
-              ref.read(authProvider.notifier).logout();
-              context.go('/login');
-            },
-          ),
-        ],
-      ),
-      body: enrollments.isEmpty
+    return GradientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          title: Text('Select Course', style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout_rounded),
+              tooltip: 'Logout',
+              onPressed: () {
+                ref.read(authProvider.notifier).logout();
+                context.go('/login');
+              },
+            ),
+          ],
+        ),
+        body: enrollments.isEmpty
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
@@ -104,6 +114,8 @@ class _SelectCourseScreenState extends ConsumerState<SelectCourseScreen> {
 
                 final courseName = courseDetails?.courseName ?? courseCode;
 
+                final isSelected = courseCode == currentSelectedCourse;
+
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12.0),
                   child: InkWell(
@@ -115,14 +127,16 @@ class _SelectCourseScreenState extends ConsumerState<SelectCourseScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: cardColor,
+                        color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.05) : cardColor,
                         borderRadius: BorderRadius.circular(16),
+                        border: isSelected ? Border.all(color: Theme.of(context).primaryColor, width: 2) : null,
                         boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
+                          if (!isSelected)
+                            BoxShadow(
+                              color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
                         ],
                       ),
                       child: Row(
@@ -148,7 +162,7 @@ class _SelectCourseScreenState extends ConsumerState<SelectCourseScreen> {
                                   courseName,
                                   style: TextStyle(
                                     fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                                     color: textColor,
                                   ),
                                 ),
@@ -163,7 +177,10 @@ class _SelectCourseScreenState extends ConsumerState<SelectCourseScreen> {
                               ],
                             ),
                           ),
-                          Icon(Icons.chevron_right_rounded, color: isDark ? Colors.grey[600] : Colors.grey[400]),
+                          Icon(
+                            isSelected ? Icons.check_circle_rounded : Icons.chevron_right_rounded, 
+                            color: isSelected ? Theme.of(context).primaryColor : (isDark ? Colors.grey[600] : Colors.grey[400])
+                          ),
                         ],
                       ),
                     ),
@@ -171,6 +188,7 @@ class _SelectCourseScreenState extends ConsumerState<SelectCourseScreen> {
                 );
               },
             ),
+      ),
     );
   }
 }
