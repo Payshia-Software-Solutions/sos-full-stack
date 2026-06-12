@@ -58,26 +58,53 @@ class Course
         if (!isset($data['created_at'])) {
             $data['created_at'] = date('Y-m-d H:i:s');
         }
+        if (!array_key_exists('criteria_list', $data)) {
+            $data['criteria_list'] = null;
+        }
 
         $sql = "INSERT INTO course 
-                (course_name, course_code, instructor_id, course_description, course_duration, course_fee, registration_fee, other, created_at, created_by, enroll_key, certification, mini_description, course_img, CertificateImagePath) 
+                (course_name, parent_course_id, course_code, instructor_id, course_description, course_duration, course_fee, registration_fee, other, created_at, created_by, enroll_key, certification, mini_description, course_img, CertificateImagePath, criteria_list) 
                 VALUES 
-                (:course_name, :course_code, :instructor_id, :course_description, :course_duration, :course_fee, :registration_fee, :other, :created_at, :created_by, :enroll_key, :certification, :mini_description, :course_img, :CertificateImagePath)";
+                (:course_name, :parent_course_id, :course_code, :instructor_id, :course_description, :course_duration, :course_fee, :registration_fee, :other, :created_at, :created_by, :enroll_key, :certification, :mini_description, :course_img, :CertificateImagePath, :criteria_list)";
 
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($data);
+        
+        $params = [
+            ':course_name' => $data['course_name'] ?? null,
+            ':parent_course_id' => $data['parent_course_id'] ?? null,
+            ':course_code' => $data['course_code'] ?? null,
+            ':instructor_id' => $data['instructor_id'] ?? null,
+            ':course_description' => $data['course_description'] ?? null,
+            ':course_duration' => $data['course_duration'] ?? null,
+            ':course_fee' => $data['course_fee'] ?? null,
+            ':registration_fee' => $data['registration_fee'] ?? null,
+            ':other' => $data['other'] ?? null,
+            ':created_at' => $data['created_at'] ?? null,
+            ':created_by' => $data['created_by'] ?? null,
+            ':enroll_key' => $data['enroll_key'] ?? null,
+            ':certification' => $data['certification'] ?? null,
+            ':mini_description' => $data['mini_description'] ?? null,
+            ':course_img' => $data['course_img'] ?? null,
+            ':CertificateImagePath' => $data['CertificateImagePath'] ?? null,
+            ':criteria_list' => $data['criteria_list'] ?? null
+        ];
+        
+        $stmt->execute($params);
     }
 
     public function updateRecord($id, $data)
     {
-        if (!isset($data['update_at'])) {
-            $data['update_at'] = date('Y-m-d H:i:s');
-        }
-
-        $data['id'] = $id;
+        if (!isset($data['update_at'])) $data['update_at'] = date('Y-m-d H:i:s');
+        if (!array_key_exists('criteria_list', $data)) $data['criteria_list'] = null;
+        if (!array_key_exists('instructor_id', $data)) $data['instructor_id'] = null;
+        if (!array_key_exists('other', $data)) $data['other'] = null;
+        if (!array_key_exists('update_by', $data)) $data['update_by'] = null;
+        if (!array_key_exists('CertificateImagePath', $data)) $data['CertificateImagePath'] = null;
+        if (!array_key_exists('parent_course_id', $data)) $data['parent_course_id'] = null;
 
         $sql = "UPDATE course SET 
                     course_name = :course_name, 
+                    parent_course_id = :parent_course_id,
                     course_code = :course_code, 
                     instructor_id = :instructor_id,
                     course_description = :course_description, 
@@ -91,11 +118,34 @@ class Course
                     certification = :certification,
                     mini_description = :mini_description,
                     course_img = :course_img,
-                    CertificateImagePath = :CertificateImagePath
+                    CertificateImagePath = :CertificateImagePath,
+                    criteria_list = :criteria_list
                 WHERE id = :id";
 
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($data);
+        
+        // Only pass expected params to prevent PDO "Invalid parameter number"
+        $params = [
+            ':course_name' => $data['course_name'] ?? null,
+            ':parent_course_id' => $data['parent_course_id'] ?? null,
+            ':course_code' => $data['course_code'] ?? null,
+            ':instructor_id' => $data['instructor_id'] ?? null,
+            ':course_description' => $data['course_description'] ?? null,
+            ':course_duration' => $data['course_duration'] ?? null,
+            ':course_fee' => $data['course_fee'] ?? null,
+            ':registration_fee' => $data['registration_fee'] ?? null,
+            ':other' => $data['other'] ?? null,
+            ':update_by' => $data['update_by'] ?? null,
+            ':update_at' => $data['update_at'] ?? null,
+            ':enroll_key' => $data['enroll_key'] ?? null,
+            ':certification' => $data['certification'] ?? null,
+            ':mini_description' => $data['mini_description'] ?? null,
+            ':course_img' => $data['course_img'] ?? null,
+            ':CertificateImagePath' => $data['CertificateImagePath'] ?? null,
+            ':criteria_list' => $data['criteria_list'] ?? null,
+            ':id' => $id
+        ];
+        $stmt->execute($params);
     }
 
     public function deleteRecord($id)

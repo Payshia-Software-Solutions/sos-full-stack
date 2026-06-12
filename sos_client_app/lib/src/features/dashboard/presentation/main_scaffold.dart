@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/widgets/gradient_background.dart';
 
 class MainScaffold extends ConsumerStatefulWidget {
   final Widget child;
@@ -50,7 +51,8 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     final inactiveIconColor = isDark ? const Color(0xFF8696A0) : const Color(0xFF667781);
 
     return Scaffold(
-      body: widget.child,
+      backgroundColor: Colors.transparent,
+      body: GradientBackground(child: widget.child),
       bottomNavigationBar: NavigationBarTheme(
         data: NavigationBarThemeData(
           indicatorColor: indicatorColor,

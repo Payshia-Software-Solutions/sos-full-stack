@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, CheckCircle, ClipboardList, Loader2, XCircle, Swords, Gem, Heart, FileDown } from 'lucide-react';
+import { AlertTriangle, CheckCircle, ClipboardList, Loader2, XCircle, Swords, Gem, Heart, FileDown, Brain } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -168,7 +168,20 @@ const GameInfoCell = ({ studentNumber, convocationCourseIds }: { studentNumber: 
                                     </CardContent>
                                 </Card>
                             )}
-                             {!e.ceylon_pharmacy && !e.pharma_hunter && !e.pharma_hunter_pro && (
+                             {e.medi_mind && (
+                                <Card>
+                                    <CardHeader className="p-4">
+                                        <CardTitle className="text-base flex items-center gap-2"><Brain className="h-5 w-5 text-teal-500" /> Medi Mind</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-0 space-y-1">
+                                        <GameDetailItem label="Progress" value={`${e.medi_mind.progressPercentage}%`} />
+                                        <GameDetailItem label="Correct Answers" value={e.medi_mind.correctCount} />
+                                        <GameDetailItem label="Wrong Answers" value={e.medi_mind.wrongCount} />
+                                        <GameDetailItem label="Balance" value={e.medi_mind.balance} />
+                                    </CardContent>
+                                </Card>
+                            )}
+                             {!e.ceylon_pharmacy && !e.pharma_hunter && !e.pharma_hunter_pro && !e.medi_mind && (
                                 <p className="text-sm text-muted-foreground text-center py-4">No game data available for this course.</p>
                              )}
                         </TabsContent>
@@ -407,6 +420,9 @@ export default function ConvocationOrdersPage() {
                 'Total Pharma Hunter Coins',
                 'Avg Pharma Hunter Pro Progress (%)',
                 'Total Pharma Hunter Pro Gems',
+                'Avg Medi Mind Progress (%)',
+                'Total Medi Mind Correct',
+                'Total Medi Mind Coins',
             ];
 
             const csvRows = [headers.join(',')];
@@ -425,6 +441,9 @@ export default function ConvocationOrdersPage() {
                 let totalPharmaHunterCoins = 0;
                 let pharmaProProgressValues: number[] = [];
                 let totalPharmaHunterProGems = 0;
+                let mediMindProgressValues: number[] = [];
+                let totalMediMindCorrect = 0;
+                let totalMediMindCoins = 0;
 
                 courseIds.forEach(courseId => {
                     const enrollment = Object.values(studentData.studentEnrollments).find(e => e.parent_course_id === courseId);
@@ -441,11 +460,20 @@ export default function ConvocationOrdersPage() {
                             pharmaProProgressValues.push(enrollment.pharma_hunter_pro.results.progressPercentage ?? 0);
                             totalPharmaHunterProGems += enrollment.pharma_hunter_pro.results.gemCount ?? 0;
                         }
+                        if (enrollment.medi_mind) {
+                            mediMindProgressValues.push(enrollment.medi_mind.progressPercentage ?? 0);
+                            totalMediMindCorrect += enrollment.medi_mind.correctCount ?? 0;
+                            totalMediMindCoins += enrollment.medi_mind.balance ?? 0;
+                        }
                     }
                 });
 
                 const avgPharmaProProgress = pharmaProProgressValues.length > 0
                     ? (pharmaProProgressValues.reduce((a, b) => a + b, 0) / pharmaProProgressValues.length).toFixed(2)
+                    : 'N/A';
+                    
+                const avgMediMindProgress = mediMindProgressValues.length > 0
+                    ? (mediMindProgressValues.reduce((a, b) => a + b, 0) / mediMindProgressValues.length).toFixed(2)
                     : 'N/A';
                     
                 const row = [
@@ -461,6 +489,9 @@ export default function ConvocationOrdersPage() {
                     totalPharmaHunterCoins,
                     avgPharmaProProgress,
                     totalPharmaHunterProGems,
+                    avgMediMindProgress,
+                    totalMediMindCorrect,
+                    totalMediMindCoins,
                 ];
                 csvRows.push(row.join(','));
             });

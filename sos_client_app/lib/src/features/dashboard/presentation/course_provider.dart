@@ -4,6 +4,7 @@ import '../../auth/presentation/auth_provider.dart';
 import '../data/course_repository.dart';
 import '../domain/course_model.dart';
 import '../domain/student_enrollment_model.dart';
+import '../domain/recording_model.dart';
 
 final courseRepositoryProvider = Provider<CourseRepository>((ref) {
   return CourseRepository(ref.watch(dioClientProvider));
@@ -21,17 +22,6 @@ final studentEnrollmentsProvider = FutureProvider<List<StudentEnrollmentModel>>(
     return [];
   }
   return ref.watch(courseRepositoryProvider).getStudentEnrollments(user.username!);
-});
-
-final studentCoursesProvider = FutureProvider<List<CourseModel>>((ref) async {
-  final authState = ref.watch(authProvider);
-  
-  if (authState is AsyncData && authState.value != null) {
-    final username = authState.value!.name; // Assuming 'name' holds the username/studentId for now based on login logic
-    final repository = ref.read(courseRepositoryProvider);
-    return repository.getStudentCourses(username);
-  }
-  return [];
 });
 
 final courseRecordingsProvider = FutureProvider.family<List<RecordingModel>, String>((ref, courseCode) async {

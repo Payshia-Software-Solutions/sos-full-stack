@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../../core/theme/theme_provider.dart';
 
@@ -181,7 +182,7 @@ class MoreScreen extends ConsumerWidget {
                     label: 'My Profile',
                     textColor: textColor,
                     chevronColor: chevronColor,
-                    onTap: () {},
+                    onTap: () => context.push('/profile'),
                   ),
                   Divider(height: 1, indent: 70, color: dividerColor),
                   _MenuTile(
@@ -190,7 +191,7 @@ class MoreScreen extends ConsumerWidget {
                     label: 'Notifications',
                     textColor: textColor,
                     chevronColor: chevronColor,
-                    onTap: () {},
+                    onTap: () => context.push('/notifications'),
                   ),
                   Divider(height: 1, indent: 70, color: dividerColor),
                   _MenuTile(

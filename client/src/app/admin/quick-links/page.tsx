@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, AlertTriangle, User, Wallet, BookOpen, CheckCircle, XCircle, Mail, Phone } from 'lucide-react';
+import { Search, Loader2, AlertTriangle, User, Wallet, BookOpen, CheckCircle, XCircle, Mail, Phone, Heart, Swords, Gem, Brain } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -185,6 +185,38 @@ const EnrollmentCard = ({ enrollment }: { enrollment: StudentEnrollment }) => (
                                 </li>
                             ))}
                         </ul>
+                    </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="games">
+                    <AccordionTrigger>Game Progress</AccordionTrigger>
+                    <AccordionContent className="space-y-4">
+                        {enrollment.ceylon_pharmacy && (
+                            <div className="p-3 border rounded-md space-y-1">
+                                <p className="font-medium flex items-center gap-2"><Heart className="h-4 w-4 text-red-500"/> Ceylon Pharmacy</p>
+                                <p className="text-sm text-muted-foreground">Recovered: {enrollment.ceylon_pharmacy.recoveredCount}</p>
+                            </div>
+                        )}
+                        {enrollment.pharma_hunter && (
+                            <div className="p-3 border rounded-md space-y-1">
+                                <p className="font-medium flex items-center gap-2"><Swords className="h-4 w-4 text-blue-500"/> Pharma Hunter</p>
+                                <p className="text-sm text-muted-foreground">Correct: {enrollment.pharma_hunter.correctCount} | Gems: {enrollment.pharma_hunter.gemCount} | Coins: {enrollment.pharma_hunter.coinCount}</p>
+                            </div>
+                        )}
+                        {enrollment.pharma_hunter_pro && (
+                            <div className="p-3 border rounded-md space-y-1">
+                                <p className="font-medium flex items-center gap-2"><Gem className="h-4 w-4 text-purple-500"/> Pharma Hunter Pro</p>
+                                <p className="text-sm text-muted-foreground">Progress: {enrollment.pharma_hunter_pro.results.progressPercentage}% | Correct: {enrollment.pharma_hunter_pro.results.correctCount}</p>
+                            </div>
+                        )}
+                        {enrollment.medi_mind && (
+                            <div className="p-3 border rounded-md space-y-1">
+                                <p className="font-medium flex items-center gap-2"><Brain className="h-4 w-4 text-teal-500"/> Medi Mind</p>
+                                <p className="text-sm text-muted-foreground">Progress: {enrollment.medi_mind.progressPercentage}% | Correct: {enrollment.medi_mind.correctCount} | Wrong: {enrollment.medi_mind.wrongCount} | Balance: {enrollment.medi_mind.balance}</p>
+                            </div>
+                        )}
+                        {!enrollment.ceylon_pharmacy && !enrollment.pharma_hunter && !enrollment.pharma_hunter_pro && !enrollment.medi_mind && (
+                            <p className="text-sm text-muted-foreground">No game data available.</p>
+                        )}
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>

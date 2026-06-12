@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
 import 'course_provider.dart';
+import '../domain/recording_model.dart';
 
 class RecordingsScreen extends ConsumerStatefulWidget {
   const RecordingsScreen({super.key});
@@ -12,19 +13,6 @@ class RecordingsScreen extends ConsumerStatefulWidget {
 
 class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
   String _searchQuery = '';
-
-  Future<void> _launchVideo(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open video link')),
-        );
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +74,7 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
               child: recordingsAsyncValue.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (err, stack) => Center(child: Text('Error: $err', style: TextStyle(color: Colors.red))),
-                data: (recordings) {
+                data: (List<RecordingModel> recordings) {
                   final filteredRecordings = recordings.where((rec) {
                     final matchesSearch = rec.titleName.toLowerCase().contains(_searchQuery.toLowerCase());
                     return matchesSearch;
@@ -102,93 +90,109 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                   }
 
                   return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.only(top: 8, bottom: 24),
                     itemCount: filteredRecordings.length,
                     itemBuilder: (context, index) {
                       final rec = filteredRecordings[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        color: cardColor,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        elevation: 2,
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          onTap: () {
-                            if (rec.youtubeUrl != null) {
-                              _launchVideo(rec.youtubeUrl!);
-                            }
-                          },
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Thumbnail Stack
-                              Stack(
-                                children: [
-                                  Image.network(
-                                    rec.thumbnailUrl ?? '',
-                                    height: 180,
+                      return InkWell(
+                        onTap: () {
+                          if (rec.youtubeUrl != null) {
+                            context.push(
+                              '/video-player',
+                              extra: {
+                                'url': rec.youtubeUrl,
+                                'title': rec.titleName,
+                                'description': rec.description,
+                              },
+                            );
+                          }
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Thumbnail Stack
+                            Stack(
+                              children: [
+                                Image.network(
+                                  rec.thumbnailUrl ?? '',
+                                  height: 220,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    height: 220,
                                     width: double.infinity,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
-                                      height: 180,
-                                      color: Colors.grey[800],
-                                      child: const Center(child: Icon(Icons.video_file, size: 50, color: Colors.grey)),
+                                    color: Colors.grey[800],
+                                    child: const Center(child: Icon(Icons.video_file, size: 50, color: Colors.grey)),
+                                  ),
+                                ),
+                                // Category/Type badge
+                                Positioned(
+                                  bottom: 8,
+                                  right: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.8),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      'Video',
+                                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                                     ),
                                   ),
-                                  // Play overlay
-                                  Positioned.fill(
-                                    child: Container(
-                                      color: Colors.black.withOpacity(0.3),
-                                      child: const Center(
-                                        child: Icon(Icons.play_circle_fill_rounded, size: 64, color: Colors.white),
-                                      ),
+                                ),
+                              ],
+                            ),
+                            // Details
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 20,
+                                    backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                                    child: const Icon(Icons.play_circle_fill, color: Colors.blueAccent),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          rec.titleName,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                            color: textColor,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${rec.resourceType} • Course Content',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  // Category/Type badge
-                                  Positioned(
-                                    bottom: 8,
-                                    right: 8,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.7),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        rec.titleName,
-                                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
+                                  IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    icon: const Icon(Icons.more_vert, size: 20),
+                                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                    onPressed: () {},
                                   ),
                                 ],
                               ),
-                              // Details
-                              Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      rec.titleName,
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: textColor,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      rec.resourceType,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: isDark ? Colors.grey[400] : Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       );
                     },
