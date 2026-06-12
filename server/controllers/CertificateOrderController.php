@@ -188,6 +188,53 @@ class CertificateOrderController
         $courseIds = isset($data['course_id']) && is_array($data['course_id']) ? $data['course_id'] : [];
         $courseIdsString = implode(',', $courseIds);
 
+        // --- NEW ELIGIBILITY CHECK LOGIC ---
+        // Evaluate the criteria for the requested courses
+        require_once './models/CertificationCenter/CcEvaluation.php';
+        
+        // Use the existing PDO instance from the model
+        $pdo = (new ReflectionClass($this->model))->getProperty('pdo');
+        $pdo->setAccessible(true);
+        $db = $pdo->getValue($this->model);
+        
+        $ccEvaluation = new CcEvaluation($db);
+        $studentEvaluations = $ccEvaluation->getUserEnrollmentsFullDetails($data['created_by']);
+
+        $failedCourses = [];
+        $failureReasons = [];
+
+        foreach ($courseIds as $requestedCourseCode) {
+            // Check if the student is enrolled in this course and has evaluation data
+            if (isset($studentEvaluations[$requestedCourseCode])) {
+                $evalData = $studentEvaluations[$requestedCourseCode];
+                if (isset($evalData['certificate_eligibility']) && $evalData['certificate_eligibility'] === false) {
+                    $failedCourses[] = $requestedCourseCode;
+                    // Collect reasons if any exist
+                    if (!empty($evalData['certificate_eligibility_reasons'])) {
+                        foreach ($evalData['certificate_eligibility_reasons'] as $reason) {
+                            $failureReasons[] = "Course {$requestedCourseCode}: {$reason}";
+                        }
+                    } else {
+                        $failureReasons[] = "Course {$requestedCourseCode}: You have not met the required criteria.";
+                    }
+                }
+            } else {
+                // Not enrolled or no data found
+                $failedCourses[] = $requestedCourseCode;
+                $failureReasons[] = "Course {$requestedCourseCode}: Enrollment not found.";
+            }
+        }
+
+        if (!empty($failedCourses)) {
+            http_response_code(400);
+            echo json_encode([
+                'error' => 'You are not eligible for a certificate in one or more selected courses due to unmet criteria.',
+                'reasons' => array_unique($failureReasons)
+            ]);
+            return;
+        }
+        // --- END ELIGIBILITY CHECK LOGIC ---
+
         $order_id = $this->model->createOrder(
             $data['created_by'],
             $courseIdsString,

@@ -40,6 +40,7 @@ export const getBatches = async (): Promise<Batch[]> => {
         course_img: courseDetails.course_img,
         certification: courseDetails.certification,
         mini_description: courseDetails.mini_description,
+        criteria_list: courseDetails.criteria_list,
     }));
 };
 
@@ -56,6 +57,7 @@ export const createBatch = async (batchData: Omit<Batch, 'id'>): Promise<Batch> 
         course_img: batchData.course_img,
         certification: batchData.certification,
         mini_description: batchData.mini_description,
+        criteria_list: batchData.criteria_list,
     };
     const response = await fetch(`${QA_API_BASE_URL}/course`, {
         method: 'POST',
@@ -79,6 +81,7 @@ export const updateBatch = async (id: string, batchData: Partial<Omit<Batch, 'id
         course_img: batchData.course_img,
         certification: batchData.certification,
         mini_description: batchData.mini_description,
+        criteria_list: batchData.criteria_list,
     };
     const response = await fetch(`${QA_API_BASE_URL}/course/${id}`, {
         method: 'PUT',

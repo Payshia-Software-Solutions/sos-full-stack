@@ -459,7 +459,9 @@ class CcEvaluation extends DeliveryOrder
     {
         $ArrayResult = [];
         try {
-            $studentId = $this->GetLmsStudentsByUserName($userName)['student_id'];
+            $studentData = $this->GetLmsStudentsByUserName($userName);
+            if (!$studentData) return [];
+            $studentId = $studentData['student_id'];
             $sql = "SELECT 
     sc.id,
     sc.course_code,
@@ -501,7 +503,9 @@ ORDER BY
         $ArrayResult = [];
 
         try {
-            $studentId = $this->GetLmsStudentsByUserName($userName)['student_id'];
+            $studentData = $this->GetLmsStudentsByUserName($userName);
+            if (!$studentData) return [];
+            $studentId = $studentData['student_id'];
             $sql = "SELECT * FROM `student_payment` WHERE `student_id` LIKE ?";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$studentId]);
@@ -532,7 +536,9 @@ ORDER BY
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$userName]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            $ArrayResult[$row['username']] = $row;
+            if ($row) {
+                $ArrayResult[$row['username']] = $row;
+            }
         } catch (PDOException $e) {
             return ["error" => $e->getMessage()];
         }
@@ -540,11 +546,80 @@ ORDER BY
         return $ArrayResult[$userName] ?? null;
     }
 
+    public function GetMediMindProgress($courseCode, $userName) {
+        try {
+            // 1. Get total tasks
+            $stmtTotal = $this->pdo->prepare("
+                SELECT 
+                    SUM(medicine_count) as total_tasks
+                FROM (
+                    SELECT 
+                        cl.level_id,
+                        (SELECT COUNT(*) FROM medi_mind_level_mediciens lm WHERE lm.level_id = cl.level_id) as medicine_count
+                    FROM medi_mind_course_levels cl
+                    WHERE cl.course_code = ?
+                ) level_stats
+            ");
+            $stmtTotal->execute([$courseCode]);
+            $totalTasks = (int)$stmtTotal->fetchColumn();
+
+            // 2. Get student specific stats
+            $stmt = $this->pdo->prepare("
+                SELECT 
+                    COUNT(sa.id) as total_attempts,
+                    SUM(CASE WHEN sa.correct_status = 'Correct' THEN 1 ELSE 0 END) as correct_answers,
+                    SUM(CASE WHEN sa.correct_status = 'Wrong' THEN 1 ELSE 0 END) as wrong_answers,
+                    COUNT(DISTINCT CASE 
+                        WHEN sa.correct_status = 'Correct' 
+                        AND EXISTS (
+                            SELECT 1 
+                            FROM medi_mind_course_levels cl2 
+                            JOIN medi_mind_level_mediciens lm2 ON cl2.level_id = lm2.level_id 
+                            WHERE cl2.course_code = ? 
+                            AND lm2.level_id = sa.level_id 
+                            AND lm2.medicine_id = sa.medicine_id
+                        )
+                        THEN CONCAT(sa.level_id, '-', sa.medicine_id)
+                        ELSE NULL 
+                    END) as unique_correct_tasks
+                FROM medi_mind_student_answers sa
+                WHERE sa.created_by = ?
+                  AND EXISTS (
+                      SELECT 1 FROM medi_mind_course_levels cl 
+                      WHERE cl.course_code = ? AND cl.level_id = sa.level_id
+                  )
+            ");
+            $stmt->execute([$courseCode, $userName, $courseCode]);
+            $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $correct = (int)($stats['correct_answers'] ?? 0);
+            $wrong = (int)($stats['wrong_answers'] ?? 0);
+            $balance = ($correct * 10) - ($wrong * 2);
+            $progressPercentage = $totalTasks > 0 ? round(($stats['unique_correct_tasks'] / $totalTasks) * 100, 2) : 0;
+
+            return [
+                'title' => 'Medi Mind',
+                'userName' => $userName,
+                'courseCode' => $courseCode,
+                'correctCount' => $correct,
+                'wrongCount' => $wrong,
+                'balance' => $balance,
+                'progressPercentage' => $progressPercentage,
+                'totalTasks' => $totalTasks,
+                'completedTasks' => (int)($stats['unique_correct_tasks'] ?? 0)
+            ];
+        } catch (PDOException $e) {
+            return ['error' => $e->getMessage()];
+        }
+    }
+
     public function getUserEnrollmentsFullDetails($userName)
     {
         $ArrayResult = [];
         try {
-            $studentId = $this->GetLmsStudentsByUserName($userName)['student_id'];
+            $studentData = $this->GetLmsStudentsByUserName($userName);
+            if (!$studentData) return [];
+            $studentId = $studentData['student_id'];
             $sql = "SELECT 
                     sc.`id`, 
                     sc.`course_code`, 
@@ -580,11 +655,13 @@ ORDER BY
                 $deliveryOrders = $this->getRecordByIndexNumberAndCourse($userName, $row['course_code']);
                 $certificateRecords = $this->certificatePrintStatus->getRecordsByStudentNumberCourseCode($userName, $row['course_code']);
                 $studentBalance = $this->GetStudentBalanceCourseCode($userName, $row['course_code']);
+                $mediMindProgress = $this->GetMediMindProgress($row['course_code'], $userName);
 
                 // Append the data to the course details
                 $row['ceylon_pharmacy'] = $recoveredPatients;
                 $row['pharma_hunter'] = $hunterProgress;
                 $row['pharma_hunter_pro'] = $hunterProProgress;
+                $row['medi_mind'] = $mediMindProgress;
                 $row['assignment_grades'] = $assignmentGrades;
                 $row['deliveryOrders'] = $deliveryOrders;
                 $row['certificateRecords'] = $certificateRecords;
@@ -640,6 +717,10 @@ ORDER BY
                                 break;
                             case 8: // Ceylon Pharmacy Advanced
                                 $criteriaResult['currentValue'] = (int) ($row['ceylon_pharmacy']['results']['correctCount'] ?? 0);
+                                break;
+
+                            case 9: // Medi Mind
+                                $criteriaResult['currentValue'] = (int) ($row['medi_mind']['progressPercentage'] ?? 0);
                                 break;
                         }
 

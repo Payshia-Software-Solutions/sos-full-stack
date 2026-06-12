@@ -1,20 +1,19 @@
 <?php
 // config/database.php
-$host = 'localhost';
+$host = '127.0.0.1';
 $db   = 'pharmaco_pharmacollege';
 $user = 'root';
 $pass = '';
 $charset = 'utf8mb4';
 
-
 // Connect to Webserver
 
-// $host = '91.204.209.19';
-// $db   = 'pharmaco_pharmacollege';
-// $user = 'pharmaco_admin';
-// $pass = 'pharmaadmin';
-// $charset = 'utf8mb4';
-// $dsn = "mysql:host=$host;port=3306;dbname=$db;charset=$charset";
+$host = '91.204.209.19';
+$db   = 'pharmaco_pharmacollege';
+$user = 'pharmaco_admin';
+$pass = 'pharmaadmin';
+$charset = 'utf8mb4';
+$dsn = "mysql:host=$host;port=3306;dbname=$db;charset=$charset";
 
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";

@@ -73,6 +73,13 @@ const managementTasks: ManagementTask[] = [
     href: "/admin/manage/courses",
     category: "Content & System"
   },
+  {
+    title: "Manage Criteria",
+    description: "Manage certificate evaluation criteria.",
+    icon: <ClipboardCheck className="w-8 h-8 text-white" />,
+    href: "/admin/manage/criteria",
+    category: "Content & System"
+  },
    {
     title: "Commissions Management",
     description: "Set up staff rates and management commission hierarchies.",

@@ -27,34 +27,45 @@ class CcCriteriaList
     public function createCriteriaList($data)
     {
         try {
+            $created_at = isset($data['created_at']) ? $data['created_at'] : date('Y-m-d H:i:s');
+            $created_by = isset($data['created_by']) ? $data['created_by'] : 'Admin';
+
             $stmt = $this->pdo->prepare("INSERT INTO `cc_criteria_list` (`list_name`, `moq`, `created_at`, `created_by`, `is_active`) VALUES (?, ?, ?, ?, ?)");
             $stmt->execute([
                 $data['list_name'],
                 $data['moq'],
-                $data['created_at'],
-                $data['created_by'],
+                $created_at,
+                $created_by,
                 $data['is_active']
             ]);
-
-            // Return success response after insertion
-            echo json_encode(['status' => 'success', 'message' => 'Criteria List created']);
         } catch (Exception $e) {
-            // Handle any errors and return a failure response
-            echo json_encode(['status' => 'error', 'message' => 'Failed to create criteria list.', 'error' => $e->getMessage()]);
+            throw new Exception('Failed to create criteria list: ' . $e->getMessage());
         }
     }
 
     public function updateCriteriaList($id, $data)
     {
-        $stmt = $this->pdo->prepare("UPDATE `cc_criteria_list` SET `list_name` = ?, `moq` = ?, `created_at` = ?, `created_by` = ?, `is_active` = ? WHERE `id` = ?");
-        $stmt->execute([
-            $data['list_name'],
-            $data['moq'],
-            $data['created_at'],
-            $data['created_by'],
-            $data['is_active'],
-            $id
-        ]);
+        // For updates, we don't necessarily want to overwrite created_at or created_by unless provided
+        if (isset($data['created_at']) && isset($data['created_by'])) {
+            $stmt = $this->pdo->prepare("UPDATE `cc_criteria_list` SET `list_name` = ?, `moq` = ?, `created_at` = ?, `created_by` = ?, `is_active` = ? WHERE `id` = ?");
+            $stmt->execute([
+                $data['list_name'],
+                $data['moq'],
+                $data['created_at'],
+                $data['created_by'],
+                $data['is_active'],
+                $id
+            ]);
+        } else {
+            $stmt = $this->pdo->prepare("UPDATE `cc_criteria_list` SET `list_name` = ?, `moq` = ?, `is_active` = ? WHERE `id` = ?");
+            $stmt->execute([
+                $data['list_name'],
+                $data['moq'],
+                $data['is_active'],
+                $id
+            ]);
+        }
+        return ['message' => 'Criteria List updated successfully'];
     }
 
     public function deleteCriteriaList($id)

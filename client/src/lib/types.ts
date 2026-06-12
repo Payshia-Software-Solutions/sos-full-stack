@@ -1187,3 +1187,18 @@ export interface WinPharmaSubmissionResults {
     }>;
   };
 }
+
+export interface CriteriaList {
+    id: number;
+    list_name: string;
+    moq: number;
+    created_at: string;
+    created_by: string;
+    is_active: number;
+}
+
+export interface CriteriaListFormValues {
+    list_name: string;
+    moq: number;
+    is_active: number;
+}

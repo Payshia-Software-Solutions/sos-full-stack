@@ -1,0 +1,22 @@
+
+export const header = {
+  alumni: 'ආදි ශිෂ්‍ය',
+  qualityAssurance: 'තත්ත්ව සහතිකය',
+  innovation: 'නවෝත්පාදනය',
+  international: 'ජාත්‍යන්තර',
+  resources: 'සම්පත්',
+  csrProjects: 'සමාජ සත්කාර ව්‍යාපෘති',
+  library: 'පුස්තකාලය',
+  login: 'ඇතුල් වන්න',
+  studentLogin: 'ශිෂ්‍ය පිවිසුම',
+  certificate: 'සහතිකය',
+  departments: 'දෙපාර්තමේන්තු',
+  students: 'ශිෂ්‍යයන්',
+  reviews: 'සමාලෝචන',
+  blogs: 'බ්ලොග්',
+  deptPharmaceutical: 'ඖෂධ',
+  deptEnglish: 'ඉංග්‍රීසි',
+  deptIct: 'තොරතුරු තාක්ෂණ',
+  academicCalendar: 'අධ්‍යයන දින දර්ශනය',
+  examinations: 'විභාග',
+};

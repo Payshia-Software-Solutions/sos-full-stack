@@ -21,6 +21,20 @@ class CourseContentTitle
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    public function getByCourseCode($course_code)
+    {
+        $sql = "
+            SELECT t.id, t.course_code, t.title_id, t.resource_type, t.description, t.file_path, t.web_link, t.created_at, c.title_name
+            FROM course_content_title t
+            JOIN course_content c ON t.title_id = c.id
+            WHERE t.course_code = ?
+            ORDER BY c.id ASC, t.id ASC
+        ";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$course_code]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function create(array $data)
     {
         $sql = "INSERT INTO course_content_title 
