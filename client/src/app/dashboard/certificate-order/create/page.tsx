@@ -516,27 +516,24 @@ export default function CreateCertificateOrderPage() {
                 <div className="space-y-4 pt-6 border-t">
                     <h3 className="font-semibold text-foreground">Additional Items (Optional)</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <Label htmlFor="garland" className={cn("block border rounded-lg p-4 cursor-pointer relative transition-all", orderGarland && "ring-2 ring-primary border-primary")}>
-                            <Checkbox id="garland" checked={orderGarland} onCheckedChange={(checked) => setOrderGarland(Boolean(checked))} className="sr-only"/>
-                            {orderGarland && (<div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5"><Check className="h-3 w-3" /></div>)}
+                        <Label htmlFor="garland" className={cn("block border rounded-lg p-4 cursor-not-allowed opacity-50 relative transition-all")}>
+                            <Checkbox id="garland" disabled className="sr-only"/>
                             <div className="flex flex-col items-center gap-2 text-center">
                                 <Sparkles className="h-8 w-8 text-primary"/>
                                 <p className="font-semibold text-sm">Order Garland</p>
                                 <p className="text-xs text-muted-foreground">LKR {GARLAND_PRICE.toFixed(2)}</p>
                             </div>
                         </Label>
-                        <Label htmlFor="scroll" className={cn("block border rounded-lg p-4 cursor-pointer relative transition-all", orderScroll && "ring-2 ring-primary border-primary")}>
-                            <Checkbox id="scroll" checked={orderScroll} onCheckedChange={(checked) => setOrderScroll(Boolean(checked))} className="sr-only"/>
-                             {orderScroll && (<div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5"><Check className="h-3 w-3" /></div>)}
+                        <Label htmlFor="scroll" className={cn("block border rounded-lg p-4 cursor-not-allowed opacity-50 relative transition-all")}>
+                            <Checkbox id="scroll" disabled className="sr-only"/>
                              <div className="flex flex-col items-center gap-2 text-center">
                                 <ScrollText className="h-8 w-8 text-primary"/>
                                 <p className="font-semibold text-sm">Order Scroll</p>
                                 <p className="text-xs text-muted-foreground">LKR {SCROLL_PRICE.toFixed(2)}</p>
                             </div>
                         </Label>
-                        <Label htmlFor="certificate_file" className={cn("block border rounded-lg p-4 cursor-pointer relative transition-all", orderCertificateFile && "ring-2 ring-primary border-primary")}>
-                            <Checkbox id="certificate_file" checked={orderCertificateFile} onCheckedChange={(checked) => setOrderCertificateFile(Boolean(checked))} className="sr-only"/>
-                            {orderCertificateFile && (<div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5"><Check className="h-3 w-3" /></div>)}
+                        <Label htmlFor="certificate_file" className={cn("block border rounded-lg p-4 cursor-not-allowed opacity-50 relative transition-all")}>
+                            <Checkbox id="certificate_file" disabled className="sr-only"/>
                             <div className="flex flex-col items-center gap-2 text-center">
                                 <FileText className="h-8 w-8 text-primary"/>
                                 <p className="font-semibold text-sm">Certificate File</p>
