@@ -106,6 +106,7 @@ export interface Batch {
   course_img?: string | null;
   certification?: string;
   mini_description?: string;
+  whatsapp_link?: string | null;
 }
 
 export interface Recording {
@@ -513,6 +514,7 @@ export interface ApiCourse {
     mini_description: string;
     start_date?: string;
     end_date?: string;
+    whatsapp_link?: string | null;
 }
 
 export interface ApiCourseResponse {
@@ -735,6 +737,7 @@ export interface Course {
   name: string;
   courseCode: string;
   course_img?: string | null;
+  whatsapp_link?: string | null;
 }
 
 export interface BnfWordIndexEntry {

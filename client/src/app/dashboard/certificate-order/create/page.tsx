@@ -339,7 +339,7 @@ export default function CreateCertificateOrderPage() {
     formData.append("is_active", "1");
     
     selectedEnrollments.forEach(enrollment => {
-        formData.append("course_id[]", enrollment.parent_course_id);
+        formData.append("course_id[]", enrollment.course_code);
     });
 
     if (orderGarland) formData.append("garlent", "1");
@@ -696,7 +696,7 @@ export default function CreateCertificateOrderPage() {
                                     {errorDetails.enrollments.map(enrollment => {
                                         const isEligible = enrollment.certificate_eligibility;
                                         const isBooked = activeBookedCourseIds.has(enrollment.parent_course_id);
-                                        const isOrdered = activeOrderedCourseIds.has(enrollment.parent_course_id);
+                                        const isOrdered = activeOrderedCourseIds.has(enrollment.parent_course_id) || activeOrderedCourseIds.has(String(enrollment.id)) || activeOrderedCourseIds.has(enrollment.course_code);
 
                                         let statusBadge: React.ReactNode;
                                         if (isBooked) {

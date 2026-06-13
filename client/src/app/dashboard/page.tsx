@@ -247,6 +247,13 @@ export default function StudentDashboardPage() {
                                 <p className="text-sm text-muted-foreground">{selectedCourse.courseCode}</p>
                             </div>
                             <div className="shrink-0 flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                {selectedCourse.whatsapp_link && (
+                                    <Button asChild className="w-full sm:w-auto bg-[#25D366] hover:bg-[#128C7E] text-white">
+                                        <a href={selectedCourse.whatsapp_link} target="_blank" rel="noopener noreferrer">
+                                            WhatsApp Group
+                                        </a>
+                                    </Button>
+                                )}
                                 <Button asChild className="w-full sm:w-auto"><Link href="#">View Course</Link></Button>
                                 <Button asChild variant="outline" className="w-full sm:w-auto"><Link href="/dashboard/select-course">Change Course</Link></Button>
                             </div>
@@ -267,7 +274,7 @@ export default function StudentDashboardPage() {
                  <h2 className="text-2xl font-semibold font-headline mb-4">Games & Challenges</h2>
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                      <QuickActionCard title="Ceylon Pharmacy" description="Patient simulation game." href="/dashboard/ceylon-pharmacy" icon={<CeylonPharmacyIcon className="w-8 h-8 text-white"/>} colorClass="from-cyan-400 to-sky-500" selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
-                     <QuickActionCard title="D-Pad Challenge" description="Dispensing accuracy test." href="/dashboard/d-pad" icon={<DPadIcon className="w-8 h-8 text-white"/>} colorClass="from-rose-400 to-red-500" selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
+                     <QuickActionCard title="D-Pad Challenge" description="Dispensing accuracy test." href="https://lms.pharmacollege.lk/d-pad" icon={<DPadIcon className="w-8 h-8 text-white"/>} colorClass="from-rose-400 to-red-500" selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
                      <QuickActionCard title="Sentence Builder" description="English language practice." href="/dashboard/games/sentence-builder" icon={<BookText className="w-8 h-8 text-white"/>} colorClass="from-amber-400 to-orange-500" requiredCourses={['CPCC28', 'CPCC27']} selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
                      <QuickActionCard title="MediMind" description="Test your pharmacology knowledge." href="/dashboard/medimind" icon={<MediMindIcon className="w-8 h-8 text-white"/>} colorClass="from-purple-400 to-violet-500" selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
                      <QuickActionCard title="WinPharma" description="Topic-wise learning challenges." href="/dashboard/winpharma" icon={<WinPharmaIcon className="w-8 h-8 text-white"/>} colorClass="from-blue-400 to-indigo-500" selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
