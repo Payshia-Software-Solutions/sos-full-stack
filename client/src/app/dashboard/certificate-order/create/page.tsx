@@ -92,8 +92,6 @@ export default function CreateCertificateOrderPage() {
   const [addressData, setAddressData] = useState<AddressFormValues | null>(null);
   const [errorDetails, setErrorDetails] = useState<{ message: string; enrollments?: StudentEnrollment[] } | null>(null);
   const [referenceNumber, setReferenceNumber] = useState<string | null>(null);
-  const [cityName, setCityName] = useState('');
-  const [districtName, setDistrictName] = useState('');
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   
   const [orderGarland, setOrderGarland] = useState(false);
@@ -198,21 +196,20 @@ export default function CreateCertificateOrderPage() {
       form.reset({
         addressLine1: studentData.studentInfo.address_line_1 || "",
         addressLine2: studentData.studentInfo.address_line_2 || "",
-        city: cityId,
-        district: studentData.studentInfo.district || "",
+        city: "",
+        district: "",
         phone: studentData.studentInfo.telephone_1 || "",
       });
 
       if (cityId) {
           getCityName(cityId).then(city => {
-              setCityName(city.name_en);
+              form.setValue('city', city.name_en);
               if (city.district_id) {
-                  form.setValue('district', city.district_id);
                   getDistrictName(city.district_id).then(district => {
-                      setDistrictName(district.name_en);
-                  }).catch(() => setDistrictName(''));
+                      form.setValue('district', district.name_en);
+                  }).catch(() => {});
               }
-          }).catch(() => setCityName(''));
+          }).catch(() => {});
       }
       
       const hasActiveOrder = certificateOrders && certificateOrders.some(order => order.certificate_status === 'Pending' || order.certificate_status === 'Printed');
@@ -333,7 +330,7 @@ export default function CreateCertificateOrderPage() {
     formData.append("address_line1", addressData.addressLine1);
     formData.append("address_line2", addressData.addressLine2 || "");
     formData.append("city_id", addressData.city);
-    formData.append("district", districtName);
+    formData.append("district", addressData.district);
     formData.append("type", "Delivery");
     formData.append("payment_amount", String(totalPrice));
     formData.append("package_id", "1"); // Default package ID
@@ -485,32 +482,8 @@ export default function CreateCertificateOrderPage() {
               <CardContent className="space-y-4">
                 <FormField control={form.control} name="addressLine1" render={({ field }) => ( <FormItem><FormLabel>Address Line 1</FormLabel><FormControl><Input placeholder="e.g., No. 123, Main Street" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="addressLine2" render={({ field }) => ( <FormItem><FormLabel>Address Line 2 (Optional)</FormLabel><FormControl><Input placeholder="e.g., Apartment 4B, Near the junction" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                 <FormItem>
-                    <FormLabel>City</FormLabel>
-                    <FormControl>
-                        <Input 
-                            placeholder="e.g., Colombo" 
-                            value={cityName}
-                            onChange={(e) => {
-                                setCityName(e.target.value);
-                            }}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                 <FormItem>
-                    <FormLabel>District</FormLabel>
-                    <FormControl>
-                        <Input 
-                            placeholder="e.g., Colombo" 
-                            value={districtName}
-                            onChange={(e) => {
-                                setDistrictName(e.target.value);
-                            }}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
+                <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g., Colombo" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="district" render={({ field }) => ( <FormItem><FormLabel>District</FormLabel><FormControl><Input placeholder="e.g., Colombo" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input placeholder="e.g., 0771234567" {...field} /></FormControl><FormMessage /></FormItem> )} />
 
                 <div className="space-y-4 pt-6 border-t">
@@ -671,7 +644,7 @@ export default function CreateCertificateOrderPage() {
                               <div className="text-sm text-muted-foreground pl-4 border-l-2 border-primary ml-2">
                                   <p>{addressData?.addressLine1}</p>
                                   {addressData?.addressLine2 && <p>{addressData.addressLine2}</p>}
-                                  <p>{cityName}, {districtName}</p>
+                                  <p>{addressData?.city}, {addressData?.district}</p>
                                   <p>Phone: {addressData?.phone}</p>
                               </div>
                           </div>
