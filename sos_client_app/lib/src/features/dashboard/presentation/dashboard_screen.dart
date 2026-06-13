@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'course_provider.dart';
 import 'student_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../auth/presentation/auth_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -22,6 +23,7 @@ class DashboardScreen extends ConsumerWidget {
     final textColor = Theme.of(context).colorScheme.onSurface;
 
     String currentCourseName = selectedCourseCode ?? 'Unknown Course';
+    String? currentWhatsappLink;
     if (coursesAsync.hasValue && selectedCourseCode != null) {
       final courseDetails = coursesAsync.value!.cast().firstWhere(
         (c) => c.courseCode == selectedCourseCode,
@@ -29,6 +31,7 @@ class DashboardScreen extends ConsumerWidget {
       );
       if (courseDetails != null) {
         currentCourseName = courseDetails.courseName ?? selectedCourseCode;
+        currentWhatsappLink = courseDetails.whatsappLink;
       }
     }
 
@@ -369,6 +372,24 @@ class DashboardScreen extends ConsumerWidget {
                     color: Colors.grey,
                     onTap: () {
                       // Navigate to more services
+                    },
+                  ),
+                  _buildMenuCard(
+                    context,
+                    title: 'WhatsApp\nGroup',
+                    icon: Icons.chat_rounded,
+                    color: const Color(0xFF25D366), // WhatsApp Green
+                    onTap: () async {
+                      if (currentWhatsappLink != null && currentWhatsappLink!.isNotEmpty) {
+                        final uri = Uri.parse(currentWhatsappLink!);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch WhatsApp link.')));
+                        }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No WhatsApp group available for this batch.')));
+                      }
                     },
                   ),
                 ],

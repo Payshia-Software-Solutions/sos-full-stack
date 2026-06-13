@@ -12,11 +12,15 @@ class CourseModel {
   @JsonKey(name: 'course_img')
   final String? courseImg;
 
+  @JsonKey(name: 'whatsapp_link')
+  final String? whatsappLink;
+
   CourseModel({
     this.id,
     this.courseName,
     this.courseCode,
     this.courseImg,
+    this.whatsappLink,
   });
 
   factory CourseModel.fromJson(Map<String, dynamic> json) =>

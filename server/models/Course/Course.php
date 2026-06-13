@@ -63,9 +63,9 @@ class Course
         }
 
         $sql = "INSERT INTO course 
-                (course_name, parent_course_id, course_code, instructor_id, course_description, course_duration, course_fee, registration_fee, other, created_at, created_by, enroll_key, certification, mini_description, course_img, CertificateImagePath, criteria_list) 
+                (course_name, parent_course_id, course_code, instructor_id, course_description, course_duration, course_fee, registration_fee, other, created_at, created_by, enroll_key, certification, mini_description, course_img, CertificateImagePath, criteria_list, whatsapp_link) 
                 VALUES 
-                (:course_name, :parent_course_id, :course_code, :instructor_id, :course_description, :course_duration, :course_fee, :registration_fee, :other, :created_at, :created_by, :enroll_key, :certification, :mini_description, :course_img, :CertificateImagePath, :criteria_list)";
+                (:course_name, :parent_course_id, :course_code, :instructor_id, :course_description, :course_duration, :course_fee, :registration_fee, :other, :created_at, :created_by, :enroll_key, :certification, :mini_description, :course_img, :CertificateImagePath, :criteria_list, :whatsapp_link)";
 
         $stmt = $this->pdo->prepare($sql);
         
@@ -86,7 +86,8 @@ class Course
             ':mini_description' => $data['mini_description'] ?? null,
             ':course_img' => $data['course_img'] ?? null,
             ':CertificateImagePath' => $data['CertificateImagePath'] ?? null,
-            ':criteria_list' => $data['criteria_list'] ?? null
+            ':criteria_list' => $data['criteria_list'] ?? null,
+            ':whatsapp_link' => $data['whatsapp_link'] ?? null
         ];
         
         $stmt->execute($params);
@@ -101,6 +102,7 @@ class Course
         if (!array_key_exists('update_by', $data)) $data['update_by'] = null;
         if (!array_key_exists('CertificateImagePath', $data)) $data['CertificateImagePath'] = null;
         if (!array_key_exists('parent_course_id', $data)) $data['parent_course_id'] = null;
+        if (!array_key_exists('whatsapp_link', $data)) $data['whatsapp_link'] = null;
 
         $sql = "UPDATE course SET 
                     course_name = :course_name, 
@@ -119,7 +121,8 @@ class Course
                     mini_description = :mini_description,
                     course_img = :course_img,
                     CertificateImagePath = :CertificateImagePath,
-                    criteria_list = :criteria_list
+                    criteria_list = :criteria_list,
+                    whatsapp_link = :whatsapp_link
                 WHERE id = :id";
 
         $stmt = $this->pdo->prepare($sql);
@@ -143,6 +146,7 @@ class Course
             ':course_img' => $data['course_img'] ?? null,
             ':CertificateImagePath' => $data['CertificateImagePath'] ?? null,
             ':criteria_list' => $data['criteria_list'] ?? null,
+            ':whatsapp_link' => $data['whatsapp_link'] ?? null,
             ':id' => $id
         ];
         $stmt->execute($params);
