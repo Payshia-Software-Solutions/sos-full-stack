@@ -92,8 +92,6 @@ export default function CreateCertificateOrderPage() {
   const [addressData, setAddressData] = useState<AddressFormValues | null>(null);
   const [errorDetails, setErrorDetails] = useState<{ message: string; enrollments?: StudentEnrollment[] } | null>(null);
   const [referenceNumber, setReferenceNumber] = useState<string | null>(null);
-  const [cityName, setCityName] = useState('');
-  const [districtName, setDistrictName] = useState('');
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   
   const [orderGarland, setOrderGarland] = useState(false);
@@ -198,21 +196,20 @@ export default function CreateCertificateOrderPage() {
       form.reset({
         addressLine1: studentData.studentInfo.address_line_1 || "",
         addressLine2: studentData.studentInfo.address_line_2 || "",
-        city: cityId,
-        district: studentData.studentInfo.district || "",
+        city: "",
+        district: "",
         phone: studentData.studentInfo.telephone_1 || "",
       });
 
       if (cityId) {
           getCityName(cityId).then(city => {
-              setCityName(city.name_en);
+              form.setValue('city', city.name_en);
               if (city.district_id) {
-                  form.setValue('district', city.district_id);
                   getDistrictName(city.district_id).then(district => {
-                      setDistrictName(district.name_en);
-                  }).catch(() => setDistrictName(''));
+                      form.setValue('district', district.name_en);
+                  }).catch(() => {});
               }
-          }).catch(() => setCityName(''));
+          }).catch(() => {});
       }
       
       const hasActiveOrder = certificateOrders && certificateOrders.some(order => order.certificate_status === 'Pending' || order.certificate_status === 'Printed');
@@ -333,7 +330,7 @@ export default function CreateCertificateOrderPage() {
     formData.append("address_line1", addressData.addressLine1);
     formData.append("address_line2", addressData.addressLine2 || "");
     formData.append("city_id", addressData.city);
-    formData.append("district", districtName);
+    formData.append("district", addressData.district);
     formData.append("type", "Delivery");
     formData.append("payment_amount", String(totalPrice));
     formData.append("package_id", "1"); // Default package ID
@@ -342,7 +339,7 @@ export default function CreateCertificateOrderPage() {
     formData.append("is_active", "1");
     
     selectedEnrollments.forEach(enrollment => {
-        formData.append("course_id[]", enrollment.parent_course_id);
+        formData.append("course_id[]", enrollment.course_code);
     });
 
     if (orderGarland) formData.append("garlent", "1");
@@ -485,58 +482,31 @@ export default function CreateCertificateOrderPage() {
               <CardContent className="space-y-4">
                 <FormField control={form.control} name="addressLine1" render={({ field }) => ( <FormItem><FormLabel>Address Line 1</FormLabel><FormControl><Input placeholder="e.g., No. 123, Main Street" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="addressLine2" render={({ field }) => ( <FormItem><FormLabel>Address Line 2 (Optional)</FormLabel><FormControl><Input placeholder="e.g., Apartment 4B, Near the junction" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                 <FormItem>
-                    <FormLabel>City</FormLabel>
-                    <FormControl>
-                        <Input 
-                            placeholder="e.g., Colombo" 
-                            value={cityName}
-                            onChange={(e) => {
-                                setCityName(e.target.value);
-                            }}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                 <FormItem>
-                    <FormLabel>District</FormLabel>
-                    <FormControl>
-                        <Input 
-                            placeholder="e.g., Colombo" 
-                            value={districtName}
-                            onChange={(e) => {
-                                setDistrictName(e.target.value);
-                            }}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
+                <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g., Colombo" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="district" render={({ field }) => ( <FormItem><FormLabel>District</FormLabel><FormControl><Input placeholder="e.g., Colombo" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input placeholder="e.g., 0771234567" {...field} /></FormControl><FormMessage /></FormItem> )} />
 
                 <div className="space-y-4 pt-6 border-t">
                     <h3 className="font-semibold text-foreground">Additional Items (Optional)</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <Label htmlFor="garland" className={cn("block border rounded-lg p-4 cursor-pointer relative transition-all", orderGarland && "ring-2 ring-primary border-primary")}>
-                            <Checkbox id="garland" checked={orderGarland} onCheckedChange={(checked) => setOrderGarland(Boolean(checked))} className="sr-only"/>
-                            {orderGarland && (<div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5"><Check className="h-3 w-3" /></div>)}
+                        <Label htmlFor="garland" className={cn("block border rounded-lg p-4 cursor-not-allowed opacity-50 relative transition-all")}>
+                            <Checkbox id="garland" disabled className="sr-only"/>
                             <div className="flex flex-col items-center gap-2 text-center">
                                 <Sparkles className="h-8 w-8 text-primary"/>
                                 <p className="font-semibold text-sm">Order Garland</p>
                                 <p className="text-xs text-muted-foreground">LKR {GARLAND_PRICE.toFixed(2)}</p>
                             </div>
                         </Label>
-                        <Label htmlFor="scroll" className={cn("block border rounded-lg p-4 cursor-pointer relative transition-all", orderScroll && "ring-2 ring-primary border-primary")}>
-                            <Checkbox id="scroll" checked={orderScroll} onCheckedChange={(checked) => setOrderScroll(Boolean(checked))} className="sr-only"/>
-                             {orderScroll && (<div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5"><Check className="h-3 w-3" /></div>)}
+                        <Label htmlFor="scroll" className={cn("block border rounded-lg p-4 cursor-not-allowed opacity-50 relative transition-all")}>
+                            <Checkbox id="scroll" disabled className="sr-only"/>
                              <div className="flex flex-col items-center gap-2 text-center">
                                 <ScrollText className="h-8 w-8 text-primary"/>
                                 <p className="font-semibold text-sm">Order Scroll</p>
                                 <p className="text-xs text-muted-foreground">LKR {SCROLL_PRICE.toFixed(2)}</p>
                             </div>
                         </Label>
-                        <Label htmlFor="certificate_file" className={cn("block border rounded-lg p-4 cursor-pointer relative transition-all", orderCertificateFile && "ring-2 ring-primary border-primary")}>
-                            <Checkbox id="certificate_file" checked={orderCertificateFile} onCheckedChange={(checked) => setOrderCertificateFile(Boolean(checked))} className="sr-only"/>
-                            {orderCertificateFile && (<div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5"><Check className="h-3 w-3" /></div>)}
+                        <Label htmlFor="certificate_file" className={cn("block border rounded-lg p-4 cursor-not-allowed opacity-50 relative transition-all")}>
+                            <Checkbox id="certificate_file" disabled className="sr-only"/>
                             <div className="flex flex-col items-center gap-2 text-center">
                                 <FileText className="h-8 w-8 text-primary"/>
                                 <p className="font-semibold text-sm">Certificate File</p>
@@ -674,7 +644,7 @@ export default function CreateCertificateOrderPage() {
                               <div className="text-sm text-muted-foreground pl-4 border-l-2 border-primary ml-2">
                                   <p>{addressData?.addressLine1}</p>
                                   {addressData?.addressLine2 && <p>{addressData.addressLine2}</p>}
-                                  <p>{cityName}, {districtName}</p>
+                                  <p>{addressData?.city}, {addressData?.district}</p>
                                   <p>Phone: {addressData?.phone}</p>
                               </div>
                           </div>
@@ -726,7 +696,7 @@ export default function CreateCertificateOrderPage() {
                                     {errorDetails.enrollments.map(enrollment => {
                                         const isEligible = enrollment.certificate_eligibility;
                                         const isBooked = activeBookedCourseIds.has(enrollment.parent_course_id);
-                                        const isOrdered = activeOrderedCourseIds.has(enrollment.parent_course_id);
+                                        const isOrdered = activeOrderedCourseIds.has(enrollment.parent_course_id) || activeOrderedCourseIds.has(String(enrollment.id)) || activeOrderedCourseIds.has(enrollment.course_code);
 
                                         let statusBadge: React.ReactNode;
                                         if (isBooked) {

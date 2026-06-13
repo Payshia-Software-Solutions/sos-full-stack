@@ -247,6 +247,13 @@ export default function StudentDashboardPage() {
                                 <p className="text-sm text-muted-foreground">{selectedCourse.courseCode}</p>
                             </div>
                             <div className="shrink-0 flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                {selectedCourse.whatsapp_link && (
+                                    <Button asChild className="w-full sm:w-auto bg-[#25D366] hover:bg-[#128C7E] text-white">
+                                        <a href={selectedCourse.whatsapp_link} target="_blank" rel="noopener noreferrer">
+                                            WhatsApp Group
+                                        </a>
+                                    </Button>
+                                )}
                                 <Button asChild className="w-full sm:w-auto"><Link href="#">View Course</Link></Button>
                                 <Button asChild variant="outline" className="w-full sm:w-auto"><Link href="/dashboard/select-course">Change Course</Link></Button>
                             </div>

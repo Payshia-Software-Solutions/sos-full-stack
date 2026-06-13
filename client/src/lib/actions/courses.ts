@@ -16,6 +16,7 @@ export const getCourses = async (): Promise<Course[]> => {
         name: courseDetails.course_name,
         courseCode: courseDetails.course_code,
         course_img: courseDetails.course_img,
+        whatsapp_link: courseDetails.whatsapp_link,
     }));
 };
 
@@ -41,6 +42,7 @@ export const getBatches = async (): Promise<Batch[]> => {
         certification: courseDetails.certification,
         mini_description: courseDetails.mini_description,
         criteria_list: courseDetails.criteria_list,
+        whatsapp_link: courseDetails.whatsapp_link,
     }));
 };
 
@@ -58,6 +60,7 @@ export const createBatch = async (batchData: Omit<Batch, 'id'>): Promise<Batch> 
         certification: batchData.certification,
         mini_description: batchData.mini_description,
         criteria_list: batchData.criteria_list,
+        whatsapp_link: batchData.whatsapp_link,
     };
     const response = await fetch(`${QA_API_BASE_URL}/course`, {
         method: 'POST',
@@ -82,6 +85,7 @@ export const updateBatch = async (id: string, batchData: Partial<Omit<Batch, 'id
         certification: batchData.certification,
         mini_description: batchData.mini_description,
         criteria_list: batchData.criteria_list,
+        whatsapp_link: batchData.whatsapp_link,
     };
     const response = await fetch(`${QA_API_BASE_URL}/course/${id}`, {
         method: 'PUT',
