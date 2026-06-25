@@ -1,5 +1,8 @@
-
 'use client';
+
+import { LMS_API_URL } from "@/lib/config";
+
+
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
@@ -88,7 +91,8 @@ export default function RegisterPage() {
     useEffect(() => {
         async function fetchCities() {
             try {
-                const response = await fetch('https://qa-api.pharmacollege.lk/cities');
+                const baseUrl = LMS_API_URL;
+                const response = await fetch(`${baseUrl}/cities`);
                 if (!response.ok) throw new Error('Failed to fetch cities');
                 const data = await response.json();
                 setCities(Object.values(data));
@@ -101,7 +105,8 @@ export default function RegisterPage() {
         }
         async function fetchCourses() {
             try {
-                const response = await fetch('https://qa-api.pharmacollege.lk/parent-main-course');
+                const baseUrl = LMS_API_URL;
+                const response = await fetch(`${baseUrl}/parent-main-course`);
                 if (!response.ok) throw new Error('Failed to fetch courses');
                 const data = await response.json();
                 setCourses(data);
@@ -232,7 +237,8 @@ export default function RegisterPage() {
     };
 
     try {
-      const response = await fetch('https://qa-api.pharmacollege.lk/temp-users', {
+      const baseUrl = LMS_API_URL;
+      const response = await fetch(`${baseUrl}/temp-users`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

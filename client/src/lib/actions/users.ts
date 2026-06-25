@@ -1,8 +1,9 @@
+import { LMS_API_URL } from "@/lib/config";
 
 
 import type { StudentSearchResult, UserFullDetails, ApiStaffMember, StaffMember, StudentEnrollmentInfo, TempUser, StudentBalanceData, GamePatient, Course } from '../types';
 
-const QA_API_BASE_URL = process.env.NEXT_PUBLIC_LMS_SERVER_URL || 'https://qa-api.pharmacollege.lk';
+const QA_API_BASE_URL = LMS_API_URL;
 
 // Student Search
 export const searchStudents = async (query: string): Promise<StudentSearchResult[]> => {

@@ -1,6 +1,7 @@
+import { LMS_API_URL } from "@/lib/config";
 import { CriteriaList, CriteriaListFormValues } from '../types';
 
-const QA_API_BASE_URL = process.env.NEXT_PUBLIC_LMS_SERVER_URL || 'https://qa-api.pharmacollege.lk';
+const QA_API_BASE_URL = LMS_API_URL;
 
 export const getCriteriaLists = async (): Promise<CriteriaList[]> => {
     const response = await fetch(`${QA_API_BASE_URL}/cc_criteria_list/`);

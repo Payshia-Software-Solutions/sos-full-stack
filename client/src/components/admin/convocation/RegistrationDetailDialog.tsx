@@ -1,5 +1,6 @@
-
 "use client";
+
+import { LMS_API_URL } from "@/lib/config";
 
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -116,7 +117,8 @@ function DuplicateSlipCheck({ hashValue, currentRegistrationId }: { hashValue: s
         queryKey: ['duplicateCheck', hashValue],
         queryFn: async () => {
             if (!hashValue) return [];
-            const response = await fetch(`https://qa-api.pharmacollege.lk/payment-portal-requests/check-hash?hashValue=${hashValue}`);
+            const baseUrl = LMS_API_URL;
+            const response = await fetch(`${baseUrl}/payment-portal-requests/check-hash?hashValue=${hashValue}`);
             if (response.status === 404) return [];
             if (!response.ok) throw new Error('Failed check');
             return response.json();
@@ -252,7 +254,8 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
         queryKey: ['paymentRequests', registration?.student_number],
         queryFn: () => {
             if (!registration?.student_number) return Promise.resolve([]);
-            return fetch(`https://qa-api.pharmacollege.lk/payment-portal-requests/by-reference/${registration.student_number}`).then(res => res.status === 404 ? [] : res.json());
+            const baseUrl = LMS_API_URL;
+            return fetch(`${baseUrl}/payment-portal-requests/by-reference/${registration.student_number}`).then(res => res.status === 404 ? [] : res.json());
         },
         enabled: !!registration?.student_number,
     });

@@ -1,5 +1,6 @@
 "use client";
 
+import { LMS_API_URL } from "@/lib/config";
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,7 +33,8 @@ const ITEMS_PER_PAGE = 25;
 const fetchConvocationStatus = async (studentNumber: string) => {
     if (!studentNumber) return null;
     try {
-        const response = await fetch(`https://qa-api.pharmacollege.lk/convocation-registrations/get-records-student-number/${studentNumber}`);
+        const baseUrl = LMS_API_URL;
+        const response = await fetch(`${baseUrl}/convocation-registrations/get-records-student-number/${studentNumber}`);
         if (response.status === 404) {
             return null; // No registration found, this is a valid state
         }

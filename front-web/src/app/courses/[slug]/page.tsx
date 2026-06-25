@@ -1,3 +1,4 @@
+import { LMS_API_URL } from "@/lib/config";
 
 "use client";
 
@@ -70,7 +71,7 @@ export default function CoursePage({ params }: { params: { slug: string } }) {
     async function fetchCourseData() {
       try {
         setLoading(true);
-        const response = await fetch('https://qa-api.pharmacollege.lk/parent-main-course');
+        const response = await fetch(`${LMS_API_URL}/parent-main-course`);
         const courses: Course[] = await response.json();
         const currentCourse = courses.find(c => c.slug === params.slug);
         if (currentCourse) {

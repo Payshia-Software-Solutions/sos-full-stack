@@ -1,7 +1,8 @@
 
+import { LMS_API_URL } from "@/lib/config";
 import type { DeliveryOrder, StudentInBatch, CreateDeliveryOrderPayload, DeliverySetting } from '../types';
 
-const QA_API_BASE_URL = process.env.NEXT_PUBLIC_LMS_SERVER_URL || 'https://qa-api.pharmacollege.lk';
+const QA_API_BASE_URL = LMS_API_URL;
 
 export const getDeliveryOrdersForStudent = async (studentNumber: string): Promise<DeliveryOrder[]> => {
     const response = await fetch(`${QA_API_BASE_URL}/delivery_orders?indexNumber=${studentNumber.trim().toUpperCase()}`);

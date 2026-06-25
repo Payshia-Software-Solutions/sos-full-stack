@@ -1,6 +1,9 @@
-
-
 "use client";
+
+import { LMS_API_URL } from "@/lib/config";
+
+
+
 
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -88,7 +91,8 @@ export default function PaymentUpdatePage() {
         setStudentData(null);
 
         try {
-            const response = await fetch(`https://qa-api.pharmacollege.lk/get-student-full-info?loggedUser=${studentId.trim().toUpperCase()}`);
+            const baseUrl = LMS_API_URL;
+            const response = await fetch(`${baseUrl}/get-student-full-info?loggedUser=${studentId.trim().toUpperCase()}`);
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: `Student not found or server error. Status: ${response.status}` }));
                 throw new Error(errorData.message || 'Student not found or API response is invalid.');

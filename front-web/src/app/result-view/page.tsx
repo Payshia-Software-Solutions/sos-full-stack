@@ -1,3 +1,4 @@
+import { LMS_API_URL } from "@/lib/config";
 
 "use client";
 
@@ -72,7 +73,7 @@ function ResultsViewComponent() {
         async function fetchStudentDetails() {
             try {
                 setLoading(true);
-                const response = await fetch(`https://qa-api.pharmacollege.lk/get-student-full-info?loggedUser=${loggedUser}`);
+                const response = await fetch(`${LMS_API_URL}/get-student-full-info?loggedUser=${loggedUser}`);
                 if (!response.ok) {
                     // This will trigger notFound() if the user itself doesn't exist
                     throw new Error('Student not found');

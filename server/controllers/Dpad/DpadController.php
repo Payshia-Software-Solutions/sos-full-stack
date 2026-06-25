@@ -30,9 +30,61 @@ class DpadController
         echo json_encode($covers);
     }
 
+    public function getPrescriptionDetails($prescriptionId)
+    {
+        $details = $this->model->getPrescriptionDetails($prescriptionId);
+        echo json_encode($details);
+    }
+
+    public function submitAnswer($loggedUser)
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!$input) {
+            $input = $_POST;
+        }
+
+        $result = $this->model->submitAnswer($loggedUser, $input);
+        echo json_encode($result);
+    }
+
     public function getOverallGrade($loggedUser)
     {
         $overallGrade = $this->model->calculateOverallGradeDpad($loggedUser);
         echo json_encode($overallGrade);
     }
+
+    public function getAllPrescriptions()
+    {
+        $prescriptions = $this->model->getAllPrescriptions();
+        echo json_encode($prescriptions);
+    }
+
+    public function savePrescription()
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!$input) {
+            $input = $_POST;
+        }
+
+        $result = $this->model->savePrescription($input);
+        echo json_encode($result);
+    }
+
+    public function saveAnswerKey($loggedUser)
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!$input) {
+            $input = $_POST;
+        }
+
+        $result = $this->model->saveAnswerKey($loggedUser, $input);
+        echo json_encode($result);
+    }
+
+    public function getAnswerKey($prescriptionId, $coverId)
+    {
+        $result = $this->model->getAnswerKey($prescriptionId, $coverId);
+        echo json_encode($result);
+    }
 }
+

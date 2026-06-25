@@ -1,6 +1,7 @@
+import { LMS_API_URL } from "@/lib/config";
 import type { UpdateCertificateNamePayload, ConvocationRegistration, CertificateOrder, SendSmsPayload, ConvocationCourse, FilteredConvocationRegistration, UpdateConvocationCoursesPayload, UserCertificatePrintStatus, UpdateCertificateOrderCoursesPayload, GenerateCertificatePayload, CreateCertificateOrderPayload, ConvocationCeremony, ConvocationPackage, ParentCourse, SessionCount, TcPaymentRecord, GeneratedCertificateBatchInfo } from '../types';
 
-const QA_API_BASE_URL = process.env.NEXT_PUBLIC_LMS_SERVER_URL || 'https://qa-api.pharmacollege.lk';
+const QA_API_BASE_URL = LMS_API_URL;
 
 
 // Helper type for form values passed from the component

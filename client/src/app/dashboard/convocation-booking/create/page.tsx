@@ -1,5 +1,6 @@
-
 "use client";
+
+import { LMS_API_URL } from "@/lib/config";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -59,7 +60,8 @@ interface District {
 
 const getCityName = async (cityId: string): Promise<City> => {
     if (!cityId) return { id: '', district_id: '', name_en: 'N/A' };
-    const response = await fetch(`https://qa-api.pharmacollege.lk/cities/${cityId}`);
+    const baseUrl = LMS_API_URL;
+    const response = await fetch(`${baseUrl}/cities/${cityId}`);
     if (!response.ok) {
         throw new Error('Failed to fetch city data');
     }
@@ -68,7 +70,8 @@ const getCityName = async (cityId: string): Promise<City> => {
 
 const getDistrictName = async (districtId: string): Promise<District> => {
     if (!districtId) return { id: '', name_en: 'N/A' };
-    const response = await fetch(`https://qa-api.pharmacollege.lk/districts/${districtId}`);
+    const baseUrl = LMS_API_URL;
+    const response = await fetch(`${baseUrl}/districts/${districtId}`);
     if (!response.ok) {
         throw new Error('Failed to fetch district data');
     }
