@@ -278,6 +278,7 @@ export default function StudentDashboardPage() {
                      <QuickActionCard title="Sentence Builder" description="English language practice." href="/dashboard/games/sentence-builder" icon={<BookText className="w-8 h-8 text-white"/>} colorClass="from-amber-400 to-orange-500" requiredCourses={['CPCC28', 'CPCC27']} selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
                      <QuickActionCard title="MediMind" description="Test your pharmacology knowledge." href="/dashboard/medimind" icon={<MediMindIcon className="w-8 h-8 text-white"/>} colorClass="from-purple-400 to-violet-500" selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
                      <QuickActionCard title="WinPharma" description="Topic-wise learning challenges." href="/dashboard/winpharma" icon={<WinPharmaIcon className="w-8 h-8 text-white"/>} colorClass="from-blue-400 to-indigo-500" selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
+                     <QuickActionCard title="Pharma Reader" description="Practice reading prescription details." href="/dashboard/pharma-reader" icon={<PharmaReaderIcon className="w-8 h-8 text-white"/>} colorClass="from-emerald-400 to-teal-500" selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
                  </div>
             </section>
 

@@ -1,6 +1,6 @@
-import { LMS_API_URL } from "@/lib/config";
-
 "use client";
+
+import { LMS_API_URL } from "@/lib/config";
 
 import { notFound } from "next/navigation";
 import Image from "next/image";

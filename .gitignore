@@ -1,2 +1,3 @@
 *.sql
 *.tmp
+server/config/database.php
