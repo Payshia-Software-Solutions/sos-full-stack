@@ -157,6 +157,7 @@ $mediMindLevelMedicineRoutes = require './routes/MediMind/MediMindLevelMedicineR
 $mediMindCourseLevelRoutes = require './routes/MediMind/MediMindCourseLevelRoutes.php';
 $birthdaySettingsRoutes = require './routes/BirthdaySettingsRoutes.php';
 $blogRoutes = require './routes/BlogRoutes.php';
+$pharmaReaderRoutes = require './routes/pharmaReaderRoutes.php';
 
 // Combine all routes
 $routes = array_merge(
@@ -293,7 +294,8 @@ $routes = array_merge(
     $mediMindCourseLevelRoutes,
     $birthdaySettingsRoutes,
     $convocationStudentInfoRoutes,
-    $blogRoutes
+    $blogRoutes,
+    $pharmaReaderRoutes
 );
 
 
