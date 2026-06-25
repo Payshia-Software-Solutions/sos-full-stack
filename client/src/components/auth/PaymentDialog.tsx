@@ -1,5 +1,6 @@
 'use client';
 
+import { LMS_API_URL } from "@/lib/config";
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
@@ -184,9 +185,9 @@ export default function RegisterPage() {
         name_on_certificate: nameOnCertificate,
         selected_course: selectedCourse,
     };
-
     try {
-      const response = await fetch('https://qa-api.pharmacollege.lk/temp-users', {
+        const baseUrl = LMS_API_URL;
+        const response = await fetch(`${baseUrl}/temp-users`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

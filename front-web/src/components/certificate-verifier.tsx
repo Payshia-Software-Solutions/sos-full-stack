@@ -1,3 +1,4 @@
+import { LMS_API_URL } from "@/lib/config";
 
 "use client";
 
@@ -227,7 +228,7 @@ export default function CertificateVerifier() {
   useEffect(() => {
     async function fetchAllStudents() {
         try {
-            const response = await fetch('https://qa-api.pharmacollege.lk/userFullDetails');
+            const response = await fetch(`${LMS_API_URL}/userFullDetails`);
             const data: StudentSearchResult[] = await response.json();
             setAllStudents(data);
         } catch (error) {
@@ -275,7 +276,7 @@ export default function CertificateVerifier() {
   const handleStudentSelect = async (student: StudentSearchResult) => {
     try {
         setDetailsLoading(true);
-        const response = await fetch(`https://qa-api.pharmacollege.lk/get-student-full-info?loggedUser=${student.username}`);
+        const response = await fetch(`${LMS_API_URL}/get-student-full-info?loggedUser=${student.username}`);
         if (!response.ok) {
             throw new Error('Student not found');
         }

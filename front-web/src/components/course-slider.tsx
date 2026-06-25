@@ -1,3 +1,4 @@
+import { LMS_API_URL } from "@/lib/config";
 
 "use client";
 
@@ -50,7 +51,7 @@ export default function CourseSlider() {
   useEffect(() => {
     async function fetchCourses() {
       try {
-        const response = await fetch('https://qa-api.pharmacollege.lk/parent-main-course');
+        const response = await fetch(`${LMS_API_URL}/parent-main-course`);
         const data = await response.json();
         const visibleCourses = data.filter((course: Course) => course.display !== '0');
         setCourses(visibleCourses);

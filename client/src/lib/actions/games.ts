@@ -1,8 +1,9 @@
 "use client";
 
+import { LMS_API_URL } from "@/lib/config";
 import type { GamePatient, PrescriptionDetail, DispensingAnswer, FormSelectionData, TreatmentStartRecord, ValidateAnswerPayload, ValidateAnswerResponse, Instruction, SaveCounselingAnswerPayload, DispensingSubmissionStatus, MasterProduct, POSCorrectAnswer, POSSubmissionPayload, POSSubmissionStatus, RecoveryRecord, PrescriptionSubmissionPayload, MediMindItem, MediMindLevel, MediMindQuestion, MediMindAnswer, MediMindLevelQuestion, MediMindMedicineAnswer, MediMindLevelMedicine, MediMindStudentAnswer, MediMindStudentStats, WinPharmaLevel, WinPharmaTask, WinPharmaSubmission, WinPharmaSubmissionResults } from '../types';
 
-export const QA_API_BASE_URL = process.env.NEXT_PUBLIC_LMS_SERVER_URL || 'https://qa-api.pharmacollege.lk';
+export const QA_API_BASE_URL = LMS_API_URL;
 const POS_IMAGE_BASE_URL = 'https://pos.payshia.com/uploads/product_images/';
 
 export const getMasterProducts = async (): Promise<MasterProduct[]> => {
@@ -1344,3 +1345,99 @@ export async function getMediMindBatchReport(courseCode: string): Promise<any[]>
     }
     return response.json();
 }
+
+export async function getDpadActivePrescriptions(): Promise<any[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/get-active-prescriptions/`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch active prescriptions');
+    }
+    return response.json();
+}
+
+export async function getDpadSubmittedAnswers(loggedUser: string): Promise<any[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/get-submitted-answers/?loggedUser=${loggedUser}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch submitted answers');
+    }
+    return response.json();
+}
+
+export async function getDpadPrescriptionCovers(prescriptionId: string): Promise<string[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/get-prescription-covers/?prescriptionId=${prescriptionId}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch prescription covers');
+    }
+    return response.json();
+}
+
+export async function getDpadPrescriptionDetails(prescriptionId: string): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/prescription-details/?prescriptionId=${prescriptionId}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch prescription details');
+    }
+    return response.json();
+}
+
+export async function submitDpadAnswer(loggedUser: string, data: any): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/submit-answer/?loggedUser=${loggedUser}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to submit dispensing label');
+    }
+    return response.json();
+}
+
+export async function getDpadOverallGrade(loggedUser: string): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/get-overall-grade/?loggedUser=${loggedUser}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch overall grade');
+    }
+    return response.json();
+}
+
+export async function getDpadAllPrescriptions(): Promise<any[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/admin/get-all-prescriptions/`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch all prescriptions');
+    }
+    return response.json();
+}
+
+export async function saveDpadPrescription(data: any): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/admin/save-prescription/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to save prescription');
+    }
+    return response.json();
+}
+
+export async function saveDpadAnswerKey(loggedUser: string, data: any): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/admin/save-answer-key/?loggedUser=${loggedUser}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to save answer key');
+    }
+    return response.json();
+}
+
+export async function getDpadAnswerKey(prescriptionId: string, coverId: string): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/admin/get-answer-key/?prescriptionId=${prescriptionId}&coverId=${coverId}`);
+    if (response.status === 404) {
+        return null;
+    }
+    if (!response.ok) {
+        throw new Error('Failed to fetch answer key');
+    }
+    return response.json();
+}
+

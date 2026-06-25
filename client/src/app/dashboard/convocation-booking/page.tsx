@@ -1,3 +1,4 @@
+import { LMS_API_URL } from "@/lib/config";
 
 "use client";
 
@@ -214,7 +215,8 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
     const { data: banks } = useQuery<{ id: string; bank_name: string }[]>({
         queryKey: ['banks'],
         queryFn: async () => {
-            const res = await fetch('https://qa-api.pharmacollege.lk/banks');
+            const baseUrl = LMS_API_URL;
+            const res = await fetch(`${baseUrl}/banks`);
             if (!res.ok) return [];
             return res.json();
         }

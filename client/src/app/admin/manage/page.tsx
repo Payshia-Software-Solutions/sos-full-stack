@@ -306,6 +306,13 @@ const managementTasks: ManagementTask[] = [
     href: "/admin/manage/games/medimind",
     category: "Games Management"
   },
+  {
+    title: "D-Pad",
+    description: "Manage D-Pad game prescriptions and answer keys.",
+    icon: <DPadIcon className="w-8 h-8 text-white"/>,
+    href: "/admin/manage/games/d-pad",
+    category: "Games Management"
+  },
 ];
 
 const categoryColors: Record<ManagementTask['category'], string> = {
