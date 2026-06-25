@@ -8,10 +8,10 @@ $charset = 'utf8mb4';
 
 // Connect to Webserver
 
-$host = '91.204.209.19';
-$db   = 'pharmaco_pharmacollege';
-$user = 'pharmaco_admin';
-$pass = 'pharmaadmin';
+// $host = '91.204.209.19';
+// $db   = 'pharmaco_pharmacollege';
+// $user = 'pharmaco_admin';
+// $pass = 'pharmaadmin';
 $charset = 'utf8mb4';
 $dsn = "mysql:host=$host;port=3306;dbname=$db;charset=$charset";
 

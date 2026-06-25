@@ -1,5 +1,6 @@
 "use client";
 
+import { LMS_API_URL } from "@/lib/config";
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -101,7 +102,7 @@ export default function BirthdayWishesPage() {
     const [manualContent, setManualContent] = useState("");
     const [manualSubject, setManualSubject] = useState("");
 
-    const API_BASE_URL = process.env.NEXT_PUBLIC_LMS_SERVER_URL || "https://qa-api.pharmacollege.lk";
+    const API_BASE_URL = LMS_API_URL;
 
     useEffect(() => {
         fetchSettings();

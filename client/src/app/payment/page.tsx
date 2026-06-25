@@ -1,3 +1,4 @@
+import { LMS_API_URL } from "@/lib/config";
 
 'use client';
 
@@ -114,7 +115,8 @@ export default function PaymentPage() {
     const { data: banks, isLoading: isLoadingBanks } = useQuery<Bank[]>({
         queryKey: ['banks'],
         queryFn: async () => {
-            const response = await fetch('https://qa-api.pharmacollege.lk/banks');
+            const baseUrl = LMS_API_URL;
+            const response = await fetch(`${baseUrl}/banks`);
             if (!response.ok) {
                 throw new Error('Failed to fetch banks');
             }
@@ -132,7 +134,8 @@ export default function PaymentPage() {
                 setTempUser(null);
                 setPreviousPayments([]);
 
-                const fetchUserData = fetch(`https://qa-api.pharmacollege.lk/temp-users/${registrationId.trim()}`)
+                const baseUrl = LMS_API_URL;
+                const fetchUserData = fetch(`${baseUrl}/temp-users/${registrationId.trim()}`)
                     .then(res => {
                         if (!res.ok) {
                             throw new Error('Student not found for this reference number.');
@@ -214,8 +217,9 @@ export default function PaymentPage() {
             formDataToSend.append("branch", branch);
             formDataToSend.append("slip", paymentSlip); // File upload
 
+            const baseUrl = LMS_API_URL;
             const response = await fetch(
-                "https://qa-api.pharmacollege.lk/payment-portal-requests",
+                `${baseUrl}/payment-portal-requests`,
                 {
                     method: "POST",
                     body: formDataToSend,

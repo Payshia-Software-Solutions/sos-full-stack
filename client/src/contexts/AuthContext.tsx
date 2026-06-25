@@ -1,7 +1,6 @@
-
-
 'use client';
 
+import { LMS_API_URL } from "@/lib/config";
 import type { UserProfile } from '@/lib/types';
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -26,7 +25,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const USER_STORAGE_KEY = 'auth_user';
 const ADMIN_SESSION_STORAGE_KEY = 'admin_original_session';
 const SELECTED_COURSE_STORAGE_KEY = 'selected_course';
-const LMS_API_URL = process.env.NEXT_PUBLIC_LMS_SERVER_URL || 'https://qa-api.pharmacollege.lk';
 
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {

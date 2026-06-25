@@ -1,3 +1,4 @@
+import { LMS_API_URL } from "@/lib/config";
 import { MetadataRoute } from 'next'
 
 const BASE_URL = 'https://www.pharmacollege.lk';
@@ -34,7 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   try {
-    const response = await fetch('https://qa-api.pharmacollege.lk/parent-main-course');
+    const response = await fetch(`${LMS_API_URL}/parent-main-course`);
     const courses: Course[] = await response.json();
 
     const courseRoutes = courses.map((course) => ({

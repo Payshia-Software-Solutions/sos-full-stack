@@ -1,5 +1,6 @@
 "use client";
 
+import { LMS_API_URL } from "@/lib/config";
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -59,7 +60,8 @@ const CONTENT_PROVIDER_URL = process.env.NEXT_PUBLIC_CONTENT_PROVIDER_URL || 'ht
 const fetchConvocationStatus = async (studentNumber: string) => {
     if (!studentNumber) return null;
     try {
-        const response = await fetch(`https://qa-api.pharmacollege.lk/convocation-registrations/get-records-student-number/${studentNumber}`);
+        const baseUrl = LMS_API_URL;
+        const response = await fetch(`${baseUrl}/convocation-registrations/get-records-student-number/${studentNumber}`);
         if (response.status === 404) {
             return null;
         }
