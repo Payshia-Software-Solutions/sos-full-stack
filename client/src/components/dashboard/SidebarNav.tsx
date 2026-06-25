@@ -38,7 +38,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ThemeSwitcher } from "../ui/ThemeSwitcher";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Image from "next/image";
-import { MediMindIcon } from "../icons/module-icons";
+import { MediMindIcon, PharmaReaderIcon } from "../icons/module-icons";
 import { useQuery } from "@tanstack/react-query";
 import { getStudentEnrollments } from "@/lib/actions/users";
 import { getCourses } from "@/lib/actions/courses";
@@ -63,6 +63,7 @@ const baseNavItems = [
   { href: "/dashboard/d-pad", label: "D-Pad", icon: Gamepad2 },
   { href: "/dashboard/ceylon-pharmacy", label: "Ceylon Pharmacy", icon: Gamepad2 },
   { href: "/dashboard/medimind", label: "MediMind", icon: MediMindIcon },
+  { href: "/dashboard/pharma-reader", label: "Pharma Reader", icon: PharmaReaderIcon },
   { href: "/dashboard/more", label: "More", icon: MoreHorizontal },
 ];
 

@@ -69,6 +69,13 @@ const allGames: Game[] = [
         icon: <WinPharmaIcon className="w-8 h-8 text-white" />,
         colorClass: "from-blue-400 to-indigo-500",
     },
+    {
+        title: "Pharma Reader",
+        description: "Practice reading prescription details.",
+        href: "/dashboard/pharma-reader",
+        icon: <PharmaReaderIcon className="w-8 h-8 text-white" />,
+        colorClass: "from-emerald-400 to-teal-500",
+    },
 ];
 
 const GameCard = ({ game, selectedCourseCode, allCourses, setDialogContent }: { 
