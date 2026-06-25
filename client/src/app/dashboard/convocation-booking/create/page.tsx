@@ -1,6 +1,6 @@
-import { LMS_API_URL } from "@/lib/config";
-
 "use client";
+
+import { LMS_API_URL } from "@/lib/config";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';

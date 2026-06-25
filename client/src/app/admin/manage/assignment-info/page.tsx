@@ -1,6 +1,6 @@
-import { LMS_API_URL } from "@/lib/config";
-
 "use client";
+
+import { LMS_API_URL } from "@/lib/config";
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
