@@ -1,6 +1,8 @@
+'use client';
+
 import { LMS_API_URL } from "@/lib/config";
 
-'use client';
+
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
