@@ -1,7 +1,6 @@
-import { LMS_API_URL } from "@/lib/config";
-
-
 "use server";
+
+import { LMS_API_URL } from "@/lib/config";
 
 import type { GameLevel, Sentence, StudentAnswerPayload, StudentAnswer } from '../types';
 
