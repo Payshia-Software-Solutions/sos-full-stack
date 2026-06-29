@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,13 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { DPadIcon } from "@/components/icons/module-icons";
-import { getDpadAllPrescriptions, saveDpadPrescription, getMasterProducts } from "@/lib/actions/games";
+import { getDpadAllPrescriptions, saveDpadPrescription, updateDpadPrescriptionStatus, getMasterProducts } from "@/lib/actions/games";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { 
   ArrowLeft, Plus, Edit, Settings, FileText, 
-  PlusCircle, Calendar, User, Clock 
+  PlusCircle, Calendar, User, Clock, BookOpen, Check, Loader2
 } from "lucide-react";
 
 interface Prescription {
@@ -54,6 +57,7 @@ export default function DpadAdminManagementPage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [drugUsage, setDrugUsage] = useState("tds");
   const [addedDrugs, setAddedDrugs] = useState<string[]>([]);
+  const [filterStatus, setFilterStatus] = useState("All");
 
   // Fetch all prescriptions
   const { data: prescriptions = [], isLoading, refetch } = useQuery({
@@ -121,7 +125,6 @@ export default function DpadAdminManagementPage() {
     setAddedDrugs(addedDrugs.filter((_, i) => i !== indexToRemove));
   };
 
-  // Mutation for saving/updating prescription
   const saveMutation = useMutation({
     mutationFn: (payload: any) => saveDpadPrescription(payload),
     onSuccess: (res) => {
@@ -136,6 +139,20 @@ export default function DpadAdminManagementPage() {
     },
     onError: () => {
       toast({ variant: "destructive", title: "Failed to save prescription." });
+    }
+  });
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: (pres: Prescription) => {
+      const newStatus = pres.prescription_status === "Active" ? "In-Active" : "Active";
+      return updateDpadPrescriptionStatus(pres.prescription_id, newStatus);
+    },
+    onSuccess: (res) => {
+      if (res.status === "success") {
+        queryClient.invalidateQueries({ queryKey: ["dpadAllPrescriptions"] });
+        refetch();
+        toast({ title: "Status Updated", description: "Prescription status toggled successfully.", className: "bg-emerald-600 text-white" });
+      }
     }
   });
 
@@ -187,12 +204,21 @@ export default function DpadAdminManagementPage() {
           </div>
         </div>
 
-        <Button 
-          onClick={() => handleOpenForm(null)}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-bold shadow-md w-full md:w-auto"
-        >
-          <Plus className="w-4 h-4" /> New Prescription
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <Button 
+            onClick={() => router.push('/admin/manage/games/d-pad/course-assignments')}
+            variant="outline"
+            className="border-indigo-600/50 text-indigo-400 hover:bg-indigo-600/10 hover:text-indigo-300 gap-2 font-bold"
+          >
+            <BookOpen className="w-4 h-4" /> Manage Assignments
+          </Button>
+          <Button 
+            onClick={() => handleOpenForm(null)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-bold shadow-md"
+          >
+            <Plus className="w-4 h-4" /> New Prescription
+          </Button>
+        </div>
       </header>
 
       {/* Prescriptions Grid */}
@@ -203,16 +229,40 @@ export default function DpadAdminManagementPage() {
           <p className="text-slate-400">No prescriptions found. Click "New Prescription" to get started.</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {prescriptions.map((pres: Prescription) => {
-            const drugCount = pres.drugs_list ? pres.drugs_list.split(", ").length : 0;
-            return (
-              <Card key={pres.prescription_id} className="border-slate-800 bg-slate-900/50 hover:border-slate-700 transition-all flex flex-col justify-between">
+        <>
+          <Tabs defaultValue="All" className="w-full mb-6" onValueChange={setFilterStatus}>
+            <TabsList className="bg-slate-900 border border-slate-800">
+              <TabsTrigger value="All" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400">All</TabsTrigger>
+              <TabsTrigger value="Active" className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 text-slate-400">Active</TabsTrigger>
+              <TabsTrigger value="In-Active" className="data-[state=active]:bg-slate-800 data-[state=active]:text-slate-300 text-slate-400">In-Active</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {prescriptions.filter((pres: Prescription) => filterStatus === "All" || pres.prescription_status === filterStatus).length === 0 ? (
+              <div className="col-span-full text-center py-12 text-slate-500">
+                No prescriptions found for the selected filter.
+              </div>
+            ) : (
+              prescriptions
+                .filter((pres: Prescription) => filterStatus === "All" || pres.prescription_status === filterStatus)
+                .map((pres: Prescription) => {
+                  const drugCount = pres.drugs_list ? pres.drugs_list.split(", ").length : 0;
+                  return (
+                    <Card key={pres.prescription_id} className="border-slate-800 bg-slate-900/50 hover:border-slate-700 transition-all flex flex-col justify-between">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
-                    <Badge variant={pres.prescription_status === "Active" ? "default" : "secondary"} className={pres.prescription_status === "Active" ? "bg-emerald-600/20 text-emerald-400 border-emerald-800/40" : "bg-slate-800 text-slate-400"}>
-                      {pres.prescription_status}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Switch 
+                        checked={pres.prescription_status === "Active"}
+                        onCheckedChange={() => toggleStatusMutation.mutate(pres)}
+                        disabled={toggleStatusMutation.isPending && toggleStatusMutation.variables?.prescription_id === pres.prescription_id}
+                        className="data-[state=checked]:bg-emerald-500"
+                      />
+                      <span className={cn("text-xs font-semibold", pres.prescription_status === "Active" ? "text-emerald-400" : "text-slate-500")}>
+                        {pres.prescription_status}
+                      </span>
+                    </div>
                     <span className="text-xs font-mono text-slate-500">{pres.prescription_id}</span>
                   </div>
                   <CardTitle className="text-lg font-bold text-slate-100 mt-2">{pres.Pres_Name}</CardTitle>
@@ -232,20 +282,22 @@ export default function DpadAdminManagementPage() {
                       onClick={() => handleOpenForm(pres)}
                       className="flex-1 border-slate-800 bg-slate-950/40 text-slate-300 hover:bg-slate-800 hover:text-white"
                     >
-                      <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Details
+                      <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit
                     </Button>
                     <Button 
                       onClick={() => router.push(`/admin/manage/games/d-pad/${pres.prescription_id}`)}
                       className="flex-1 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-855 hover:border-emerald-700"
                     >
-                      <Settings className="w-3.5 h-3.5 mr-1.5" /> Answers Key
+                      <Settings className="w-3.5 h-3.5 mr-1.5" /> Answers
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             );
-          })}
+          })
+        )}
         </div>
+        </>
       )}
 
       {/* Create / Edit Form Dialog */}

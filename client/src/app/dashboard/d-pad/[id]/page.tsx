@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
+import { PrescriptionPaper } from "@/components/d-pad/PrescriptionPaper";
 import { 
   getDpadPrescriptionDetails, 
   getDpadSubmittedAnswers, 
@@ -290,6 +291,12 @@ export default function DPadDetailPage() {
   const { user } = useAuth();
   const username = user?.username || "";
   const prescriptionId = params.id as string;
+
+  const [courseCode, setCourseCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCourseCode(localStorage.getItem("selected_course"));
+  }, []);
 
   // UI Language state
   const [lang, setLang] = useState<Language>("en");
@@ -619,9 +626,16 @@ export default function DPadDetailPage() {
       {/* Header bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
-          <Button variant="ghost" onClick={() => router.push("/dashboard/d-pad")} className="gap-2 mb-2 pl-0 hover:pl-2 text-slate-350 hover:text-white transition-all">
-            <ArrowLeft className="w-4 h-4" /> {t.backToList}
-          </Button>
+          <div className="flex flex-wrap gap-2 mb-2">
+            <Button variant="ghost" onClick={() => router.push("/dashboard/d-pad")} className="gap-2 pl-0 hover:pl-2 text-slate-350 hover:text-white transition-all h-8">
+              <ArrowLeft className="w-4 h-4" /> {t.backToList}
+            </Button>
+            {courseCode && (
+              <Badge className="bg-emerald-500 hover:bg-emerald-400 text-white border-none text-xs px-3 py-1 shadow-md h-8 flex items-center">
+                Course: {courseCode}
+              </Badge>
+            )}
+          </div>
           <h1 className="text-2xl md:text-3xl font-bold font-headline text-slate-100">{t.title}</h1>
           <p className="text-slate-400 text-sm">{t.subtitle}</p>
         </div>
@@ -636,53 +650,11 @@ export default function DPadDetailPage() {
               <Clipboard className="w-4 h-4 text-emerald-400" />
               Prescription Form
             </div>
-            <CardContent className="p-6 md:p-8 bg-slate-900/60 relative">
-              <div className="space-y-6 font-sans text-slate-200">
-                <div className="text-center border-b border-slate-800 pb-4">
-                  <h3 className="text-xl font-black font-headline text-emerald-400">
-                    {rxDetails.doctor_name || "Dr. Sunil Rathnayaka"}
-                  </h3>
-                  <p className="text-xs text-slate-400 font-semibold tracking-wider uppercase">
-                    {rxDetails.Pres_Method || "Registered Practitioner"}
-                  </p>
-                  <p className="text-[10px] text-slate-500">Reg No: MCQ/93801</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-xs border-b border-slate-800 pb-4">
-                  <div>
-                    <span className="font-semibold text-slate-400 block uppercase text-[10px]">{t.patientName}</span>
-                    <span className="font-bold text-sm text-slate-100">{rxDetails.Pres_Name}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-semibold text-slate-400 block uppercase text-[10px]">{t.date}</span>
-                    <span className="font-mono text-slate-100">{rxDetails.pres_date}</span>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-slate-400 block uppercase text-[10px]">{t.age}</span>
-                    <span className="font-bold text-slate-100">{rxDetails.Pres_Age} Years</span>
-                  </div>
-                </div>
-
-                {/* Rx symbol & list */}
-                <div className="relative pl-16 min-h-[180px]">
-                  <span className="absolute left-0 top-0 text-5xl font-serif text-slate-700/40 select-none font-bold italic">Rx</span>
-                  <div className="space-y-4 pt-2 font-mono text-sm leading-relaxed text-slate-100">
-                    {drugs.map((drug: string, i: number) => (
-                      <div key={i} className="border-b border-dashed border-slate-800 pb-2">
-                        <p className="font-bold text-slate-100">{drug}</p>
-                        <p className="text-xs text-slate-400 italic">
-                          Dispense as Cover {i + 1}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="text-right text-xs pt-4 border-t border-slate-800 text-slate-400">
-                  <p className="italic font-serif text-slate-355">S. Rathnayaka</p>
-                  <p className="text-[9px] uppercase tracking-wider font-semibold">Authorized Signature</p>
-                </div>
-              </div>
+            <CardContent className="p-0">
+              <PrescriptionPaper 
+                prescription={rxDetails} 
+                labels={{ patientName: t.patientName, date: t.date, age: t.age }} 
+              />
             </CardContent>
           </Card>
         </div>

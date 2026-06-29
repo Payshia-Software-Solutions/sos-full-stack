@@ -47,9 +47,9 @@ class DpadController
         echo json_encode($result);
     }
 
-    public function getOverallGrade($loggedUser)
+    public function getOverallGrade($loggedUser, $courseCode = null)
     {
-        $overallGrade = $this->model->calculateOverallGradeDpad($loggedUser);
+        $overallGrade = $this->model->calculateOverallGradeDpad($loggedUser, $courseCode);
         echo json_encode($overallGrade);
     }
 
@@ -70,6 +70,20 @@ class DpadController
         echo json_encode($result);
     }
 
+    public function updateStatus()
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!$input) {
+            $input = $_POST;
+        }
+
+        $prescriptionId = $input['prescriptionId'] ?? '';
+        $status = $input['status'] ?? '';
+
+        $result = $this->model->updatePrescriptionStatus($prescriptionId, $status);
+        echo json_encode($result);
+    }
+
     public function saveAnswerKey($loggedUser)
     {
         $input = json_decode(file_get_contents('php://input'), true);
@@ -85,6 +99,59 @@ class DpadController
     {
         $result = $this->model->getAnswerKey($prescriptionId, $coverId);
         echo json_encode($result);
+    }
+
+    // ─── Course Assignment Methods ─────────────────────────────────────────────
+
+    public function getActivePrescriptionsByCourse($courseCode)
+    {
+        $prescriptions = $this->model->getActivePrescriptionsByCourse($courseCode);
+        echo json_encode($prescriptions);
+    }
+
+    public function assignToCourse()
+    {
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $prescriptionId = $input['prescription_id'] ?? '';
+        $courseCode     = $input['course_code']     ?? '';
+        $assignedBy     = $input['assigned_by']     ?? null;
+
+        if (!$prescriptionId || !$courseCode) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'prescription_id and course_code are required']);
+            return;
+        }
+
+        $result = $this->model->assignToCourse($prescriptionId, $courseCode, $assignedBy);
+        echo json_encode($result);
+    }
+
+    public function unassignFromCourse()
+    {
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $prescriptionId = $input['prescription_id'] ?? '';
+        $courseCode     = $input['course_code']     ?? '';
+
+        if (!$prescriptionId || !$courseCode) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'prescription_id and course_code are required']);
+            return;
+        }
+
+        $result = $this->model->unassignFromCourse($prescriptionId, $courseCode);
+        echo json_encode($result);
+    }
+
+    public function getCoursesByPrescription($prescriptionId)
+    {
+        $courses = $this->model->getCoursesByPrescription($prescriptionId);
+        echo json_encode($courses);
+    }
+
+    public function getAllCourseAssignments()
+    {
+        $assignments = $this->model->getAllCourseAssignments();
+        echo json_encode($assignments);
     }
 }
 
