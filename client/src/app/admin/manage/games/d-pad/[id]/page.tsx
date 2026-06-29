@@ -451,7 +451,7 @@ export default function DpadAnswerKeySetupPage() {
                         onChange={(e) => setFormState({ ...formState, drug_type: e.target.value })}
                         className="w-full h-10 px-3 rounded-md bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       >
-                        {OPTIONS_MAPPINGS.dosageForm.map((form) => (
+                        {(selectionData?.drug_type?.length ? selectionData.drug_type : OPTIONS_MAPPINGS.dosageForm).map((form: string) => (
                           <option key={form} value={form}>{form}</option>
                         ))}
                       </select>
@@ -482,7 +482,7 @@ export default function DpadAnswerKeySetupPage() {
                         onChange={(e) => setFormState({ ...formState, meal_type: e.target.value })}
                         className="w-full h-10 px-3 rounded-md bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                       >
-                        {OPTIONS_MAPPINGS.mealType.map((meal) => (
+                        {(selectionData?.meal_type?.length ? selectionData.meal_type : OPTIONS_MAPPINGS.mealType).map((meal: string) => (
                           <option key={meal} value={meal}>{meal}</option>
                         ))}
                       </select>
@@ -496,7 +496,7 @@ export default function DpadAnswerKeySetupPage() {
                         onChange={(e) => setFormState({ ...formState, using_type: e.target.value })}
                         className="w-full h-10 px-3 rounded-md bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                       >
-                        {OPTIONS_MAPPINGS.usingFrequency.map((freq) => (
+                        {(selectionData?.using_type?.length ? selectionData.using_type : OPTIONS_MAPPINGS.usingFrequency).map((freq: string) => (
                           <option key={freq} value={freq}>{freq}</option>
                         ))}
                       </select>
@@ -520,7 +520,7 @@ export default function DpadAnswerKeySetupPage() {
                           onChange={(e) => setFormState({ ...formState, morning_qty: e.target.value })}
                           className="w-full h-8 px-1.5 rounded bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none"
                         >
-                          {OPTIONS_MAPPINGS.scheduleQty.map((val) => (
+                          {(selectionData?.morning_qty?.length ? selectionData.morning_qty : OPTIONS_MAPPINGS.scheduleQty).map((val: string) => (
                             <option key={val} value={val}>{val}</option>
                           ))}
                         </select>
@@ -536,7 +536,7 @@ export default function DpadAnswerKeySetupPage() {
                           onChange={(e) => setFormState({ ...formState, afternoon_qty: e.target.value })}
                           className="w-full h-8 px-1.5 rounded bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none"
                         >
-                          {OPTIONS_MAPPINGS.scheduleQty.map((val) => (
+                          {(selectionData?.afternoon_qty?.length ? selectionData.afternoon_qty : OPTIONS_MAPPINGS.scheduleQty).map((val: string) => (
                             <option key={val} value={val}>{val}</option>
                           ))}
                         </select>
@@ -552,7 +552,7 @@ export default function DpadAnswerKeySetupPage() {
                           onChange={(e) => setFormState({ ...formState, evening_qty: e.target.value })}
                           className="w-full h-8 px-1.5 rounded bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none"
                         >
-                          {OPTIONS_MAPPINGS.scheduleQty.map((val) => (
+                          {(selectionData?.evening_qty?.length ? selectionData.evening_qty : OPTIONS_MAPPINGS.scheduleQty).map((val: string) => (
                             <option key={val} value={val}>{val}</option>
                           ))}
                         </select>
@@ -568,7 +568,7 @@ export default function DpadAnswerKeySetupPage() {
                           onChange={(e) => setFormState({ ...formState, night_qty: e.target.value })}
                           className="w-full h-8 px-1.5 rounded bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none"
                         >
-                          {OPTIONS_MAPPINGS.scheduleQty.map((val) => (
+                          {(selectionData?.night_qty?.length ? selectionData.night_qty : OPTIONS_MAPPINGS.scheduleQty).map((val: string) => (
                             <option key={val} value={val}>{val}</option>
                           ))}
                         </select>
@@ -586,7 +586,7 @@ export default function DpadAnswerKeySetupPage() {
                         onChange={(e) => setFormState({ ...formState, at_a_time: e.target.value })}
                         className="w-full h-10 px-3 rounded-md bg-slate-900 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                       >
-                        {OPTIONS_MAPPINGS.atATime.map((val) => (
+                        {(selectionData?.at_a_time?.length ? selectionData.at_a_time : OPTIONS_MAPPINGS.atATime).map((val: string) => (
                           <option key={val} value={val}>{val}</option>
                         ))}
                       </select>
@@ -600,7 +600,7 @@ export default function DpadAnswerKeySetupPage() {
                         onChange={(e) => setFormState({ ...formState, hour_qty: e.target.value })}
                         className="w-full h-10 px-3 rounded-md bg-slate-900 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                       >
-                        {OPTIONS_MAPPINGS.hourQty.map((val) => (
+                        {(selectionData?.hour_qty?.length ? selectionData.hour_qty : OPTIONS_MAPPINGS.hourQty).map((val: string) => (
                           <option key={val} value={val}>{val}</option>
                         ))}
                       </select>
