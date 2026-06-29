@@ -7,9 +7,11 @@ class PharmaReaderController
 {
     private $medicineModel;
     private $attemptModel;
+    private $pdo;
 
     public function __construct($pdo)
     {
+        $this->pdo = $pdo;
         $this->medicineModel = new ReaderMedicine($pdo);
         $this->attemptModel = new ReaderAttempt($pdo);
     }
@@ -41,12 +43,35 @@ class PharmaReaderController
         }
     }
 
-    public function getRandomUnansweredPrescription($userId)
+    public function getRandomUnansweredPrescription($userId, $difficulty, $courseCode = null)
     {
         try {
-            $unanswered = $this->medicineModel->getUnanswered($userId);
+            // Check limits for this specific course
+            $limit = 5; // default
+            
+            // Map difficulty to database column
+            $colMap = ['Basic' => 'max_easy', 'Intermediate' => 'max_intermediate', 'Advanced' => 'max_advanced'];
+            $col = isset($colMap[$difficulty]) ? $colMap[$difficulty] : 'max_easy';
+            
+            if ($courseCode) {
+                $stmt = $this->pdo->prepare("SELECT {$col} as lmt FROM pharma_reader_batch_settings WHERE course_code = :course_code");
+                $stmt->execute(['course_code' => $courseCode]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row) {
+                    $limit = (int)$row['lmt'];
+                }
+            } else {
+                // fallback to global if needed
+                $settingKey = 'pharma_reader_' . $col;
+                $stmt = $this->pdo->prepare("SELECT value FROM settings WHERE setting = :setting");
+                $stmt->execute(['setting' => $settingKey]);
+                $limitRow = $stmt->fetch(PDO::FETCH_ASSOC);
+                $limit = $limitRow ? (int)$limitRow['value'] : 5;
+            }
+
+            $unanswered = $this->medicineModel->getUnanswered($userId, $difficulty, $courseCode, $limit);
             if (empty($unanswered)) {
-                echo json_encode(['finished' => true, 'message' => 'All prescriptions answered successfully!']);
+                echo json_encode(['finished' => true, 'message' => 'No more prescriptions available for this difficulty!']);
                 return;
             }
             
@@ -56,6 +81,7 @@ class PharmaReaderController
             
             echo json_encode([
                 'finished' => false,
+                'limit_reached' => false,
                 'prescription' => $selected
             ]);
         } catch (Exception $e) {
@@ -250,5 +276,221 @@ class PharmaReaderController
             http_response_code(400);
             echo json_encode(['error' => 'No image file uploaded']);
         }
+    }
+
+    public function getSettings($courseCode = null)
+    {
+        try {
+            $settings = [
+                'pharma_reader_max_easy' => 5,
+                'pharma_reader_max_intermediate' => 7,
+                'pharma_reader_max_advanced' => 10
+            ];
+            
+            if ($courseCode) {
+                $stmt = $this->pdo->prepare("SELECT max_easy, max_intermediate, max_advanced FROM pharma_reader_batch_settings WHERE course_code = :course_code");
+                $stmt->execute(['course_code' => $courseCode]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row) {
+                    $settings['pharma_reader_max_easy'] = (int)$row['max_easy'];
+                    $settings['pharma_reader_max_intermediate'] = (int)$row['max_intermediate'];
+                    $settings['pharma_reader_max_advanced'] = (int)$row['max_advanced'];
+                }
+            } else {
+                $stmt = $this->pdo->query("SELECT setting, value FROM settings WHERE setting IN ('pharma_reader_max_easy', 'pharma_reader_max_intermediate', 'pharma_reader_max_advanced')");
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows as $row) {
+                    $settings[$row['setting']] = (int)$row['value'];
+                }
+            }
+            echo json_encode($settings);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function saveSettings($courseCode = null)
+    {
+        $data = json_decode(file_get_contents("php://input"), true);
+        if ($data) {
+            try {
+                if ($courseCode) {
+                    $stmt = $this->pdo->prepare("
+                        INSERT INTO pharma_reader_batch_settings (course_code, max_easy, max_intermediate, max_advanced) 
+                        VALUES (:course_code, :max_easy, :max_intermediate, :max_advanced) 
+                        ON DUPLICATE KEY UPDATE 
+                        max_easy = :max_easy2, 
+                        max_intermediate = :max_intermediate2, 
+                        max_advanced = :max_advanced2
+                    ");
+                    $stmt->execute([
+                        'course_code' => $courseCode,
+                        'max_easy' => $data['pharma_reader_max_easy'] ?? 5,
+                        'max_intermediate' => $data['pharma_reader_max_intermediate'] ?? 7,
+                        'max_advanced' => $data['pharma_reader_max_advanced'] ?? 10,
+                        'max_easy2' => $data['pharma_reader_max_easy'] ?? 5,
+                        'max_intermediate2' => $data['pharma_reader_max_intermediate'] ?? 7,
+                        'max_advanced2' => $data['pharma_reader_max_advanced'] ?? 10,
+                    ]);
+                } else {
+                    $stmt = $this->pdo->prepare("INSERT INTO settings (setting, value) VALUES (:setting, :value) ON DUPLICATE KEY UPDATE value = :value2");
+                    
+                    $keys = ['pharma_reader_max_easy', 'pharma_reader_max_intermediate', 'pharma_reader_max_advanced'];
+                    foreach ($keys as $key) {
+                        if (isset($data[$key])) {
+                            $stmt->execute([
+                                'setting' => $key,
+                                'value' => $data[$key],
+                                'value2' => $data[$key]
+                            ]);
+                        }
+                    }
+                }
+                echo json_encode(['success' => true, 'message' => 'Settings saved successfully']);
+            } catch (Exception $e) {
+                http_response_code(500);
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+        } else {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid input']);
+        }
+    }
+
+    public function getProgress($userId, $courseCode = null)
+    {
+        try {
+            // Fetch limits for this specific course or globally
+            $limits = ['Basic' => 5, 'Intermediate' => 7, 'Advanced' => 10];
+            if ($courseCode) {
+                $stmt = $this->pdo->prepare("SELECT max_easy, max_intermediate, max_advanced FROM pharma_reader_batch_settings WHERE course_code = :course_code");
+                $stmt->execute(['course_code' => $courseCode]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row) {
+                    $limits = [
+                        'Basic' => (int)$row['max_easy'],
+                        'Intermediate' => (int)$row['max_intermediate'],
+                        'Advanced' => (int)$row['max_advanced']
+                    ];
+                }
+            } else {
+                $stmt = $this->pdo->query("SELECT setting, value FROM settings WHERE setting IN ('pharma_reader_max_easy', 'pharma_reader_max_intermediate', 'pharma_reader_max_advanced')");
+                $settingsRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($settingsRows as $row) {
+                    if ($row['setting'] === 'pharma_reader_max_easy') $limits['Basic'] = (int)$row['value'];
+                    if ($row['setting'] === 'pharma_reader_max_intermediate') $limits['Intermediate'] = (int)$row['value'];
+                    if ($row['setting'] === 'pharma_reader_max_advanced') $limits['Advanced'] = (int)$row['value'];
+                }
+            }
+
+            // Fetch total assigned prescriptions per difficulty
+            $assignedCounts = ['Basic' => 0, 'Intermediate' => 0, 'Advanced' => 0];
+            if ($courseCode) {
+                $stmt = $this->pdo->prepare("
+                    SELECT m.difficulty, COUNT(m.id) as cnt 
+                    FROM reader_medicine m 
+                    JOIN pharma_reader_course_assignments ca ON m.id = ca.prescription_id 
+                    WHERE ca.course_code = :course_code AND m.active_status = 'Active'
+                    GROUP BY m.difficulty
+                ");
+                $stmt->execute(['course_code' => $courseCode]);
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows as $row) {
+                    $assignedCounts[$row['difficulty']] = (int)$row['cnt'];
+                }
+            } else {
+                $stmt = $this->pdo->query("
+                    SELECT difficulty, COUNT(id) as cnt 
+                    FROM reader_medicine 
+                    WHERE active_status = 'Active'
+                    GROUP BY difficulty
+                ");
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows as $row) {
+                    $assignedCounts[$row['difficulty']] = (int)$row['cnt'];
+                }
+            }
+
+            // Fetch correct attempts per prescription
+            $sql = "
+                SELECT m.difficulty, a.pres_id, COUNT(a.id) as correct_attempts 
+                FROM reader_attempts a 
+                JOIN reader_medicine m ON a.pres_id = m.id 
+                WHERE a.user_id = :user_id 
+                AND a.answer_status = 'Correct'
+            ";
+            $params = ['user_id' => $userId];
+            if ($courseCode) {
+                $sql .= " AND m.id IN (SELECT prescription_id FROM pharma_reader_course_assignments WHERE course_code = :course_code)";
+                $params['course_code'] = $courseCode;
+            }
+            $sql .= " GROUP BY m.difficulty, a.pres_id";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $attemptsRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Calculate progress, capping at the limit
+            $progress = [
+                'Basic' => ['correct' => 0, 'required' => $assignedCounts['Basic'] * $limits['Basic']],
+                'Intermediate' => ['correct' => 0, 'required' => $assignedCounts['Intermediate'] * $limits['Intermediate']],
+                'Advanced' => ['correct' => 0, 'required' => $assignedCounts['Advanced'] * $limits['Advanced']]
+            ];
+            
+            foreach ($attemptsRows as $row) {
+                $diff = $row['difficulty'];
+                if (isset($progress[$diff])) {
+                    $cappedCorrect = min((int)$row['correct_attempts'], $limits[$diff]);
+                    $progress[$diff]['correct'] += $cappedCorrect;
+                }
+            }
+            
+            echo json_encode($progress);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
+
+    // ─── Course Assignment Methods ─────────────────────────────────────────────
+
+    public function assignToCourse()
+    {
+        $input = json_decode(file_get_contents("php://input"), true);
+        
+        $prescriptionId = $input['prescription_id'] ?? null;
+        $courseCode     = $input['course_code']     ?? null;
+        $assignedBy     = $input['assigned_by']     ?? null;
+        
+        if (!$prescriptionId || !$courseCode) {
+            echo json_encode(['status' => 'error', 'message' => 'Missing prescription_id or course_code']);
+            return;
+        }
+
+        $result = $this->medicineModel->assignToCourse($prescriptionId, $courseCode, $assignedBy);
+        echo json_encode($result);
+    }
+
+    public function unassignFromCourse()
+    {
+        $input = json_decode(file_get_contents("php://input"), true);
+        
+        $prescriptionId = $input['prescription_id'] ?? null;
+        $courseCode     = $input['course_code']     ?? null;
+        
+        if (!$prescriptionId || !$courseCode) {
+            echo json_encode(['status' => 'error', 'message' => 'Missing prescription_id or course_code']);
+            return;
+        }
+
+        $result = $this->medicineModel->unassignFromCourse($prescriptionId, $courseCode);
+        echo json_encode($result);
+    }
+
+    public function getAllCourseAssignments()
+    {
+        $assignments = $this->medicineModel->getAllCourseAssignments();
+        echo json_encode(['status' => 'success', 'data' => $assignments]);
     }
 }
