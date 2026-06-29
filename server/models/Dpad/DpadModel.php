@@ -55,11 +55,15 @@ class DpadModel
         return $count;
     }
 
-    public function calculateOverallGradeDpad($loggedUser)
+    public function calculateOverallGradeDpad($loggedUser, $courseCode = null)
     {
         $correctCount = $inCorrectCount = $correctScore = $inCorrectScore = $overallGrade = 0;
 
-        $prescriptions = $this->getActivePrescriptions();
+        if ($courseCode) {
+            $prescriptions = $this->getActivePrescriptionsByCourse($courseCode);
+        } else {
+            $prescriptions = $this->getActivePrescriptions();
+        }
         $scorePerPrescription = 10;
         $savedAnswers = $this->getSubmittedAnswersByUser($loggedUser);
 
@@ -302,6 +306,26 @@ class DpadModel
         }
     }
 
+    public function updatePrescriptionStatus($prescriptionID, $status)
+    {
+        if (empty($prescriptionID)) {
+            return ['status' => 'error', 'message' => 'Prescription ID is required'];
+        }
+
+        $sql = "UPDATE `prescription` SET `prescription_status` = :status WHERE `prescription_id` = :id";
+        $stmt = $this->pdo->prepare($sql);
+        $exec = $stmt->execute([
+            'status' => $status,
+            'id' => $prescriptionID
+        ]);
+
+        if ($exec) {
+            return ['status' => 'success', 'message' => 'Status updated successfully'];
+        } else {
+            return ['status' => 'error', 'message' => 'Failed to update status'];
+        }
+    }
+
     public function saveAnswerKey($createdBy, $data)
     {
         $presID = $data['prescriptionID'] ?? '';
@@ -422,6 +446,84 @@ class DpadModel
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['pres_id' => $prescriptionId, 'cover_id' => $coverId]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    // ─── Course Assignment Methods ─────────────────────────────────────────────
+
+    /**
+     * Assign a prescription to a course (upsert via UNIQUE KEY).
+     */
+    public function assignToCourse($prescriptionId, $courseCode, $assignedBy = null)
+    {
+        $sql = "INSERT IGNORE INTO `dpad_course_prescriptions`
+                    (`prescription_id`, `course_code`, `assigned_by`)
+                VALUES
+                    (:prescription_id, :course_code, :assigned_by)";
+        $stmt = $this->pdo->prepare($sql);
+        $exec = $stmt->execute([
+            'prescription_id' => $prescriptionId,
+            'course_code'     => $courseCode,
+            'assigned_by'     => $assignedBy,
+        ]);
+        return $exec
+            ? ['status' => 'success', 'message' => 'Prescription assigned to course']
+            : ['status' => 'error',   'message' => 'Failed to assign prescription'];
+    }
+
+    /**
+     * Remove a prescription from a course.
+     */
+    public function unassignFromCourse($prescriptionId, $courseCode)
+    {
+        $sql = "DELETE FROM `dpad_course_prescriptions`
+                WHERE `prescription_id` = :prescription_id
+                  AND `course_code` = :course_code";
+        $stmt = $this->pdo->prepare($sql);
+        $exec = $stmt->execute([
+            'prescription_id' => $prescriptionId,
+            'course_code'     => $courseCode,
+        ]);
+        return $exec
+            ? ['status' => 'success', 'message' => 'Prescription unassigned from course']
+            : ['status' => 'error',   'message' => 'Failed to unassign prescription'];
+    }
+
+    /**
+     * Get all course_codes assigned to a given prescription (for admin UI).
+     */
+    public function getCoursesByPrescription($prescriptionId)
+    {
+        $sql = "SELECT `course_code` FROM `dpad_course_prescriptions`
+                WHERE `prescription_id` = :prescription_id";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['prescription_id' => $prescriptionId]);
+        return array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'course_code');
+    }
+
+    /**
+     * Get active prescriptions assigned to a specific course (for student page).
+     */
+    public function getActivePrescriptionsByCourse($courseCode)
+    {
+        $sql = "SELECT p.*
+                FROM `prescription` p
+                INNER JOIN `dpad_course_prescriptions` dcp
+                    ON p.`prescription_id` = dcp.`prescription_id`
+                WHERE p.`prescription_status` = 'Active'
+                  AND dcp.`course_code` = :course_code";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['course_code' => $courseCode]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get all course assignments (for admin bulk assignment UI).
+     */
+    public function getAllCourseAssignments()
+    {
+        $sql = "SELECT * FROM `dpad_course_prescriptions`";
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
 

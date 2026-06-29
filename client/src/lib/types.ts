@@ -596,6 +596,12 @@ export interface StudentBalanceData {
   paymentRecords: Record<string, ApiPaymentRecord>;
 }
 
+export interface CareSavedAnswer {
+  id: string;
+  answer_type: string;
+  answer: string;
+}
+
 export interface Announcement {
   id: string;
   title: string;

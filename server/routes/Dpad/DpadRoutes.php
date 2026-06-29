@@ -70,6 +70,7 @@ return [
     // Get Overall Grade for a User
     'GET /d-pad/get-overall-grade/$' => function () use ($DpadController) {
         $loggedUser = isset($_GET['loggedUser']) ? $_GET['loggedUser'] : null;
+        $courseCode = isset($_GET['courseCode']) ? $_GET['courseCode'] : null;
 
         if (!$loggedUser) {
             http_response_code(400);
@@ -77,7 +78,7 @@ return [
             return;
         }
 
-        return $DpadController->getOverallGrade($loggedUser);
+        return $DpadController->getOverallGrade($loggedUser, $courseCode);
     },
 
     // --- ADMIN ROUTES ---
@@ -90,6 +91,11 @@ return [
     // Save/Update Prescription
     'POST /d-pad/admin/save-prescription/$' => function () use ($DpadController) {
         return $DpadController->savePrescription();
+    },
+
+    // Update Prescription Status Only
+    'POST /d-pad/admin/update-status/$' => function () use ($DpadController) {
+        return $DpadController->updateStatus();
     },
 
     // Save/Update Answer Key
@@ -110,6 +116,45 @@ return [
         }
 
         return $DpadController->getAnswerKey($prescriptionId, $coverId);
+    },
+
+    // ─── Course Assignment Routes ──────────────────────────────────────────────
+
+    // Student: get active prescriptions filtered by course code
+    'GET /d-pad/get-active-by-course/$' => function () use ($DpadController) {
+        $courseCode = $_GET['courseCode'] ?? null;
+        if (!$courseCode) {
+            http_response_code(400);
+            echo json_encode(['error' => 'courseCode is required']);
+            return;
+        }
+        return $DpadController->getActivePrescriptionsByCourse($courseCode);
+    },
+
+    // Admin: assign a prescription to a course
+    'POST /d-pad/admin/assign-to-course/$' => function () use ($DpadController) {
+        return $DpadController->assignToCourse();
+    },
+
+    // Admin: remove a prescription from a course
+    'POST /d-pad/admin/unassign-from-course/$' => function () use ($DpadController) {
+        return $DpadController->unassignFromCourse();
+    },
+
+    // Admin: get all course codes assigned to a prescription
+    'GET /d-pad/admin/prescription-courses/$' => function () use ($DpadController) {
+        $prescriptionId = $_GET['prescriptionId'] ?? null;
+        if (!$prescriptionId) {
+            http_response_code(400);
+            echo json_encode(['error' => 'prescriptionId is required']);
+            return;
+        }
+        return $DpadController->getCoursesByPrescription($prescriptionId);
+    },
+
+    // Admin: get all assignments (for bulk assignment page)
+    'GET /d-pad/admin/all-course-assignments/$' => function () use ($DpadController) {
+        return $DpadController->getAllCourseAssignments();
     },
 
 ];

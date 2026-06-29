@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,28 +9,36 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
-  getDpadActivePrescriptions, 
+  getDpadActivePrescriptionsByCourse, 
   getDpadOverallGrade, 
   getDpadSubmittedAnswers 
 } from "@/lib/actions/games";
 import Link from "next/link";
-import { ArrowRight, Pill, Trophy, CheckCircle, Activity, Award } from "lucide-react";
+import { ArrowRight, Pill, Trophy, CheckCircle, Activity, Award, BookOpen } from "lucide-react";
 
 export default function DPadIndexPage() {
   const { user } = useAuth();
   const username = user?.username || "";
+  const [courseCode, setCourseCode] = useState<string | null>(null);
 
-  // 1. Fetch Active Prescriptions
+  // Read selected course from localStorage (set after login/course-select)
+  useEffect(() => {
+    const stored = localStorage.getItem("selected_course");
+    setCourseCode(stored);
+  }, []);
+
+  // 1. Fetch Active Prescriptions filtered by selected course
   const { data: prescriptions = [], isLoading: isLoadingRx } = useQuery({
-    queryKey: ["dpadActivePrescriptions"],
-    queryFn: getDpadActivePrescriptions,
+    queryKey: ["dpadActivePrescriptions", courseCode],
+    queryFn: () => getDpadActivePrescriptionsByCourse(courseCode!),
+    enabled: !!courseCode,
   });
 
   // 2. Fetch Overall Grade
   const { data: gradeData, isLoading: isLoadingGrade } = useQuery({
-    queryKey: ["dpadOverallGrade", username],
-    queryFn: () => getDpadOverallGrade(username),
-    enabled: !!username,
+    queryKey: ["dpadOverallGrade", username, courseCode],
+    queryFn: () => getDpadOverallGrade(username, courseCode),
+    enabled: !!username && !!courseCode,
   });
 
   // 3. Fetch Student Submissions
@@ -40,6 +49,24 @@ export default function DPadIndexPage() {
   });
 
   const overallGrade = gradeData ? parseFloat(gradeData.overallGrade) : 0;
+
+  // If no course selected yet, show a prompt
+  if (courseCode === null) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <div className="p-4 rounded-full bg-emerald-500/10">
+          <BookOpen className="w-10 h-10 text-emerald-500" />
+        </div>
+        <h2 className="text-xl font-bold">No Course Selected</h2>
+        <p className="text-muted-foreground text-sm max-w-sm">
+          Please select your course from the dashboard to see the D-Pad prescriptions assigned to you.
+        </p>
+        <Button asChild variant="outline">
+          <Link href="/dashboard/select-course">Select Course</Link>
+        </Button>
+      </div>
+    );
+  }
 
   // Calculate status for each prescription card
   const rxCards = prescriptions.map((rx: any) => {
@@ -79,9 +106,16 @@ export default function DPadIndexPage() {
         <div className="absolute top-0 right-0 -mt-6 -mr-6 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <Badge className="bg-white/20 text-white border-none text-xs px-3 py-1">
-              Prescribing & Dispensing Simulation
-            </Badge>
+            <div className="flex flex-wrap gap-2">
+              <Badge className="bg-white/20 hover:bg-white/30 text-white border-none text-xs px-3 py-1">
+                Prescribing & Dispensing Simulation
+              </Badge>
+              {courseCode && (
+                <Badge className="bg-emerald-500 hover:bg-emerald-400 text-white border-none text-xs px-3 py-1 shadow-md">
+                  Course: {courseCode}
+                </Badge>
+              )}
+            </div>
             <h1 className="text-3xl md:text-4xl font-bold font-headline tracking-tight text-white">
               D-Pad Game Dashboard
             </h1>
