@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, PlusCircle, Edit, Trash2, AlertTriangle, Loader2, Sparkles, Image as ImageIcon, Check, Flame, Smile, ShieldAlert } from "lucide-react";
-import { getPrescriptions, savePrescription, deletePrescription, uploadPrescriptionImage, type Prescription } from '@/lib/actions/pharma-reader';
+import { ArrowLeft, PlusCircle, Edit, Trash2, AlertTriangle, Loader2, Sparkles, Image as ImageIcon, Check, Flame, Smile, ShieldAlert, Settings } from "lucide-react";
+import { getPrescriptions, savePrescription, deletePrescription, uploadPrescriptionImage, getPharmaReaderSettings, savePharmaReaderSettings, type Prescription, type PharmaReaderSettings } from '@/lib/actions/pharma-reader';
+import { getBatches } from '@/lib/actions/courses';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ export default function ManagePharmaReaderPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [prescriptionToEdit, setPrescriptionToEdit] = useState<Prescription | null>(null);
     const [prescriptionToDelete, setPrescriptionToDelete] = useState<Prescription | null>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -34,6 +36,7 @@ export default function ManagePharmaReaderPage() {
     // Form states
     const [presName, setPresName] = useState('');
     const [difficulty, setDifficulty] = useState('Easy');
+    const [courseCode, setCourseCode] = useState('');
     const [imagePath, setImagePath] = useState('');
     const [activeStatus, setActiveStatus] = useState('Active');
     const [presHelp, setPresHelp] = useState('');
@@ -44,16 +47,43 @@ export default function ManagePharmaReaderPage() {
     const [answer4, setAnswer4] = useState('');
     const [correctAnswer, setCorrectAnswer] = useState('answer_1');
 
+    // Settings states
+    const [maxEasy, setMaxEasy] = useState(5);
+    const [maxIntermediate, setMaxIntermediate] = useState(7);
+    const [maxAdvanced, setMaxAdvanced] = useState(10);
+
+    const [selectedAdminCourse, setSelectedAdminCourse] = useState<string>('');
+
+    const { data: batches } = useQuery({
+        queryKey: ['adminBatches'],
+        queryFn: getBatches
+    });
+
     const { data: prescriptions, isLoading, isError, error } = useQuery<Prescription[]>({
         queryKey: ['pharmaReaderPrescriptions'],
-        queryFn: getPrescriptions
+        queryFn: () => getPrescriptions()
     });
+
+    const { data: settingsData } = useQuery<PharmaReaderSettings>({
+        queryKey: ['pharmaReaderSettings', selectedAdminCourse],
+        queryFn: () => getPharmaReaderSettings(selectedAdminCourse || undefined)
+    });
+
+    const openSettings = () => {
+        if (settingsData) {
+            setMaxEasy(settingsData.pharma_reader_max_easy || 5);
+            setMaxIntermediate(settingsData.pharma_reader_max_intermediate || 7);
+            setMaxAdvanced(settingsData.pharma_reader_max_advanced || 10);
+        }
+        setIsSettingsOpen(true);
+    };
 
     const openForm = (pres: Prescription | null = null) => {
         if (pres) {
             setPrescriptionToEdit(pres);
             setPresName(pres.pres_name);
             setDifficulty(pres.difficulty);
+            setCourseCode(pres.course_code || '');
             setImagePath(pres.image_path);
             setActiveStatus(pres.active_status);
             setPresHelp(pres.PresHelp);
@@ -116,6 +146,25 @@ export default function ManagePharmaReaderPage() {
         onError: (err: Error) => toast({ variant: "destructive", title: 'Save Failed', description: err.message }),
     });
 
+    const saveSettingsMutation = useMutation({
+        mutationFn: (data: Partial<PharmaReaderSettings>) => savePharmaReaderSettings(data, selectedAdminCourse || undefined),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['pharmaReaderSettings'] });
+            toast({ title: 'Settings Saved!' });
+            setIsSettingsOpen(false);
+        },
+        onError: (err: Error) => toast({ variant: "destructive", title: 'Save Failed', description: err.message }),
+    });
+
+    const handleSaveSettings = (e: React.FormEvent) => {
+        e.preventDefault();
+        saveSettingsMutation.mutate({
+            pharma_reader_max_easy: maxEasy,
+            pharma_reader_max_intermediate: maxIntermediate,
+            pharma_reader_max_advanced: maxAdvanced
+        });
+    };
+
     const deleteMutation = useMutation({
         mutationFn: (id: number) => deletePrescription(id),
         onSuccess: () => {
@@ -159,9 +208,9 @@ export default function ManagePharmaReaderPage() {
     };
 
     const difficultyOptions = [
-        { val: 'Easy', label: 'Easy', icon: Smile, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
-        { val: 'Medium', label: 'Medium', icon: Flame, color: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30' },
-        { val: 'Hard', label: 'Hard', icon: ShieldAlert, color: 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/30' },
+        { val: 'Basic', label: 'Basic', icon: Smile, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
+        { val: 'Intermediate', label: 'Intermediate', icon: Flame, color: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30' },
+        { val: 'Advanced', label: 'Advanced', icon: ShieldAlert, color: 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/30' },
     ];
 
     const answerFields = [
@@ -189,9 +238,21 @@ export default function ManagePharmaReaderPage() {
                         </div>
                     </div>
                 </div>
-                <Button onClick={() => openForm()} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-600/20">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Prescription
-                </Button>
+                <div className="flex flex-col md:flex-row items-center gap-3">
+                    <Button 
+                        onClick={() => router.push('/admin/manage/games/pharma-reader/course-assignments')}
+                        className="bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600/20 border border-indigo-500/20"
+                    >
+                        Course Assignments
+                    </Button>
+
+                    <Button onClick={openSettings} variant="outline" className="gap-2">
+                        <Settings className="w-4 h-4" /> Settings
+                    </Button>
+                    <Button onClick={() => openForm()} className="gap-2 shadow-lg shadow-primary/20">
+                        <PlusCircle className="w-4 h-4" /> Add Prescription
+                    </Button>
+                </div>
             </header>
 
             {/* Prescriptions Grid */}
@@ -237,9 +298,9 @@ export default function ManagePharmaReaderPage() {
                                     )}
                                     <div className="absolute top-2 left-2 flex gap-1.5">
                                         <Badge className={
-                                            pres.difficulty === 'Easy' ? 'bg-green-500/10 text-green-500 hover:bg-green-500/10 border-0' :
-                                            pres.difficulty === 'Medium' ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/10 border-0' :
-                                            'bg-rose-500/10 text-rose-500 hover:bg-rose-500/10 border-0'
+                                            pres.difficulty === 'Basic' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                                            pres.difficulty === 'Intermediate' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                                            'bg-rose-500/10 text-rose-500 border-rose-500/20'
                                         }>
                                             {pres.difficulty}
                                         </Badge>
@@ -299,6 +360,8 @@ export default function ManagePharmaReaderPage() {
                                     placeholder="e.g., Prescription 1"
                                 />
                             </div>
+
+
 
                             {/* Difficulty toggle buttons */}
                             <div className="space-y-1.5">
@@ -541,6 +604,90 @@ export default function ManagePharmaReaderPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Settings Dialog */}
+            <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Settings className="w-5 h-5 text-indigo-500" />
+                            Game Settings
+                        </DialogTitle>
+                        <DialogDescription>
+                            Configure the maximum number of correct prescriptions a student must complete for each difficulty level.
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="py-2 border-b border-slate-200 dark:border-slate-800">
+                        <Label htmlFor="settingsCourse" className="mb-2 block">Configure settings for:</Label>
+                        <select
+                            id="settingsCourse"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            value={selectedAdminCourse}
+                            onChange={(e) => setSelectedAdminCourse(e.target.value)}
+                        >
+                            <option value="">Global (All Courses)</option>
+                            {batches?.map((b: any) => (
+                                <option key={b.id} value={b.courseCode}>{b.name} ({b.courseCode})</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <form onSubmit={handleSaveSettings} className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="maxEasy" className="flex justify-between">
+                                <span>Easy Level Limit</span>
+                                <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10 border-0">Easy</Badge>
+                            </Label>
+                            <Input
+                                id="maxEasy"
+                                type="number"
+                                min="1"
+                                value={maxEasy}
+                                onChange={(e) => setMaxEasy(parseInt(e.target.value) || 1)}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="maxIntermediate" className="flex justify-between">
+                                <span>Intermediate Level Limit</span>
+                                <Badge className="bg-amber-500/10 text-amber-500 hover:bg-amber-500/10 border-0">Intermediate</Badge>
+                            </Label>
+                            <Input
+                                id="maxIntermediate"
+                                type="number"
+                                min="1"
+                                value={maxIntermediate}
+                                onChange={(e) => setMaxIntermediate(parseInt(e.target.value) || 1)}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="maxAdvanced" className="flex justify-between">
+                                <span>Advanced Level Limit</span>
+                                <Badge className="bg-rose-500/10 text-rose-500 hover:bg-rose-500/10 border-0">Advanced</Badge>
+                            </Label>
+                            <Input
+                                id="maxAdvanced"
+                                type="number"
+                                min="1"
+                                value={maxAdvanced}
+                                onChange={(e) => setMaxAdvanced(parseInt(e.target.value) || 1)}
+                                required
+                            />
+                        </div>
+                        <DialogFooter className="mt-6">
+                            <Button type="button" variant="outline" onClick={() => setIsSettingsOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={saveSettingsMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700">
+                                {saveSettingsMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+                                Save Settings
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

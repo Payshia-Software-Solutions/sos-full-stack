@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, CheckCircle2, XCircle, Lightbulb, RefreshCw, Trophy, HelpCircle, Loader2, Sparkles, ChevronRight, Check, ZoomIn } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, Lightbulb, RefreshCw, Trophy, HelpCircle, Loader2, Sparkles, ChevronRight, Check, ZoomIn, Smile, Flame, ShieldAlert } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { getRandomPrescription, submitAttempt, getUserGrades, type Prescription, type AttemptResult } from '@/lib/actions/pharma-reader';
+import { getRandomPrescription, submitAttempt, getUserGrades, getPharmaReaderProgress, getPharmaReaderSettings, type Prescription, type AttemptResult } from '@/lib/actions/pharma-reader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { LMS_API_URL } from '@/lib/config';
@@ -26,6 +27,19 @@ export default function PharmaReaderStudentPage() {
   const [isZoomed, setIsZoomed] = useState(false);
   const [scale, setScale] = useState(1);
 
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
+  const [courseCode, setCourseCode] = useState<string | null>(null);
+  const [isCourseLoaded, setIsCourseLoaded] = useState(false);
+
+  // Read course code from localStorage
+  useEffect(() => {
+    const storedCourse = localStorage.getItem('selected_course');
+    if (storedCourse) {
+      setCourseCode(storedCourse);
+    }
+    setIsCourseLoaded(true);
+  }, []);
+
   // Get user overall score and attempt list
   const { data: gradesData, isLoading: isLoadingGrades } = useQuery({
     queryKey: ['pharmaReaderGrades', user?.username],
@@ -33,11 +47,23 @@ export default function PharmaReaderStudentPage() {
     enabled: !!user,
   });
 
+  const { data: progressData, isLoading: isLoadingProgress } = useQuery({
+    queryKey: ['pharmaReaderProgress', user?.username, courseCode],
+    queryFn: () => getPharmaReaderProgress(user!.username!, courseCode || undefined),
+    enabled: !!user && isCourseLoaded,
+  });
+
+  const { data: settingsData, isLoading: isLoadingSettings } = useQuery({
+    queryKey: ['pharmaReaderSettings', courseCode],
+    queryFn: () => getPharmaReaderSettings(courseCode || undefined),
+    enabled: isCourseLoaded,
+  });
+
   // Get random unanswered prescription
   const { data: gameData, isLoading: isLoadingGame, refetch: refetchGame } = useQuery({
-    queryKey: ['randomPrescription', user?.username],
-    queryFn: () => getRandomPrescription(user!.username!),
-    enabled: !!user,
+    queryKey: ['randomPrescription', user?.username, selectedDifficulty, courseCode],
+    queryFn: () => getRandomPrescription(user!.username!, selectedDifficulty!, courseCode || undefined),
+    enabled: !!user && !!selectedDifficulty,
   });
 
   const submitMutation = useMutation({
@@ -47,6 +73,7 @@ export default function PharmaReaderStudentPage() {
       setAttemptResult(res);
       setIsAnswered(true);
       queryClient.invalidateQueries({ queryKey: ['pharmaReaderGrades', user?.username] });
+      queryClient.invalidateQueries({ queryKey: ['pharmaReaderProgress', user?.username] });
       if (res.is_correct) {
         toast({ title: 'Correct!', description: 'Great job!' });
       } else {
@@ -100,17 +127,17 @@ export default function PharmaReaderStudentPage() {
   const finished = gameData?.finished;
   const prescription = gameData?.prescription;
 
-  const difficulty = prescription?.difficulty || 'Easy';
+  const difficulty = prescription?.difficulty || 'Basic';
 
   const diffThemes = {
-    Easy: {
+    Basic: {
       border: 'border-emerald-500/30 dark:border-emerald-500/20 shadow-emerald-500/5',
       bg: 'from-emerald-500/5 to-transparent',
       text: 'text-emerald-600 dark:text-emerald-400',
       badge: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
       button: 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500',
       accent: 'emerald',
-      label: 'Easy - Apprentice'
+      label: 'Basic - Apprentice'
     },
     Medium: {
       border: 'border-amber-500/30 dark:border-amber-500/20 shadow-amber-500/5',
@@ -141,7 +168,7 @@ export default function PharmaReaderStudentPage() {
     }
   } as const;
 
-  const currentTheme = diffThemes[difficulty as keyof typeof diffThemes] || diffThemes.Easy;
+  const currentTheme = diffThemes[difficulty as keyof typeof diffThemes] || diffThemes.Basic;
 
   // Stats calculations
   const attempts = gradesData?.attempts || [];
@@ -153,28 +180,180 @@ export default function PharmaReaderStudentPage() {
   return (
     <div className="p-4 md:p-8 space-y-6 w-full pb-20">
       {/* Top Navigation */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <Button variant="ghost" onClick={() => router.back()} className="-ml-4 hover:bg-transparent text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+      <header className="flex flex-col sm:flex-row items-center justify-between py-6 px-4 md:px-8 border-b bg-card">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')} className="-ml-2 hover:bg-black/5">
+            <ArrowLeft className="h-5 w-5 text-muted-foreground" />
           </Button>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent mt-1">
-            Pharma Reader
-          </h1>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
+              Pharma Reader
+            </h1>
+            {courseCode && (
+              <Badge variant="outline" className="bg-indigo-50/50 text-indigo-700 border-indigo-200/60 shadow-sm w-fit font-mono">
+                Course: {courseCode}
+              </Badge>
+            )}
+          </div>
         </div>
 
-        {/* Overall Score Badge */}
-        <Card className="shadow-md bg-gradient-to-r from-purple-500 to-indigo-600 text-white min-w-[180px] p-4 text-center border-0 flex flex-col items-center justify-center relative overflow-hidden">
-          <div className="absolute -top-3 -right-3 h-12 w-12 bg-white/10 rounded-full blur-lg" />
-          <div className="text-xs uppercase tracking-wider text-purple-200 font-semibold flex items-center gap-1.5 mb-1">
-            <Trophy className="w-3.5 h-3.5" /> Overall Score
-          </div>
-          <span className="text-3xl font-extrabold tracking-tight">{overallGrade} XP</span>
-        </Card>
+        <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row items-center gap-4">
+          <Button 
+            variant="outline" 
+            onClick={() => router.push('/dashboard/pharma-reader/performance')}
+            className="border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 text-indigo-600 transition-colors bg-white/50"
+          >
+            <Trophy className="mr-2 h-4 w-4" /> View Performance
+          </Button>
+          
+          {/* Overall Score Badge */}
+          <Card className="shadow-md bg-gradient-to-r from-purple-500 to-indigo-600 text-white min-w-[180px] p-4 text-center border-0 flex flex-col items-center justify-center relative overflow-hidden">
+            <div className="absolute -top-3 -right-3 h-12 w-12 bg-white/10 rounded-full blur-lg" />
+            <div className="text-xs uppercase tracking-wider text-purple-200 font-semibold flex items-center gap-1.5 mb-1">
+              <Trophy className="w-3.5 h-3.5" /> Overall Score
+            </div>
+            <span className="text-3xl font-extrabold tracking-tight">{overallGrade} XP</span>
+          </Card>
+        </div>
       </header>
 
-      {finished ? (
-        <Card className="max-w-md mx-auto text-center border-0 shadow-xl bg-gradient-to-b from-card to-muted/20 relative overflow-hidden">
+      {!selectedDifficulty ? (
+        <div className="mt-8 space-y-6">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <h2 className="text-2xl font-bold mb-2">Choose Your Difficulty Level</h2>
+            <p className="text-muted-foreground">Select a difficulty level to start practicing. You can complete a specific number of prescriptions per level.</p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {/* Basic */}
+            <Card className={cn("overflow-hidden border-2 transition-all hover:-translate-y-1 hover:shadow-lg", diffThemes.Basic.border)}>
+              <CardHeader className={cn("bg-gradient-to-br", diffThemes.Basic.bg)}>
+                <div className="flex justify-between items-start">
+                  <div className={cn("p-3 rounded-xl", diffThemes.Basic.badge)}>
+                    <Smile className="w-6 h-6" />
+                  </div>
+                  {progressData?.Basic?.correct >= progressData?.Basic?.required && progressData?.Basic?.required > 0 && (
+                    <span className="bg-emerald-500 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Completed
+                    </span>
+                  )}
+                </div>
+                <CardTitle className="text-xl mt-4">Basic</CardTitle>
+                <CardDescription>Perfect for beginners. Simple and clear prescriptions.</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="flex justify-between items-center text-sm mb-2">
+                  <span className="font-semibold text-muted-foreground">Correct Answers</span>
+                  <span className="font-bold">{progressData?.Basic?.correct || 0} / {progressData?.Basic?.required || 0}</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${progressData?.Basic?.required > 0 ? Math.min(((progressData?.Basic?.correct || 0) / progressData?.Basic?.required) * 100, 100) : 0}%` }} />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className={cn("w-full", diffThemes.Basic.button)}
+                  disabled={progressData?.Basic?.correct >= progressData?.Basic?.required && progressData?.Basic?.required > 0}
+                  onClick={() => setSelectedDifficulty('Basic')}
+                >
+                  {progressData?.Basic?.correct >= progressData?.Basic?.required && progressData?.Basic?.required > 0 ? 'Limit Reached' : 'Start Basic'}
+                </Button>
+              </CardFooter>
+            </Card>
+
+            {/* Intermediate */}
+            <Card className={cn("overflow-hidden border-2 transition-all hover:-translate-y-1 hover:shadow-lg", diffThemes.Medium.border)}>
+              <CardHeader className={cn("bg-gradient-to-br", diffThemes.Medium.bg)}>
+                <div className="flex justify-between items-start">
+                  <div className={cn("p-3 rounded-xl", diffThemes.Medium.badge)}>
+                    <Flame className="w-6 h-6" />
+                  </div>
+                  {progressData?.Intermediate?.correct >= progressData?.Intermediate?.required && progressData?.Intermediate?.required > 0 && (
+                    <span className="bg-amber-500 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Completed
+                    </span>
+                  )}
+                </div>
+                <CardTitle className="text-xl mt-4">Intermediate</CardTitle>
+                <CardDescription>A bit tricky. Some challenging handwriting.</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="flex justify-between items-center text-sm mb-2">
+                  <span className="font-semibold text-muted-foreground">Correct Answers</span>
+                  <span className="font-bold">{progressData?.Intermediate?.correct || 0} / {progressData?.Intermediate?.required || 0}</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div className="bg-amber-500 h-2 rounded-full" style={{ width: `${progressData?.Intermediate?.required > 0 ? Math.min(((progressData?.Intermediate?.correct || 0) / progressData?.Intermediate?.required) * 100, 100) : 0}%` }} />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className={cn("w-full", diffThemes.Medium.button)}
+                  disabled={progressData?.Intermediate?.correct >= progressData?.Intermediate?.required && progressData?.Intermediate?.required > 0}
+                  onClick={() => setSelectedDifficulty('Intermediate')}
+                >
+                  {progressData?.Intermediate?.correct >= progressData?.Intermediate?.required && progressData?.Intermediate?.required > 0 ? 'Limit Reached' : 'Start Intermediate'}
+                </Button>
+              </CardFooter>
+            </Card>
+
+            {/* Advanced */}
+            <Card className={cn("overflow-hidden border-2 transition-all hover:-translate-y-1 hover:shadow-lg", diffThemes.Hard.border)}>
+              <CardHeader className={cn("bg-gradient-to-br", diffThemes.Hard.bg)}>
+                <div className="flex justify-between items-start">
+                  <div className={cn("p-3 rounded-xl", diffThemes.Hard.badge)}>
+                    <ShieldAlert className="w-6 h-6" />
+                  </div>
+                  {progressData?.Advanced?.correct >= progressData?.Advanced?.required && progressData?.Advanced?.required > 0 && (
+                    <span className="bg-rose-500 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Completed
+                    </span>
+                  )}
+                </div>
+                <CardTitle className="text-xl mt-4">Advanced</CardTitle>
+                <CardDescription>Only for the experts. Almost illegible prescriptions.</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="flex justify-between items-center text-sm mb-2">
+                  <span className="font-semibold text-muted-foreground">Correct Answers</span>
+                  <span className="font-bold">{progressData?.Advanced?.correct || 0} / {progressData?.Advanced?.required || 0}</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div className="bg-rose-500 h-2 rounded-full" style={{ width: `${progressData?.Advanced?.required > 0 ? Math.min(((progressData?.Advanced?.correct || 0) / progressData?.Advanced?.required) * 100, 100) : 0}%` }} />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className={cn("w-full", diffThemes.Hard.button)}
+                  disabled={progressData?.Advanced?.correct >= progressData?.Advanced?.required && progressData?.Advanced?.required > 0}
+                  onClick={() => setSelectedDifficulty('Advanced')}
+                >
+                  {progressData?.Advanced?.correct >= progressData?.Advanced?.required && progressData?.Advanced?.required > 0 ? 'Limit Reached' : 'Start Advanced'}
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        </div>
+      ) : gameData?.limit_reached ? (
+        <Card className="max-w-md mx-auto text-center border-0 shadow-xl bg-gradient-to-b from-card to-muted/20 relative overflow-hidden mt-8">
+          <div className="absolute inset-0 bg-grid-white/10 pointer-events-none" />
+          <CardHeader className="pt-8">
+            <div className="mx-auto bg-green-500/10 p-5 rounded-full w-fit">
+              <CheckCircle2 className="w-16 h-16 text-green-500" />
+            </div>
+            <CardTitle className="text-2xl font-bold mt-4">Level Completed!</CardTitle>
+            <CardDescription className="text-md">
+              {gameData.message}
+            </CardDescription>
+          </CardHeader>
+          <CardFooter className="pb-8 justify-center gap-3">
+            <Button onClick={() => setSelectedDifficulty(null)} variant="outline">
+              Back to Levels
+            </Button>
+          </CardFooter>
+        </Card>
+      ) : finished ? (
+        <Card className="max-w-md mx-auto text-center border-0 shadow-xl bg-gradient-to-b from-card to-muted/20 relative overflow-hidden mt-8">
           <div className="absolute inset-0 bg-grid-white/10 pointer-events-none" />
           <CardHeader className="pt-8">
             <div className="mx-auto bg-yellow-500/10 p-5 rounded-full w-fit animate-bounce">
@@ -182,16 +361,23 @@ export default function PharmaReaderStudentPage() {
             </div>
             <CardTitle className="text-2xl font-bold mt-4">Amazing Work!</CardTitle>
             <CardDescription className="text-md">
-              You have successfully answered all available prescriptions. Keep checking back for new levels!
+              You have successfully answered all available prescriptions for this difficulty.
             </CardDescription>
           </CardHeader>
-          <CardFooter className="pb-8 justify-center">
-            <Button onClick={() => router.push('/dashboard/games')} size="lg" className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg shadow-purple-500/25">
-              Explore Other Games
+          <CardFooter className="pb-8 justify-center gap-3">
+            <Button onClick={() => setSelectedDifficulty(null)} variant="outline">
+              Choose Another Level
+            </Button>
+            <Button onClick={() => router.push('/dashboard/games')} className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg shadow-purple-500/25">
+              Other Games
             </Button>
           </CardFooter>
         </Card>
       ) : prescription ? (
+        <div className="mt-4 mb-4">
+           <Button variant="outline" size="sm" onClick={() => setSelectedDifficulty(null)} className="mb-4">
+             <ArrowLeft className="w-4 h-4 mr-2" /> Change Difficulty
+           </Button>
         <div className="grid md:grid-cols-2 gap-6 items-start">
           {/* Left panel: Prescription Image */}
           <Card className={cn("shadow-lg overflow-hidden border relative flex flex-col justify-center min-h-[350px] bg-gradient-to-b transition-all duration-300", currentTheme.border, currentTheme.bg)}>
@@ -268,7 +454,7 @@ export default function PharmaReaderStudentPage() {
                         isSelected 
                           ? cn(
                               "border-indigo-600 bg-indigo-500/5 text-indigo-900 dark:text-indigo-200 shadow-md",
-                              difficulty === 'Easy' && "border-emerald-600 bg-emerald-500/5 text-emerald-950 dark:text-emerald-200",
+                              difficulty === 'Basic' && "border-emerald-600 bg-emerald-500/5 text-emerald-950 dark:text-emerald-200",
                               difficulty === 'Medium' && "border-amber-600 bg-amber-500/5 text-amber-950 dark:text-amber-200",
                               (difficulty === 'Hard' || difficulty === 'Advanced') && "border-rose-600 bg-rose-500/5 text-rose-950 dark:text-rose-200"
                             )
@@ -369,6 +555,7 @@ export default function PharmaReaderStudentPage() {
             </Card>
           </div>
         </div>
+        </div>
       ) : (
         <Card className="text-center p-8">
           <CardHeader>
@@ -383,105 +570,7 @@ export default function PharmaReaderStudentPage() {
         </Card>
       )}
 
-      {/* Performance History Section */}
-      <Card className="shadow-lg border mt-8">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-indigo-500 animate-bounce" />
-            My Progress & Performance
-          </CardTitle>
-          <CardDescription>
-            Keep track of your dispensing accuracy and practice history.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Stats grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="p-4 bg-muted/20 border-0 flex flex-col justify-between">
-              <span className="text-sm font-semibold text-muted-foreground">Total Attempts</span>
-              <span className="text-3xl font-extrabold mt-2">{totalAttemptsCount}</span>
-            </Card>
-            <Card className="p-4 bg-muted/20 border-0 flex flex-col justify-between">
-              <span className="text-sm font-semibold text-muted-foreground">Correct Answers</span>
-              <span className="text-3xl font-extrabold text-green-600 dark:text-green-400 mt-2">{correctAttemptsCount}</span>
-            </Card>
-            <Card className="p-4 bg-muted/20 border-0">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-semibold text-muted-foreground">Success Rate</span>
-                <span className="text-sm font-extrabold text-indigo-500">{successRate}%</span>
-              </div>
-              <div className="w-full bg-muted dark:bg-muted/50 rounded-full h-3.5 mt-3 overflow-hidden">
-                <div 
-                  className="bg-indigo-600 h-full rounded-full transition-all duration-500" 
-                  style={{ width: `${successRate}%` }}
-                />
-              </div>
-            </Card>
-          </div>
 
-          {/* History list */}
-          <div>
-            <h3 className="text-md font-semibold mb-3">Recent Attempts</h3>
-            {sortedAttempts.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground border rounded-xl border-dashed">
-                You haven't submitted any answers yet. Start playing above!
-              </div>
-            ) : (
-              <div className="border rounded-xl overflow-hidden divide-y">
-                {sortedAttempts.slice(0, 10).map((attempt: any) => {
-                  const isCorrect = attempt.answer_status === 'Correct';
-                  return (
-                    <div key={attempt.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card hover:bg-muted/10 transition-colors">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm">Prescription #{attempt.pres_id}</span>
-                          <span className={cn(
-                            "px-2.5 py-0.5 rounded-full text-xs font-medium border",
-                            attempt.difficulty === 'Easy' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                            attempt.difficulty === 'Medium' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
-                            'bg-rose-500/10 text-rose-500 border-rose-500/20'
-                          )}>
-                            {attempt.difficulty}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Selected Option: <span className="font-medium text-foreground">{attempt.selected_answer}</span>
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 justify-between sm:justify-end">
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(attempt.created_at).toLocaleDateString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                        <span className={cn(
-                          "px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1",
-                          isCorrect 
-                            ? "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" 
-                            : "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30"
-                        )}>
-                          {isCorrect ? (
-                            <>
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Correct
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="w-3.5 h-3.5" /> Incorrect
-                            </>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Image Lightbox / Zoom Modal */}
       {isZoomed && prescription && (
