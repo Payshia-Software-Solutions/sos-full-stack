@@ -25,10 +25,15 @@ class PaymentPortalRequest
     }
 
 
-    // Fetch a payment request by Ref
     public function getRecordByUnique($unique_number)
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM payment_requests WHERE unique_number = :unique_number");
+        $stmt = $this->pdo->prepare("
+            SELECT p.*, 
+                   (SELECT COUNT(*) FROM payment_requests WHERE hash_value = p.hash_value) AS duplicate_count,
+                   (SELECT GROUP_CONCAT(DISTINCT unique_number SEPARATOR ', ') FROM payment_requests WHERE hash_value = p.hash_value AND id != p.id) AS duplicate_refs
+            FROM payment_requests p 
+            WHERE p.unique_number = :unique_number
+        ");
         $stmt->execute(['unique_number' => $unique_number]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

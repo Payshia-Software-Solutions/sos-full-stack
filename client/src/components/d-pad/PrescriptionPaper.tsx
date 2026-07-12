@@ -9,6 +9,7 @@ interface PrescriptionPaperProps {
     pres_date?: string;
     Pres_Age?: string | number;
     drugs_list?: string;
+    drugs_written_list?: string;
   };
   labels?: {
     patientName?: string;
@@ -28,18 +29,34 @@ export function PrescriptionPaper({
     ? prescription.drugs_list.split(',').map(d => d.trim()).filter(Boolean)
     : [];
 
+  const writtenDrugs = prescription.drugs_written_list
+    ? prescription.drugs_written_list.split(',').map(d => d.trim())
+    : [];
+
+  const usages = ["bd", "tds", "daily", "mane", "nocte"];
+
   const getBaseDrugName = (fullDrug: string) => {
-    const usages = ["bd", "tds", "daily", "mane", "nocte"];
     const parts = fullDrug.trim().split(" ");
     const lastPart = parts[parts.length - 1]?.toLowerCase();
-    
     if (usages.includes(lastPart)) {
       return parts.slice(0, -1).join(" ");
     }
     return fullDrug;
   };
 
-  const baseDrugNames = drugs.map(getBaseDrugName);
+  const displayDrugs = drugs.map((drug, i) => {
+    const parts = drug.trim().split(" ");
+    const lastPart = parts[parts.length - 1]?.toLowerCase();
+    const hasUsage = usages.includes(lastPart);
+    const usage = hasUsage ? lastPart : "";
+    
+    const baseName = hasUsage ? parts.slice(0, -1).join(" ") : drug;
+    const writtenName = writtenDrugs[i] || baseName;
+    
+    return usage ? `${writtenName} ${usage}` : writtenName;
+  });
+
+  const baseDrugNames = displayDrugs.map(getBaseDrugName);
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
@@ -77,10 +94,10 @@ export function PrescriptionPaper({
           
           <div className="flex justify-between items-center pr-2">
             <div className="space-y-4 font-mono text-sm leading-relaxed text-slate-100 flex-1">
-              {drugs.length > 0 ? (
-                drugs.map((drug, i) => (
+              {displayDrugs.length > 0 ? (
+                displayDrugs.map((drugName, i) => (
                   <div key={i} className="border-b border-dashed border-slate-800 pb-2 max-w-[80%]">
-                    <p className="font-bold text-slate-100">{drug}</p>
+                    <p className="font-bold text-slate-100">{drugName}</p>
                     <p className="text-xs text-slate-400 italic">
                       Dispense as Cover {i + 1}
                     </p>

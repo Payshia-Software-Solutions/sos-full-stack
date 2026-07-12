@@ -1,6 +1,6 @@
 <?php
 
-class User
+class SysUser
 {
     private $pdo;
 
@@ -29,9 +29,9 @@ class User
         }
 
         $sql = "INSERT INTO users 
-                (status_id, userid, fname, lname, batch_id, username, phone, email, password, userlevel, status, created_by, created_at, batch_lock) 
+                (status_id, userid, fname, lname, batch_id, username, phone, email, password, userlevel, status, created_by, created_at, batch_lock, temp_password) 
                 VALUES 
-                (:status_id, :userid, :fname, :lname, :batch_id, :username, :phone, :email, :password, :userlevel, :status, :created_by, :created_at, :batch_lock)";
+                (:status_id, :userid, :fname, :lname, :batch_id, :username, :phone, :email, :password, :userlevel, :status, :created_by, :created_at, :batch_lock, :temp_password)";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($data);

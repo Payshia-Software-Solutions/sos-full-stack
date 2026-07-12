@@ -19,7 +19,7 @@ const SELECTED_COURSE_STORAGE_KEY = 'selected_course';
 
 export default function SelectCoursePage() {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
 
     const { data: enrollments, isLoading: isLoadingEnrollments } = useQuery<StudentEnrollmentInfo[]>({
         queryKey: ['studentEnrollments', user?.username],
@@ -35,10 +35,8 @@ export default function SelectCoursePage() {
     
     // Redirect if not needed
     useEffect(() => {
-        if (!isLoadingEnrollments && enrollments && enrollments.length <= 1) {
-            if (enrollments.length === 1) {
-                localStorage.setItem(SELECTED_COURSE_STORAGE_KEY, enrollments[0].course_code);
-            }
+        if (!isLoadingEnrollments && enrollments && enrollments.length === 1) {
+            localStorage.setItem(SELECTED_COURSE_STORAGE_KEY, enrollments[0].course_code);
             router.replace('/dashboard');
         }
     }, [enrollments, isLoadingEnrollments, router]);
@@ -97,7 +95,13 @@ export default function SelectCoursePage() {
                             </div>
                         )}
                          {!isLoading && (!enrollments || enrollments.length === 0) && (
-                            <p className="text-center text-muted-foreground py-8">You are not enrolled in any courses.</p>
+                            <div className="text-center py-8">
+                                <p className="text-muted-foreground mb-4">You are not enrolled in any courses.</p>
+                                <Button onClick={() => {
+                                    localStorage.removeItem(SELECTED_COURSE_STORAGE_KEY);
+                                    logout();
+                                }} variant="outline">Logout</Button>
+                            </div>
                          )}
                     </div>
                 </DialogContent>

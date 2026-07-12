@@ -1,4 +1,4 @@
 <?php
-$pdo = new PDO('mysql:host=localhost;dbname=sos', 'root', '');
-$stmt = $pdo->query("SELECT * FROM cc_criteria_list");
+require './config/database.php';
+$stmt = $pdo->query('SELECT id, current_status FROM delivery_orders ORDER BY id DESC LIMIT 5');
 print_r($stmt->fetchAll(PDO::FETCH_ASSOC));

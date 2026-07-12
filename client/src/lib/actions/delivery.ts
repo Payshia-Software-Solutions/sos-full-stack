@@ -1,4 +1,3 @@
-
 import { LMS_API_URL } from "@/lib/config";
 import type { DeliveryOrder, StudentInBatch, CreateDeliveryOrderPayload, DeliverySetting } from '../types';
 
@@ -16,7 +15,7 @@ export const getDeliveryOrdersForStudent = async (studentNumber: string): Promis
     return response.json();
 };
 
-// Batch-based student fetching
+// Batch-based student fetching (kept for compatibility)
 export const getStudentsByCourseCode = async (courseCode: string): Promise<StudentInBatch[]> => {
     const response = await fetch(`${QA_API_BASE_URL}/student-courses-new/course-code/${courseCode}/`);
     if (!response.ok) {
@@ -26,8 +25,21 @@ export const getStudentsByCourseCode = async (courseCode: string): Promise<Stude
     return response.json();
 };
 
+// Get all delivery orders for a specific course directly
+export const getDeliveryOrdersByCourse = async (courseCode: string): Promise<DeliveryOrder[]> => {
+    const response = await fetch(`${QA_API_BASE_URL}/delivery_orders/?courseCode=${courseCode}`);
+    if (response.status === 404) {
+        return [];
+    }
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch delivery orders for course' }));
+        throw new Error(errorData.message || `Request failed with status ${response.status}`);
+    }
+    return response.json();
+};
+
 // Create delivery order
-export const createDeliveryOrder = async (payload: DeliveryOrderPayload): Promise<any> => {
+export const createDeliveryOrder = async (payload: any): Promise<any> => {
     const { delivery_title, notes, ...apiPayload } = payload;
     
     const response = await fetch(`${QA_API_BASE_URL}/delivery_orders`, {
@@ -45,7 +57,7 @@ export const createDeliveryOrder = async (payload: DeliveryOrderPayload): Promis
 export const createDeliveryOrderForStudent = async (payload: any): Promise<any> => {
     const { studentNumber, courseCode, deliverySetting, notes, address, fullName, phone, currentStatus, trackingNumber } = payload;
     
-    const fullPayload: Omit<DeliveryOrderPayload, 'delivery_title' | 'notes'> = {
+    const fullPayload = {
         delivery_id: deliverySetting.id,
         tracking_number: trackingNumber || 'PENDING',
         index_number: studentNumber,
@@ -95,6 +107,19 @@ export const getDeliverySettingsForCourse = async (courseCode: string): Promise<
     return response.json();
 }
 
+export const updateDeliveryOrder = async (orderId: string, updatedOrder: any): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/delivery_orders/${orderId}/`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedOrder)
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update delivery order' }));
+        throw new Error(errorData.message || `Request failed with status ${response.status}`);
+    }
+    return response.json();
+};
+
 export const updateDeliveryOrderStatus = async (orderId: string, status: "Received" | "Not Received"): Promise<any> => {
     const response = await fetch(`${QA_API_BASE_URL}/delivery_orders/update-status/${orderId}/`, {
         method: 'PUT',
@@ -110,3 +135,48 @@ export const updateDeliveryOrderStatus = async (orderId: string, status: "Receiv
     }
     return response.json();
 }
+
+export const createDeliverySetting = async (data: Omit<DeliverySetting, 'id'>): Promise<DeliverySetting> => {
+    const response = await fetch(`${QA_API_BASE_URL}/delivery-settings/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to create delivery setting' }));
+        throw new Error(errorData.message || `Request failed with status ${response.status}`);
+    }
+    return response.json();
+};
+
+export const updateDeliverySetting = async (id: string, data: Partial<Omit<DeliverySetting, 'id'>>): Promise<DeliverySetting> => {
+    const response = await fetch(`${QA_API_BASE_URL}/delivery-settings/${id}/`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update delivery setting' }));
+        throw new Error(errorData.message || `Request failed with status ${response.status}`);
+    }
+    return response.json();
+};
+
+export const deleteDeliverySetting = async (id: string): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/delivery-settings/${id}/`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to delete delivery setting' }));
+        throw new Error(errorData.message || `Request failed with status ${response.status}`);
+    }
+};
+
+export const getDeliveryOrderById = async (id: string): Promise<DeliveryOrder> => {
+    const response = await fetch(`${QA_API_BASE_URL}/delivery_orders/${id}/`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch delivery order');
+    }
+    return response.json();
+};
+

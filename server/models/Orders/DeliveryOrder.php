@@ -56,8 +56,6 @@ class DeliveryOrder
     public function updateRecord($id, $data)
     {
         try {
-            $data['id'] = $id;
-
             $sql = "UPDATE delivery_orders SET 
                         delivery_id = :delivery_id, 
                         tracking_number = :tracking_number, 
@@ -85,9 +83,34 @@ class DeliveryOrder
                     WHERE id = :id";
 
             $stmt = $this->pdo->prepare($sql);
-            return $stmt->execute($data);
+            return $stmt->execute([
+                ':id' => $id,
+                ':delivery_id' => $data['delivery_id'],
+                ':tracking_number' => $data['tracking_number'],
+                ':index_number' => $data['index_number'],
+                ':order_date' => $data['order_date'],
+                ':packed_date' => $data['packed_date'] ?? null,
+                ':send_date' => $data['send_date'] ?? null,
+                ':removed_date' => $data['removed_date'] ?? null,
+                ':current_status' => $data['current_status'],
+                ':delivery_partner' => $data['delivery_partner'],
+                ':value' => $data['value'],
+                ':payment_method' => $data['payment_method'],
+                ':course_code' => $data['course_code'],
+                ':estimate_delivery' => $data['estimate_delivery'] ?? null,
+                ':full_name' => $data['full_name'],
+                ':street_address' => $data['street_address'],
+                ':city' => $data['city'] ?? '',
+                ':district' => $data['district'] ?? '',
+                ':phone_1' => $data['phone_1'],
+                ':phone_2' => $data['phone_2'] ?? '',
+                ':is_active' => $data['is_active'] ?? 1,
+                ':received_date' => $data['received_date'] ?? null,
+                ':cod_amount' => $data['cod_amount'] ?? '0.00',
+                ':package_weight' => $data['package_weight'] ?? '0.000',
+            ]);
         } catch (PDOException $e) {
-            return ['error' => $e->getMessage()];
+            return false;
         }
     }
 
@@ -202,6 +225,30 @@ class DeliveryOrder
         $stmt->execute(['index_number' => $index_number, 'course_code' => $courseCode]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC); // Fetches all matching records with delivery_title
         // Update this
+    }
+
+    public function getRecordByCourseCode($courseCode)
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT 
+                do.*,
+                ds.delivery_title,
+                CASE 
+                    WHEN do.current_status = 1 THEN 'Processing'
+                    WHEN do.current_status = 2 THEN 'Packed'
+                    WHEN do.current_status = 3 THEN 'Dispatched'
+                    WHEN do.current_status = 4 THEN 'Removed'
+                    WHEN do.current_status = 5 THEN 'Returned'
+                    WHEN do.current_status = 6 THEN 'Cancelled'
+                    ELSE 'Unknown'
+                END AS active_status
+            FROM delivery_orders do
+            LEFT JOIN delivery_setting ds ON do.delivery_id = ds.id
+            WHERE do.course_code = :course_code
+            ORDER BY do.order_date DESC
+        ");
+        $stmt->execute(['course_code' => $courseCode]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
 
