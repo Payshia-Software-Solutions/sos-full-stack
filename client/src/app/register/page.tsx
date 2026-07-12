@@ -1,9 +1,6 @@
 'use client';
 
 import { LMS_API_URL } from "@/lib/config";
-
-
-
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
@@ -21,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from "@/components/ui/calendar";
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { parseNIC } from '@/lib/nic-parser';
@@ -87,6 +85,8 @@ export default function RegisterPage() {
   const [selectedCourse, setSelectedCourse] = useState('');
 
   const [isRegistering, setIsRegistering] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   
     useEffect(() => {
         async function fetchCities() {
@@ -249,7 +249,7 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.details || data.error || data.message || `Request failed with status ${response.status}`);
+        throw new Error(data.error || data.details || data.message || `Request failed with status ${response.status}`);
       }
 
       toast({
@@ -261,11 +261,8 @@ export default function RegisterPage() {
       setCurrentStep(STEPS.length + 1); // Move to success step
 
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Registration Failed",
-        description: error instanceof Error ? error.message : "Could not submit your registration.",
-      });
+      setErrorMessage(error instanceof Error ? error.message : "Could not submit your registration.");
+      setShowErrorModal(true);
     } finally {
       setIsRegistering(false);
     }
@@ -578,6 +575,22 @@ export default function RegisterPage() {
         </CardFooter>
       </Card>
       <BankInfoDialog variant="floating" />
+
+      <AlertDialog open={showErrorModal} onOpenChange={setShowErrorModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive flex items-center gap-2">
+               Registration Failed
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base text-foreground mt-2">
+              {errorMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowErrorModal(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

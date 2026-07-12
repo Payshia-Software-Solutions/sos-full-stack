@@ -19,7 +19,8 @@ import {
   MoreHorizontal,
   BookOpen,
   Gamepad2,
-  BookText
+  BookText,
+  Package
 } from "lucide-react";
 import {
   Sidebar,
@@ -64,6 +65,7 @@ const baseNavItems = [
   { href: "/dashboard/ceylon-pharmacy", label: "Ceylon Pharmacy", icon: Gamepad2 },
   { href: "/dashboard/medimind", label: "MediMind", icon: MediMindIcon },
   { href: "/dashboard/pharma-reader", label: "Pharma Reader", icon: PharmaReaderIcon },
+  { href: "/dashboard/delivery", label: "Delivery Orders", icon: Package },
   { href: "/dashboard/more", label: "More", icon: MoreHorizontal },
 ];
 

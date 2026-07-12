@@ -132,6 +132,187 @@ const QuickActionCard = ({ title, description, href, icon, colorClass, requiredC
 };
 
 
+import { useToast } from "@/hooks/use-toast";
+import { getDeliveryOrdersForStudent, updateDeliveryOrderStatus } from "@/lib/actions/delivery";
+import type { DeliveryOrder } from "@/lib/types";
+import { useQueryClient } from "@tanstack/react-query";
+import { Package } from "lucide-react";
+
+// --- Delivery Confirmation Component ---
+const DeliveryConfirmationPrompt = ({ user, allCourses }: { user: any, allCourses: Course[] | undefined }) => {
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [pendingOrder, setPendingOrder] = useState<DeliveryOrder | null>(null);
+
+    const { data: deliveryOrders } = useQuery<DeliveryOrder[]>({
+        queryKey: ['studentDeliveryOrders', user?.username],
+        queryFn: () => getDeliveryOrdersForStudent(user!.username!),
+        enabled: !!user?.username,
+    });
+
+    const dispatchedOrders = useMemo(() => {
+        if (!deliveryOrders) return [];
+        return deliveryOrders.filter(order => 
+            String(order.current_status) === '3' && 
+            order.order_recived_status !== 'Received'
+        );
+    }, [deliveryOrders]);
+
+    useEffect(() => {
+        if (dispatchedOrders.length > 0) {
+            // Find the first order that hasn't been reminded today
+            const orderToShow = dispatchedOrders.find(order => {
+                const remindKey = `remindMeTomorrow_${order.id}`;
+                const remindValue = localStorage.getItem(remindKey);
+                
+                // If order is dispatched, check if it's > 3 days old
+                const isOlderThan3Days = () => {
+                    if (!order.send_date) return false;
+                    const sendDate = new Date(order.send_date);
+                    const threeDaysAgo = new Date();
+                    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+                    return sendDate < threeDaysAgo;
+                };
+
+                if (isOlderThan3Days()) {
+                    if (!remindValue) return true;
+                    // Check if 24 hours have passed
+                    const remindTime = new Date(remindValue).getTime();
+                    const now = new Date().getTime();
+                    if (now - remindTime > 24 * 60 * 60 * 1000) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            if (orderToShow) {
+                setPendingOrder(orderToShow);
+                setDialogOpen(true);
+            }
+        }
+    }, [dispatchedOrders]);
+
+    const handleRemindTomorrow = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (pendingOrder) {
+            localStorage.setItem(`remindMeTomorrow_${pendingOrder.id}`, new Date().toISOString());
+            setDialogOpen(false);
+        }
+    };
+
+    const handleMarkAsReceived = async (orderId: string, e?: React.MouseEvent) => {
+        if (e) e.preventDefault();
+        try {
+            await updateDeliveryOrderStatus(orderId, 'Received');
+            toast({
+                title: "Success",
+                description: "Package marked as received. Thank you!",
+            });
+            queryClient.invalidateQueries({ queryKey: ['studentDeliveryOrders', user?.username] });
+            setDialogOpen(false);
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: "Error",
+                description: "Failed to update package status. Please try again.",
+            });
+        }
+    };
+
+    const getCourseImage = (courseCode?: string) => {
+        if (!courseCode || !allCourses) return null;
+        const course = allCourses.find(c => c.courseCode === courseCode);
+        return course?.course_img ? `${process.env.NEXT_PUBLIC_CONTENT_PROVIDER_URL || 'https://content-provider.pharmacollege.lk'}/${course.course_img}` : null;
+    };
+
+    if (dispatchedOrders.length === 0) return null;
+
+    return (
+        <>
+            {/* Top Card for Dashboard */}
+            <div className="space-y-4 mb-8">
+                {dispatchedOrders.map(order => {
+                    const courseImg = getCourseImage(order.course_code);
+                    return (
+                        <Card key={`card-${order.id}`} className="shadow-lg border-primary/50 bg-primary/5 animate-in fade-in slide-in-from-top-4">
+                            <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <div className="flex items-center gap-4 w-full sm:w-auto">
+                                    {courseImg ? (
+                                        <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-border shadow-sm">
+                                            <Image src={courseImg} alt="Course" fill style={{ objectFit: 'cover' }} />
+                                        </div>
+                                    ) : (
+                                        <div className="p-4 bg-primary/20 rounded-xl shrink-0">
+                                            <Package className="h-8 w-8 text-primary" />
+                                        </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-semibold text-lg text-primary leading-tight">Your package is on the way!</h3>
+                                        <p className="font-medium text-foreground mt-1 truncate">
+                                            {order.delivery_title || "Study Materials"}
+                                        </p>
+                                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                            <Badge variant="secondary" className="text-xs">{order.course_code}</Badge>
+                                            <span className="text-xs text-muted-foreground font-mono">Trk: {order.tracking_number}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <Button onClick={(e) => handleMarkAsReceived(order.id, e)} size="lg" className="shrink-0 w-full sm:w-auto font-semibold">
+                                    <CheckCircle className="mr-2 h-5 w-5" /> Mark as Received
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
+            </div>
+
+            {/* Popup Dialog */}
+            <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <AlertDialogContent className="sm:max-w-[425px]">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-2xl flex items-center gap-2">
+                            <Package className="h-6 w-6 text-primary" />
+                            Package Received?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-base pt-2">
+                            Your <strong className="text-foreground">{pendingOrder?.delivery_title || "Study Materials"}</strong> for <strong className="text-foreground">{pendingOrder?.course_code}</strong> was dispatched a few days ago. 
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    
+                    <div className="py-4 flex gap-4 items-center bg-muted/30 rounded-lg p-4 my-2 border">
+                        {getCourseImage(pendingOrder?.course_code) ? (
+                            <div className="relative w-20 h-20 rounded-md overflow-hidden shrink-0 shadow-sm">
+                                <Image src={getCourseImage(pendingOrder?.course_code)!} alt="Course" fill style={{ objectFit: 'cover' }} />
+                            </div>
+                        ) : (
+                            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                                <Package className="h-8 w-8 text-primary" />
+                            </div>
+                        )}
+                        <div className="flex flex-col gap-1 overflow-hidden">
+                            <span className="font-semibold truncate">{pendingOrder?.delivery_title || "Course Materials"}</span>
+                            <span className="text-xs text-muted-foreground">Tracking Number:</span>
+                            <span className="text-sm font-mono bg-background p-1 rounded border inline-block w-fit">{pendingOrder?.tracking_number}</span>
+                        </div>
+                    </div>
+
+                    <AlertDialogDescription>
+                        Please confirm if you have received it safely.
+                    </AlertDialogDescription>
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2 mt-2">
+                        <Button variant="outline" onClick={handleRemindTomorrow} className="w-full sm:w-auto">Remind me tomorrow</Button>
+                        <Button onClick={(e) => pendingOrder && handleMarkAsReceived(pendingOrder.id, e)} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white">
+                            <CheckCircle className="mr-2 h-4 w-4" /> Yes, I received it
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
+    );
+};
+
 // --- Main Page Component ---
 export default function StudentDashboardPage() {
     const { user } = useAuth();
@@ -180,6 +361,7 @@ export default function StudentDashboardPage() {
 
     const quickActions = [
         { title: "Create a Ticket", description: "Get help from our support staff.", href: "/dashboard/create-ticket", icon: <PlusCircle className="w-8 h-8 text-white" />, colorClass: "from-blue-400 to-indigo-500" },
+        { title: "Delivery Orders", description: "Request course materials delivery.", href: "/dashboard/delivery", icon: <FileText className="w-8 h-8 text-white" />, colorClass: "from-orange-400 to-red-500" },
         { title: "Order Certificate", description: "Request a hard copy of your certificate.", href: "/dashboard/certificate-order", icon: <Award className="w-8 h-8 text-white" />, colorClass: "from-green-400 to-teal-500" },
         { title: "BNF", description: "Access the British National Formulary.", href: "/dashboard/bnf", icon: <BookOpen className="w-8 h-8 text-white" />, colorClass: "from-red-400 to-rose-500" },
         { title: "Games & Challenges", description: "Test your knowledge and have fun.", href: "/dashboard/games", icon: <Gamepad2 className="w-8 h-8 text-white" />, colorClass: "from-yellow-400 to-amber-500" },
@@ -207,6 +389,8 @@ export default function StudentDashboardPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <DeliveryConfirmationPrompt user={user} />
 
             {/* --- Profile Header --- */}
             <Card className="shadow-lg overflow-hidden animate-in fade-in-50">

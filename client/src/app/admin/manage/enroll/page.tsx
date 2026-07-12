@@ -11,9 +11,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { dummyCourses } from '@/lib/dummy-data';
-import type { Course } from '@/lib/types';
-import { getStudentFullInfo } from '@/lib/actions/users';
+import { getBatches } from '@/lib/actions/courses';
+import { useQuery } from '@tanstack/react-query';
+import type { Batch } from '@/lib/types';
+import { getStudentFullInfo, addStudentEnrollment, removeStudentEnrollment } from '@/lib/actions/users';
 
 // Simplified types for this page
 interface StudentInfo {
@@ -45,6 +46,11 @@ export default function EnrollStudentPage() {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [newCourseId, setNewCourseId] = useState<string>('');
 
+    const { data: batches, isLoading: isLoadingBatches } = useQuery({
+        queryKey: ['allBatches'],
+        queryFn: getBatches,
+    });
+
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!studentId.trim()) {
@@ -71,63 +77,63 @@ export default function EnrollStudentPage() {
         }
     };
 
-    const handleRemoveEnrollment = (enrollmentId: string) => {
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleRemoveEnrollment = async (enrollmentId: string, studentCourseId: string) => {
         if (!studentData) return;
-
-        // Mock removal
-        const updatedEnrollments = { ...studentData.studentEnrollments };
-        delete updatedEnrollments[enrollmentId];
         
-        setStudentData({
-            ...studentData,
-            studentEnrollments: updatedEnrollments,
-        });
+        setIsSaving(true);
+        try {
+            await removeStudentEnrollment(studentCourseId);
+            
+            // Re-fetch to get updated state
+            const data = await getStudentFullInfo(studentData.studentInfo.student_id || studentData.studentInfo.username);
+            setStudentData(data);
 
-        toast({
-            title: "Enrollment Removed",
-            description: `The enrollment has been removed from this student's record.`,
-        });
+            toast({ title: "Enrollment Removed", description: `The enrollment has been removed from this student's record.` });
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to remove enrollment' });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    const handleAddEnrollment = () => {
+    const handleAddEnrollment = async () => {
         if (!studentData || !newCourseId) {
             toast({ variant: 'destructive', title: 'Error', description: 'Please select a course to add.' });
             return;
         }
 
-        const courseToAdd = dummyCourses.find(c => c.id === newCourseId);
-        if (!courseToAdd) {
+        const batchToAdd = batches?.find(c => c.id === newCourseId);
+        if (!batchToAdd) {
              toast({ variant: 'destructive', title: 'Error', description: 'Invalid course selected.' });
             return;
         }
         
-        if (studentData.studentEnrollments[courseToAdd.courseCode]) {
+        if (studentData.studentEnrollments[batchToAdd.courseCode]) {
             toast({ variant: 'destructive', title: 'Already Enrolled', description: 'The student is already enrolled in this course.' });
             return;
         }
 
-        // Mock addition
-        const newEnrollment: StudentEnrollment = {
-            id: `new-${Date.now()}`,
-            course_code: courseToAdd.courseCode,
-            parent_course_name: courseToAdd.name,
-            batch_name: "Default Batch", // Placeholder
-        };
+        setIsSaving(true);
+        try {
+            await addStudentEnrollment({
+                student_id: studentData.studentInfo.student_id || studentData.studentInfo.username,
+                course_code: batchToAdd.courseCode
+            });
+            
+            // Re-fetch to get updated state
+            const data = await getStudentFullInfo(studentData.studentInfo.student_id || studentData.studentInfo.username);
+            setStudentData(data);
 
-        setStudentData({
-            ...studentData,
-            studentEnrollments: {
-                ...studentData.studentEnrollments,
-                [courseToAdd.courseCode]: newEnrollment
-            }
-        });
-
-        toast({
-            title: "Enrollment Added",
-            description: `${studentData.studentInfo.full_name} has been enrolled in ${courseToAdd.name}.`
-        });
-        setNewCourseId('');
-        setIsAddDialogOpen(false);
+            toast({ title: "Enrollment Added", description: `${studentData.studentInfo.full_name} has been enrolled in ${batchToAdd.name}.` });
+            setNewCourseId('');
+            setIsAddDialogOpen(false);
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to add enrollment' });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -216,9 +222,11 @@ export default function EnrollStudentPage() {
                                                 <SelectValue placeholder="Select a course..." />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {dummyCourses.map(course => (
-                                                    <SelectItem key={course.id} value={course.id}>
-                                                        {course.name} ({course.courseCode})
+                                                {isLoadingBatches ? (
+                                                    <SelectItem value="loading" disabled>Loading batches...</SelectItem>
+                                                ) : batches?.map(batch => (
+                                                    <SelectItem key={batch.id} value={batch.id}>
+                                                        {batch.name} ({batch.courseCode})
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
@@ -226,9 +234,12 @@ export default function EnrollStudentPage() {
                                     </div>
                                     <DialogFooter>
                                         <DialogClose asChild>
-                                            <Button variant="outline">Cancel</Button>
+                                            <Button variant="outline" disabled={isSaving}>Cancel</Button>
                                         </DialogClose>
-                                        <Button onClick={handleAddEnrollment}>Add Enrollment</Button>
+                                        <Button onClick={handleAddEnrollment} disabled={isSaving}>
+                                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                            Add Enrollment
+                                        </Button>
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
@@ -245,7 +256,7 @@ export default function EnrollStudentPage() {
                                                     <span className="flex items-center gap-1.5"><Tag className="w-3.5 h-3.5" />{enrollment.batch_name}</span>
                                                 </div>
                                            </div>
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive shrink-0" onClick={() => handleRemoveEnrollment(enrollment.course_code)}>
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive shrink-0" onClick={() => handleRemoveEnrollment(enrollment.course_code, enrollment.id)} disabled={isSaving}>
                                                 <Trash2 className="h-4 w-4" />
                                                 <span className="sr-only">Remove Enrollment</span>
                                             </Button>

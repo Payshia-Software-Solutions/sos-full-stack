@@ -90,6 +90,7 @@ class CcEvaluationController
         $studentBalance = $this->model->GetStudentBalance($loggedUser);
         $studentInfo = $this->model->GetLmsStudentsByUserName($loggedUser);
         $studentEnrollments = $this->model->getUserEnrollmentsFullDetails($loggedUser);
+        $pendingPaymentRequests = $this->model->getPendingPaymentRequests($loggedUser);
 
         // Respond with JSON
         http_response_code(200);
@@ -98,6 +99,7 @@ class CcEvaluationController
             'studentInfo' => $studentInfo,
             'studentBalance' => $studentBalance,
             'studentEnrollments' => $studentEnrollments,
+            'pendingPaymentRequests' => $pendingPaymentRequests,
         ]);
     }
 }

@@ -11,6 +11,14 @@ class StudentPaymentControllerNew
         $this->model = new StudentPaymentNew($pdo);
     }
 
+    // Get payment statistics
+    public function getStats()
+    {
+        $courseCode = isset($_GET['course_code']) ? $_GET['course_code'] : null;
+        if ($courseCode === 'all') $courseCode = null;
+        echo json_encode($this->model->getPaymentStats($courseCode));
+    }
+
     // Get all student payments
     public function getAll()
     {

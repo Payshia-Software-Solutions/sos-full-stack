@@ -14,18 +14,37 @@ class SMSModel
         $this->templatePath = $templatePath;
     }
 
-    public function sendWelcomeSMS($mobile, $studentName, $referenceNumber)
+    private function getTemplateFromDB($templateName)
     {
-        // Load the template from the file
-        $template = file_get_contents($this->templatePath);
+        $pdo = $GLOBALS['pdo'] ?? null;
+        if (!$pdo) {
+            return false;
+        }
+        $stmt = $pdo->prepare('SELECT template_content FROM sms_templates WHERE template_name = ?');
+        $stmt->execute([$templateName]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row && isset($row['template_content'])) {
+            return $row['template_content'];
+        }
+        return false;
+    }
+
+    public function sendWelcomeSMS($mobile, $studentName, $referenceNumber, $tempPassword = '', $courseName = '')
+    {
+        // Try to load the template from DB first
+        $template = $this->getTemplateFromDB('account-activation-message');
+        if (!$template) {
+            // Load the template from the file as fallback
+            $template = file_get_contents($this->templatePath);
+        }
         if (!$template) {
             throw new Exception("Unable to load SMS template.");
         }
 
         // Replace placeholders with actual data
         $message = str_replace(
-            ['[STUDENT_NAME]', '[REFERENCE_NUMBER]'],
-            [$studentName, $referenceNumber],
+            ['[STUDENT_NAME]', '[REFERENCE_NUMBER]', '{name}', '{index}', '{{FIRST_NAME}}', '{{COURSE_NAME}}', '{course_name}', '{{GENERATED_USER_NAME}}', '{{TEMP_PASSWORD}}', '{temp_password}'],
+            [$studentName, $referenceNumber, $studentName, $referenceNumber, $studentName, $courseName, $courseName, $referenceNumber, $tempPassword, $tempPassword],
             $template
         );
 
@@ -33,10 +52,31 @@ class SMSModel
         return $this->sendSMS($mobile, $this->senderId, $message);
     }
 
+    public function sendPaymentUpdateSMS($mobile, $studentName, $courseName, $paymentAmount, $receiptNumber)
+    {
+        // Try to load the template from DB first
+        $template = $this->getTemplateFromDB('payment-update-message');
+        if (!$template) {
+            // Load the template from the file as fallback if DB fails or missing
+            $template = "Dear [STUDENT_NAME], we have received your payment of LKR [PAYMENT_AMOUNT] for [COURSE_NAME]. Receipt No: [RECEIPT_NUMBER]. Thank you! - Pharma College";
+        }
+        
+        $message = str_replace(
+            ['[STUDENT_NAME]', '[COURSE_NAME]', '[PAYMENT_AMOUNT]', '[RECEIPT_NUMBER]'],
+            [$studentName, $courseName, number_format($paymentAmount, 2), $receiptNumber],
+            $template
+        );
+
+        return $this->sendSMS($mobile, $this->senderId, $message);
+    }
+
     public function sendConvocationPaymentApprovedSMS($mobile, $studentName, $referenceNumber, $receiptNumber, $paymentAmount)
     {
-        // Load the convocation SMS template from file
-        $template = file_get_contents('templates/convocation-payment-message.txt');
+        // Load the convocation SMS template from DB first, fallback to file
+        $template = $this->getTemplateFromDB('convocation-payment-approved');
+        if (!$template) {
+            $template = file_get_contents('templates/convocation-payment-message.txt');
+        }
         if (!$template) {
             throw new Exception("Unable to load convocation SMS template.");
         }
@@ -56,8 +96,11 @@ class SMSModel
 
     public function sendCeremonyNumberSMS($mobile, $studentName, $ceremonyNumber)
     {
-        // Load the SMS template from file
-        $template = file_get_contents('templates/ceremony-number-message.txt');
+        // Load the SMS template from DB first, fallback to file
+        $template = $this->getTemplateFromDB('ceremony-number-message');
+        if (!$template) {
+            $template = file_get_contents('templates/ceremony-number-message.txt');
+        }
         if (!$template) {
             throw new Exception("Unable to load ceremony SMS template.");
         }
@@ -78,13 +121,14 @@ class SMSModel
         $templatePath = 'templates/name-on-certificate-message.txt';
 
         // Check if template file exists
-        if (!file_exists($templatePath)) {
-            throw new Exception("SMS template file not found at path: $templatePath");
+        $template = $this->getTemplateFromDB('name-on-certificate-message');
+        if (!$template) {
+            if (file_exists($templatePath)) {
+                $template = file_get_contents($templatePath);
+            }
         }
-
-        // Read template content
-        $template = file_get_contents($templatePath);
-        if ($template === false || trim($template) === '') {
+        
+        if (!$template || trim($template) === '') {
             throw new Exception("Unable to read or empty SMS template.");
         }
 
@@ -106,8 +150,11 @@ class SMSModel
 
     public function sendCeremonyDueBreakdownSMS($mobile, $studentName, $courseBalance, $convocationBalance)
     {
-        // Load the SMS template from file
-        $template = file_get_contents('templates/ceremony-due-breakdown-message.txt');
+        // Load the SMS template from DB first, fallback to file
+        $template = $this->getTemplateFromDB('ceremony-due-breakdown-message');
+        if (!$template) {
+            $template = file_get_contents('templates/ceremony-due-breakdown-message.txt');
+        }
         if (!$template) {
             throw new Exception("Unable to load due breakdown SMS template.");
         }
@@ -172,8 +219,11 @@ class SMSModel
 
     public function sendOrderSMS($mobile, $studentName)
     {
-        // Load the order SMS template from file
-        $template = file_get_contents('templates/study-pack-not-order.txt');
+        // Load the order SMS template from DB first, fallback to file
+        $template = $this->getTemplateFromDB('study-pack-not-order');
+        if (!$template) {
+            $template = file_get_contents('templates/study-pack-not-order.txt');
+        }
         if (!$template) {
             throw new Exception("Unable to load order SMS template.");
         }

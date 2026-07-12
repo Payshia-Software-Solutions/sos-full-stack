@@ -158,7 +158,7 @@ $mediMindCourseLevelRoutes = require './routes/MediMind/MediMindCourseLevelRoute
 $birthdaySettingsRoutes = require './routes/BirthdaySettingsRoutes.php';
 $blogRoutes = require './routes/BlogRoutes.php';
 $pharmaReaderRoutes = require './routes/pharmaReaderRoutes.php';
-
+$smsTemplateRoutes = require './routes/smsTemplateRoutes.php';
 // Combine all routes
 $routes = array_merge(
     $userRoutes,
@@ -295,7 +295,8 @@ $routes = array_merge(
     $birthdaySettingsRoutes,
     $convocationStudentInfoRoutes,
     $blogRoutes,
-    $pharmaReaderRoutes
+    $pharmaReaderRoutes,
+    $smsTemplateRoutes
 );
 
 
@@ -319,6 +320,41 @@ $routes['GET /run-medimind-migration-v2/'] = function () use ($pdo) {
         ");
         
         echo json_encode(['success' => true, 'message' => 'Migration V2 successful: level_id added and backfilled.']);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+};
+
+$routes['GET /run-sms-migration/'] = function () use ($pdo) {
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `sms_templates` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `template_name` VARCHAR(255) NOT NULL UNIQUE,
+                `template_content` TEXT NOT NULL,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        ");
+
+        // Insert default templates and update existing ones if they differ
+        $pdo->exec("
+            INSERT INTO `sms_templates` (`template_name`, `template_content`) VALUES 
+            ('account-activation-message', 'Dear {{FIRST_NAME}},\n\nYou have been successfully enrolled in {{COURSE_NAME}}.\nIndex No: {{GENERATED_USER_NAME}}\nTemporary Password: {{TEMP_PASSWORD}}\n\nLogin here: https://lms.pharmacollege.lk/login?UserName={{GENERATED_USER_NAME}}&TempPassword={{TEMP_PASSWORD}}\n\nHow to Order Study Pack - https://www.youtube.com/shorts/1xd3TAjbtYw\n\nCeylon Pharma College\nwww.pharmacollege.lk'),
+            ('payment-update-message', 'Dear [STUDENT_NAME], we have received your payment of LKR [PAYMENT_AMOUNT] for [COURSE_NAME]. Receipt No: [RECEIPT_NUMBER]. Thank you! - Pharma College'),
+            ('convocation-payment-approved', 'Dear student, your convocation payment has been approved.'),
+            ('study-pack-not-order', 'Dear student, please order your study pack.'),
+            ('ceremony-number-message', 'Dear {{FIRST_NAME}},\nYour ceremony registration was successfully completed.\nCeremony No: {{CEREMONY_NUMBER}}\n\n-Ceylon Pharma College'),
+            ('name-on-certificate-message', 'Dear Student ({{STUDENT_NUMBER}}),\nYour certificate is ready to print. Name on certificate: {{NAME_ON_CERTIFICATE}}.\nThank You!'),
+            ('ceremony-due-breakdown-message', 'Dear {{FIRST_NAME}},\nYour Ceremony Number is not processed due to unpaid balances:\nCourse: Rs. {{COURSE_BALANCE}}\nConvocation: Rs. {{CONVOCATION_BALANCE}}\nTotal: Rs. {{TOTAL_DUE}}\n\nPlease complete payment.\n-Ceylon Pharma College'),
+            ('delivery-order-placed', 'Dear {index_number},\n\nWe have successfully received your delivery order for {delivery_item}.\nWe will process it shortly!\n\nThank you!\nCeylon Pharma College\nwww.pharmacollege.lk'),
+            ('delivery-order-packed', 'Dear {index_number},\n\nYour order is ready for delivery!\n\nProduct - {delivery_item} \nTracking Number - {tracking_number} \n\nThank you!\nCeylon Pharma College\nwww.pharmacollege.lk'),
+            ('delivery-order-dispatched', 'Dear {index_number},\n\nYour order has been handed over to the delivery partner!\n\nProduct - {delivery_item} \nTracking Number - {tracking_number} \nCOD Amount - {cod_amount} \nDelivery Partner - Royal Express Courier \n    \nThank you!\nCeylon Pharma College\nwww.pharmacollege.lk'),
+            ('delivery-order-received', 'Dear {index_number},\n\nYour delivery order for {delivery_item} has been marked as successfully received.\n\nThank you!\nCeylon Pharma College\nwww.pharmacollege.lk')
+            ON DUPLICATE KEY UPDATE `template_content` = VALUES(`template_content`)
+        ");
+
+        echo json_encode(['success' => true, 'message' => 'sms_templates table created and seeded successfully.']);
     } catch (PDOException $e) {
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
@@ -364,8 +400,8 @@ foreach ($routes as $route => $handler) {
 
     // Convert route URI to regex (without query parameters){trackingNumber} student_number
     $routeRegex = str_replace(
-        ['{id}', '{reply_id}', '{post_id}', '{created_by}', '{username}', '{role}', '{assignment_id}', '{course_code}', '{offset}', '{limit}', '{setting_name}', '{loggedUser}', '{title_id}', '{slug}', '{module_code}', '{value}', '{studentId}', '{tracking_number}', '{index_number}', '{provinceId}', '{student_number}', '{questionId}', '{levelId}', '{medicineId}', '{batch_id}'],
-        ['(\d+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '(\d+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)'],
+        ['{id}', '{reply_id}', '{post_id}', '{created_by}', '{username}', '{role}', '{assignment_id}', '{course_code}', '{offset}', '{limit}', '{setting_name}', '{loggedUser}', '{title_id}', '{slug}', '{module_code}', '{value}', '{studentId}', '{tracking_number}', '{index_number}', '{provinceId}', '{student_number}', '{questionId}', '{levelId}', '{medicineId}', '{batch_id}', '{status}'],
+        ['(\d+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '(\d+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-\%\s]+)'],
         $routeUri
     );
 
