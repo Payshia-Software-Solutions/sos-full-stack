@@ -9,6 +9,59 @@ class StudentPaymentNew
         $this->pdo = $pdo;
     }
 
+    // Get payment statistics
+    public function getPaymentStats($courseCode = null)
+    {
+        if ($courseCode) {
+            // 1. Get total enrollments
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM student_course WHERE course_code = ?");
+            $stmt->execute([$courseCode]);
+            $enrollments = (int)$stmt->fetchColumn();
+
+            // 2. Get course fees
+            $stmt = $this->pdo->prepare("SELECT course_fee, registration_fee FROM course WHERE course_code = ?");
+            $stmt->execute([$courseCode]);
+            $courseInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+            $c_fee = $courseInfo ? (float)$courseInfo['course_fee'] : 0;
+            $r_fee = $courseInfo ? (float)$courseInfo['registration_fee'] : 0;
+            
+            $total_expected = $enrollments * ($c_fee + $r_fee);
+
+            // 3. Get total paid
+            $stmt = $this->pdo->prepare("SELECT SUM(paid_amount) FROM student_payment WHERE course_code = ?");
+            $stmt->execute([$courseCode]);
+            $total_paid = (float)$stmt->fetchColumn();
+
+        } else {
+            // 1. Get total enrollments across all
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM student_course");
+            $stmt->execute();
+            $enrollments = (int)$stmt->fetchColumn();
+
+            // 2. Calculate expected dynamically across all courses
+            $sql = "SELECT SUM(IFNULL(c.course_fee, 0) + IFNULL(c.registration_fee, 0)) 
+                    FROM student_course sc
+                    JOIN course c ON sc.course_code = c.course_code";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            $total_expected = (float)$stmt->fetchColumn();
+
+            // 3. Get total paid across all
+            $stmt = $this->pdo->prepare("SELECT SUM(paid_amount) FROM student_payment");
+            $stmt->execute();
+            $total_paid = (float)$stmt->fetchColumn();
+        }
+
+        $total_due = $total_expected - $total_paid;
+
+        return [
+            'total_enrollments' => $enrollments,
+            'total_expected' => $total_expected,
+            'total_paid' => $total_paid,
+            'total_due' => $total_due
+        ];
+    }
+
     // Get all student payments
     public function getAll()
     {

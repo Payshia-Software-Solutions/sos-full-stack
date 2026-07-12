@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowRight, UserPlus, CreditCard, ClipboardList, Truck, GraduationCap, Award, Settings, KeyRound, FileSignature, Banknote, Video, Search, UserCheck, Megaphone, UserCog, BookOpen, BarChart, Cake, Library, Percent, Briefcase, BookText, BrainCircuit, ClipboardCheck, FileCheck, Users } from "lucide-react";
+import { ArrowRight, UserPlus, CreditCard, ClipboardList, Truck, GraduationCap, Award, Settings, KeyRound, FileSignature, Banknote, Video, Search, UserCheck, Megaphone, UserCog, BookOpen, BarChart, Cake, Library, Percent, Briefcase, BookText, BrainCircuit, ClipboardCheck, FileCheck, Users, MessageSquare, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from 'react';
 import { cn } from "@/lib/utils";
@@ -17,6 +17,20 @@ type ManagementTask = {
 };
 
 const managementTasks: ManagementTask[] = [
+  {
+    title: "Account Activation",
+    description: "Review pending registrations and activate student accounts.",
+    icon: <ShieldCheck className="w-8 h-8 text-white" />,
+    href: "/admin/account-activation",
+    category: "Student Management"
+  },
+  {
+    title: "SMS Templates",
+    description: "Manage and edit automated SMS message content.",
+    icon: <MessageSquare className="w-8 h-8 text-white" />,
+    href: "/admin/sms-templates",
+    category: "Content & System"
+  },
   {
     title: "Announcements",
     description: "Create, edit, and publish announcements.",
@@ -109,8 +123,8 @@ const managementTasks: ManagementTask[] = [
     category: "Student Management"
   },
   {
-    title: "Delivery Orders",
-    description: "Create and track study material deliveries.",
+    title: "Delivery Management",
+    description: "Manage delivery orders and configure delivery packages.",
     icon: <Truck className="w-8 h-8 text-white" />,
     href: "/admin/manage/delivery-orders",
     category: "Content & System"

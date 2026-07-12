@@ -59,9 +59,10 @@ const maskEmail = (email: string) => {
     return `${user.substring(0, 2)}***${user.substring(user.length - 1)}@${domain}`;
 };
 
-const maskPhone = (phone: string) => {
-    if (!phone || phone.length <= 4) return '****';
-    return `******${phone.substring(phone.length - 4)}`;
+const maskPhone = (phone: string | number) => {
+    const p = String(phone || '');
+    if (!p || p.length <= 4) return '****';
+    return `******${p.substring(p.length - 4)}`;
 };
 
 const maskNic = (nic: string) => {
@@ -230,7 +231,7 @@ export default function PaymentPage() {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: `Request failed with status ${response.status}`}));
-                throw new Error(errorData.message || 'Submission failed');
+                throw new Error(errorData.error || errorData.message || 'Submission failed');
             }
 
             toast({ title: "Payment Slip Submitted!", description: "Your payment is being verified." });
