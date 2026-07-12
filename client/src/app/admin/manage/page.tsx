@@ -207,8 +207,8 @@ const managementTasks: ManagementTask[] = [
     category: "Certificates & Convocation"
   },
    {
-    title: "Manage Recordings",
-    description: "Add, edit, or delete course video recordings.",
+    title: "Manage Course Content",
+    description: "Add, edit, or delete course videos, pdfs and links.",
     icon: <Video className="w-8 h-8 text-white" />,
     href: "/admin/recordings",
     category: "Content & System"

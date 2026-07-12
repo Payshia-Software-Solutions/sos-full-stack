@@ -427,7 +427,7 @@ export default function POSPage() {
                            <div className="flex justify-center p-4">
                                 <div className="bg-white p-6 rounded-lg border-2 border-dashed border-gray-400 w-full max-w-md shadow-sm font-sans text-gray-800">
                                     <div className="text-center mb-4">
-                                        <Image src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="Ceylon Medi Care" width={40} height={40} className="mx-auto mb-2" />
+                                        <Image unoptimized src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="Ceylon Medi Care" width={40} height={40} className="mx-auto mb-2" />
                                         <h2 className="text-2xl font-bold">Ceylon Medi Care</h2>
                                         <p className="text-xs text-gray-600">A/75/A, Midigahamulla, Pelmadulla, 70070</p>
                                         <p className="text-xs text-gray-600">info@pharmacollege.lk | 0704477555 | www.pharmacollege.lk</p>

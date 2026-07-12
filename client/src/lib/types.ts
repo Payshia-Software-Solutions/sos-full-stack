@@ -746,6 +746,27 @@ export interface Course {
   whatsapp_link?: string | null;
 }
 
+export interface CourseContentModule {
+    id: string;
+    course_code: string;
+    title_name: string;
+    title_description: string | null;
+    created_by: string;
+    created_at: string;
+}
+
+export interface CourseContent {
+    id: string;
+    course_code: string;
+    title_id: string;
+    resource_type: string;
+    description: string;
+    file_path: string | null;
+    web_link: string | null;
+    created_at: string;
+    title_name: string;
+}
+
 export interface BnfWordIndexEntry {
   keyword: string;
   page_number: string;

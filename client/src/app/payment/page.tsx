@@ -430,7 +430,7 @@ export default function PaymentPage() {
         <div className="flex min-h-screen items-center justify-center p-4 bg-gray-100/50 dark:bg-gray-900/50 auth-background">
             <Card className="w-full max-w-lg shadow-2xl">
                 <CardHeader className="text-center">
-                     <Image src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="Ceylon Pharma College Logo" width={64} height={64} className="w-16 h-16 mx-auto mb-4" />
+                     <Image unoptimized src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="Ceylon Pharma College Logo" width={64} height={64} className="w-16 h-16 mx-auto mb-4" />
                     <CardTitle className="text-2xl font-headline">External Student Payment Portal</CardTitle>
                     {currentStep <= STEPS.length && (
                         <div className="flex items-start justify-center pt-8 pb-4">
