@@ -239,6 +239,12 @@ class DpadModel
         }
         $drugListArray = implode(', ', $drugsList);
 
+        $drugsWrittenList = $data['drugsWrittenList'] ?? [];
+        if (is_string($drugsWrittenList)) {
+            $drugsWrittenList = json_decode($drugsWrittenList, true) ?? [];
+        }
+        $drugWrittenListArray = implode(', ', $drugsWrittenList);
+
         if ($prescriptionID !== '0' && !empty($prescriptionID)) {
             // Update
             $sql = "UPDATE `prescription` SET
@@ -250,7 +256,8 @@ class DpadModel
                     `Pres_Method` = :Pres_Method,
                     `doctor_name` = :doctor_name,
                     `notes` = :notes,
-                    `drugs_list` = :drugs_list
+                    `drugs_list` = :drugs_list,
+                    `drugs_written_list` = :drugs_written_list
                     WHERE `prescription_id` = :prescription_id";
             
             $stmt = $this->pdo->prepare($sql);
@@ -264,6 +271,7 @@ class DpadModel
                 'doctor_name' => $doctorName,
                 'notes' => $drugDescription,
                 'drugs_list' => $drugListArray,
+                'drugs_written_list' => $drugWrittenListArray,
                 'prescription_id' => $prescriptionID
             ]);
             
@@ -280,9 +288,9 @@ class DpadModel
             $newPrescriptionId = 'PRE' . $nextId;
 
             $sql = "INSERT INTO `prescription` 
-                    (`prescription_name`, `prescription_status`, `Pres_Name`, `pres_date`, `Pres_Age`, `Pres_Method`, `doctor_name`, `notes`, `drugs_list`, `prescription_id`)
+                    (`prescription_name`, `prescription_status`, `Pres_Name`, `pres_date`, `Pres_Age`, `Pres_Method`, `doctor_name`, `notes`, `drugs_list`, `drugs_written_list`, `prescription_id`)
                     VALUES 
-                    (:prescription_name, :prescription_status, :Pres_Name, :pres_date, :Pres_Age, :Pres_Method, :doctor_name, :notes, :drugs_list, :prescription_id)";
+                    (:prescription_name, :prescription_status, :Pres_Name, :pres_date, :Pres_Age, :Pres_Method, :doctor_name, :notes, :drugs_list, :drugs_written_list, :prescription_id)";
             
             $stmt = $this->pdo->prepare($sql);
             $exec = $stmt->execute([
@@ -295,6 +303,7 @@ class DpadModel
                 'doctor_name' => $doctorName,
                 'notes' => $drugDescription,
                 'drugs_list' => $drugListArray,
+                'drugs_written_list' => $drugWrittenListArray,
                 'prescription_id' => $newPrescriptionId
             ]);
 

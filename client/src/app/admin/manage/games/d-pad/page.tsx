@@ -15,6 +15,7 @@ import { DPadIcon } from "@/components/icons/module-icons";
 import { getDpadAllPrescriptions, saveDpadPrescription, updateDpadPrescriptionStatus, getMasterProducts } from "@/lib/actions/games";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { PrescriptionPaper } from "@/components/d-pad/PrescriptionPaper";
 import { 
   ArrowLeft, Plus, Edit, Settings, FileText, 
   PlusCircle, Calendar, User, Clock, BookOpen, Check, Loader2
@@ -32,6 +33,12 @@ interface Prescription {
   doctor_name: string;
   notes: string;
   drugs_list: string;
+  drugs_written_list?: string;
+}
+
+interface AddedDrug {
+  drug: string;
+  written: string;
 }
 
 export default function DpadAdminManagementPage() {
@@ -56,7 +63,9 @@ export default function DpadAdminManagementPage() {
   const [drugSearch, setDrugSearch] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [drugUsage, setDrugUsage] = useState("tds");
-  const [addedDrugs, setAddedDrugs] = useState<string[]>([]);
+  const [drugWritten, setDrugWritten] = useState("");
+  const [addedDrugs, setAddedDrugs] = useState<AddedDrug[]>([]);
+  const [editingDrugIndex, setEditingDrugIndex] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState("All");
 
   // Fetch all prescriptions
@@ -86,7 +95,25 @@ export default function DpadAdminManagementPage() {
       const parsedDrugs = prescription.drugs_list 
         ? prescription.drugs_list.split(", ") 
         : [];
-      setAddedDrugs(parsedDrugs);
+      const parsedWritten = prescription.drugs_written_list
+        ? prescription.drugs_written_list.split(", ")
+        : [];
+      setAddedDrugs(parsedDrugs.map((d, i) => {
+        let defaultWritten = parsedWritten[i] || "";
+        if (!defaultWritten && d) {
+          const parts = d.split(" ");
+          const lastWord = parts[parts.length - 1];
+          const knownUsages = ["bd", "tds", "daily", "mane", "nocte"];
+          
+          if (parts.length > 1 && knownUsages.includes(lastWord)) {
+            parts.pop(); // remove usage
+            defaultWritten = parts.join(" ");
+          } else {
+            defaultWritten = d;
+          }
+        }
+        return { drug: d, written: defaultWritten };
+      }));
     } else {
       setSelectedPrescription(null);
       setPatientName("");
@@ -100,6 +127,8 @@ export default function DpadAdminManagementPage() {
     }
     setSelectedDrug("");
     setDrugSearch("");
+    setDrugWritten("");
+    setEditingDrugIndex(null);
     setIsDropdownOpen(false);
     setIsFormOpen(true);
   };
@@ -110,14 +139,49 @@ export default function DpadAdminManagementPage() {
       toast({ variant: "destructive", title: "Select a drug to add" });
       return;
     }
-    const drugString = `${selectedDrug} ${drugUsage}`;
-    if (addedDrugs.includes(drugString)) {
-      toast({ variant: "destructive", title: "This drug is already added" });
+    if (!drugWritten) {
+      toast({ variant: "destructive", title: "Enter the written drug name" });
       return;
     }
-    setAddedDrugs([...addedDrugs, drugString]);
+    const drugString = `${selectedDrug} ${drugUsage}`;
+    
+    if (editingDrugIndex !== null) {
+      const newDrugs = [...addedDrugs];
+      newDrugs[editingDrugIndex] = { drug: drugString, written: drugWritten };
+      setAddedDrugs(newDrugs);
+      setEditingDrugIndex(null);
+    } else {
+      if (addedDrugs.some(d => d.drug === drugString)) {
+        toast({ variant: "destructive", title: "This drug is already added" });
+        return;
+      }
+      setAddedDrugs([...addedDrugs, { drug: drugString, written: drugWritten }]);
+    }
+    
     setSelectedDrug("");
     setDrugSearch("");
+    setDrugWritten("");
+  };
+
+  const handleEditDrug = (idx: number) => {
+    const item = addedDrugs[idx];
+    const parts = item.drug.split(" ");
+    const lastWord = parts[parts.length - 1];
+    const knownUsages = ["bd", "tds", "daily", "mane", "nocte"];
+    
+    let usage = "tds";
+    let name = item.drug;
+    
+    if (parts.length > 1 && knownUsages.includes(lastWord)) {
+      usage = parts.pop() || "tds";
+      name = parts.join(" ");
+    }
+    
+    setSelectedDrug(name);
+    setDrugSearch(name);
+    setDrugUsage(usage);
+    setDrugWritten(item.written);
+    setEditingDrugIndex(idx);
   };
 
   // Remove drug from list
@@ -176,7 +240,8 @@ export default function DpadAdminManagementPage() {
       usingMethod,
       doctorName,
       drugDescription,
-      drugsList: JSON.stringify(addedDrugs)
+      drugsList: JSON.stringify(addedDrugs.map(d => d.drug)),
+      drugsWrittenList: JSON.stringify(addedDrugs.map(d => d.written))
     };
 
     saveMutation.mutate(payload);
@@ -302,7 +367,7 @@ export default function DpadAdminManagementPage() {
 
       {/* Create / Edit Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar p-6">
+        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 w-full max-w-6xl max-h-[90vh] overflow-y-auto custom-scrollbar p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold font-headline text-slate-100 flex items-center gap-2">
               <FileText className="w-5 h-5 text-emerald-500" />
@@ -310,8 +375,9 @@ export default function DpadAdminManagementPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSavePrescription} className="space-y-4 mt-2">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-2 items-start">
+            <form onSubmit={handleSavePrescription} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2 space-y-1.5">
                 <Label htmlFor="patientName" className="text-xs font-bold text-slate-300">Patient Name *</Label>
                 <Input 
@@ -402,8 +468,8 @@ export default function DpadAdminManagementPage() {
             <div className="border-t border-slate-800 pt-4 space-y-3">
               <h3 className="text-sm font-bold text-slate-200">Dispensing Drugs List *</h3>
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                <div className="md:col-span-7 space-y-1.5">
-                  <Label htmlFor="drugSelect" className="text-xs font-bold text-slate-400">Medicine Drug</Label>
+                <div className="md:col-span-4 space-y-1.5">
+                  <Label htmlFor="drugSelect" className="text-xs font-bold text-slate-400">Medicine Drug *</Label>
                   <div className="relative">
                     <Input 
                       id="drugSelect"
@@ -447,6 +513,7 @@ export default function DpadAdminManagementPage() {
                                 onClick={() => {
                                   setSelectedDrug(p.ProductName);
                                   setDrugSearch(p.ProductName);
+                                  setDrugWritten(p.ProductName);
                                   setIsDropdownOpen(false);
                                 }}
                                 className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 hover:text-white transition-colors"
@@ -460,7 +527,18 @@ export default function DpadAdminManagementPage() {
                   </div>
                 </div>
                 <div className="md:col-span-3 space-y-1.5">
-                  <Label htmlFor="drugUsage" className="text-xs font-bold text-slate-400">Usage</Label>
+                  <Label htmlFor="drugWritten" className="text-xs font-bold text-slate-400">Medicine Drug Written *</Label>
+                  <Input 
+                    id="drugWritten"
+                    value={drugWritten}
+                    onChange={(e) => setDrugWritten(e.target.value)}
+                    className="bg-slate-950 border-slate-800 text-slate-100 h-10 w-full"
+                    placeholder="Enter written drug"
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-1.5">
+                  <Label htmlFor="drugUsage" className="text-xs font-bold text-slate-400">Usage *</Label>
                   <select 
                     id="drugUsage"
                     value={drugUsage}
@@ -474,14 +552,33 @@ export default function DpadAdminManagementPage() {
                     <option value="nocte">nocte</option>
                   </select>
                 </div>
-                <div className="md:col-span-2">
+                <div className="md:col-span-3 flex gap-2">
                   <Button 
                     type="button" 
                     onClick={handleAddDrug}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-2"
                   >
-                    <PlusCircle className="w-4 h-4 mr-1" /> Add
+                    {editingDrugIndex !== null ? (
+                      <><Check className="w-4 h-4 mr-1 shrink-0" /> Update</>
+                    ) : (
+                      <><PlusCircle className="w-4 h-4 mr-1 shrink-0" /> Add</>
+                    )}
                   </Button>
+                  {editingDrugIndex !== null && (
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={() => {
+                        setEditingDrugIndex(null);
+                        setSelectedDrug("");
+                        setDrugSearch("");
+                        setDrugWritten("");
+                      }}
+                      className="h-10 px-3 border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white"
+                    >
+                      Cancel
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -491,10 +588,33 @@ export default function DpadAdminManagementPage() {
                   <p className="text-slate-500 text-xs text-center py-4">No covers added yet. Select a medicine and click add.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
-                    {addedDrugs.map((drug, idx) => (
-                      <Badge key={idx} variant="outline" className="bg-slate-900 border-slate-800 text-slate-200 px-3 py-1.5 gap-2 text-xs">
-                        <span>Cover {idx + 1}: <strong className="text-emerald-400">{drug}</strong></span>
-                        <button type="button" onClick={() => handleRemoveDrug(idx)} className="text-rose-400 hover:text-rose-600 transition-all font-bold">✕</button>
+                    {addedDrugs.map((d, idx) => (
+                      <Badge key={idx} variant="outline" className="bg-slate-900 border-slate-800 text-slate-200 px-3 py-2 gap-3 text-xs w-full sm:w-auto">
+                        <div className="flex flex-col gap-1.5 w-full">
+                            <span>Cover {idx + 1}: <strong className="text-emerald-400">{d.drug}</strong></span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-slate-400 shrink-0">Written:</span>
+                              <input 
+                                type="text"
+                                value={d.written}
+                                onChange={(e) => {
+                                  const newDrugs = [...addedDrugs];
+                                  newDrugs[idx].written = e.target.value;
+                                  setAddedDrugs(newDrugs);
+                                }}
+                                className="bg-slate-950 border border-slate-700 text-slate-200 text-xs px-2 py-1 rounded w-full sm:w-48 focus:outline-none focus:border-emerald-500"
+                                placeholder="Edit written name"
+                              />
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-1 self-start mt-0.5">
+                          <button type="button" onClick={() => handleEditDrug(idx)} className="text-blue-400 hover:text-blue-600 transition-all font-bold" title="Edit">
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button type="button" onClick={() => handleRemoveDrug(idx)} className="text-rose-400 hover:text-rose-600 transition-all font-bold" title="Remove">
+                            ✕
+                          </button>
+                        </div>
                       </Badge>
                     ))}
                   </div>
@@ -515,6 +635,25 @@ export default function DpadAdminManagementPage() {
               </Button>
             </div>
           </form>
+
+          {/* Preview Section */}
+          <div className="hidden lg:flex flex-col h-full bg-slate-950/50 rounded-xl p-6 border border-slate-800 sticky top-0 overflow-y-auto custom-scrollbar">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-800 pb-2">Prescription Preview</h3>
+            <div className="bg-white/5 rounded-lg w-full flex-1">
+              <PrescriptionPaper 
+                prescription={{
+                  doctor_name: doctorName,
+                  Pres_Method: usingMethod,
+                  Pres_Name: patientName,
+                  pres_date: patientDate,
+                  Pres_Age: patientAge,
+                  drugs_list: addedDrugs.map(d => d.drug).join(", "),
+                  drugs_written_list: addedDrugs.map(d => d.written).join(", ")
+                }} 
+              />
+            </div>
+          </div>
+        </div>
         </DialogContent>
       </Dialog>
     </div>
