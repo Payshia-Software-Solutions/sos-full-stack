@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Ticket as TicketIcon, Clock, CheckCircle, PlusCircle, Award, Library, BookOpen, FileText, Gamepad2, AlertCircle, BookText, GraduationCap } from "lucide-react";
+import { ArrowRight, Ticket as TicketIcon, Clock, CheckCircle, PlusCircle, Award, Library, BookOpen, FileText, Gamepad2, AlertCircle, BookText, GraduationCap, Video } from "lucide-react";
 import { UnreadBadge } from "@/components/dashboard/UnreadBadge";
 import { CeylonPharmacyIcon, DPadIcon, HunterProIcon, LuckyWheelIcon, MediMindIcon, PharmaHunterIcon, PharmaReaderIcon, WinPharmaIcon, WordPalletIcon } from "@/components/icons/module-icons";
 import { getCourses } from "@/lib/actions/courses";
@@ -360,6 +360,7 @@ export default function StudentDashboardPage() {
     }, [tickets]);
 
     const quickActions = [
+        { title: "Course Content", description: "View your study materials & videos.", href: "/dashboard/recordings", icon: <Video className="w-8 h-8 text-white" />, colorClass: "from-pink-400 to-rose-500" },
         { title: "Create a Ticket", description: "Get help from our support staff.", href: "/dashboard/create-ticket", icon: <PlusCircle className="w-8 h-8 text-white" />, colorClass: "from-blue-400 to-indigo-500" },
         { title: "Delivery Orders", description: "Request course materials delivery.", href: "/dashboard/delivery", icon: <FileText className="w-8 h-8 text-white" />, colorClass: "from-orange-400 to-red-500" },
         { title: "Order Certificate", description: "Request a hard copy of your certificate.", href: "/dashboard/certificate-order", icon: <Award className="w-8 h-8 text-white" />, colorClass: "from-green-400 to-teal-500" },
@@ -438,7 +439,7 @@ export default function StudentDashboardPage() {
                                         </a>
                                     </Button>
                                 )}
-                                <Button asChild className="w-full sm:w-auto"><Link href="#">View Course</Link></Button>
+                                <Button asChild className="w-full sm:w-auto"><Link href="/dashboard/recordings">View Course</Link></Button>
                                 <Button asChild variant="outline" className="w-full sm:w-auto"><Link href="/dashboard/select-course">Change Course</Link></Button>
                             </div>
                         </CardContent>

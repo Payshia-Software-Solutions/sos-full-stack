@@ -39,6 +39,7 @@ import Image from "next/image";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/recordings", label: "Course Content", icon: Video },
   { href: "/dashboard/tickets", label: "Tickets", icon: Ticket },
   { href: "/dashboard/announcements", label: "Announcements", icon: Megaphone },
   { href: "/dashboard/more", label: "More", icon: MoreHorizontal },
@@ -61,7 +62,7 @@ export function SidebarNav() {
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="p-4 flex items-center gap-2 justify-between">
         <div className="flex items-center gap-2">
-          <Image src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={32} height={32} className="w-8 h-8 hidden md:block" />
+          <Image unoptimized src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={32} height={32} className="w-8 h-8 hidden md:block" />
            <h1 className="text-xl font-headline font-semibold group-data-[collapsible=icon]:hidden hidden md:block">SOS App</h1>
         </div>
          <Button variant="ghost" size="icon" className="hidden md:flex" asChild>
