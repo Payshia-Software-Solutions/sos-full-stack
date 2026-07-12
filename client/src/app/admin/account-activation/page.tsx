@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertTriangle, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, AlertTriangle, Search, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { LMS_API_URL } from "@/lib/config";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { UserActionDialog } from "@/components/admin/UserActionDialog";
@@ -34,12 +34,13 @@ export default function AccountActivationPage() {
   const [totalPending, setTotalPending] = useState(0);
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date();
-    d.setDate(d.getDate() - 30);
+    d.setDate(d.getDate() - 7);
     return d.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState<string>(() => {
     return new Date().toISOString().split('T')[0];
   });
+  const [filterSlips, setFilterSlips] = useState(true);
 
   const [approvedPage, setApprovedPage] = useState(1);
   const [approvedSearchInput, setApprovedSearchInput] = useState("");
@@ -47,7 +48,7 @@ export default function AccountActivationPage() {
   const [totalApproved, setTotalApproved] = useState(0);
   const [approvedStartDate, setApprovedStartDate] = useState<string>(() => {
     const d = new Date();
-    d.setDate(d.getDate() - 30);
+    d.setDate(d.getDate() - 7);
     return d.toISOString().split('T')[0];
   });
   const [approvedEndDate, setApprovedEndDate] = useState<string>(() => {
@@ -69,6 +70,80 @@ export default function AccountActivationPage() {
         setSlipDetails([]);
     } finally {
         setLoadingSlips(false);
+    }
+  };
+
+  const exportToCSV = (data: any[], filename: string) => {
+    if (data.length === 0) {
+      toast({ description: "No data available to export.", variant: "destructive" });
+      return;
+    }
+    
+    const formattedData = data.map(user => ({
+      "Ref ID": user.id,
+      "Index Number": user.index_number || 'N/A',
+      "Name": `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+      "Email": user.email_address,
+      "Phone": user.phone_number,
+      "Course": user.selected_course,
+      "Status": user.aprroved_status,
+      "Registered Date": user.created_at ? new Date(user.created_at).toLocaleString() : 'N/A'
+    }));
+
+    const headers = Object.keys(formattedData[0]);
+    const csvContent = [
+      headers.join(","),
+      ...formattedData.map(row => 
+        headers.map(fieldName => JSON.stringify((row as any)[fieldName], (key, value) => value === null ? '' : value)).join(",")
+      )
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPending = async () => {
+    try {
+      toast({ description: "Preparing export..." });
+      const res = await fetch(`${LMS_API_URL}/temp-users/status/Not_Approved?page=1&limit=10000&search=${encodeURIComponent(searchQuery)}&start_date=${startDate}&end_date=${endDate}`);
+      const data = await res.json();
+      let usersToExport = [];
+      if (data && typeof data === 'object' && !Array.isArray(data) && 'data' in data) {
+        usersToExport = data.data || [];
+      } else {
+        usersToExport = Array.isArray(data) ? data : [];
+      }
+      
+      if (filterSlips) {
+        usersToExport = usersToExport.filter((u: any) => !!u.slip_paths);
+      }
+      exportToCSV(usersToExport, `Pending_Registrations_${new Date().toISOString().split('T')[0]}.csv`);
+    } catch (e) {
+      toast({ description: "Failed to export data", variant: "destructive" });
+    }
+  };
+
+  const handleExportApproved = async () => {
+    try {
+      toast({ description: "Preparing export..." });
+      const res = await fetch(`${LMS_API_URL}/temp-users/status/Approved?page=1&limit=10000&search=${encodeURIComponent(approvedSearchQuery)}&start_date=${approvedStartDate}&end_date=${approvedEndDate}`);
+      const data = await res.json();
+      let usersToExport = [];
+      if (data && typeof data === 'object' && !Array.isArray(data) && 'data' in data) {
+        usersToExport = data.data || [];
+      } else {
+        usersToExport = Array.isArray(data) ? data : [];
+      }
+      exportToCSV(usersToExport, `Recent_Activations_${new Date().toISOString().split('T')[0]}.csv`);
+    } catch (e) {
+      toast({ description: "Failed to export data", variant: "destructive" });
     }
   };
 
@@ -250,16 +325,28 @@ export default function AccountActivationPage() {
                     className="w-auto text-sm"
                   />
                 </div>
-                <div className="relative w-full md:w-64">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search students..." 
-                    className="pl-8" 
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                  />
+                  <Select value={filterSlips ? "slips" : "all"} onValueChange={(v) => setFilterSlips(v === "slips")}>
+                    <SelectTrigger className="w-full md:w-[140px]">
+                      <SelectValue placeholder="Filter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Registrations</SelectItem>
+                      <SelectItem value="slips">With Slips Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="relative w-full md:w-64">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Search students..." 
+                      className="pl-8" 
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                    />
+                  </div>
+                  <Button variant="outline" className="border-green-600 text-green-500 hover:bg-green-600/10" onClick={handleExportPending}>
+                    <Download className="w-4 h-4 mr-2" /> Export
+                  </Button>
                 </div>
-              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -274,26 +361,38 @@ export default function AccountActivationPage() {
                         <TableHead>Email</TableHead>
                         <TableHead>Phone</TableHead>
                         <TableHead>Course</TableHead>
+                        <TableHead>Reg. Date</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {pendingUsers.length === 0 ? (
+                      {pendingUsers.filter(u => filterSlips ? !!u.slip_paths : true).length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No pending registrations found.</TableCell>
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No pending registrations found.</TableCell>
                         </TableRow>
                       ) : (
-                        pendingUsers.map((user) => (
+                        pendingUsers.filter(u => filterSlips ? !!u.slip_paths : true).map((user) => (
                           <TableRow key={user.id}>
                             <TableCell className="font-medium">#{user.id}</TableCell>
                             <TableCell>{user.first_name} {user.last_name}</TableCell>
                             <TableCell>{user.email_address}</TableCell>
                             <TableCell>{user.phone_number}</TableCell>
                             <TableCell>{user.selected_course}</TableCell>
+                            <TableCell>
+                              {user.created_at ? (
+                                <div className="flex flex-col">
+                                  <span>{new Date(user.created_at).toLocaleDateString()}</span>
+                                  <span className="text-xs text-muted-foreground">{new Date(user.created_at).toLocaleTimeString()}</span>
+                                </div>
+                              ) : 'N/A'}
+                            </TableCell>
                             <TableCell><Badge variant="destructive">{user.aprroved_status}</Badge></TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
+                                <Button size="sm" variant="outline" className="text-blue-500 hover:text-blue-600 border-blue-500/30" onClick={() => window.open(`/admin/manage/payment-update?student_id=${user.index_number || user.username || user.id}`, '_blank')}>
+                                  Add Payment
+                                </Button>
                                 {user.slip_paths ? (
                                   <Button size="sm" variant="outline" onClick={() => handleViewSlips(user.id)}>
                                     View Slip{user.slip_paths.includes(',') ? 's' : ''}
@@ -379,6 +478,9 @@ export default function AccountActivationPage() {
                     onChange={(e) => setApprovedSearchInput(e.target.value)}
                   />
                 </div>
+                <Button variant="outline" className="border-green-600 text-green-500 hover:bg-green-600/10" onClick={handleExportApproved}>
+                  <Download className="w-4 h-4 mr-2" /> Export
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -393,6 +495,7 @@ export default function AccountActivationPage() {
                         <TableHead>Index Number</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
+                        <TableHead>Reg. Date</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Action</TableHead>
                       </TableRow>
@@ -409,9 +512,20 @@ export default function AccountActivationPage() {
                             <TableCell className="font-bold text-primary">{user.index_number}</TableCell>
                             <TableCell>{user.first_name} {user.last_name}</TableCell>
                             <TableCell>{user.email_address}</TableCell>
+                            <TableCell>
+                              {user.created_at ? (
+                                <div className="flex flex-col">
+                                  <span>{new Date(user.created_at).toLocaleDateString()}</span>
+                                  <span className="text-xs text-muted-foreground">{new Date(user.created_at).toLocaleTimeString()}</span>
+                                </div>
+                              ) : 'N/A'}
+                            </TableCell>
                             <TableCell><Badge className="bg-green-600 hover:bg-green-700">{user.aprroved_status}</Badge></TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
+                                <Button size="sm" variant="outline" className="text-blue-500 hover:text-blue-600 border-blue-500/30" onClick={() => window.open(`/admin/manage/payment-update?student_id=${user.index_number}`, '_blank')}>
+                                  Add Payment
+                                </Button>
                                 <UserActionDialog 
                                   user={user} 
                                   courses={courses} 
