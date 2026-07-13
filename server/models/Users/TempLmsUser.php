@@ -91,6 +91,21 @@ class TempLmsUser
         $stmt->execute($data);
     }
 
+    public function recordActivation($id, $activatedBy, $activatedAt)
+    {
+        $sql = "UPDATE temp_lms_user SET 
+                    activated_by = :activated_by,
+                    activated_at = :activated_at
+                WHERE id = :id";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            'activated_by' => $activatedBy,
+            'activated_at' => $activatedAt,
+            'id' => $id
+        ]);
+        return $stmt->rowCount();
+    }
+
     // Delete a user by ID
     public function deleteUser($id)
     {

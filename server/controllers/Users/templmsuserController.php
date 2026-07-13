@@ -187,6 +187,7 @@ class TempLmsUserController
     {
         $data = json_decode(file_get_contents("php://input"), true);
         $studentBatch = $data['studentBatch'] ?? null;
+        $activatedBy = $data['activatedBy'] ?? 'Admin';
 
         if (!$studentBatch) {
             http_response_code(400);
@@ -280,6 +281,12 @@ class TempLmsUserController
             $tempUser['aprroved_status'] = 'Approved';
             $tempUser['index_number'] = $userName;
             $this->model->updateUser($id, $tempUser);
+
+            // Record activation details
+            $lkTimezone = new DateTimeZone('Asia/Colombo');
+            $lkTime = new DateTime('now', $lkTimezone);
+            $activatedAt = $lkTime->format('Y-m-d H:i:s');
+            $this->model->recordActivation($id, $activatedBy, $activatedAt);
 
             // Get Course Name
             $courseStmt = $GLOBALS['pdo']->prepare("SELECT course_name FROM course WHERE course_code = ?");
