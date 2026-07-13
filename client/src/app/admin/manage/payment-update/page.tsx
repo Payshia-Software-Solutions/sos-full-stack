@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, Mail, Phone, User as UserIcon, CreditCard, Clock, CheckCircle2, History, Trash2 } from 'lucide-react';
+import { Search, Loader2, Mail, Phone, User as UserIcon, CreditCard, Clock, CheckCircle2, History, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -77,6 +77,34 @@ interface FullStudentData {
 
 // --- Constants ---
 const CONTENT_PROVIDER_URL = process.env.NEXT_PUBLIC_CONTENT_PROVIDER_URL || 'https://content-provider.pharmacollege.lk';
+
+const ZoomableImage = ({ src, alt, className }: { src: string; alt: string; className?: string }) => {
+    const [scale, setScale] = useState(1);
+
+    return (
+        <div className="flex flex-col items-center w-full">
+            <div className="flex gap-2 mb-4">
+                <Button type="button" variant="outline" size="sm" onClick={() => setScale(s => s + 0.25)}>
+                    <ZoomIn className="w-4 h-4 mr-1" /> Zoom In
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setScale(s => Math.max(0.25, s - 0.25))}>
+                    <ZoomOut className="w-4 h-4 mr-1" /> Zoom Out
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setScale(1)}>
+                    Reset
+                </Button>
+            </div>
+            <div className="overflow-auto border border-slate-800 shadow-sm rounded-md w-full max-h-[65vh] bg-slate-950 flex justify-center p-2 relative custom-scrollbar">
+                <img 
+                    src={src} 
+                    alt={alt} 
+                    className={className}
+                    style={{ transform: `scale(${scale})`, transformOrigin: 'top center', transition: 'transform 0.2s ease-in-out' }}
+                />
+            </div>
+        </div>
+    );
+};
 
 export default function PaymentUpdatePage() {
     const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
@@ -522,10 +550,10 @@ export default function PaymentUpdatePage() {
                                                                             title="Payment Slip PDF"
                                                                         />
                                                                     ) : (
-                                                                        <img 
+                                                                        <ZoomableImage 
                                                                             src={`${CONTENT_PROVIDER_URL}${req.slip_path}`} 
                                                                             alt="Payment Slip" 
-                                                                            className="max-h-[70vh] object-contain rounded-md border shadow-sm"
+                                                                            className="max-h-[65vh] object-contain transition-transform"
                                                                         />
                                                                     )}
                                                                 </div>

@@ -47,11 +47,7 @@ export default function DeliveryPage() {
         }
     }, [studentDetails]);
 
-    const { data: enrollments, isLoading: isLoadingEnrollments } = useQuery({
-        queryKey: ['studentEnrollments', user?.username],
-        queryFn: () => getStudentEnrollments(user!.username!),
-        enabled: !!user?.username,
-    });
+
 
     const { data: courses } = useQuery({
         queryKey: ['allCourses'],
@@ -60,15 +56,13 @@ export default function DeliveryPage() {
     });
 
     useEffect(() => {
-        if (enrollments && enrollments.length > 0 && !selectedCourseCode) {
+        if (!selectedCourseCode) {
             const stored = localStorage.getItem('selected_course');
-            if (stored && enrollments.some(e => e.course_code === stored)) {
+            if (stored) {
                 setSelectedCourseCode(stored);
-            } else {
-                setSelectedCourseCode(enrollments[0].course_code);
             }
         }
-    }, [enrollments, selectedCourseCode]);
+    }, [selectedCourseCode]);
 
     const { data: deliverySettings, isLoading: isLoadingSettings } = useQuery({
         queryKey: ['deliverySettings', selectedCourseCode],
@@ -105,6 +99,16 @@ export default function DeliveryPage() {
 
         const selectedSetting = deliverySettings?.find(s => s.id === selectedSettingId);
         if (!selectedSetting) return;
+
+        const hasExistingOrder = myOrders?.some(order => 
+            order.course_code === selectedCourseCode && 
+            String(order.delivery_id) === String(selectedSettingId)
+        );
+
+        if (hasExistingOrder) {
+            toast({ variant: 'destructive', title: 'Already Ordered', description: 'You have already placed an order for this package in this course.' });
+            return;
+        }
 
         createOrderMutation.mutate({
             studentNumber: user?.username,
@@ -155,27 +159,11 @@ export default function DeliveryPage() {
                             <div className="space-y-3 bg-muted/30 p-4 rounded-xl border border-border/50">
                                 <Label className="text-base font-semibold flex items-center gap-2">
                                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-primary text-xs">1</span> 
-                                    Select Course
+                                    Course
                                 </Label>
-                                {isLoadingEnrollments ? (
-                                    <Skeleton className="h-12 w-full rounded-lg" />
-                                ) : (
-                                    <Select value={selectedCourseCode} onValueChange={setSelectedCourseCode}>
-                                        <SelectTrigger className="h-12 border-primary/20 focus:ring-primary/30 text-base">
-                                            <SelectValue placeholder="Choose a course..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {enrollments?.map(enroll => {
-                                                const courseInfo = courses?.find(c => c.courseCode === enroll.course_code);
-                                                return (
-                                                    <SelectItem key={enroll.course_code} value={enroll.course_code} className="py-3">
-                                                        {courseInfo?.name || enroll.course_code}
-                                                    </SelectItem>
-                                                )
-                                            })}
-                                        </SelectContent>
-                                    </Select>
-                                )}
+                                <div className="h-12 flex items-center px-3 border border-border/50 bg-muted/50 rounded-md text-base font-medium">
+                                    {courses?.find((c: any) => c.courseCode === selectedCourseCode)?.name || selectedCourseCode || "Loading..."}
+                                </div>
                             </div>
 
                             <div className="space-y-3">
@@ -190,18 +178,30 @@ export default function DeliveryPage() {
                                     </div>
                                 ) : deliverySettings && deliverySettings.length > 0 ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        {deliverySettings.map(setting => (
+                                        {deliverySettings.map((setting) => {
+                                            const isAlreadyOrdered = myOrders?.some(order => 
+                                                order.course_code === selectedCourseCode && 
+                                                String(order.delivery_id) === String(setting.id)
+                                            );
+
+                                            return (
                                             <div 
                                                 key={setting.id}
-                                                onClick={() => setSelectedSettingId(setting.id)}
+                                                onClick={() => !isAlreadyOrdered && setSelectedSettingId(setting.id)}
                                                 className={cn(
-                                                    "relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 overflow-hidden",
-                                                    selectedSettingId === setting.id 
+                                                    "relative p-4 rounded-xl border-2 transition-all duration-200 overflow-hidden",
+                                                    isAlreadyOrdered ? "opacity-60 cursor-not-allowed border-border bg-muted/30" : "cursor-pointer",
+                                                    !isAlreadyOrdered && selectedSettingId === setting.id 
                                                         ? "border-primary bg-primary/5 shadow-md scale-[1.02]" 
-                                                        : "border-border/50 bg-card hover:border-primary/50 hover:bg-muted/30 hover:scale-[1.01]"
+                                                        : (!isAlreadyOrdered ? "border-border/50 bg-card hover:border-primary/50 hover:bg-muted/30 hover:scale-[1.01]" : "")
                                                 )}
                                             >
-                                                {selectedSettingId === setting.id && (
+                                                {isAlreadyOrdered && (
+                                                    <div className="absolute top-2 right-2">
+                                                        <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider opacity-80">Ordered</Badge>
+                                                    </div>
+                                                )}
+                                                {selectedSettingId === setting.id && !isAlreadyOrdered && (
                                                     <div className="absolute top-2 right-2">
                                                         <CheckCircle2 className="w-5 h-5 text-primary fill-primary/20" />
                                                     </div>
@@ -216,7 +216,8 @@ export default function DeliveryPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center py-8 px-4 bg-muted/20 border border-dashed rounded-xl text-center">
@@ -280,7 +281,7 @@ export default function DeliveryPage() {
                     ) : myOrders && myOrders.length > 0 ? (
                         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                             {myOrders.map(order => {
-                                const courseInfo = courses?.find(c => c.courseCode === order.course_code);
+                                const courseInfo = courses?.find((c: any) => c.courseCode === order.course_code);
                                 return (
                                     <Card key={order.id} className="shadow-sm border-l-4 border-l-primary hover:shadow-md transition-all">
                                         <CardContent className="p-4">

@@ -193,4 +193,90 @@ export const getDeliverySettingsForCourse = async (courseCode: string): Promise<
     return response.json();
 }
 
+export const getCourseContentTitles = async (courseCode: string): Promise<import('../types').CourseContent[]> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/course/${courseCode}`);
+    if (response.status === 404) return [];
+    if (!response.ok) throw new Error('Failed to fetch course content');
+    return response.json();
+}
+
+export const getCourseContentModules = async (courseCode: string): Promise<import('../types').CourseContentModule[]> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content/course/${courseCode}`);
+    if (response.status === 404) return [];
+    if (!response.ok) throw new Error('Failed to fetch course content modules');
+    return response.json();
+}
+
+export const createCourseContentModule = async (data: any): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create course content module');
+}
+
+export const uploadCourseContentFile = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${QA_API_BASE_URL}/course-content/upload`, {
+        method: 'POST',
+        body: formData, // Do not set Content-Type, browser will automatically set it with boundary
+    });
     
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to upload file');
+    }
+    
+    const data = await response.json();
+    return data.filePath;
+}
+
+export const updateCourseContentModule = async (id: string, data: any): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update course content module');
+}
+
+export const deleteCourseContentModule = async (id: string): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content/${id}`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete course content module');
+}
+
+export const getCourseContentById = async (id: string): Promise<import('../types').CourseContent> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch course content title');
+    return response.json();
+}
+
+export const createCourseContent = async (data: any): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create course content');
+}
+
+export const updateCourseContent = async (id: string, data: any): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update course content');
+}
+
+export const deleteCourseContent = async (id: string): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/${id}`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete course content');
+}

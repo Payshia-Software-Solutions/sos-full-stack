@@ -374,6 +374,7 @@ export default function WinPharmaTaskDetailPage() {
                                     <div className="relative w-full group overflow-hidden rounded-[1.5rem] md:rounded-[2rem] border-4 border-primary/5 shadow-2xl">
                                         <div className="relative aspect-auto min-h-[200px] md:min-h-[400px]">
                                             <Image 
+                                                unoptimized
                                                 src={`${CONTENT_PROVIDER_BASE_URL}/${task.task_cover}`} 
                                                 alt="Task Cover" 
                                                 width={1920}

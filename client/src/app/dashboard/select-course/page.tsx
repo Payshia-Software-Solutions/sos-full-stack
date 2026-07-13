@@ -54,7 +54,7 @@ export default function SelectCoursePage() {
                 <DialogContent className="max-w-4xl shadow-2xl" onInteractOutside={(e) => e.preventDefault()} hideCloseButton={true}>
                     <DialogHeader className="text-center">
                         <div className="flex justify-center mb-4">
-                            <Image src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={64} height={64} className="w-16 h-16" />
+                            <Image unoptimized src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={64} height={64} className="w-16 h-16" />
                         </div>
                         <DialogTitle className="text-2xl font-headline">Select Your Course</DialogTitle>
                         <DialogDescription>You are enrolled in multiple courses. Please choose one to view its dashboard.</DialogDescription>

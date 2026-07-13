@@ -36,7 +36,7 @@ export function MobileHeader() {
       <div className="flex items-center gap-2">
         <Link href={isAdminSection ? "/admin/dashboard" : "/dashboard"} legacyBehavior passHref>
           <a className="flex items-center gap-2">
-            <Image src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={28} height={28} className="w-7 h-7" />
+            <Image unoptimized src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={28} height={28} className="w-7 h-7" />
             <span className="text-lg font-headline font-semibold text-card-foreground">SOS App</span>
           </a>
         </Link>
