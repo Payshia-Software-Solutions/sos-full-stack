@@ -19,6 +19,7 @@ class LmsHelper
 
         // Ensure numeric batch codes are padded to 2 digits
         if (is_numeric($batchCode)) {
+            $batchCode = (int)$batchCode + 1; // Increment the batch number by 1 (e.g., 34 becomes 35)
             $batchCode = str_pad($batchCode, 2, '0', STR_PAD_LEFT);
         }
 

@@ -15,8 +15,10 @@ import { Loader2, AlertTriangle, Search, ChevronLeft, ChevronRight, Download } f
 import { LMS_API_URL } from "@/lib/config";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { UserActionDialog } from "@/components/admin/UserActionDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function AccountActivationPage() {
+  const { user } = useAuth();
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -269,7 +271,10 @@ export default function AccountActivationPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ studentBatch: selectedCourse }),
+        body: JSON.stringify({ 
+          studentBatch: selectedCourse,
+          activatedBy: user?.name || user?.username || 'Admin'
+        }),
       });
 
       const data = await res.json();
@@ -497,6 +502,7 @@ export default function AccountActivationPage() {
                         <TableHead>Email</TableHead>
                         <TableHead>Reg. Date</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Activated By</TableHead>
                         <TableHead className="text-right">Action</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -521,6 +527,18 @@ export default function AccountActivationPage() {
                               ) : 'N/A'}
                             </TableCell>
                             <TableCell><Badge className="bg-green-600 hover:bg-green-700">{user.aprroved_status}</Badge></TableCell>
+                            <TableCell>
+                              {user.activated_by ? (
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-xs">{user.activated_by}</span>
+                                  {user.activated_at && (
+                                    <span className="text-xs text-muted-foreground">{new Date(user.activated_at).toLocaleString()}</span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground italic">System</span>
+                              )}
+                            </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
                                 <Button size="sm" variant="outline" className="text-blue-500 hover:text-blue-600 border-blue-500/30" onClick={() => window.open(`/admin/manage/payment-update?student_id=${user.index_number}`, '_blank')}>
