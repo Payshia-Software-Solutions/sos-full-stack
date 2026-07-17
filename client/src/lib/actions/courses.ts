@@ -194,14 +194,14 @@ export const getDeliverySettingsForCourse = async (courseCode: string): Promise<
 }
 
 export const getCourseContentTitles = async (courseCode: string): Promise<import('../types').CourseContent[]> => {
-    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/course/${courseCode}`);
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/course/${courseCode}/`);
     if (response.status === 404) return [];
     if (!response.ok) throw new Error('Failed to fetch course content');
     return response.json();
 }
 
 export const getCourseContentModules = async (courseCode: string): Promise<import('../types').CourseContentModule[]> => {
-    const response = await fetch(`${QA_API_BASE_URL}/course-content/course/${courseCode}`);
+    const response = await fetch(`${QA_API_BASE_URL}/course-content/course/${courseCode}/`);
     if (response.status === 404) return [];
     if (!response.ok) throw new Error('Failed to fetch course content modules');
     return response.json();
@@ -251,13 +251,13 @@ export const deleteCourseContentModule = async (id: string): Promise<void> => {
 }
 
 export const getCourseContentById = async (id: string): Promise<import('../types').CourseContent> => {
-    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/${id}`);
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/${id}/`);
     if (!response.ok) throw new Error('Failed to fetch course content title');
     return response.json();
 }
 
 export const createCourseContent = async (data: any): Promise<void> => {
-    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles`, {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -266,7 +266,7 @@ export const createCourseContent = async (data: any): Promise<void> => {
 }
 
 export const updateCourseContent = async (id: string, data: any): Promise<void> => {
-    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/${id}`, {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/${id}/`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -275,7 +275,7 @@ export const updateCourseContent = async (id: string, data: any): Promise<void> 
 }
 
 export const deleteCourseContent = async (id: string): Promise<void> => {
-    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/${id}`, {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/${id}/`, {
         method: 'DELETE',
     });
     if (!response.ok) throw new Error('Failed to delete course content');

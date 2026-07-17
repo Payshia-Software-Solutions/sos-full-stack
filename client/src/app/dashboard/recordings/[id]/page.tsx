@@ -18,6 +18,9 @@ const getYouTubeVideoId = (url: string): string | null => {
       return urlObj.pathname.slice(1);
     }
     if (urlObj.hostname.includes('youtube.com')) {
+      if (urlObj.pathname.startsWith('/embed/')) {
+        return urlObj.pathname.replace('/embed/', '');
+      }
       const videoId = urlObj.searchParams.get('v');
       if (videoId) {
         return videoId;
@@ -42,7 +45,26 @@ export default function RecordingPlayerPage() {
     enabled: !!courseCode,
   });
 
-  const recording = contents?.find(c => String(c.id) === recordingId);
+  const rawRecording = contents?.find(c => String(c.id) === recordingId);
+
+  // Parse legacy iframe data exactly like the list page does
+  const recording = rawRecording ? (() => {
+    let desc = rawRecording.description || "";
+    let resType = rawRecording.resource_type;
+    let link = rawRecording.web_link || "";
+    let filePath = rawRecording.file_path || "";
+
+    if (desc.includes("<iframe") && desc.includes("youtube.com/embed")) {
+      const srcMatch = desc.match(/src="([^"]+)"/);
+      if (srcMatch?.[1]) {
+        link = srcMatch[1];
+        resType = "Video (YouTube)";
+        desc = desc.replace(/<p><iframe[^>]+><\/iframe><\/p>/g, "").trim() || "Legacy YouTube Video";
+      }
+    }
+    return { ...rawRecording, description: desc, resource_type: resType, web_link: link, file_path: filePath };
+  })() : undefined;
+
   const videoId = recording?.web_link ? getYouTubeVideoId(recording.web_link) : null;
 
   if (isLoading) {
