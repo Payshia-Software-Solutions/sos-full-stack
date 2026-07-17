@@ -27,6 +27,9 @@ const getYouTubeVideoId = (url: string): string | null => {
       return urlObj.pathname.slice(1);
     }
     if (urlObj.hostname.includes('youtube.com')) {
+      if (urlObj.pathname.startsWith('/embed/')) {
+          return urlObj.pathname.replace('/embed/', '');
+      }
       const videoId = urlObj.searchParams.get('v');
       if (videoId) {
         return videoId;
@@ -256,7 +259,7 @@ function CreateContentForm() {
 
                 <div className="space-y-2">
                   <Label>Resource Type</Label>
-                  <Select value={resourceType} onValueChange={setResourceType}>
+                  <Select value={resourceType || undefined} onValueChange={setResourceType}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
@@ -288,21 +291,30 @@ function CreateContentForm() {
                     </div>
 
                     <div className="space-y-2">
-                    <Label htmlFor="filePath">File Path</Label>
-                    <div className="flex gap-2">
-                      <Input id="filePath" value={filePath} onChange={(e) => setFilePath(e.target.value)} placeholder="uploads/course_content/..." disabled={resourceType === 'Video (YouTube)' || resourceType === 'External Link'} />
+                    <Label htmlFor="filePath">File Upload</Label>
+                    <div className="flex flex-col gap-2">
                       {(resourceType === 'Video (.mp4)' || resourceType === 'PDF Document') && (
-                          <div className="relative">
-                            <input 
-                              type="file" 
-                              onChange={handleFileUpload} 
-                              disabled={isUploading}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                              accept={resourceType === 'Video (.mp4)' ? "video/mp4" : "application/pdf"}
-                            />
-                            <Button type="button" variant="outline" disabled={isUploading}>
-                                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-                            </Button>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                              <Input 
+                                type="file" 
+                                onChange={handleFileUpload} 
+                                disabled={isUploading}
+                                accept={resourceType === 'Video (.mp4)' ? "video/mp4" : "application/pdf"}
+                                className="cursor-pointer"
+                              />
+                              {isUploading && <span className="text-sm text-primary flex items-center whitespace-nowrap"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</span>}
+                            </div>
+                            {filePath && (
+                              <a 
+                                href={`${CONTENT_PROVIDER_URL}/${filePath}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="text-sm font-medium text-primary hover:underline flex items-center gap-2 mt-1"
+                              >
+                                <FileText className="h-4 w-4" /> Click to view uploaded file
+                              </a>
+                            )}
                           </div>
                       )}
                     </div>
