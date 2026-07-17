@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+/* ─── Light mode (DEFAULT) ────────────────────────────────────── */
+:root {
+  --bg:         #f7f5f0;
+  --surface:    #ffffff;
+  --surface-2:  #f0ede6;
+  --surface-3:  #e8e4db;
+  --border:     #ddd8cd;
+  --border-2:   #ccc6b8;
+  --text:       #111111;
+  --text-muted: #6b6460;
+  --text-dim:   #a09890;
+
+  --gold:       #a07828;
+  --gold-light: #c9a84c;
+  --gold-dim:   #7a5c1e;
+  --teal:       #006e67;
+  --teal-light: #009087;
+  --teal-dim:   #004e49;
+}
+
+/* ─── Dark mode overrides ──────────────────────────────────────── */
+html.dark {
+  --bg:         #0d0d0d;
+  --surface:    #141414;
+  --surface-2:  #1a1a1a;
+  --surface-3:  #222222;
+  --border:     #2e2e2e;
+  --border-2:   #3a3a3a;
+  --text:       #e2e2e2;
+  --text-muted: #71717a;
+  --text-dim:   #3f3f46;
+
+  --gold:       #c9a84c;
+  --gold-light: #e8c96d;
+  --gold-dim:   #8a6e2f;
+  --teal:       #00b8a9;
+  --teal-light: #00e5d4;
+  --teal-dim:   #007a72;
+}
+
+/* ─── Base ─────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::selection {
+  background-color: rgba(201, 168, 76, 0.2);
+  color: var(--gold-light);
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+/* ─── Utilities ─────────────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 40%, var(--teal-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gold-shimmer {
+  background: linear-gradient(90deg, var(--gold-dim) 0%, var(--gold) 30%, var(--gold-light) 50%, var(--gold) 70%, var(--gold-dim) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(201, 168, 76, 0.4); }
+  50% { box-shadow: 0 0 18px rgba(201, 168, 76, 0.7); }
+}
+.glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.float { animation: float 4s ease-in-out infinite; }
+
+/* ─── Light mode card borders transition ───────────────────────── */
+html.light .section-divider {
+  background: linear-gradient(to right, transparent, var(--border), transparent);
+}

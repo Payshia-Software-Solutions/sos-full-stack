@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,9 @@ const getYouTubeVideoId = (url: string): string | null => {
       return urlObj.pathname.slice(1);
     }
     if (urlObj.hostname.includes('youtube.com')) {
+      if (urlObj.pathname.startsWith('/embed/')) {
+          return urlObj.pathname.replace('/embed/', '');
+      }
       const videoId = urlObj.searchParams.get('v');
       if (videoId) {
         return videoId;
@@ -38,15 +41,29 @@ const getYouTubeVideoId = (url: string): string | null => {
   return null;
 };
 
-export default function EditRecordingPage() {
+function EditContentForm() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
   const contentId = params.id as string;
+  const initialCourseCode = searchParams.get('course') || "";
 
-  const [courseCode, setCourseCode] = useState("");
-  const [titleId, setTitleId] = useState("");
-  const [resourceType, setResourceType] = useState("");
+  const [courseCode, setCourseCode] = useState(initialCourseCode);
+  const [titleIdState, setTitleIdState] = useState("");
+  const setTitleId = (val: string) => {
+    if (!val || val === "none") return;
+    setTitleIdState(val);
+  };
+  const titleId = titleIdState;
+
+  const [resourceTypeState, setResourceTypeState] = useState("");
+  const setResourceType = (val: string) => {
+    if (!val) return;
+    setResourceTypeState(val);
+  };
+  const resourceType = resourceTypeState;
+
   const [description, setDescription] = useState("");
   const [webLink, setWebLink] = useState("");
   const [filePath, setFilePath] = useState("");
@@ -81,7 +98,8 @@ export default function EditRecordingPage() {
 
   useEffect(() => {
     if (content) {
-        setCourseCode(content.course_code?.trim() || "");
+        const cCode = content.course_code?.trim() || "";
+        setCourseCode(prev => cCode || prev || "");
         setTitleId(String(content.title_id));
         
         // Handle legacy data where YouTube iframe is stored in description
@@ -90,12 +108,10 @@ export default function EditRecordingPage() {
         let link = content.web_link || "";
 
         if (desc.includes("<iframe") && desc.includes("youtube.com/embed")) {
-            // Extract src from iframe
             const srcMatch = desc.match(/src="([^"]+)"/);
             if (srcMatch && srcMatch[1]) {
                 link = srcMatch[1];
                 resType = "Video (YouTube)";
-                // Try to strip out the iframe HTML to leave just text, or default to a generic title
                 desc = desc.replace(/<p><iframe[^>]+><\/iframe><\/p>/g, "").trim() || "Legacy YouTube Video";
             }
         } else if (resType === "Text" || !["Video (YouTube)", "Video (.mp4)", "PDF Document", "External Link"].includes(resType)) {
@@ -261,7 +277,7 @@ export default function EditRecordingPage() {
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
                   <Label>Batch</Label>
-                  <Select value={courseCode} onValueChange={setCourseCode} disabled={isLoadingBatches}>
+                  <Select value={courseCode || undefined} onValueChange={setCourseCode} disabled={isLoadingBatches}>
                     <SelectTrigger>
                       <SelectValue placeholder={isLoadingBatches ? "Loading batches..." : "Select a batch"} />
                     </SelectTrigger>
@@ -280,7 +296,7 @@ export default function EditRecordingPage() {
                     <Label>Module (Title)</Label>
                     <ManageModulesDialog courseCode={courseCode} />
                   </div>
-                  <Select value={titleId} onValueChange={setTitleId} disabled={!courseCode || isLoadingModules}>
+                  <Select value={titleId || undefined} onValueChange={setTitleId} disabled={!courseCode || isLoadingModules}>
                     <SelectTrigger>
                       <SelectValue placeholder={!courseCode ? "Select a batch first" : isLoadingModules ? "Loading modules..." : "Select a module"} />
                     </SelectTrigger>
@@ -296,7 +312,7 @@ export default function EditRecordingPage() {
 
                 <div className="space-y-2">
                   <Label>Resource Type</Label>
-                  <Select value={resourceType} onValueChange={setResourceType}>
+                  <Select value={resourceType || undefined} onValueChange={setResourceType}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
@@ -328,21 +344,30 @@ export default function EditRecordingPage() {
                     </div>
 
                     <div className="space-y-2">
-                    <Label htmlFor="filePath">File Path</Label>
-                    <div className="flex gap-2">
-                      <Input id="filePath" value={filePath} onChange={(e) => setFilePath(e.target.value)} placeholder="uploads/course_content/..." disabled={resourceType === 'Video (YouTube)' || resourceType === 'External Link'} />
+                    <Label htmlFor="filePath">File Upload</Label>
+                    <div className="flex flex-col gap-2">
                       {(resourceType === 'Video (.mp4)' || resourceType === 'PDF Document') && (
-                          <div className="relative">
-                            <input 
-                              type="file" 
-                              onChange={handleFileUpload} 
-                              disabled={isUploading}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                              accept={resourceType === 'Video (.mp4)' ? "video/mp4" : "application/pdf"}
-                            />
-                            <Button type="button" variant="outline" disabled={isUploading}>
-                                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-                            </Button>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                              <Input 
+                                type="file" 
+                                onChange={handleFileUpload} 
+                                disabled={isUploading}
+                                accept={resourceType === 'Video (.mp4)' ? "video/mp4" : "application/pdf"}
+                                className="cursor-pointer"
+                              />
+                              {isUploading && <span className="text-sm text-primary flex items-center whitespace-nowrap"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</span>}
+                            </div>
+                            {filePath && (
+                              <a 
+                                href={`${CONTENT_PROVIDER_URL}/${filePath}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="text-sm font-medium text-primary hover:underline flex items-center gap-2 mt-1"
+                              >
+                                <FileText className="h-4 w-4" /> Click to view uploaded file
+                              </a>
+                            )}
                           </div>
                       )}
                     </div>
@@ -358,6 +383,8 @@ export default function EditRecordingPage() {
           </Card>
 
           {/* Preview Side */}
+
+
           <div className="sticky top-8 space-y-4">
               <h3 className="text-lg font-semibold font-headline flex items-center gap-2">
                   Content Preview
@@ -369,4 +396,12 @@ export default function EditRecordingPage() {
       </div>
     </div>
   );
+}
+
+export default function EditRecordingPage() {
+    return (
+        <Suspense fallback={<div className="p-8"><Loader2 className="animate-spin w-8 h-8 text-primary mx-auto"/></div>}>
+            <EditContentForm />
+        </Suspense>
+    );
 }
