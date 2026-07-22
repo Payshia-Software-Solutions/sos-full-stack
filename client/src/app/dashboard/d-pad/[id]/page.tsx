@@ -295,7 +295,7 @@ export default function DPadDetailPage() {
   const [courseCode, setCourseCode] = useState<string | null>(null);
 
   useEffect(() => {
-    setCourseCode(localStorage.getItem("selected_course"));
+    setCourseCode(sessionStorage.getItem("selected_course"));
   }, []);
 
   // UI Language state

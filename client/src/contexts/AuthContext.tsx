@@ -100,10 +100,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             } else {
                  if (enrollments && enrollments.length === 1) {
                     // If only one, save it and go to dashboard
-                    localStorage.setItem(SELECTED_COURSE_STORAGE_KEY, enrollments[0].course_code);
+                    sessionStorage.setItem(SELECTED_COURSE_STORAGE_KEY, enrollments[0].course_code);
                 } else {
                     // If none, clear any old selection
-                    localStorage.removeItem(SELECTED_COURSE_STORAGE_KEY);
+                    sessionStorage.removeItem(SELECTED_COURSE_STORAGE_KEY);
                 }
                 router.push('/dashboard');
             }
@@ -124,7 +124,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem(USER_STORAGE_KEY);
-    localStorage.removeItem(SELECTED_COURSE_STORAGE_KEY);
+    sessionStorage.removeItem(SELECTED_COURSE_STORAGE_KEY);
     sessionStorage.removeItem(ADMIN_SESSION_STORAGE_KEY);
     setIsImpersonating(false);
     router.push('/login');

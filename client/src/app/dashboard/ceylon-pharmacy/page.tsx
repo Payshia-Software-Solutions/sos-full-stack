@@ -85,7 +85,7 @@ export default function CeylonPharmacyPage() {
     }, []);
 
     useEffect(() => {
-        const storedCourseCode = localStorage.getItem('selected_course');
+        const storedCourseCode = sessionStorage.getItem('selected_course');
         if (storedCourseCode) {
             setCourseCode(storedCourseCode);
         } else {

@@ -82,7 +82,7 @@ export function SidebarNav() {
   const [dialogContent, setDialogContent] = useState<{ title: string; description: string } | null>(null);
 
   useEffect(() => {
-    const storedCourseCode = localStorage.getItem('selected_course');
+    const storedCourseCode = sessionStorage.getItem('selected_course');
     if (storedCourseCode) {
         setSelectedCourseCode(storedCourseCode);
     }

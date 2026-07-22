@@ -57,7 +57,7 @@ export default function DeliveryPage() {
 
     useEffect(() => {
         if (!selectedCourseCode) {
-            const stored = localStorage.getItem('selected_course');
+            const stored = sessionStorage.getItem('selected_course');
             if (stored) {
                 setSelectedCourseCode(stored);
             }

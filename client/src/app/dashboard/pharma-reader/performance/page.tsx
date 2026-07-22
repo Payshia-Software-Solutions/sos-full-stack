@@ -18,7 +18,7 @@ export default function PharmaReaderPerformancePage() {
   const [courseCode, setCourseCode] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedCourse = localStorage.getItem('selected_course');
+    const storedCourse = sessionStorage.getItem('selected_course');
     if (storedCourse) {
       setCourseCode(storedCourse);
     }

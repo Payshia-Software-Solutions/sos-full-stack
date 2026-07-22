@@ -336,7 +336,7 @@ export default function DispensePage() {
     const [wasCorrect, setWasCorrect] = useState(false);
 
     useEffect(() => {
-        const storedCourseCode = localStorage.getItem('selected_course');
+        const storedCourseCode = sessionStorage.getItem('selected_course');
         if (storedCourseCode) {
             setCourseCode(storedCourseCode);
         } else {

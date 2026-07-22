@@ -44,7 +44,7 @@ export default function WinPharmaLevelTasksPage() {
 
     // Initialize state
     useEffect(() => {
-        const storedCourseCode = localStorage.getItem('selected_course');
+        const storedCourseCode = sessionStorage.getItem('selected_course');
         setSelectedCourseCode(storedCourseCode);
     }, []);
 
