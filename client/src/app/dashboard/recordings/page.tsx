@@ -39,7 +39,7 @@ export default function CourseContentPage() {
   const [activeFilter, setActiveFilter] = useState<string>("All");
 
   useEffect(() => {
-    const stored = localStorage.getItem('selected_course');
+    const stored = sessionStorage.getItem('selected_course');
     if (stored) setSelectedCourseCode(stored);
   }, []);
 

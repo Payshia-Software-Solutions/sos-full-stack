@@ -36,13 +36,13 @@ export default function SelectCoursePage() {
     // Redirect if not needed
     useEffect(() => {
         if (!isLoadingEnrollments && enrollments && enrollments.length === 1) {
-            localStorage.setItem(SELECTED_COURSE_STORAGE_KEY, enrollments[0].course_code);
+            sessionStorage.setItem(SELECTED_COURSE_STORAGE_KEY, enrollments[0].course_code);
             router.replace('/dashboard');
         }
     }, [enrollments, isLoadingEnrollments, router]);
 
     const handleCourseSelect = (courseCode: string) => {
-        localStorage.setItem(SELECTED_COURSE_STORAGE_KEY, courseCode);
+        sessionStorage.setItem(SELECTED_COURSE_STORAGE_KEY, courseCode);
         router.push('/dashboard');
     };
 
@@ -98,7 +98,7 @@ export default function SelectCoursePage() {
                             <div className="text-center py-8">
                                 <p className="text-muted-foreground mb-4">You are not enrolled in any courses.</p>
                                 <Button onClick={() => {
-                                    localStorage.removeItem(SELECTED_COURSE_STORAGE_KEY);
+                                    sessionStorage.removeItem(SELECTED_COURSE_STORAGE_KEY);
                                     logout();
                                 }} variant="outline">Logout</Button>
                             </div>
