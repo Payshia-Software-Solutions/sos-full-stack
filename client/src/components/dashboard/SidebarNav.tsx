@@ -20,7 +20,8 @@ import {
   BookOpen,
   Gamepad2,
   BookText,
-  Package
+  Package,
+  User
 } from "lucide-react";
 import {
   Sidebar,
@@ -58,6 +59,7 @@ import {
 
 const baseNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/profile", label: "My Profile", icon: User },
   { href: "/dashboard/tickets", label: "Tickets", icon: Ticket },
   { href: "/dashboard/announcements", label: "Announcements", icon: Megaphone },
   { href: "/dashboard/bnf", label: "BNF", icon: BookOpen },
@@ -191,18 +193,18 @@ export function SidebarNav() {
              </SidebarMenuItem>
            </div>
            {user && (
-            <SidebarMenuItem>
-                <div className="flex items-center gap-3 p-2 group-data-[collapsible=icon]:justify-center">
-                <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatar} alt={user.name} data-ai-hint="person avatar" />
-                    <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div className="group-data-[collapsible=icon]:hidden">
-                    <p className="text-sm font-medium">{user.name}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                </div>
-                </div>
-            </SidebarMenuItem>
+             <SidebarMenuItem>
+               <Link href="/dashboard/profile" className="flex items-center gap-3 p-2 group-data-[collapsible=icon]:justify-center hover:bg-sidebar-accent rounded-lg transition-all">
+                 <Avatar className="h-8 w-8">
+                     <AvatarImage src={user.avatar} alt={user.name} data-ai-hint="person avatar" />
+                     <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                 </Avatar>
+                 <div className="group-data-[collapsible=icon]:hidden">
+                     <p className="text-sm font-medium">{user.name}</p>
+                     <p className="text-xs text-muted-foreground">{user.email}</p>
+                 </div>
+               </Link>
+             </SidebarMenuItem>
            )}
         </SidebarMenu>
       </SidebarFooter>

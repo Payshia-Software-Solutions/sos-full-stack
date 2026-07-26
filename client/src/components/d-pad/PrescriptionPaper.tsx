@@ -56,7 +56,7 @@ export function PrescriptionPaper({
     return usage ? `${writtenName} ${usage}` : writtenName;
   });
 
-  const baseDrugNames = displayDrugs.map(getBaseDrugName);
+  const baseDrugNames = drugs.map(getBaseDrugName);
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
