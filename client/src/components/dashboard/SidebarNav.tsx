@@ -39,7 +39,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ThemeSwitcher } from "../ui/ThemeSwitcher";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Image from "next/image";
-import { MediMindIcon, PharmaReaderIcon } from "../icons/module-icons";
+import { PharmaHunterIcon, PharmaReaderIcon } from "../icons/module-icons";
 import { useQuery } from "@tanstack/react-query";
 import { getStudentEnrollments } from "@/lib/actions/users";
 import { getCourses } from "@/lib/actions/courses";
@@ -63,7 +63,7 @@ const baseNavItems = [
   { href: "/dashboard/bnf", label: "BNF", icon: BookOpen },
   { href: "/dashboard/d-pad", label: "D-Pad", icon: Gamepad2 },
   { href: "/dashboard/ceylon-pharmacy", label: "Ceylon Pharmacy", icon: Gamepad2 },
-  { href: "/dashboard/medimind", label: "MediMind", icon: MediMindIcon },
+  { href: "/dashboard/medimind", label: "Pharma Hunter", icon: PharmaHunterIcon },
   { href: "/dashboard/pharma-reader", label: "Pharma Reader", icon: PharmaReaderIcon },
   { href: "/dashboard/delivery", label: "Delivery Orders", icon: Package },
   { href: "/dashboard/more", label: "More", icon: MoreHorizontal },
@@ -82,7 +82,7 @@ export function SidebarNav() {
   const [dialogContent, setDialogContent] = useState<{ title: string; description: string } | null>(null);
 
   useEffect(() => {
-    const storedCourseCode = localStorage.getItem('selected_course');
+    const storedCourseCode = sessionStorage.getItem('selected_course');
     if (storedCourseCode) {
         setSelectedCourseCode(storedCourseCode);
     }

@@ -122,7 +122,7 @@ export default function MediMindLevelsPage() {
                     <Button onClick={() => router.push('/dashboard')} variant="ghost" className="-ml-4 hover:bg-primary/10 transition-colors">
                         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Games
                     </Button>
-                    <h1 className="text-4xl font-headline font-bold mt-2 text-primary">MediMind Challenge</h1>
+                    <h1 className="text-4xl font-headline font-bold mt-2 text-primary">Pharma Hunter</h1>
                     <p className="text-muted-foreground text-lg">Pick a challenge level to test your medical knowledge.</p>
                 </div>
                 

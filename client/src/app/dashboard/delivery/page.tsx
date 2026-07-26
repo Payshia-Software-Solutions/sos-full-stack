@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getStudentEnrollments, getStudentDetailsByUsername } from '@/lib/actions/users';
 import { getCourses, getDeliverySettingsForCourse } from '@/lib/actions/courses';
 import { getDeliveryOrdersForStudent, createDeliveryOrderForStudent } from '@/lib/actions/delivery';
+import { checkStudentPaymentExists } from '@/lib/actions/payments';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,7 +58,7 @@ export default function DeliveryPage() {
 
     useEffect(() => {
         if (!selectedCourseCode) {
-            const stored = localStorage.getItem('selected_course');
+            const stored = sessionStorage.getItem('selected_course');
             if (stored) {
                 setSelectedCourseCode(stored);
             }
@@ -89,7 +90,7 @@ export default function DeliveryPage() {
         },
     });
 
-    const handleCreateOrder = (e: React.FormEvent) => {
+    const handleCreateOrder = async (e: React.FormEvent) => {
         e.preventDefault();
         
         if (!selectedCourseCode || !selectedSettingId) {
@@ -110,17 +111,32 @@ export default function DeliveryPage() {
             return;
         }
 
-        createOrderMutation.mutate({
-            studentNumber: user?.username,
-            courseCode: selectedCourseCode,
-            deliverySetting: selectedSetting,
-            notes,
-            address,
-            fullName,
-            phone: phone1,
-            currentStatus: '1',
-            trackingNumber: 'PENDING'
-        });
+        try {
+            // Check if the student has a payment record for this course
+            const hasPayment = await checkStudentPaymentExists(user?.username || '', selectedCourseCode);
+            if (!hasPayment) {
+                toast({ 
+                    variant: 'destructive', 
+                    title: 'Payment Required', 
+                    description: 'Please complete your course payment to request a delivery package.' 
+                });
+                return;
+            }
+
+            createOrderMutation.mutate({
+                studentNumber: user?.username,
+                courseCode: selectedCourseCode,
+                deliverySetting: selectedSetting,
+                notes,
+                address,
+                fullName,
+                phone: phone1,
+                currentStatus: '1',
+                trackingNumber: 'PENDING'
+            });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to verify payment status.' });
+        }
     };
 
     const getStatusBadge = (status: string | null | undefined, receivedStatus: string | null | undefined) => {

@@ -52,6 +52,27 @@ class SMSModel
         return $this->sendSMS($mobile, $this->senderId, $message);
     }
 
+    public function sendRegistrationSMS($mobile, $studentName, $referenceNumber)
+    {
+        // Try to load the template from DB first
+        $template = $this->getTemplateFromDB('registration-message');
+        if (!$template) {
+            // Fallback template
+            $template = "Dear [STUDENT_NAME],\n\nYour registration is successful. Your Reference Number is: [REFERENCE_NUMBER].\n\nThank you!\nCeylon Pharma College\nwww.pharmacollege.lk";
+        }
+
+        // Replace placeholders with actual data
+        $message = str_replace(
+            ['[STUDENT_NAME]', '[REFERENCE_NUMBER]', '{name}', '{index}', '{{FIRST_NAME}}'],
+            [$studentName, $referenceNumber, $studentName, $referenceNumber, $studentName],
+            $template
+        );
+
+        // Send SMS
+        return $this->sendSMS($mobile, $this->senderId, $message);
+    }
+
+
     public function sendPaymentUpdateSMS($mobile, $studentName, $courseName, $paymentAmount, $receiptNumber)
     {
         // Try to load the template from DB first

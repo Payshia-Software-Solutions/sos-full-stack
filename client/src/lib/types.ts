@@ -573,6 +573,9 @@ export interface StudentEnrollmentInfo {
   username: string;
   full_name: string;
   name_on_certificate: string;
+  course_name?: string;
+  course_img?: string;
+  whatsapp_link?: string;
 }
 
 export interface CreatePaymentPayload {

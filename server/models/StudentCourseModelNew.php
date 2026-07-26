@@ -69,6 +69,17 @@ class StudentCourseModelNew
     // Read single enrollment with user details by student course ID
     public function getByStudentNumber($userName)
     {
+        $identifiers = [$userName];
+        $stmtUser = $this->pdo->prepare("SELECT student_id, username FROM user_full_details WHERE student_id = ? OR username = ? LIMIT 1");
+        $stmtUser->execute([$userName, $userName]);
+        $userInfo = $stmtUser->fetch(PDO::FETCH_ASSOC);
+        if ($userInfo) {
+            if (!empty($userInfo['student_id'])) $identifiers[] = $userInfo['student_id'];
+            if (!empty($userInfo['username'])) $identifiers[] = $userInfo['username'];
+        }
+        $identifiers = array_unique($identifiers);
+        $inQuery = implode(',', array_fill(0, count($identifiers), '?'));
+
         $stmt = $this->pdo->prepare("
             SELECT 
                 sc.id AS student_course_id,
@@ -77,6 +88,9 @@ class StudentCourseModelNew
                 sc.enrollment_key,
                 sc.created_at,
                 c.parent_course_id,
+                c.course_name,
+                c.course_img,
+                c.whatsapp_link,
 
                 ufd.id AS user_id,
                 ufd.username,
@@ -103,9 +117,9 @@ class StudentCourseModelNew
             FROM student_course sc
             LEFT JOIN user_full_details ufd ON sc.student_id = ufd.student_id OR sc.student_id = ufd.username
             LEFT JOIN course c ON sc.course_code = c.course_code
-            WHERE sc.student_id = ? OR ufd.username = ?
+            WHERE sc.student_id IN ($inQuery)
         ");
-        $stmt->execute([$userName, $userName]);
+        $stmt->execute(array_values($identifiers));
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Fill in missing details for admin or users not in user_full_details
@@ -237,6 +251,17 @@ class StudentCourseModelNew
 
     public function getByStudentNumberAndParentCourseId($userName, $parentCourseId)
     {
+        $identifiers = [$userName];
+        $stmtUser = $this->pdo->prepare("SELECT student_id, username FROM user_full_details WHERE student_id = ? OR username = ? LIMIT 1");
+        $stmtUser->execute([$userName, $userName]);
+        $userInfo = $stmtUser->fetch(PDO::FETCH_ASSOC);
+        if ($userInfo) {
+            if (!empty($userInfo['student_id'])) $identifiers[] = $userInfo['student_id'];
+            if (!empty($userInfo['username'])) $identifiers[] = $userInfo['username'];
+        }
+        $identifiers = array_unique($identifiers);
+        $inQuery = implode(',', array_fill(0, count($identifiers), '?'));
+
         $stmt = $this->pdo->prepare("
             SELECT 
                 sc.id AS student_course_id,
@@ -245,6 +270,9 @@ class StudentCourseModelNew
                 sc.enrollment_key,
                 sc.created_at,
                 c.parent_course_id,
+                c.course_name,
+                c.course_img,
+                c.whatsapp_link,
 
                 ufd.id AS user_id,
                 ufd.username,
@@ -271,11 +299,14 @@ class StudentCourseModelNew
             FROM student_course sc
             LEFT JOIN user_full_details ufd ON sc.student_id = ufd.student_id OR sc.student_id = ufd.username
             LEFT JOIN course c ON sc.course_code = c.course_code
-            WHERE (sc.student_id = ? OR ufd.username = ?) AND c.parent_course_id = ?
+            WHERE sc.student_id IN ($inQuery) AND c.parent_course_id = ?
             ORDER BY sc.id DESC
             LIMIT 1
         ");
-        $stmt->execute([$userName, $userName, $parentCourseId]);
+        
+        $params = array_values($identifiers);
+        $params[] = $parentCourseId;
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($row && empty($row['username'])) {

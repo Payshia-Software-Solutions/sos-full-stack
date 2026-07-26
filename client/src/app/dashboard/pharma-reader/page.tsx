@@ -33,7 +33,7 @@ export default function PharmaReaderStudentPage() {
 
   // Read course code from localStorage
   useEffect(() => {
-    const storedCourse = localStorage.getItem('selected_course');
+    const storedCourse = sessionStorage.getItem('selected_course');
     if (storedCourse) {
       setCourseCode(storedCourse);
     }

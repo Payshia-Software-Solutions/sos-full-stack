@@ -23,7 +23,7 @@ export default function DPadIndexPage() {
 
   // Read selected course from localStorage (set after login/course-select)
   useEffect(() => {
-    const stored = localStorage.getItem("selected_course");
+    const stored = sessionStorage.getItem("selected_course");
     setCourseCode(stored);
   }, []);
 

@@ -16,6 +16,11 @@ return [
         $studentPaymentController->getAll();
     },
 
+    // Check payment by student_id and course_code
+    'GET /student-payments-new/check-payment$' => function () use ($studentPaymentController) {
+        $studentPaymentController->checkPayment();
+    },
+
     // Get student payment by ID
     'GET /student-payments-new/(\d+)/$' => function ($id) use ($studentPaymentController) {
         $studentPaymentController->getById($id);

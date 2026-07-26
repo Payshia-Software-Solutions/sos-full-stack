@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { getTickets } from "@/lib/actions/tickets";
-import type { Ticket, Course, StudentEnrollmentInfo } from "@/lib/types";
+import type { Ticket, StudentEnrollmentInfo } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,7 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, Ticket as TicketIcon, Clock, CheckCircle, PlusCircle, Award, Library, BookOpen, FileText, Gamepad2, AlertCircle, BookText, GraduationCap, Video } from "lucide-react";
 import { UnreadBadge } from "@/components/dashboard/UnreadBadge";
 import { CeylonPharmacyIcon, DPadIcon, HunterProIcon, LuckyWheelIcon, MediMindIcon, PharmaHunterIcon, PharmaReaderIcon, WinPharmaIcon, WordPalletIcon } from "@/components/icons/module-icons";
-import { getCourses } from "@/lib/actions/courses";
 import { getStudentEnrollments } from "@/lib/actions/users";
 import Image from "next/image";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -83,7 +82,7 @@ const TicketStats = ({ tickets, isLoading }: { tickets: Ticket[], isLoading: boo
     );
 };
 
-const QuickActionCard = ({ title, description, href, icon, colorClass, requiredCourses, selectedCourseCode, allCourses, setDialogContent }: { 
+const QuickActionCard = ({ title, description, href, icon, colorClass, requiredCourses, selectedCourseCode, setDialogContent }: { 
     title: string; 
     description: string; 
     href: string; 
@@ -91,7 +90,6 @@ const QuickActionCard = ({ title, description, href, icon, colorClass, requiredC
     colorClass: string; 
     requiredCourses?: string[];
     selectedCourseCode: string | null; 
-    allCourses: Course[] | undefined;
     setDialogContent: (content: { title: string; description: string } | null) => void;
 }) => {
     const router = useRouter();
@@ -99,14 +97,9 @@ const QuickActionCard = ({ title, description, href, icon, colorClass, requiredC
     const handleClick = (e: React.MouseEvent) => {
         if (requiredCourses && (!selectedCourseCode || !requiredCourses.includes(selectedCourseCode))) {
             e.preventDefault();
-            const requiredCourseNames = allCourses
-                ?.filter(c => requiredCourses.includes(c.courseCode))
-                .map(c => `${c.name} (${c.courseCode})`)
-                .join(' or ');
-            
             setDialogContent({
                 title: "Course Requirement Not Met",
-                description: `This game is only available for students enrolled in: ${requiredCourseNames || requiredCourses.join(', ')}.`,
+                description: `This game is only available for students enrolled in: ${requiredCourses.join(' or ')}.`,
             });
         } else {
             router.push(href);
@@ -139,7 +132,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Package } from "lucide-react";
 
 // --- Delivery Confirmation Component ---
-const DeliveryConfirmationPrompt = ({ user, allCourses }: { user: any, allCourses: Course[] | undefined }) => {
+const DeliveryConfirmationPrompt = ({ user, enrollments }: { user: any, enrollments: StudentEnrollmentInfo[] | undefined }) => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -222,9 +215,9 @@ const DeliveryConfirmationPrompt = ({ user, allCourses }: { user: any, allCourse
     };
 
     const getCourseImage = (courseCode?: string) => {
-        if (!courseCode || !allCourses) return null;
-        const course = allCourses.find(c => c.courseCode === courseCode);
-        return course?.course_img ? `${process.env.NEXT_PUBLIC_CONTENT_PROVIDER_URL || 'https://content-provider.pharmacollege.lk'}/${course.course_img}` : null;
+        if (!courseCode || !enrollments) return null;
+        const enrollment = enrollments.find(e => e.course_code === courseCode);
+        return enrollment?.course_img ? `${process.env.NEXT_PUBLIC_CONTENT_PROVIDER_URL || 'https://content-provider.pharmacollege.lk'}/${enrollment.course_img}` : null;
     };
 
     if (dispatchedOrders.length === 0) return null;
@@ -321,7 +314,7 @@ export default function StudentDashboardPage() {
     const [dialogContent, setDialogContent] = useState<{ title: string; description: string } | null>(null);
     
     useEffect(() => {
-        const storedCourseCode = localStorage.getItem('selected_course');
+        const storedCourseCode = sessionStorage.getItem('selected_course');
         if (storedCourseCode) {
             setSelectedCourseCode(storedCourseCode);
         } else {
@@ -335,12 +328,6 @@ export default function StudentDashboardPage() {
         enabled: !!user?.username,
     });
 
-    const { data: allCourses, isLoading: isLoadingCourses } = useQuery<Course[]>({
-        queryKey: ['allCourses'],
-        queryFn: getCourses,
-        staleTime: Infinity,
-    });
-    
     const { data: enrollments, isLoading: isLoadingEnrollments } = useQuery<StudentEnrollmentInfo[]>({
         queryKey: ['studentEnrollments', user?.username],
         queryFn: () => getStudentEnrollments(user!.username!),
@@ -348,9 +335,9 @@ export default function StudentDashboardPage() {
     });
 
     const selectedCourse = useMemo(() => {
-        if (!selectedCourseCode || !allCourses) return null;
-        return allCourses.find(c => c.courseCode === selectedCourseCode);
-    }, [selectedCourseCode, allCourses]);
+        if (!selectedCourseCode || !enrollments) return null;
+        return enrollments.find(e => e.course_code === selectedCourseCode);
+    }, [selectedCourseCode, enrollments]);
     
     const recentTickets = useMemo(() => {
        if (!tickets) return [];
@@ -369,7 +356,7 @@ export default function StudentDashboardPage() {
         { title: "Convocation Booking", description: "Register for the upcoming convocation.", href: "/dashboard/convocation-booking", icon: <GraduationCap className="w-8 h-8 text-white" />, colorClass: "from-purple-400 to-pink-500" },
     ];
 
-    if (!selectedCourseCode && !isLoadingCourses) {
+    if (!selectedCourseCode && isLoadingEnrollments) {
         return (
              <div className="flex h-screen items-center justify-center">
                 <p>Loading your preferences...</p>
@@ -391,7 +378,7 @@ export default function StudentDashboardPage() {
                 </AlertDialogContent>
             </AlertDialog>
 
-            <DeliveryConfirmationPrompt user={user} />
+            <DeliveryConfirmationPrompt user={user} enrollments={enrollments} />
 
             {/* --- Profile Header --- */}
             <Card className="shadow-lg overflow-hidden animate-in fade-in-50">
@@ -407,9 +394,9 @@ export default function StudentDashboardPage() {
                 </div>
             </Card>
 
-             <section className="animate-in fade-in-50 slide-in-from-bottom-4 delay-100">
+              <section className="animate-in fade-in-50 slide-in-from-bottom-4 delay-100">
                 <h2 className="text-2xl font-semibold font-headline mb-4">My Course</h2>
-                {isLoadingCourses || isLoadingEnrollments ? (
+                {isLoadingEnrollments ? (
                     <Skeleton className="h-32 w-full" />
                 ) : selectedCourse ? (
                     <Card className="shadow-lg bg-gradient-to-r from-primary/10 to-background">
@@ -418,7 +405,7 @@ export default function StudentDashboardPage() {
                                 <div className="relative w-full sm:w-48 h-28 rounded-lg overflow-hidden shrink-0 bg-muted">
                                     <Image 
                                       src={`${CONTENT_PROVIDER_URL}/${selectedCourse.course_img}`} 
-                                      alt={selectedCourse.name} 
+                                      alt={selectedCourse.course_name || selectedCourse.course_code} 
                                       fill
                                       style={{ objectFit: 'cover' }}
                                       priority
@@ -428,8 +415,8 @@ export default function StudentDashboardPage() {
                             )}
                             <div className="flex-grow text-center sm:text-left">
                                 <p className="text-xs font-semibold text-primary">YOUR CURRENT COURSE</p>
-                                <h3 className="text-xl font-bold text-card-foreground">{selectedCourse.name}</h3>
-                                <p className="text-sm text-muted-foreground">{selectedCourse.courseCode}</p>
+                                <h3 className="text-xl font-bold text-card-foreground">{selectedCourse.course_name || selectedCourse.course_code}</h3>
+                                <p className="text-sm text-muted-foreground">{selectedCourse.course_code}</p>
                             </div>
                             <div className="shrink-0 flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                                 {selectedCourse.whatsapp_link && (
@@ -458,12 +445,12 @@ export default function StudentDashboardPage() {
              <section className="animate-in fade-in-50 slide-in-from-bottom-4 delay-400">
                  <h2 className="text-2xl font-semibold font-headline mb-4">Games & Challenges</h2>
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                     <QuickActionCard title="Ceylon Pharmacy" description="Patient simulation game." href="/dashboard/ceylon-pharmacy" icon={<CeylonPharmacyIcon className="w-8 h-8 text-white"/>} colorClass="from-cyan-400 to-sky-500" selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
-                     <QuickActionCard title="D-Pad Challenge" description="Dispensing accuracy test." href="https://lms.pharmacollege.lk/d-pad" icon={<DPadIcon className="w-8 h-8 text-white"/>} colorClass="from-rose-400 to-red-500" selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
-                     <QuickActionCard title="Sentence Builder" description="English language practice." href="/dashboard/games/sentence-builder" icon={<BookText className="w-8 h-8 text-white"/>} colorClass="from-amber-400 to-orange-500" requiredCourses={['CPCC28', 'CPCC27']} selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
-                     <QuickActionCard title="MediMind" description="Test your pharmacology knowledge." href="/dashboard/medimind" icon={<MediMindIcon className="w-8 h-8 text-white"/>} colorClass="from-purple-400 to-violet-500" selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
-                     <QuickActionCard title="WinPharma" description="Topic-wise learning challenges." href="/dashboard/winpharma" icon={<WinPharmaIcon className="w-8 h-8 text-white"/>} colorClass="from-blue-400 to-indigo-500" selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
-                     <QuickActionCard title="Pharma Reader" description="Practice reading prescription details." href="/dashboard/pharma-reader" icon={<PharmaReaderIcon className="w-8 h-8 text-white"/>} colorClass="from-emerald-400 to-teal-500" selectedCourseCode={selectedCourseCode} allCourses={allCourses} setDialogContent={setDialogContent} />
+                     <QuickActionCard title="Ceylon Pharmacy" description="Patient simulation game." href="/dashboard/ceylon-pharmacy" icon={<CeylonPharmacyIcon className="w-8 h-8 text-white"/>} colorClass="from-cyan-400 to-sky-500" selectedCourseCode={selectedCourseCode} setDialogContent={setDialogContent} />
+                     <QuickActionCard title="D-Pad Challenge" description="Dispensing accuracy test." href="https://lms.pharmacollege.lk/d-pad" icon={<DPadIcon className="w-8 h-8 text-white"/>} colorClass="from-rose-400 to-red-500" selectedCourseCode={selectedCourseCode} setDialogContent={setDialogContent} />
+                     <QuickActionCard title="Sentence Builder" description="English language practice." href="/dashboard/games/sentence-builder" icon={<BookText className="w-8 h-8 text-white"/>} colorClass="from-amber-400 to-orange-500" requiredCourses={['CPCC28', 'CPCC27']} selectedCourseCode={selectedCourseCode} setDialogContent={setDialogContent} />
+                     <QuickActionCard title="Pharma Hunter" description="Test your pharmacology knowledge." href="/dashboard/medimind" icon={<PharmaHunterIcon className="w-8 h-8 text-white"/>} colorClass="from-purple-400 to-violet-500" selectedCourseCode={selectedCourseCode} setDialogContent={setDialogContent} />
+                     <QuickActionCard title="WinPharma" description="Topic-wise learning challenges." href="/dashboard/winpharma" icon={<WinPharmaIcon className="w-8 h-8 text-white"/>} colorClass="from-blue-400 to-indigo-500" selectedCourseCode={selectedCourseCode} setDialogContent={setDialogContent} />
+                     <QuickActionCard title="Pharma Reader" description="Practice reading prescription details." href="/dashboard/pharma-reader" icon={<PharmaReaderIcon className="w-8 h-8 text-white"/>} colorClass="from-emerald-400 to-teal-500" selectedCourseCode={selectedCourseCode} setDialogContent={setDialogContent} />
                  </div>
             </section>
 
@@ -475,7 +462,6 @@ export default function StudentDashboardPage() {
                         key={action.href}
                         {...action}
                         selectedCourseCode={selectedCourseCode} 
-                        allCourses={allCourses} 
                         setDialogContent={setDialogContent} 
                       />
                    ))}

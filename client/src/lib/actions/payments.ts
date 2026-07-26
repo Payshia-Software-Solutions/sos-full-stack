@@ -55,3 +55,12 @@ export const updatePaymentRequestStatus = async (request: PaymentRequest, status
     }
     return response.json();
 };
+
+export const checkStudentPaymentExists = async (studentId: string, courseCode: string): Promise<boolean> => {
+    const response = await fetch(`${QA_API_BASE_URL}/student-payments-new/check-payment?student_id=${studentId}&course_code=${courseCode}`);
+    if (!response.ok) {
+        return false;
+    }
+    const data = await response.json();
+    return Array.isArray(data) && data.length > 0;
+};

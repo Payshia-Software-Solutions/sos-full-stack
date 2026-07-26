@@ -78,6 +78,14 @@ class StudentPaymentNew
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    // Get student payments by student ID and course code
+    public function getByStudentIdAndCourse($studentId, $courseCode)
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM `student_payment` WHERE `student_id` = ? AND `course_code` = ?");
+        $stmt->execute([$studentId, $courseCode]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     // Create new student payment
     public function create($data)
     {

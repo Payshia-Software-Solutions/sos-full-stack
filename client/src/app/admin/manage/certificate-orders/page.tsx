@@ -142,15 +142,7 @@ const CertificateStatusCell = ({
                 const certPrintUrl = `https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-list-certificate?courseCode=${id}&tableMode=0&fixedStudentNumber=${order.created_by}`;
 
                 // Individual Transcript Print URL logic
-                let transPrintUrl = '';
-                if (id === '1') {
-                    transPrintUrl = `https://admin.pharmacollege.lk//assets/content/lms-management/certification/print-view/courier-print-all-transcript?courseCode=1&tableMode=0&fixedStudentNumber=${order.created_by}`;
-                } else if (id === '2') {
-                    transPrintUrl = `https://admin.pharmacollege.lk//assets/content/lms-management/certification/print-view/courier-print-all-transcript-advanced?courseCode=2&tableMode=0&fixedStudentNumber=${order.created_by}`;
-                } else {
-                    const transBaseUrl = 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/print-all-transcript.php';
-                    transPrintUrl = `${transBaseUrl}?courseCode=${id}&showSession=1&tableMode=0&fixedStudentNumber=${order.created_by}`;
-                }
+                const transPrintUrl = `${LMS_API_URL}/transcript-templates/${id}/print/${order.created_by}`;
 
                 return (
                     <div key={id} className="space-y-1.5 border-l-2 border-muted pl-2 py-1">
@@ -425,9 +417,8 @@ export default function CertificateOrdersListPage() {
 
     // Bulk print URL helpers for Transcripts
     const getBulkTranscriptPrintBaseUrl = (courseId: string) => {
-        if (courseId === '1') return 'https://admin.pharmacollege.lk//assets/content/lms-management/certification/print-view/courier-print-all-transcript';
-        if (courseId === '2') return 'https://admin.pharmacollege.lk//assets/content/lms-management/certification/print-view/courier-print-all-transcript-advanced';
-        return 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/print-all-transcript.php';
+        if (courseId === '1') return 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-print-all-transcript';
+        return 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-print-all-transcript-advanced';
     };
     
     if (isLoadingOrders) return <div className="p-8"><Skeleton className="h-64 w-full" /></div>;

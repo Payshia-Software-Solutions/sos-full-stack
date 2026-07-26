@@ -86,7 +86,7 @@ export default function WinPharmaTaskDetailPage() {
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
     useEffect(() => {
-        const storedCourseCode = localStorage.getItem('selected_course');
+        const storedCourseCode = sessionStorage.getItem('selected_course');
         setSelectedCourseCode(storedCourseCode);
     }, []);
 

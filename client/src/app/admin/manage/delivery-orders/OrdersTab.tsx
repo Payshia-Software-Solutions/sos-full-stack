@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { getStudentsByCourseCode, createDeliveryOrderForStudent, getDeliveryOrdersForStudent, updateDeliveryOrderStatus, getDeliveryOrdersByCourse, updateDeliveryOrder } from '@/lib/actions/delivery';
+import { getStudentBalance } from '@/lib/actions/users';
 import { getCourses, getDeliverySettingsForCourse } from '@/lib/actions/courses';
 import type { StudentInBatch, DeliveryOrder, Course, DeliverySetting } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -372,6 +373,12 @@ const OrderDetailsDialogContent = ({ order, selectedBatch, onClose }: { order: D
     const [codAmount, setCodAmount] = useState(order.cod_amount || order.value || '0.00');
     const [packageWeight, setPackageWeight] = useState(order.package_weight || '1.000');
     
+    const { data: balanceData, isLoading: isLoadingBalance } = useQuery({
+        queryKey: ['studentBalance', order.index_number],
+        queryFn: () => getStudentBalance(order.index_number!),
+        enabled: !!order.index_number,
+    });
+    
     const updateOrderMutation = useMutation({
         mutationFn: (updatedData: any) => updateDeliveryOrder(order.id, { ...order, ...updatedData }),
         onSuccess: () => {
@@ -414,10 +421,18 @@ const OrderDetailsDialogContent = ({ order, selectedBatch, onClose }: { order: D
                 </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div>
                         <p className="text-sm text-muted-foreground">Student ID</p>
                         <p className="font-semibold">{order.index_number}</p>
+                    </div>
+                    <div>
+                        <p className="text-sm text-muted-foreground">Due Balance</p>
+                        {isLoadingBalance ? <Skeleton className="h-5 w-20 mt-1" /> : (
+                            <p className={cn("font-semibold", balanceData && balanceData.studentBalance > 0 ? "text-destructive" : "text-green-600")}>
+                                LKR {balanceData?.studentBalance?.toLocaleString() || '0'}
+                            </p>
+                        )}
                     </div>
                     <div>
                         <p className="text-sm text-muted-foreground">Order Date</p>
