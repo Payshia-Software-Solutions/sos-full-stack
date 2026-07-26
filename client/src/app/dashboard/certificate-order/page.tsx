@@ -4,13 +4,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCertificateOrdersByStudent } from '@/lib/actions/certificates';
+import { LMS_API_URL } from '@/lib/config';
 import type { CertificateOrder } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, ListOrdered, PlusCircle, ArrowLeft } from 'lucide-react';
+import { AlertCircle, ListOrdered, PlusCircle, ArrowLeft, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -84,9 +85,16 @@ export default function CertificateOrderHistoryPage() {
                                         <p className="font-semibold text-card-foreground">Order ID: {order.id}</p>
                                         <p className="text-sm text-muted-foreground">{format(new Date(order.created_at), 'PPP')}</p>
                                     </div>
-                                    <div className="mt-2 pt-2 border-t">
-                                        <p className="text-sm"><strong className="text-muted-foreground">Courses:</strong> {order.course_code}</p>
-                                        <p className="text-sm mt-1"><strong className="text-muted-foreground">Status:</strong> {getStatusBadge(order.certificate_status)}</p>
+                                    <div className="mt-2 pt-2 border-t flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                        <div>
+                                            <p className="text-sm"><strong className="text-muted-foreground">Courses:</strong> {order.course_code}</p>
+                                            <p className="text-sm mt-1"><strong className="text-muted-foreground">Status:</strong> {getStatusBadge(order.certificate_status)}</p>
+                                        </div>
+                                        <Button asChild variant="outline" size="sm" className="w-full sm:w-auto text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200">
+                                            <a href={`${LMS_API_URL}/transcript-templates/${order.course_code.split(',')[0].trim()}/print/${user?.username}`} target="_blank" rel="noopener noreferrer">
+                                                <Printer className="mr-2 h-4 w-4" /> Print Transcript
+                                            </a>
+                                        </Button>
                                     </div>
                                 </div>
                             ))}

@@ -120,7 +120,7 @@ class TempLmsUser
         $whereClauses = ["t.aprroved_status = :status"];
         
         if ($search !== '') {
-            $whereClauses[] = "(t.full_name LIKE :search OR t.email_address LIKE :search OR t.phone_number LIKE :search OR t.id LIKE :search)";
+            $whereClauses[] = "(t.full_name LIKE :search1 OR t.email_address LIKE :search2 OR t.phone_number LIKE :search3 OR t.id LIKE :search4 OR t.index_number LIKE :search5)";
         }
         
         if ($startDate) {
@@ -142,7 +142,11 @@ class TempLmsUser
         $countStmt = $this->pdo->prepare($countSql);
         $countStmt->bindValue(':status', $status, PDO::PARAM_STR);
         if ($search !== '') {
-            $countStmt->bindValue(':search', $searchParam, PDO::PARAM_STR);
+            $countStmt->bindValue(':search1', $searchParam, PDO::PARAM_STR);
+            $countStmt->bindValue(':search2', $searchParam, PDO::PARAM_STR);
+            $countStmt->bindValue(':search3', $searchParam, PDO::PARAM_STR);
+            $countStmt->bindValue(':search4', $searchParam, PDO::PARAM_STR);
+            $countStmt->bindValue(':search5', $searchParam, PDO::PARAM_STR);
         }
         if ($startDate) {
             $countStmt->bindValue(':start_date', $startDate, PDO::PARAM_STR);
@@ -186,7 +190,11 @@ class TempLmsUser
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindValue(':status', $status, PDO::PARAM_STR);
         if ($search !== '') {
-            $stmt->bindValue(':search', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search1', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search2', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search3', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search4', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search5', $searchParam, PDO::PARAM_STR);
         }
         if ($startDate) {
             $stmt->bindValue(':start_date', $startDate, PDO::PARAM_STR);

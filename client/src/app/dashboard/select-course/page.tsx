@@ -6,8 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getStudentEnrollments } from '@/lib/actions/users';
-import { getCourses } from '@/lib/actions/courses';
-import type { StudentEnrollmentInfo, Course } from '@/lib/types';
+import type { StudentEnrollmentInfo } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, BookOpen, ArrowRight } from 'lucide-react';
@@ -26,12 +25,6 @@ export default function SelectCoursePage() {
         queryFn: () => getStudentEnrollments(user!.username!),
         enabled: !!user?.username,
     });
-
-    const { data: allCourses, isLoading: isLoadingCourses } = useQuery<Course[]>({
-        queryKey: ['allCourses'],
-        queryFn: getCourses,
-        staleTime: Infinity,
-    });
     
     // Redirect if not needed
     useEffect(() => {
@@ -46,7 +39,7 @@ export default function SelectCoursePage() {
         router.push('/dashboard');
     };
 
-    const isLoading = isLoadingEnrollments || isLoadingCourses;
+    const isLoading = isLoadingEnrollments;
 
     return (
         <div className="flex min-h-screen items-center justify-center p-4 bg-background">
@@ -68,7 +61,6 @@ export default function SelectCoursePage() {
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
                                 {enrollments?.map(enrollment => {
-                                    const courseInfo = allCourses?.find(c => c.courseCode === enrollment.course_code);
                                     return (
                                         <button
                                             key={enrollment.student_course_id}
@@ -82,7 +74,7 @@ export default function SelectCoursePage() {
                                                             <BookOpen className="w-6 h-6 text-primary" />
                                                         </div>
                                                         <div>
-                                                            <p className="font-semibold text-card-foreground group-hover:text-primary transition-colors">{courseInfo?.name || enrollment.course_code}</p>
+                                                            <p className="font-semibold text-card-foreground group-hover:text-primary transition-colors">{enrollment.course_name || enrollment.course_code}</p>
                                                             <p className="text-sm text-muted-foreground">{enrollment.course_code}</p>
                                                         </div>
                                                     </div>

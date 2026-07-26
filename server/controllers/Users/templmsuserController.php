@@ -103,8 +103,8 @@ class TempLmsUserController
             $studentName = $data['first_name'] . ' ' . $data['last_name']; // Combine first and last name
             $referenceNumber = $userId; // Use the user ID as the reference number
 
-            // Send the welcome SMS
-            $smsResponse = $this->smsModel->sendWelcomeSMS($mobile, $studentName, $referenceNumber);
+            // Send the registration SMS
+            $smsResponse = $this->smsModel->sendRegistrationSMS($mobile, $studentName, $referenceNumber);
             $to = "thilinaruwan112@gmail.com";
             $subject = $referenceNumber . " | Account Activation from Pharma College";
             $body = "Account Activation from Pharma College Your reference number is: " . $referenceNumber;
