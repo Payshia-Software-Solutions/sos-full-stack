@@ -26,6 +26,13 @@ const managementTasks: ManagementTask[] = [
     category: "Student Management"
   },
   {
+    title: "Profile Edit Requests",
+    description: "Review and approve/reject student profile update requests.",
+    icon: <UserCog className="w-8 h-8 text-white" />,
+    href: "/admin/manage/profile-edits",
+    category: "Student Management"
+  },
+  {
     title: "SMS Templates",
     description: "Manage and edit automated SMS message content.",
     icon: <MessageSquare className="w-8 h-8 text-white" />,

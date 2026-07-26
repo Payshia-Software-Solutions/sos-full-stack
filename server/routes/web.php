@@ -94,6 +94,7 @@ $courseModuleRoutes = require './routes/Course/CourseModuleRoutes.php';
 $courseOutcomeRoutes = require './routes/Course/CourseOutcomeRoutes.php';
 $courseOverviewRoutes = require './routes/Course/courseOverviewRoutes.php';
 $tempLmsUserRoutes = require './routes/UserRoutes/tempLmsUserRoutes.php';
+$editProfileTempRoutes = require './routes/UserRoutes/editProfileTempRoutes.php';
 $CityRoutes = require './routes/CityRoutes.php';
 $StudentValuesRoutes = require './routes/Student/StudentValuesRoutes.php';
 $CertificateVerificationRoutes = require './routes/CertificationCenter/CertificateVerificationRoutes.php';
@@ -237,6 +238,7 @@ $routes = array_merge(
     $courseOutcomeRoutes,
     $courseOverviewRoutes,
     $tempLmsUserRoutes,
+    $editProfileTempRoutes,
     $CityRoutes,
     $StudentValuesRoutes,
     $CertificateVerificationRoutes,

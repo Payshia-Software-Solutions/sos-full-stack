@@ -162,4 +162,59 @@ export const getStudentBalance = async (studentNumber: string): Promise<StudentB
         throw new Error(errorData.message || 'Failed to fetch student balance');
     }
     return response.json();
-}
+};
+
+export const submitProfileEditRequest = async (data: any): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/profile-edits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to submit profile edit request' }));
+        throw new Error(errorData.message || 'Failed to submit profile edit request');
+    }
+    return response.json();
+};
+
+export const getPendingProfileEditRequests = async (): Promise<any[]> => {
+    const response = await fetch(`${QA_API_BASE_URL}/profile-edits/pending`);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch pending profile edit requests' }));
+        throw new Error(errorData.message || 'Failed to fetch pending profile edit requests');
+    }
+    return response.json();
+};
+
+export const getProfileEditRequestStatus = async (username: string): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/profile-edits/status/${username}`);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch profile edit request status' }));
+        throw new Error(errorData.message || 'Failed to fetch profile edit request status');
+    }
+    return response.json();
+};
+
+export const approveProfileEditRequest = async (id: string | number, adminUsername: string): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/profile-edits/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_username: adminUsername }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to approve request' }));
+        throw new Error(errorData.message || 'Failed to approve request');
+    }
+    return response.json();
+};
+
+export const rejectProfileEditRequest = async (id: string | number): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/profile-edits/${id}/reject`, {
+        method: 'POST',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to reject request' }));
+        throw new Error(errorData.message || 'Failed to reject request');
+    }
+    return response.json();
+};
