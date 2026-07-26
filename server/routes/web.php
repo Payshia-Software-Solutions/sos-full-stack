@@ -160,6 +160,7 @@ $birthdaySettingsRoutes = require './routes/BirthdaySettingsRoutes.php';
 $blogRoutes = require './routes/BlogRoutes.php';
 $pharmaReaderRoutes = require './routes/pharmaReaderRoutes.php';
 $smsTemplateRoutes = require './routes/smsTemplateRoutes.php';
+$transcriptTemplateRoutes = require './routes/TranscriptTemplateRoutes.php';
 // Combine all routes
 $routes = array_merge(
     $userRoutes,
@@ -298,7 +299,8 @@ $routes = array_merge(
     $convocationStudentInfoRoutes,
     $blogRoutes,
     $pharmaReaderRoutes,
-    $smsTemplateRoutes
+    $smsTemplateRoutes,
+    $transcriptTemplateRoutes
 );
 
 

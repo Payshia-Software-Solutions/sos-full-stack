@@ -214,22 +214,15 @@ export default function AccountActivationPage() {
     fetchApprovedUsers();
   }, [approvedPage, approvedSearchQuery, approvedStartDate, approvedEndDate]);
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchQuery(searchInput);
-      setPage(1); // Reset page on new search
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchInput]);
+  const handleSearch = () => {
+    setSearchQuery(searchInput);
+    setPage(1);
+  };
 
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setApprovedSearchQuery(approvedSearchInput);
-      setApprovedPage(1);
-    }, 500);
-    return () => clearTimeout(timeoutId);
-  }, [approvedSearchInput]);
+  const handleApprovedSearch = () => {
+    setApprovedSearchQuery(approvedSearchInput);
+    setApprovedPage(1);
+  };
 
   const handleResendSMS = async (userId: string) => {
     setResendingSms(userId);
@@ -339,14 +332,18 @@ export default function AccountActivationPage() {
                       <SelectItem value="slips">With Slips Only</SelectItem>
                     </SelectContent>
                   </Select>
-                  <div className="relative w-full md:w-64">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      placeholder="Search students..." 
-                      className="pl-8" 
-                      value={searchInput}
-                      onChange={(e) => setSearchInput(e.target.value)}
-                    />
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <div className="relative w-full md:w-64">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="Search students..." 
+                        className="pl-8" 
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                      />
+                    </div>
+                    <Button onClick={handleSearch}>Search</Button>
                   </div>
                   <Button variant="outline" className="border-green-600 text-green-500 hover:bg-green-600/10" onClick={handleExportPending}>
                     <Download className="w-4 h-4 mr-2" /> Export
@@ -474,14 +471,18 @@ export default function AccountActivationPage() {
                     className="w-auto text-sm"
                   />
                 </div>
-                <div className="relative w-full md:w-64">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search approved students..." 
-                    className="pl-8" 
-                    value={approvedSearchInput}
-                    onChange={(e) => setApprovedSearchInput(e.target.value)}
-                  />
+                <div className="flex gap-2 w-full md:w-auto">
+                  <div className="relative w-full md:w-64">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Search approved students..." 
+                      className="pl-8" 
+                      value={approvedSearchInput}
+                      onChange={(e) => setApprovedSearchInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleApprovedSearch(); }}
+                    />
+                  </div>
+                  <Button onClick={handleApprovedSearch}>Search</Button>
                 </div>
                 <Button variant="outline" className="border-green-600 text-green-500 hover:bg-green-600/10" onClick={handleExportApproved}>
                   <Download className="w-4 h-4 mr-2" /> Export

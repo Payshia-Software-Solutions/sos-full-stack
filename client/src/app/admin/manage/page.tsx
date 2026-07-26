@@ -206,6 +206,13 @@ const managementTasks: ManagementTask[] = [
     href: "/admin/manage/generate-certificate",
     category: "Certificates & Convocation"
   },
+  {
+    title: "Transcript Designer",
+    description: "Design and manage transcript templates for courses.",
+    icon: <FileSignature className="w-8 h-8 text-white" />,
+    href: "/admin/manage/transcript-design",
+    category: "Certificates & Convocation"
+  },
    {
     title: "Manage Course Content",
     description: "Add, edit, or delete course videos, pdfs and links.",

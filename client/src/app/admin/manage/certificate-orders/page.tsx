@@ -142,12 +142,7 @@ const CertificateStatusCell = ({
                 const certPrintUrl = `https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-list-certificate?courseCode=${id}&tableMode=0&fixedStudentNumber=${order.created_by}`;
 
                 // Individual Transcript Print URL logic
-                let transPrintUrl = '';
-                if (id === '1') {
-                    transPrintUrl = `https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-print-all-transcript?courseCode=1&tableMode=0&fixedStudentNumber=${order.created_by}`;
-                } else {
-                    transPrintUrl = `https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-print-all-transcript-advanced?courseCode=${id}&tableMode=0&fixedStudentNumber=${order.created_by}`;
-                }
+                const transPrintUrl = `${LMS_API_URL}/transcript-templates/${id}/print/${order.created_by}`;
 
                 return (
                     <div key={id} className="space-y-1.5 border-l-2 border-muted pl-2 py-1">
