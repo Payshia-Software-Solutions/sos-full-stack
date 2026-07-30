@@ -94,6 +94,25 @@ const ConvocationStatusCell = ({ studentNumber }: { studentNumber: string }) => 
 };
 
 
+const getCleanedCourseCodes = (order: CertificateOrder, studentData?: FullStudentData): string => {
+    if (!studentData) return order.course_code;
+    const terms = order.course_code.split(',').map(s => s.trim()).filter(Boolean);
+    const mapped = terms.map(term => {
+        const enrollment = Object.values(studentData.studentEnrollments).find(
+            e => String(e.parent_course_id) === String(term) || String(e.course_code) === String(term)
+        );
+        return enrollment ? enrollment.course_code : term;
+    });
+    return [...new Set(mapped)].join(',');
+};
+
+const needsCleaning = (order: CertificateOrder, studentData?: FullStudentData): boolean => {
+    if (!studentData) return false;
+    const current = order.course_code.split(',').map(s => s.trim()).filter(Boolean).join(',');
+    const cleaned = getCleanedCourseCodes(order, studentData);
+    return current !== cleaned;
+};
+
 // --- Certificate Management Component ---
 const CertificateStatusCell = ({ 
     order, 
@@ -127,7 +146,10 @@ const CertificateStatusCell = ({
     });
 
     const getGeneratedDoc = (courseId: string) => {
-        return certStatus?.certificateStatus?.find(c => c.parent_course_id === courseId && (c.type === 'Certificate' || c.type === 'Workshop-Certificate'));
+        return certStatus?.certificateStatus?.find(c => 
+            (String(c.parent_course_id) === String(courseId) || String(c.course_code) === String(courseId)) && 
+            (c.type === 'Certificate' || c.type === 'Workshop-Certificate')
+        );
     };
 
     if (isLoadingCerts || !studentData) return <div className="space-y-2"><Skeleton className="h-6 w-24" /><Skeleton className="h-6 w-24" /></div>;
@@ -136,13 +158,13 @@ const CertificateStatusCell = ({
         <div className="flex flex-col gap-3 min-w-[200px]">
             {courseIds.map(id => {
                 const cert = getGeneratedDoc(id);
-                const enrollment = Object.values(studentData.studentEnrollments).find(e => e.parent_course_id === id);
+                const enrollment = Object.values(studentData.studentEnrollments).find(e => e.parent_course_id === id || e.course_code === id);
                 
                 // Individual Certificate Print URL logic
-                const certPrintUrl = `https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-list-certificate?courseCode=${id}&tableMode=0&fixedStudentNumber=${order.created_by}`;
+                const certPrintUrl = `https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-list-certificate?courseCode=${enrollment?.parent_course_id || id}&tableMode=0&fixedStudentNumber=${order.created_by}`;
 
                 // Individual Transcript Print URL logic
-                const transPrintUrl = `${LMS_API_URL}/transcript-templates/${id}/print/${order.created_by}`;
+                const transPrintUrl = `${LMS_API_URL}/transcript-templates/${enrollment?.parent_course_id || id}/print/${order.created_by}`;
 
                 return (
                     <div key={id} className="space-y-1.5 border-l-2 border-muted pl-2 py-1">
@@ -189,7 +211,7 @@ const CertificateStatusCell = ({
                                             print_status: "0",
                                             print_by: user.username,
                                             type: "Certificate",
-                                            parentCourseCode: parseInt(id, 10),
+                                            parentCourseCode: parseInt(enrollment.parent_course_id, 10),
                                             referenceId: parseInt(order.id, 10),
                                             course_code: enrollment.course_code,
                                             source: "courier"
@@ -222,7 +244,10 @@ const OrderActionsCell = ({ order, onUpdateClick, studentData, balanceData, isLo
         if (!studentData) return { isUpdateAvailable: false };
         const currentCourses = order.course_code.split(',').map(id => id.trim()).filter(Boolean);
         const allEligibleEnrollments = Object.values(studentData.studentEnrollments).filter(e => e.certificate_eligibility);
-        const newEnrollments = allEligibleEnrollments.filter(e => !currentCourses.includes(e.parent_course_id));
+        const newEnrollments = allEligibleEnrollments.filter(e => 
+            !currentCourses.includes(e.parent_course_id) && 
+            !currentCourses.includes(e.course_code)
+        );
         return { isUpdateAvailable: newEnrollments.length > 0 };
     }, [studentData, order.course_code]);
     
@@ -283,7 +308,12 @@ export default function CertificateOrdersListPage() {
 
     const courseNameMap = useMemo(() => {
         const map = new Map<string, string>();
-        parentCourses?.forEach(course => map.set(course.id, course.course_name));
+        parentCourses?.forEach(course => {
+            map.set(course.id, course.course_name);
+            if (course.course_code) {
+                map.set(course.course_code.trim(), course.course_name);
+            }
+        });
         return map;
     }, [parentCourses]);
     
@@ -318,7 +348,7 @@ export default function CertificateOrdersListPage() {
             result = orders.filter(order =>
                 order.created_by.toLowerCase().includes(lowercasedFilter) ||
                 order.name_on_certificate.toLowerCase().includes(lowercasedFilter) ||
-                order.id.toLowerCase().includes(lowercasedFilter)
+                String(order.id).toLowerCase().includes(lowercasedFilter)
             );
         }
 
@@ -370,8 +400,14 @@ export default function CertificateOrdersListPage() {
         if (!studentInfo) return;
 
         const currentCourses = orderToUpdate.course_code.split(',').map(s => s.trim()).filter(Boolean);
-        const newEligibleCourseIds = Object.values(studentInfo.studentEnrollments).filter(e => e.certificate_eligibility && !currentCourses.includes(e.parent_course_id)).map(e => e.parent_course_id);
-        const allCourseIds = [...currentCourses, ...newEligibleCourseIds];
+        const newEligibleCourseIds = Object.values(studentInfo.studentEnrollments)
+            .filter(e => 
+                e.certificate_eligibility && 
+                !currentCourses.includes(e.parent_course_id) && 
+                !currentCourses.includes(e.course_code)
+            )
+            .map(e => e.course_code);
+        const allCourseIds = [...new Set([...currentCourses, ...newEligibleCourseIds])];
         updateCourses({ orderId: orderToUpdate.id, courseCodes: allCourseIds.join(',') });
     };
 
@@ -458,14 +494,19 @@ export default function CertificateOrdersListPage() {
                              <div className="text-sm">
                                 <p className="mb-3">This student is eligible for additional courses. Do you want to add them to this order?</p>
                                 <div className="space-y-4 rounded-md border bg-muted/50 p-3 max-h-60 overflow-y-auto">
-                                    {Object.values(studentDataMap.get(orderToUpdate!.created_by)?.studentData?.studentEnrollments || {}).filter(e => e.certificate_eligibility && !orderToUpdate?.course_code.includes(e.parent_course_id)).map(enrollment => (
-                                        <div key={enrollment.parent_course_id}>
-                                            <h4 className="font-semibold text-card-foreground">{enrollment.parent_course_name}</h4>
-                                            <ul className="mt-1 list-disc list-inside text-xs text-muted-foreground pl-2">
-                                                {enrollment.criteria_details.map(c => <li key={c.id} className="flex items-center justify-between"><span>{c.list_name}</span>{c.evaluation.completed ? <CheckCircle className="h-3.5 w-3.5 text-green-600" /> : <XCircle className="h-3.5 w-3.5 text-red-600" />}</li>)}
-                                            </ul>
-                                        </div>
-                                    ))}
+                                    {(() => {
+                                        const currentCourses = orderToUpdate?.course_code.split(',').map(s => s.trim()).filter(Boolean) || [];
+                                        return Object.values(studentDataMap.get(orderToUpdate!.created_by)?.studentData?.studentEnrollments || {})
+                                            .filter(e => e.certificate_eligibility && !currentCourses.includes(e.parent_course_id) && !currentCourses.includes(e.course_code))
+                                            .map(enrollment => (
+                                                <div key={enrollment.parent_course_id}>
+                                                    <h4 className="font-semibold text-card-foreground">{enrollment.parent_course_name}</h4>
+                                                    <ul className="mt-1 list-disc list-inside text-xs text-muted-foreground pl-2">
+                                                        {enrollment.criteria_details.map(c => <li key={c.id} className="flex items-center justify-between"><span>{c.list_name}</span>{c.evaluation.completed ? <CheckCircle className="h-3.5 w-3.5 text-green-600" /> : <XCircle className="h-3.5 w-3.5 text-red-600" />}</li>)}
+                                                    </ul>
+                                                </div>
+                                            ));
+                                    })()}
                                 </div>
                             </div>
                            ) : <div><Loader2 className="animate-spin mr-2"/>Loading...</div>}
@@ -648,6 +689,21 @@ export default function CertificateOrdersListPage() {
                                         </TableCell>
                                         <TableCell><OrderActionsCell order={order} onUpdateClick={() => openUpdateDialog(order)} studentData={studentDataMap.get(order.created_by)?.studentData} balanceData={studentDataMap.get(order.created_by)?.balanceData} isLoading={isLoadingStudentData && !studentDataMap.has(order.created_by)} /></TableCell>
                                         <TableCell className="text-right space-x-1">
+                                            {needsCleaning(order, studentDataMap.get(order.created_by)?.studentData) && (
+                                                <Button 
+                                                    variant="destructive" 
+                                                    size="sm" 
+                                                    onClick={() => {
+                                                        const cleaned = getCleanedCourseCodes(order, studentDataMap.get(order.created_by)?.studentData);
+                                                        updateCourses({ orderId: order.id, courseCodes: cleaned });
+                                                    }}
+                                                    disabled={isUpdating}
+                                                    className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+                                                >
+                                                    {isUpdating && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1"/>}
+                                                    Clean Entry
+                                                </Button>
+                                            )}
                                             <Button variant="outline" size="sm" asChild>
                                                 <a href={`/print/certificate-address-list?courseCode=${order.course_code.split(',')[0].trim()}&rangeFrom=${order.id}&rangeTo=${order.id}`} target="_blank" rel="noopener noreferrer">
                                                     <Printer className="h-3.5 w-3.5 mr-1" /> Label
