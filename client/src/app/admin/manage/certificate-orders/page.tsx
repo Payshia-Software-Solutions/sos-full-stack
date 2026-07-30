@@ -101,7 +101,7 @@ const getCleanedCourseCodes = (order: CertificateOrder, studentData?: FullStuden
         const enrollment = Object.values(studentData.studentEnrollments).find(
             e => String(e.parent_course_id) === String(term) || String(e.course_code) === String(term)
         );
-        return enrollment ? enrollment.course_code : term;
+        return enrollment ? enrollment.parent_course_id : term;
     });
     return [...new Set(mapped)].join(',');
 };
@@ -245,8 +245,8 @@ const OrderActionsCell = ({ order, onUpdateClick, studentData, balanceData, isLo
         const currentCourses = order.course_code.split(',').map(id => id.trim()).filter(Boolean);
         const allEligibleEnrollments = Object.values(studentData.studentEnrollments).filter(e => e.certificate_eligibility);
         const newEnrollments = allEligibleEnrollments.filter(e => 
-            !currentCourses.includes(e.parent_course_id) && 
-            !currentCourses.includes(e.course_code)
+            !currentCourses.includes(String(e.parent_course_id)) && 
+            !currentCourses.includes(String(e.course_code))
         );
         return { isUpdateAvailable: newEnrollments.length > 0 };
     }, [studentData, order.course_code]);
@@ -309,7 +309,7 @@ export default function CertificateOrdersListPage() {
     const courseNameMap = useMemo(() => {
         const map = new Map<string, string>();
         parentCourses?.forEach(course => {
-            map.set(course.id, course.course_name);
+            map.set(String(course.id), course.course_name);
             if (course.course_code) {
                 map.set(course.course_code.trim(), course.course_name);
             }
@@ -403,10 +403,10 @@ export default function CertificateOrdersListPage() {
         const newEligibleCourseIds = Object.values(studentInfo.studentEnrollments)
             .filter(e => 
                 e.certificate_eligibility && 
-                !currentCourses.includes(e.parent_course_id) && 
-                !currentCourses.includes(e.course_code)
+                !currentCourses.includes(String(e.parent_course_id)) && 
+                !currentCourses.includes(String(e.course_code))
             )
-            .map(e => e.course_code);
+            .map(e => String(e.parent_course_id));
         const allCourseIds = [...new Set([...currentCourses, ...newEligibleCourseIds])];
         updateCourses({ orderId: orderToUpdate.id, courseCodes: allCourseIds.join(',') });
     };
@@ -497,7 +497,7 @@ export default function CertificateOrdersListPage() {
                                     {(() => {
                                         const currentCourses = orderToUpdate?.course_code.split(',').map(s => s.trim()).filter(Boolean) || [];
                                         return Object.values(studentDataMap.get(orderToUpdate!.created_by)?.studentData?.studentEnrollments || {})
-                                            .filter(e => e.certificate_eligibility && !currentCourses.includes(e.parent_course_id) && !currentCourses.includes(e.course_code))
+                                            .filter(e => e.certificate_eligibility && !currentCourses.includes(String(e.parent_course_id)) && !currentCourses.includes(String(e.course_code)))
                                             .map(enrollment => (
                                                 <div key={enrollment.parent_course_id}>
                                                     <h4 className="font-semibold text-card-foreground">{enrollment.parent_course_name}</h4>

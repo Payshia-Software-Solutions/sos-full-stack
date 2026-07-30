@@ -204,9 +204,16 @@ class CertificateOrderController
         $failureReasons = [];
 
         foreach ($courseIds as $requestedCourseCode) {
-            // Check if the student is enrolled in this course and has evaluation data
-            if (isset($studentEvaluations[$requestedCourseCode])) {
-                $evalData = $studentEvaluations[$requestedCourseCode];
+            // Find evaluation matching either course_code or parent_course_id
+            $evalData = null;
+            foreach ($studentEvaluations as $code => $eval) {
+                if (strval($code) === strval($requestedCourseCode) || (isset($eval['parent_course_id']) && strval($eval['parent_course_id']) === strval($requestedCourseCode))) {
+                    $evalData = $eval;
+                    break;
+                }
+            }
+
+            if ($evalData !== null) {
                 if (isset($evalData['certificate_eligibility']) && $evalData['certificate_eligibility'] === false) {
                     $failedCourses[] = $requestedCourseCode;
                     // Collect reasons if any exist
