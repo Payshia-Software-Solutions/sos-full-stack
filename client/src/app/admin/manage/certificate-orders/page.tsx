@@ -166,6 +166,12 @@ const CertificateStatusCell = ({
                 // Individual Transcript Print URL logic
                 const transPrintUrl = `${LMS_API_URL}/transcript-templates/${enrollment?.parent_course_id || id}/print/${order.created_by}`;
 
+                // Old Transcript Print URL logic
+                const oldTransBaseUrl = (enrollment?.parent_course_id || id) === '1'
+                    ? 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-print-all-transcript'
+                    : 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-print-all-transcript-advanced';
+                const oldTransPrintUrl = `${oldTransBaseUrl}?courseCode=${enrollment?.parent_course_id || id}&tableMode=0&fixedStudentNumber=${order.created_by}`;
+
                 return (
                     <div key={id} className="space-y-1.5 border-l-2 border-muted pl-2 py-1">
                         <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1 leading-tight">{courseNameMap.get(id) || `ID: ${id}`}</p>
@@ -188,6 +194,12 @@ const CertificateStatusCell = ({
                                                 <Button asChild size="icon" variant="ghost" className="h-6 w-6">
                                                     <a href={transPrintUrl} target="_blank" rel="noopener noreferrer">
                                                         <Printer className="h-3.5 w-3.5 text-blue-600" title="Print Transcript" />
+                                                    </a>
+                                                </Button>
+                                                {/* Old Transcript Button */}
+                                                <Button asChild size="icon" variant="ghost" className="h-6 w-6">
+                                                    <a href={oldTransPrintUrl} target="_blank" rel="noopener noreferrer">
+                                                        <Printer className="h-3.5 w-3.5 text-orange-500" title="Print Old Transcript" />
                                                     </a>
                                                 </Button>
                                             </div>
