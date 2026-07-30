@@ -105,6 +105,13 @@ class MediMindAnswer
     // Create a new record
     public function create($data)
     {
+        // First delete any existing mapping for the same medicine and question
+        $deleteStmt = $this->pdo->prepare("
+            DELETE FROM `medi_mind_answers` 
+            WHERE medicine_id = ? AND question_id = ?
+        ");
+        $deleteStmt->execute([$data['medicine_id'], $data['question_id']]);
+
         $stmt = $this->pdo->prepare("
             INSERT INTO `medi_mind_answers` 
                 (medicine_id, question_id, answer_id, created_by, created_at) 

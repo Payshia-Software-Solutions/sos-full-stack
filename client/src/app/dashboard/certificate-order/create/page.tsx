@@ -342,7 +342,7 @@ export default function CreateCertificateOrderPage() {
     formData.append("is_active", "1");
     
     selectedEnrollments.forEach(enrollment => {
-        formData.append("course_id[]", enrollment.course_code);
+        formData.append("course_id[]", enrollment.parent_course_id);
     });
 
     if (orderGarland) formData.append("garlent", "1");
