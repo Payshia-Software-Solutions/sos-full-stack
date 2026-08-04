@@ -19,6 +19,13 @@ type ManagementTask = {
 
 const managementTasks: ManagementTask[] = [
   {
+    title: "Lead Management",
+    description: "Track student inquiries, manage conversion stages, and view CRM statistics.",
+    icon: <UserPlus className="w-8 h-8 text-white" />,
+    href: "/admin/manage/leads",
+    category: "Student Management"
+  },
+  {
     title: "Account Activation",
     description: "Review pending registrations and activate student accounts.",
     icon: <ShieldCheck className="w-8 h-8 text-white" />,
