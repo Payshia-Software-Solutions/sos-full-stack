@@ -73,6 +73,7 @@ export default function EditLeadPage({ params }: PageProps) {
     // Log Form State
     const [newLogAction, setNewLogAction] = useState("Call Completed");
     const [newLogNotes, setNewLogNotes] = useState("");
+    const [isSavingAll, setIsSavingAll] = useState(false);
 
     // Fetch batches
     const { data: batches = [] } = useQuery<Batch[]>({
@@ -215,25 +216,46 @@ export default function EditLeadPage({ params }: PageProps) {
         }
     });
 
-    const handleProfileSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        updateMutation.mutate({
-            full_name: name,
-            student_number: studentNumber.trim() || null,
-            email: email || null,
-            phone_number: phone || null,
-            source: source,
-            student_type: category,
-            course_id: inquiryType === "general" ? null : (course || null),
-            requirement_type: category === "Old" ? requirementType : null,
-            course_completed: category === "Old" ? (courseCompleted ? 1 : 0) : null,
-            issue_type: category === "Ongoing" ? issueType : null,
-            assigned_department: category === "Ongoing" ? assignedDepartment : null,
-            status: status,
-            assigned_to: assigned || null,
-            notes: notes || null,
-            editor_name: user?.name || "Staff"
-        });
+    const handleUnifiedSubmit = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        
+        if (!name.trim()) {
+            toast({ variant: "destructive", title: "Validation Error", description: "Student name is required" });
+            return;
+        }
+
+        setIsSavingAll(true);
+        try {
+            await updateMutation.mutateAsync({
+                full_name: name,
+                student_number: studentNumber.trim() || null,
+                email: email || null,
+                phone_number: phone || null,
+                source: source,
+                student_type: category,
+                course_id: inquiryType === "general" ? null : (course || null),
+                requirement_type: category === "Old" ? requirementType : null,
+                course_completed: category === "Old" ? (courseCompleted ? 1 : 0) : null,
+                issue_type: category === "Ongoing" ? issueType : null,
+                assigned_department: category === "Ongoing" ? assignedDepartment : null,
+                status: status,
+                assigned_to: assigned || null,
+                notes: notes || null,
+                editor_name: user?.name || "Staff"
+            });
+
+            if (newLogNotes.trim()) {
+                await addLogMutation.mutateAsync({
+                    staff_name: user?.name || "Staff",
+                    action: newLogAction,
+                    notes: newLogNotes || null
+                });
+            }
+        } catch (err: any) {
+            // Handled by mutations
+        } finally {
+            setIsSavingAll(false);
+        }
     };
 
     const handleQuickStatusChange = (newStatus: string) => {
@@ -254,15 +276,6 @@ export default function EditLeadPage({ params }: PageProps) {
             assigned_to: assigned || null,
             notes: notes || null,
             editor_name: user?.name || "Staff"
-        });
-    };
-
-    const handleAddLogSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        addLogMutation.mutate({
-            staff_name: user?.name || "Staff",
-            action: newLogAction,
-            notes: newLogNotes || null
         });
     };
 
@@ -426,10 +439,10 @@ export default function EditLeadPage({ params }: PageProps) {
             </Card>
 
             {/* Main Content Columns */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <form onSubmit={handleUnifiedSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6 col-span-12">
                 
                 {/* Left Column: Edit Form Profile */}
-                <form onSubmit={handleProfileSubmit} className="lg:col-span-5 space-y-6">
+                <div className="lg:col-span-5 space-y-6">
                     <Card className="bg-card border-border shadow-lg">
                         <CardHeader className="border-b border-border/50 py-4 px-5">
                             <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
@@ -437,42 +450,45 @@ export default function EditLeadPage({ params }: PageProps) {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-5 space-y-4">
-                            <div className="space-y-1">
-                                <Label className="text-xs font-semibold text-slate-300">Full Name *</Label>
-                                <div className="relative">
-                                    <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input value={name} onChange={e => setName(e.target.value)} required className="pl-9 bg-slate-950 border-input h-9 text-sm text-foreground" />
-                                </div>
-                            </div>
-
-                            <div className="space-y-1">
-                                <Label className="text-xs font-semibold text-slate-305">Student Registration / PA Number (Optional)</Label>
-                                <div className="flex gap-2">
-                                    <div className="relative flex-1">
-                                        <Star className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input 
-                                            value={studentNumber} 
-                                            onChange={e => {
-                                                const val = e.target.value;
-                                                setStudentNumber(val);
-                                                // If student number is typed, automatically switch from "New" to "Old" category
-                                                if (val.trim() && category === "New") {
-                                                    setCategory("Old");
-                                                }
-                                            }} 
-                                            placeholder="e.g. PA24205"
-                                            className="pl-9 bg-slate-950 border-input h-9 text-sm text-foreground w-full" 
-                                        />
+                            {/* Row 1: Name & Registration Number */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-semibold text-slate-300">Full Name *</Label>
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input value={name} onChange={e => setName(e.target.value)} required className="pl-9 bg-slate-950 border-input h-9 text-xs text-foreground" />
                                     </div>
-                                    <Button
-                                        type="button"
-                                        onClick={handleSearchStudent}
-                                        disabled={isSearching || !studentNumber.trim()}
-                                        className="h-9 px-4 bg-primary hover:bg-primary/90 text-white text-xs font-semibold shrink-0 cursor-pointer active:scale-95 flex items-center gap-1.5"
-                                    >
-                                        <Search className="h-3.5 w-3.5" />
-                                        {isSearching ? "Searching..." : "Search"}
-                                    </Button>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-semibold text-slate-305">Student Registration / PA Number (Optional)</Label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <Star className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                            <Input 
+                                                value={studentNumber} 
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setStudentNumber(val);
+                                                    // If student number is typed, automatically switch from "New" to "Old" category
+                                                    if (val.trim() && category === "New") {
+                                                        setCategory("Old");
+                                                    }
+                                                }} 
+                                                placeholder="e.g. PA24205"
+                                                className="pl-9 bg-slate-950 border-input h-9 text-xs text-foreground w-full" 
+                                            />
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            onClick={handleSearchStudent}
+                                            disabled={isSearching || !studentNumber.trim()}
+                                            className="h-9 px-3 bg-primary hover:bg-primary/90 text-white text-xs font-semibold shrink-0 cursor-pointer active:scale-95 flex items-center gap-1"
+                                        >
+                                            <Search className="h-3.5 w-3.5" />
+                                            {isSearching ? "..." : "Search"}
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -522,118 +538,87 @@ export default function EditLeadPage({ params }: PageProps) {
                                         </div>
                                     </div>
                                 </div>
-                            )}                             <div className="space-y-1">
-                                <Label className="text-xs font-semibold text-slate-300">Phone Number (Optional)</Label>
-                                <div className="relative">
-                                    <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input value={phone} onChange={e => setPhone(e.target.value)} className="pl-9 bg-slate-950 border-input h-9 text-sm text-foreground" />
-                                </div>
-                             </div>
+                            )}
 
-                             <div className="space-y-1">
-                                <Label className="text-xs font-semibold text-slate-300">Email Address (Optional)</Label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input type="email" value={email} onChange={e => setEmail(e.target.value)} className="pl-9 bg-slate-950 border-input h-9 text-sm text-foreground" />
+                            {/* Row 2: Phone & Email */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-semibold text-slate-300">Phone Number (Optional)</Label>
+                                    <div className="relative">
+                                        <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input value={phone} onChange={e => setPhone(e.target.value)} className="pl-9 bg-slate-950 border-input h-9 text-xs text-foreground" />
+                                    </div>
                                 </div>
-                             </div>
 
-                            {/* Source select cards */}
-                            <div className="space-y-1.5 pt-2 border-t border-border/50">
-                                <Label className="text-xs font-semibold text-slate-300">Inquiry Source</Label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {sourceOptions.map((opt) => {
-                                        const isSelected = source === opt.value;
-                                        return (
-                                            <button
-                                                key={opt.value}
-                                                type="button"
-                                                onClick={() => setSource(opt.value)}
-                                                className={cn(
-                                                    "py-1.5 px-1 text-xs border rounded-lg transition-all duration-200 cursor-pointer active:scale-95 flex items-center justify-center gap-1.5 font-semibold",
-                                                    isSelected 
-                                                        ? "bg-primary/10 border-primary text-white" 
-                                                        : "bg-slate-950/20 border-border text-muted-foreground hover:text-white"
-                                                )}
-                                            >
-                                                <opt.icon className="h-3.5 w-3.5" />
-                                                <span>{opt.label.split(' ')[0]}</span>
-                                            </button>
-                                        );
-                                    })}
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-semibold text-slate-300">Email Address (Optional)</Label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input type="email" value={email} onChange={e => setEmail(e.target.value)} className="pl-9 bg-slate-950 border-input h-9 text-xs text-foreground" />
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Category selector */}
-                            <div className="space-y-1.5 pt-2 border-t border-border/50">
-                                <Label className="text-xs font-semibold text-slate-300">Student Category (Flow)</Label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {categoryOptions.map((opt) => {
-                                        const isSelected = category === opt.value;
-                                        const isNewDisabled = opt.value === "New" && !!studentNumber.trim();
-                                        return (
-                                            <button
-                                                key={opt.value}
-                                                type="button"
-                                                disabled={isNewDisabled}
-                                                onClick={() => setCategory(opt.value)}
-                                                className={cn(
-                                                    "py-1.5 px-1 text-xs border rounded-lg transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-center justify-center gap-1 font-semibold",
-                                                    isSelected 
-                                                        ? "bg-primary/10 border-primary text-white" 
-                                                        : "bg-slate-950/20 border-border text-muted-foreground hover:text-white",
-                                                    isNewDisabled && "opacity-40 cursor-not-allowed text-muted-foreground/60 hover:bg-transparent hover:border-border"
-                                                )}
-                                            >
-                                                <opt.icon className="h-3.5 w-3.5" />
-                                                <span>{opt.label.split(' ')[0]}</span>
-                                            </button>
-                                        );
-                                    })}
+                            {/* Row 3: Source & Category Selectors */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border/30">
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-semibold text-slate-300">Inquiry Source</Label>
+                                    <Select value={source} onValueChange={(val: any) => setSource(val)}>
+                                        <SelectTrigger className="bg-slate-950 border-input h-9 text-xs text-foreground">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-slate-950 border-border text-slate-100 text-xs">
+                                            {sourceOptions.map(opt => (
+                                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-semibold text-slate-300">Student Category (Flow)</Label>
+                                    <Select value={category} onValueChange={(val: any) => setCategory(val)}>
+                                        <SelectTrigger className="bg-slate-950 border-input h-9 text-xs text-foreground">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-slate-950 border-border text-slate-100 text-xs">
+                                            {categoryOptions.map(opt => (
+                                                <SelectItem key={opt.value} value={opt.value} disabled={opt.value === "New" && !!studentNumber.trim()}>
+                                                    {opt.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
 
-                            {/* Inquiry Type Toggle Cards */}
-                            <div className="space-y-1.5 pt-2 border-t border-border/50">
-                                <Label className="text-xs font-semibold text-slate-300">Inquiry Type</Label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        key="general"
-                                        type="button"
-                                        onClick={() => {
-                                            setInquiryType("general");
-                                            setCourse("");
-                                        }}
-                                        className={cn(
-                                            "py-1.5 px-3 rounded-lg border text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95 flex items-center justify-center gap-1.5",
-                                            inquiryType === "general"
-                                                ? "bg-primary/10 border-primary text-white"
-                                                : "bg-slate-950/20 border-border text-muted-foreground hover:text-white"
-                                        )}
-                                    >
-                                        <HelpCircle className="h-3.5 w-3.5" />
-                                        <span>General Inquiry</span>
-                                    </button>
-                                    <button
-                                        key="course"
-                                        type="button"
-                                        onClick={() => setInquiryType("course")}
-                                        className={cn(
-                                            "py-1.5 px-3 rounded-lg border text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95 flex items-center justify-center gap-1.5",
-                                            inquiryType === "course"
-                                                ? "bg-primary/10 border-primary text-white"
-                                                : "bg-slate-950/20 border-border text-muted-foreground hover:text-white"
-                                        )}
-                                    >
-                                        <BookOpen className="h-3.5 w-3.5" />
-                                        <span>Course Related</span>
-                                    </button>
+                            {/* Row 4: Inquiry Type & Assign Staff */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border/30">
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-semibold text-slate-300">Inquiry Type</Label>
+                                    <Select value={inquiryType} onValueChange={(val: any) => {
+                                        setInquiryType(val);
+                                        if (val === "general") setCourse("");
+                                    }}>
+                                        <SelectTrigger className="bg-slate-950 border-input h-9 text-xs text-foreground">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-slate-950 border-border text-slate-100 text-xs">
+                                            <SelectItem value="general">General Inquiry</SelectItem>
+                                            <SelectItem value="course">Course Related</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-semibold text-slate-300">Assign To Staff</Label>
+                                    <Input value={assigned} onChange={e => setAssigned(e.target.value)} className="bg-slate-950 border-input h-9 text-xs text-foreground" />
                                 </div>
                             </div>
 
-                            {/* Searchable Course Combobox */}
-                            {inquiryType === "course" ? (
-                                <div className="space-y-1 flex flex-col animate-in fade-in duration-200">
+                            {/* Course Combobox (Conditional) */}
+                            {inquiryType === "course" && (
+                                <div className="space-y-1 flex flex-col pt-2 border-t border-border/30 animate-in fade-in duration-200">
                                     <Label className="text-xs font-semibold text-slate-300 mb-1">Course / Batch Interest</Label>
                                     <Popover open={openCourseSelect} onOpenChange={setOpenCourseSelect}>
                                         <PopoverTrigger asChild>
@@ -675,21 +660,7 @@ export default function EditLeadPage({ params }: PageProps) {
                                         </PopoverContent>
                                     </Popover>
                                 </div>
-                            ) : (
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-355">Course / Batch Interest</Label>
-                                    <Input 
-                                        value="General / Non-course query" 
-                                        disabled 
-                                        className="bg-slate-900/40 border-input h-9 text-xs text-muted-foreground cursor-not-allowed"
-                                    />
-                                </div>
                             )}
-
-                            <div className="space-y-1">
-                                <Label className="text-xs font-semibold text-slate-300">Assign To Staff</Label>
-                                <Input value={assigned} onChange={e => setAssigned(e.target.value)} className="bg-slate-950 border-input h-9 text-sm text-foreground" />
-                            </div>
 
                             {/* Dynamic Old Student fields */}
                             {category === "Old" && (
@@ -761,20 +732,13 @@ export default function EditLeadPage({ params }: PageProps) {
                                     </div>
                                 </div>
                             )}
-
                             <div className="space-y-1">
                                 <Label className="text-xs font-semibold text-slate-300">Main Inquiry Notes</Label>
                                 <Textarea value={notes} onChange={e => setNotes(e.target.value)} className="bg-slate-950 border-input text-xs min-h-[60px]" />
                             </div>
                         </CardContent>
-                        <CardFooter className="p-5 border-t border-border/50 flex justify-end">
-                            <Button type="submit" disabled={updateMutation.isPending} className="bg-primary hover:bg-primary/95 text-white flex items-center gap-1.5 text-xs font-semibold h-9 px-4">
-                                <Save className="h-4 w-4" /> Save Profile Info
-                            </Button>
-                        </CardFooter>
                     </Card>
-                </form>
-
+                </div>
                 {/* Right Column: Follow-up Timeline & Actions */}
                 <div className="lg:col-span-7 space-y-6">
                     {/* Log Activity Card */}
@@ -813,23 +777,20 @@ export default function EditLeadPage({ params }: PageProps) {
                                 </div>
                             </div>
 
-                            <form onSubmit={handleAddLogSubmit} className="space-y-3">
+                            <div className="space-y-3">
                                 <div className="space-y-1">
-                                    <Label className="text-xs font-semibold text-slate-355">Activity Log Details</Label>
+                                    <Label className="text-xs font-semibold text-slate-355 flex justify-between">
+                                        <span>Activity Log Details (Optional)</span>
+                                        <span className="text-[10px] text-muted-foreground font-normal">Logged when you click "Save Changes"</span>
+                                    </Label>
                                     <Textarea 
                                         value={newLogNotes} 
                                         onChange={e => setNewLogNotes(e.target.value)} 
                                         placeholder="Record call feedback or whatsapp chat details..."
                                         className="bg-slate-950 border-input text-xs min-h-[60px]"
-                                        required
                                     />
                                 </div>
-                                <div className="flex justify-end">
-                                    <Button type="submit" disabled={addLogMutation.isPending} className="bg-primary hover:bg-primary/95 text-white text-xs font-semibold h-8 px-4 flex items-center gap-1">
-                                        Log Activity Note
-                                    </Button>
-                                </div>
-                            </form>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -894,7 +855,30 @@ export default function EditLeadPage({ params }: PageProps) {
                         </CardContent>
                     </Card>
                 </div>
-            </div>
+
+                {/* Bottom Actions */}
+                <div className="flex items-center gap-3 justify-end pt-4 border-t border-border/40 w-full col-span-12">
+                    <Button 
+                        type="button" 
+                        variant="ghost" 
+                        onClick={() => router.push("/admin/manage/leads")} 
+                        className="h-10 px-4 border border-border hover:bg-slate-900 text-slate-300 text-xs font-semibold"
+                    >
+                        Cancel
+                    </Button>
+                    <Button 
+                        type="submit"
+                        disabled={isSavingAll || updateMutation.isPending || addLogMutation.isPending} 
+                        className="bg-primary hover:bg-primary/95 text-white h-10 px-6 text-xs font-semibold flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-md"
+                    >
+                        {(isSavingAll || updateMutation.isPending || addLogMutation.isPending) ? "Saving..." : (
+                            <>
+                                <Save className="h-4 w-4" /> Save Changes
+                            </>
+                        )}
+                    </Button>
+                </div>
+            </form>
         </div>
     );
 }
