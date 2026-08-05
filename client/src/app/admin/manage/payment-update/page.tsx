@@ -120,7 +120,7 @@ export default function PaymentUpdatePage() {
     // Form state for new payment
     const [discountPercentage, setDiscountPercentage] = useState<number>(0);
     const [paymentType, setPaymentType] = useState('Bank Transfer');
-    const [receiptNumber, setReceiptNumber] = useState('');
+    const [paymentReference, setPaymentReference] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     const [customPayingAmount, setCustomPayingAmount] = useState<string>('');
@@ -159,13 +159,13 @@ export default function PaymentUpdatePage() {
 
     const handleProcessPendingRequest = async (req: PendingPaymentRequest) => {
         setSelectedPaymentRequestId('');
-        setReceiptNumber('');
+        setPaymentReference('');
         setCustomPayingAmount('');
         
         await handleSearch(undefined, req.unique_number);
         
         setSelectedPaymentRequestId(req.id);
-        setReceiptNumber(req.payment_reference || '');
+        setPaymentReference(req.payment_reference || '');
         setCustomPayingAmount(req.paid_amount || '');
         setPaymentType('Bank Transfer');
     };
@@ -235,6 +235,11 @@ export default function PaymentUpdatePage() {
             return;
         }
 
+        if (!paymentReference.trim()) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Transaction Reference No. is required.' });
+            return;
+        }
+
         if (studentData?.pendingPaymentRequests && studentData.pendingPaymentRequests.length > 0 && !selectedPaymentRequestId) {
             if (!confirm("This student has pending payment slips that you haven't selected. Are you sure you want to process this payment manually without approving any of the uploaded slips?")) {
                 return;
@@ -248,7 +253,7 @@ export default function PaymentUpdatePage() {
                 course_code: selectedCourse.course_code,
                 paid_amount: finalPayAmount,
                 discount_amount: discountAmount,
-                receipt_number: receiptNumber || `REC-${Date.now()}`,
+                payment_reference: paymentReference.trim(),
                 payment_type: paymentType,
                 paid_date: new Date().toISOString().split('T')[0],
                 created_by: 'Admin',
@@ -277,7 +282,7 @@ export default function PaymentUpdatePage() {
 
             handleSearch(undefined, studentData!.studentInfo.student_id);
             setDiscountPercentage(0);
-            setReceiptNumber('');
+            setPaymentReference('');
             setCustomPayingAmount('');
             setSelectedPaymentRequestId('');
             
@@ -529,12 +534,13 @@ export default function PaymentUpdatePage() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-foreground">Receipt / Reference No.</label>
+                                            <label className="text-sm font-medium text-foreground">Transaction Reference No. *</label>
                                             <Input 
-                                                value={receiptNumber} 
-                                                onChange={(e) => setReceiptNumber(e.target.value)} 
-                                                placeholder="e.g. REC-98765432"
+                                                value={paymentReference} 
+                                                onChange={(e) => setPaymentReference(e.target.value)} 
+                                                placeholder="e.g. TXN98765432"
                                                 className="h-11 bg-muted/50 border-input"
+                                                required
                                             />
                                         </div>
 
@@ -722,7 +728,7 @@ export default function PaymentUpdatePage() {
                                                     className={selectedPaymentRequestId === req.id ? "bg-indigo-600 hover:bg-indigo-700 w-full" : "w-full"}
                                                     onClick={() => {
                                                         setSelectedPaymentRequestId(req.id);
-                                                        setReceiptNumber(req.payment_reference || '');
+                                                        setPaymentReference(req.payment_reference || '');
                                                         setCustomPayingAmount(req.paid_amount || '');
                                                         setPaymentType('Bank Transfer');
                                                     }}

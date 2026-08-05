@@ -155,6 +155,10 @@ export default function PaymentsPage() {
       toast({ description: "Please select a bank", variant: "destructive" });
       return;
     }
+    if (!paymentReference.trim()) {
+      toast({ description: "Please enter the reference number", variant: "destructive" });
+      return;
+    }
     if (!paymentSlip) {
       toast({ description: "Please upload your payment slip file", variant: "destructive" });
       return;
@@ -456,11 +460,12 @@ export default function PaymentsPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="paymentReference" className="text-sm font-medium text-foreground">Reference Number (Optional)</Label>
+                      <Label htmlFor="paymentReference" className="text-sm font-medium text-foreground">Reference Number *</Label>
                       <Input 
                         id="paymentReference" 
                         value={paymentReference} 
                         onChange={(e) => setPaymentReference(e.target.value)} 
+                        required
                         className="bg-background border-input focus:border-primary text-foreground placeholder:text-muted-foreground h-10" 
                         placeholder="e.g. TXN123456"
                       />
