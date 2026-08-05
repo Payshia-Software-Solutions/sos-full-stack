@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, Mail, Phone, User as UserIcon, CreditCard, Clock, CheckCircle2, History, Trash2, ZoomIn, ZoomOut, AlertTriangle } from 'lucide-react';
+import { Search, Loader2, Mail, Phone, User as UserIcon, CreditCard, Clock, CheckCircle2, History, Trash2, ZoomIn, ZoomOut, AlertTriangle, ChevronLeft } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -135,6 +135,142 @@ export default function PaymentUpdatePage() {
     const [allPendingRequests, setAllPendingRequests] = useState<PendingPaymentRequest[]>([]);
     const [isLoadingRequests, setIsLoadingRequests] = useState(false);
 
+    const [startDate, setStartDate] = useState<string>(() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 2);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    });
+    const [endDate, setEndDate] = useState<string>(() => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    });
+    const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
+
+    const filteredPendingRequests = useMemo(() => {
+        return allPendingRequests.filter((req) => {
+            // ONLY student_number requests
+            if (req.number_type !== 'student_number') return false;
+            
+            // Check created_at date range
+            const reqDateStr = req.created_at.split(' ')[0]; // E.g. "2025-07-20"
+            if (startDate && reqDateStr < startDate) return false;
+            if (endDate && reqDateStr > endDate) return false;
+            
+            return true;
+        });
+    }, [allPendingRequests, startDate, endDate]);
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedRequestIds(filteredPendingRequests.map(r => r.id));
+        } else {
+            setSelectedRequestIds([]);
+        }
+    };
+
+    const handleSelectRow = (id: string, checked: boolean) => {
+        if (checked) {
+            setSelectedRequestIds(prev => [...prev, id]);
+        } else {
+            setSelectedRequestIds(prev => prev.filter(x => x !== id));
+        }
+    };
+
+    const handleBulkApprove = async () => {
+        if (selectedRequestIds.length === 0) return;
+        if (!confirm(`Are you sure you want to approve the ${selectedRequestIds.length} selected payment requests? This will mark their status as 'Approved' in the payment portal requests table.`)) {
+            return;
+        }
+
+        setIsLoadingRequests(true);
+        try {
+            const promises = selectedRequestIds.map(id => 
+                fetch(`${LMS_API_URL}/payment-portal-requests/update-status/${id}/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ payment_status: 'Approved' })
+                })
+            );
+
+            await Promise.all(promises);
+
+            toast({
+                title: "Bulk Approval Successful",
+                description: `Successfully approved ${selectedRequestIds.length} payment requests.`,
+            });
+            
+            setSelectedRequestIds([]);
+            fetchAllPendingRequests();
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Bulk Approval Failed', description: err.message });
+        } finally {
+            setIsLoadingRequests(false);
+        }
+    };
+
+    const handleDeleteRequest = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this payment request slip? This action cannot be undone.")) return;
+
+        setIsLoadingRequests(true);
+        try {
+            const res = await fetch(`${LMS_API_URL}/payment-portal-requests/${id}/`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) throw new Error('Failed to delete payment request');
+
+            toast({
+                title: "Slip Deleted",
+                description: "The pending payment slip has been deleted successfully.",
+            });
+            
+            setSelectedRequestIds(prev => prev.filter(x => x !== id));
+            fetchAllPendingRequests();
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Error', description: err.message });
+        } finally {
+            setIsLoadingRequests(false);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedRequestIds.length === 0) return;
+        if (!confirm(`Are you sure you want to delete the ${selectedRequestIds.length} selected payment request slips? This action cannot be undone.`)) {
+            return;
+        }
+
+        setIsLoadingRequests(true);
+        try {
+            const promises = selectedRequestIds.map(id => 
+                fetch(`${LMS_API_URL}/payment-portal-requests/${id}/`, {
+                    method: 'DELETE',
+                })
+            );
+
+            await Promise.all(promises);
+
+            toast({
+                title: "Bulk Delete Successful",
+                description: `Successfully deleted ${selectedRequestIds.length} payment request slips.`,
+            });
+            
+            setSelectedRequestIds([]);
+            fetchAllPendingRequests();
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Bulk Delete Failed', description: err.message });
+        } finally {
+            setIsLoadingRequests(false);
+        }
+    };
+
     useEffect(() => {
         if (!studentData) {
             fetchAllPendingRequests();
@@ -144,7 +280,7 @@ export default function PaymentUpdatePage() {
     const fetchAllPendingRequests = async () => {
         setIsLoadingRequests(true);
         try {
-            const response = await fetch(`${LMS_API_URL}/payment-portal-requests`);
+            const response = await fetch(`${LMS_API_URL}/payment-portal-requests?t=${Date.now()}`);
             if (response.ok) {
                 const data = await response.json();
                 const pending = Array.isArray(data) ? data.filter((r: any) => r.payment_status === 'Pending') : [];
@@ -154,6 +290,34 @@ export default function PaymentUpdatePage() {
             console.error("Failed to fetch pending requests:", error);
         } finally {
             setIsLoadingRequests(false);
+        }
+    };
+
+    const handleDeleteRequestInProfile = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this payment request slip? This action cannot be undone.")) return;
+
+        setIsSubmitting(true);
+        try {
+            const res = await fetch(`${LMS_API_URL}/payment-portal-requests/${id}/`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) throw new Error('Failed to delete payment request');
+
+            toast({
+                title: "Slip Deleted",
+                description: "The pending payment slip has been deleted successfully.",
+            });
+            
+            // Refresh student profile data to update list
+            handleSearch(undefined, studentData!.studentInfo.student_id);
+            setSelectedPaymentRequestId('');
+            setPaymentReference('');
+            setCustomPayingAmount('');
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Error', description: err.message });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -362,15 +526,68 @@ export default function PaymentUpdatePage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-border">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-muted-foreground">Start Date</label>
+                                    <Input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="h-10 text-sm bg-background border-input w-40"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-muted-foreground">End Date</label>
+                                    <Input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="h-10 text-sm bg-background border-input w-40"
+                                    />
+                                </div>
+                            </div>
+                            
+                            {selectedRequestIds.length > 0 && (
+                                <div className="flex items-center gap-2 self-end">
+                                    <Button 
+                                        onClick={handleBulkDelete}
+                                        variant="destructive"
+                                        className="font-bold h-10 px-6 rounded-xl shadow-md flex items-center gap-2"
+                                        disabled={isLoadingRequests}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                        Bulk Delete Selected ({selectedRequestIds.length})
+                                    </Button>
+                                    <Button 
+                                        onClick={handleBulkApprove}
+                                        className="bg-green-600 hover:bg-green-700 text-white font-bold h-10 px-6 rounded-xl shadow-md flex items-center gap-2"
+                                        disabled={isLoadingRequests}
+                                    >
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        Bulk Approve Selected ({selectedRequestIds.length})
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+
                         {isLoadingRequests ? (
                             <div className="flex justify-center items-center py-12">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             </div>
-                        ) : allPendingRequests.length > 0 ? (
+                        ) : filteredPendingRequests.length > 0 ? (
                             <div className="border border-border rounded-xl overflow-hidden bg-muted/5">
                                 <Table>
                                     <TableHeader className="bg-muted/20">
                                         <TableRow>
+                                            <TableHead className="w-12 text-center">
+                                                <input 
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                    checked={filteredPendingRequests.length > 0 && selectedRequestIds.length === filteredPendingRequests.length}
+                                                    onChange={(e) => handleSelectAll(e.target.checked)}
+                                                />
+                                            </TableHead>
                                             <TableHead className="font-bold text-foreground">Student ID</TableHead>
                                             <TableHead className="font-bold text-foreground">Bank & Branch</TableHead>
                                             <TableHead className="font-bold text-foreground">Submitted Date</TableHead>
@@ -380,8 +597,16 @@ export default function PaymentUpdatePage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {allPendingRequests.map((req) => (
-                                            <TableRow key={req.id} className="hover:bg-muted/10">
+                                        {filteredPendingRequests.map((req) => (
+                                            <TableRow key={req.id} className={`hover:bg-muted/10 transition-colors ${selectedRequestIds.includes(req.id) ? 'bg-blue-500/5' : ''}`}>
+                                                <TableCell className="text-center">
+                                                    <input 
+                                                        type="checkbox"
+                                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                        checked={selectedRequestIds.includes(req.id)}
+                                                        onChange={(e) => handleSelectRow(req.id, e.target.checked)}
+                                                    />
+                                                </TableCell>
                                                 <TableCell className="font-semibold text-foreground">{req.unique_number}</TableCell>
                                                 <TableCell className="text-muted-foreground text-sm">
                                                     {req.bank === "1" ? "BOC" : req.bank || "-"} {req.branch ? `(${req.branch})` : ""}
@@ -431,6 +656,14 @@ export default function PaymentUpdatePage() {
                                                         >
                                                             Process Payment
                                                         </Button>
+                                                        <Button 
+                                                            onClick={() => handleDeleteRequest(req.id)} 
+                                                            size="sm" 
+                                                            variant="destructive"
+                                                            className="text-xs"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </Button>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -442,11 +675,29 @@ export default function PaymentUpdatePage() {
                             <div className="text-center py-12 text-muted-foreground text-sm flex flex-col items-center justify-center space-y-2">
                                 <CheckCircle2 className="w-12 h-12 text-slate-650" />
                                 <p className="font-semibold text-slate-700">All caught up!</p>
-                                <p className="text-xs text-muted-foreground">No pending payment requests found.</p>
+                                <p className="text-xs text-muted-foreground">No pending payment requests found within the selected range.</p>
                             </div>
                         )}
                     </CardContent>
                 </Card>
+            )}
+
+            {studentData && (
+                <div className="flex justify-start">
+                    <Button 
+                        variant="outline" 
+                        onClick={() => {
+                            setStudentData(null);
+                            setStudentId('');
+                            setSelectedPaymentRequestId('');
+                            setPaymentReference('');
+                            setCustomPayingAmount('');
+                        }}
+                        className="flex items-center gap-2 hover:bg-muted text-sm font-semibold border-border bg-card rounded-xl px-4 h-10 shadow-sm"
+                    >
+                        <ChevronLeft className="h-4 w-4" /> Back to Pending List
+                    </Button>
+                </div>
             )}
 
             {studentData && selectedCourse && (
@@ -692,45 +943,59 @@ export default function PaymentUpdatePage() {
                                                         <p className="text-xs text-muted-foreground">{req.bank} - {req.branch}</p>
                                                         <p className="text-xs text-muted-foreground mt-1">{req.paid_date}</p>
                                                     </div>
-                                                    {req.slip_path && (
-                                                        <Dialog>
-                                                            <DialogTrigger asChild>
-                                                                <button className="text-xs text-blue-600 hover:underline bg-blue-500/10 px-2 py-1 rounded">
-                                                                    View Slip
-                                                                </button>
-                                                            </DialogTrigger>
-                                                            <DialogContent className="max-w-3xl">
-                                                                <DialogHeader>
-                                                                    <DialogTitle>Payment Slip Preview</DialogTitle>
-                                                                </DialogHeader>
-                                                                <div className="flex justify-center items-center p-4">
-                                                                    {req.slip_path.toLowerCase().endsWith('.pdf') ? (
-                                                                        <iframe 
-                                                                            src={`${CONTENT_PROVIDER_URL}${req.slip_path}`} 
-                                                                            className="w-full h-[70vh] rounded-md border shadow-sm"
-                                                                            title="Payment Slip PDF"
-                                                                        />
-                                                                    ) : (
-                                                                        <ZoomableImage 
-                                                                            src={`${CONTENT_PROVIDER_URL}${req.slip_path}`} 
-                                                                            alt="Payment Slip" 
-                                                                            className="max-h-[65vh] object-contain transition-transform"
-                                                                        />
-                                                                    )}
-                                                                </div>
-                                                            </DialogContent>
-                                                        </Dialog>
-                                                    )}
+                                                    <div className="flex flex-col gap-2 items-end">
+                                                        {req.slip_path && (
+                                                            <Dialog>
+                                                                <DialogTrigger asChild>
+                                                                    <button className="text-xs text-blue-600 hover:underline bg-blue-500/10 px-2 py-1 rounded">
+                                                                        View Slip
+                                                                    </button>
+                                                                </DialogTrigger>
+                                                                <DialogContent className="max-w-3xl">
+                                                                    <DialogHeader>
+                                                                        <DialogTitle>Payment Slip Preview</DialogTitle>
+                                                                    </DialogHeader>
+                                                                    <div className="flex justify-center items-center p-4">
+                                                                        {req.slip_path.toLowerCase().endsWith('.pdf') ? (
+                                                                            <iframe 
+                                                                                src={`${CONTENT_PROVIDER_URL}${req.slip_path}`} 
+                                                                                className="w-full h-[70vh] rounded-md border shadow-sm"
+                                                                                title="Payment Slip PDF"
+                                                                            />
+                                                                        ) : (
+                                                                            <ZoomableImage 
+                                                                                src={`${CONTENT_PROVIDER_URL}${req.slip_path}`} 
+                                                                                alt="Payment Slip" 
+                                                                                className="max-h-[65vh] object-contain transition-transform"
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                </DialogContent>
+                                                            </Dialog>
+                                                        )}
+                                                        <button 
+                                                            onClick={() => handleDeleteRequestInProfile(req.id)}
+                                                            className="text-xs text-red-600 hover:underline bg-red-500/10 px-2 py-1 rounded flex items-center gap-1 font-semibold"
+                                                        >
+                                                            <Trash2 className="h-3 w-3" /> Delete
+                                                        </button>
+                                                    </div>
                                                 </div>
                                                 <Button 
                                                     size="sm" 
                                                     variant={selectedPaymentRequestId === req.id ? "default" : "outline"}
                                                     className={selectedPaymentRequestId === req.id ? "bg-indigo-600 hover:bg-indigo-700 w-full" : "w-full"}
                                                     onClick={() => {
-                                                        setSelectedPaymentRequestId(req.id);
-                                                        setPaymentReference(req.payment_reference || '');
-                                                        setCustomPayingAmount(req.paid_amount || '');
-                                                        setPaymentType('Bank Transfer');
+                                                        if (selectedPaymentRequestId === req.id) {
+                                                            setSelectedPaymentRequestId('');
+                                                            setPaymentReference('');
+                                                            setCustomPayingAmount('');
+                                                        } else {
+                                                            setSelectedPaymentRequestId(req.id);
+                                                            setPaymentReference(req.payment_reference || '');
+                                                            setCustomPayingAmount(req.paid_amount || '');
+                                                            setPaymentType('Bank Transfer');
+                                                        }
                                                     }}
                                                 >
                                                     {selectedPaymentRequestId === req.id ? 'Selected for Processing' : 'Process this slip'}
