@@ -7,7 +7,7 @@ $studentPaymentController = new StudentPaymentControllerNew($pdo);
 
 return [
     // Get stats
-    'GET /student-payments-new/stats$' => function () use ($studentPaymentController) {
+    'GET /student-payments-new/stats/$' => function () use ($studentPaymentController) {
         $studentPaymentController->getStats();
     },
 
@@ -17,7 +17,7 @@ return [
     },
 
     // Check payment by student_id and course_code
-    'GET /student-payments-new/check-payment$' => function () use ($studentPaymentController) {
+    'GET /student-payments-new/check-payment/$' => function () use ($studentPaymentController) {
         $studentPaymentController->checkPayment();
     },
 
