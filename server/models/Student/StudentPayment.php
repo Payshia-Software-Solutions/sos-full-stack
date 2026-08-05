@@ -38,11 +38,17 @@ class StudentPayment
         if (!isset($data['created_at'])) {
             $data['created_at'] = date('Y-m-d H:i:s');
         }
+        if (!isset($data['payment_reference'])) {
+            $data['payment_reference'] = null;
+        }
+        if (!isset($data['reason'])) {
+            $data['reason'] = 'Course Fee';
+        }
 
         $sql = "INSERT INTO student_payment 
-                (receipt_number, course_code, student_id, paid_amount, discount_amount, payment_status, payment_type, paid_date, created_at, created_by, reason) 
+                (receipt_number, course_code, student_id, paid_amount, discount_amount, payment_status, payment_type, paid_date, created_at, created_by, reason, payment_reference) 
                 VALUES 
-                (:receipt_number, :course_code, :student_id, :paid_amount, :discount_amount, :payment_status, :payment_type, :paid_date, :created_at, :created_by, :reason)";
+                (:receipt_number, :course_code, :student_id, :paid_amount, :discount_amount, :payment_status, :payment_type, :paid_date, :created_at, :created_by, :reason, :payment_reference)";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($data);
@@ -52,6 +58,9 @@ class StudentPayment
     {
         if (!isset($data['update_at'])) {
             $data['update_at'] = date('Y-m-d H:i:s');
+        }
+        if (!isset($data['payment_reference'])) {
+            $data['payment_reference'] = null;
         }
 
         $data['id'] = $id;
@@ -66,7 +75,8 @@ class StudentPayment
                     payment_type = :payment_type,
                     paid_date = :paid_date,
                     update_at = :update_at,
-                    reason = :reason
+                    reason = :reason,
+                    payment_reference = :payment_reference
                 WHERE id = :id";
 
         $stmt = $this->pdo->prepare($sql);
@@ -120,9 +130,9 @@ class StudentPayment
 
             // Insert into student_payment table
             $sql = "INSERT INTO student_payment 
-                    (receipt_number, course_code, student_id, paid_amount, discount_amount, payment_status, payment_type, paid_date, created_at, created_by) 
+                    (receipt_number, course_code, student_id, paid_amount, discount_amount, payment_status, payment_type, paid_date, created_at, created_by, payment_reference) 
                     VALUES 
-                    (:receipt_number, :course_code, :student_id, :paid_amount, :discount_amount, :payment_status, :payment_type, :paid_date, :created_at, :created_by)";
+                    (:receipt_number, :course_code, :student_id, :paid_amount, :discount_amount, :payment_status, :payment_type, :paid_date, :created_at, :created_by, :payment_reference)";
 
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([
@@ -136,6 +146,7 @@ class StudentPayment
                 'paid_date' => $data['paid_date'],
                 'created_at' => $data['created_at'], // provided by the client
                 'created_by' => $data['created_by'], // Now it's based on the username (client provided)
+                'payment_reference' => $data['payment_reference'] ?? null,
             ]);
 
             // Update the status column in the payment_requests table if a request was selected

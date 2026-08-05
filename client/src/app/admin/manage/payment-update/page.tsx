@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, Mail, Phone, User as UserIcon, CreditCard, Clock, CheckCircle2, History, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Search, Loader2, Mail, Phone, User as UserIcon, CreditCard, Clock, CheckCircle2, History, Trash2, ZoomIn, ZoomOut, AlertTriangle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -120,7 +120,7 @@ export default function PaymentUpdatePage() {
     // Form state for new payment
     const [discountPercentage, setDiscountPercentage] = useState<number>(0);
     const [paymentType, setPaymentType] = useState('Bank Transfer');
-    const [receiptNumber, setReceiptNumber] = useState('');
+    const [paymentReference, setPaymentReference] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     const [customPayingAmount, setCustomPayingAmount] = useState<string>('');
@@ -131,6 +131,44 @@ export default function PaymentUpdatePage() {
             handleSearch(undefined, initialStudentId);
         }
     }, []);
+
+    const [allPendingRequests, setAllPendingRequests] = useState<PendingPaymentRequest[]>([]);
+    const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+
+    useEffect(() => {
+        if (!studentData) {
+            fetchAllPendingRequests();
+        }
+    }, [studentData]);
+
+    const fetchAllPendingRequests = async () => {
+        setIsLoadingRequests(true);
+        try {
+            const response = await fetch(`${LMS_API_URL}/payment-portal-requests`);
+            if (response.ok) {
+                const data = await response.json();
+                const pending = Array.isArray(data) ? data.filter((r: any) => r.payment_status === 'Pending') : [];
+                setAllPendingRequests(pending);
+            }
+        } catch (error) {
+            console.error("Failed to fetch pending requests:", error);
+        } finally {
+            setIsLoadingRequests(false);
+        }
+    };
+
+    const handleProcessPendingRequest = async (req: PendingPaymentRequest) => {
+        setSelectedPaymentRequestId('');
+        setPaymentReference('');
+        setCustomPayingAmount('');
+        
+        await handleSearch(undefined, req.unique_number);
+        
+        setSelectedPaymentRequestId(req.id);
+        setPaymentReference(req.payment_reference || '');
+        setCustomPayingAmount(req.paid_amount || '');
+        setPaymentType('Bank Transfer');
+    };
 
     const handleSearch = async (e?: React.FormEvent, searchId?: string) => {
         if (e) e.preventDefault();
@@ -197,6 +235,17 @@ export default function PaymentUpdatePage() {
             return;
         }
 
+        if (!paymentReference.trim()) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Transaction Reference No. is required.' });
+            return;
+        }
+
+        if (studentData?.pendingPaymentRequests && studentData.pendingPaymentRequests.length > 0 && !selectedPaymentRequestId) {
+            if (!confirm("This student has pending payment slips that you haven't selected. Are you sure you want to process this payment manually without approving any of the uploaded slips?")) {
+                return;
+            }
+        }
+
         setIsSubmitting(true);
         try {
             const payload = {
@@ -204,7 +253,7 @@ export default function PaymentUpdatePage() {
                 course_code: selectedCourse.course_code,
                 paid_amount: finalPayAmount,
                 discount_amount: discountAmount,
-                receipt_number: receiptNumber || `REC-${Date.now()}`,
+                payment_reference: paymentReference.trim(),
                 payment_type: paymentType,
                 paid_date: new Date().toISOString().split('T')[0],
                 created_by: 'Admin',
@@ -233,7 +282,7 @@ export default function PaymentUpdatePage() {
 
             handleSearch(undefined, studentData!.studentInfo.student_id);
             setDiscountPercentage(0);
-            setReceiptNumber('');
+            setPaymentReference('');
             setCustomPayingAmount('');
             setSelectedPaymentRequestId('');
             
@@ -299,6 +348,105 @@ export default function PaymentUpdatePage() {
                     <div className="bg-destructive/20 p-2 rounded-full"><Search className="h-4 w-4" /></div>
                     <p className="font-medium">{error}</p>
                 </div>
+            )}
+
+            {!studentData && !isLoading && (
+                <Card className="shadow-lg border-border bg-card">
+                    <CardHeader className="bg-muted/15 border-b border-border pb-4">
+                        <CardTitle className="text-xl flex items-center gap-2 text-foreground">
+                            <Clock className="h-5 w-5 text-yellow-500" />
+                            Pending Payment Slips Awaiting Processing
+                        </CardTitle>
+                        <CardDescription className="text-muted-foreground">
+                            List of all bank slips uploaded by active students for course fee installments.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        {isLoadingRequests ? (
+                            <div className="flex justify-center items-center py-12">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            </div>
+                        ) : allPendingRequests.length > 0 ? (
+                            <div className="border border-border rounded-xl overflow-hidden bg-muted/5">
+                                <Table>
+                                    <TableHeader className="bg-muted/20">
+                                        <TableRow>
+                                            <TableHead className="font-bold text-foreground">Student ID</TableHead>
+                                            <TableHead className="font-bold text-foreground">Bank & Branch</TableHead>
+                                            <TableHead className="font-bold text-foreground">Submitted Date</TableHead>
+                                            <TableHead className="font-bold text-foreground">Ref Number</TableHead>
+                                            <TableHead className="font-bold text-foreground text-right">Amount</TableHead>
+                                            <TableHead className="font-bold text-foreground text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {allPendingRequests.map((req) => (
+                                            <TableRow key={req.id} className="hover:bg-muted/10">
+                                                <TableCell className="font-semibold text-foreground">{req.unique_number}</TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">
+                                                    {req.bank === "1" ? "BOC" : req.bank || "-"} {req.branch ? `(${req.branch})` : ""}
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">
+                                                    {new Date(req.created_at).toLocaleDateString()}
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-sm font-mono">{req.payment_reference || "-"}</TableCell>
+                                                <TableCell className="font-bold text-foreground text-right text-sm">
+                                                    LKR {parseFloat(req.paid_amount).toLocaleString()}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        {req.slip_path && (
+                                                            <Dialog>
+                                                                <DialogTrigger asChild>
+                                                                    <Button variant="outline" size="sm" className="text-xs">
+                                                                        View Slip
+                                                                    </Button>
+                                                                </DialogTrigger>
+                                                                <DialogContent className="max-w-3xl bg-slate-900 border-slate-800 text-slate-100">
+                                                                    <DialogHeader>
+                                                                        <DialogTitle className="text-slate-100">Payment Slip Preview</DialogTitle>
+                                                                    </DialogHeader>
+                                                                    <div className="flex justify-center items-center p-4 bg-slate-950 rounded-xl border border-slate-850">
+                                                                        {req.slip_path.toLowerCase().endsWith('.pdf') ? (
+                                                                            <iframe 
+                                                                                src={`${CONTENT_PROVIDER_URL}${req.slip_path}`} 
+                                                                                className="w-full h-[70vh] rounded-md border-0"
+                                                                                title="Payment Slip PDF"
+                                                                            />
+                                                                        ) : (
+                                                                            <img 
+                                                                                src={`${CONTENT_PROVIDER_URL}${req.slip_path}`} 
+                                                                                alt="Payment Slip" 
+                                                                                className="max-h-[65vh] object-contain rounded-md"
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                </DialogContent>
+                                                            </Dialog>
+                                                        )}
+                                                        <Button 
+                                                            onClick={() => handleProcessPendingRequest(req)} 
+                                                            size="sm" 
+                                                            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs"
+                                                        >
+                                                            Process Payment
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 text-muted-foreground text-sm flex flex-col items-center justify-center space-y-2">
+                                <CheckCircle2 className="w-12 h-12 text-slate-650" />
+                                <p className="font-semibold text-slate-700">All caught up!</p>
+                                <p className="text-xs text-muted-foreground">No pending payment requests found.</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             )}
 
             {studentData && selectedCourse && (
@@ -386,12 +534,13 @@ export default function PaymentUpdatePage() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-foreground">Receipt / Reference No.</label>
+                                            <label className="text-sm font-medium text-foreground">Transaction Reference No. *</label>
                                             <Input 
-                                                value={receiptNumber} 
-                                                onChange={(e) => setReceiptNumber(e.target.value)} 
-                                                placeholder="e.g. REC-98765432"
+                                                value={paymentReference} 
+                                                onChange={(e) => setPaymentReference(e.target.value)} 
+                                                placeholder="e.g. TXN98765432"
                                                 className="h-11 bg-muted/50 border-input"
+                                                required
                                             />
                                         </div>
 
@@ -440,6 +589,18 @@ export default function PaymentUpdatePage() {
                                                 />
                                             </div>
                                         </div>
+
+                                        {studentData.pendingPaymentRequests && studentData.pendingPaymentRequests.length > 0 && !selectedPaymentRequestId && (
+                                            <div className="col-span-1 md:col-span-2 bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-start gap-3 mt-2">
+                                                <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-amber-500">Pending Slips Warning</p>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        This student has pending uploaded slips. If this payment is to settle one of those slips, please select the slip from the <strong>"Pending Uploaded Slips"</strong> list to automatically mark it as approved.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <div className="col-span-1 md:col-span-2 bg-indigo-500/10 p-6 rounded-xl border border-indigo-500/20 mt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
                                             <div>
@@ -567,7 +728,7 @@ export default function PaymentUpdatePage() {
                                                     className={selectedPaymentRequestId === req.id ? "bg-indigo-600 hover:bg-indigo-700 w-full" : "w-full"}
                                                     onClick={() => {
                                                         setSelectedPaymentRequestId(req.id);
-                                                        setReceiptNumber(req.payment_reference || '');
+                                                        setPaymentReference(req.payment_reference || '');
                                                         setCustomPayingAmount(req.paid_amount || '');
                                                         setPaymentType('Bank Transfer');
                                                     }}
