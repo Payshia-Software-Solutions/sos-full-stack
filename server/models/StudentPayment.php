@@ -81,8 +81,15 @@ class StudentPaymentNew
     // Get student payments by student ID and course code
     public function getByStudentIdAndCourse($studentId, $courseCode)
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM `student_payment` WHERE `student_id` = ? AND `course_code` = ?");
-        $stmt->execute([$studentId, $courseCode]);
+        // Resolve student_id if username was passed (e.g. PA36398 -> PA/36/398)
+        $stmtStudent = $this->pdo->prepare("SELECT `student_id` FROM `user_full_details` WHERE `username` = ? OR `student_id` = ?");
+        $stmtStudent->execute([$studentId, $studentId]);
+        $studentRow = $stmtStudent->fetch(PDO::FETCH_ASSOC);
+        
+        $resolvedStudentId = $studentRow ? $studentRow['student_id'] : $studentId;
+
+        $stmt = $this->pdo->prepare("SELECT * FROM `student_payment` WHERE (`student_id` = ? OR `student_id` = ?) AND `course_code` = ?");
+        $stmt->execute([$resolvedStudentId, $studentId, $courseCode]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

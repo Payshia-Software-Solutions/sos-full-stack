@@ -174,47 +174,25 @@ export default function CreateLeadPage() {
         { value: 'Ongoing', label: 'Ongoing Student', description: 'Active student query', icon: GraduationCap, color: 'text-purple-500' },
     ];
 
-    // Dynamic Status List based on selected Student Category Flow
+    // Dynamic Status List based on selected Student Category Flow (Initial stages only for Create Lead)
     const getStatusOptions = () => {
         if (category === "New") {
             return [
                 { value: "Received", label: "Lead Received" },
                 { value: "Course Info Provided", label: "Info Provided" },
                 { value: "Follow-up", label: "Follow-up" },
-                { value: "Registration Link Sent", label: "Reg Sent" },
-                { value: "Registration Completed", label: "Reg Completed" },
-                { value: "Payment Verified", label: "Paid" },
-                { value: "Student Registered", label: "Student Reg" },
-                { value: "Welcome Message Sent", label: "Welcome Msg" },
-                { value: "Study Pack Ordered", label: "Pack Ordered" },
-                { value: "Study Pack Dispatched", label: "Pack Dispatched" },
-                { value: "Added to WhatsApp / LMS", label: "WhatsApp/LMS" },
-                { value: "Course Started", label: "Course Started" },
-                { value: "Progress Monitoring", label: "Progress Mon." },
-                { value: "Assessment Verified", label: "Assessment Ver." },
-                { value: "Certificate Approved", label: "Cert. Approved" },
-                { value: "Certificate Printed", label: "Cert. Printed" },
-                { value: "Certificate Issued", label: "Cert. Issued" },
-                { value: "Alumni Updated", label: "Alumni Updated" },
                 { value: "Lost", label: "Lost" }
             ];
         } else if (category === "Old") {
             return [
                 { value: "Verify Details", label: "Verify Details" },
                 { value: "Identify Requirement", label: "Identify Req" },
-                { value: "Offer Next Batch", label: "Offer Next Batch" },
-                { value: "Registration Process", label: "Reg Process" },
-                { value: "Completed", label: "Service Provided" },
                 { value: "Lost", label: "Lost" }
             ];
         } else { // Ongoing
             return [
                 { value: "Verify Details", label: "Verify Details" },
-                { value: "Identify Issue", label: "Identify Issue" },
-                { value: "Assign Department", label: "Assign Dept" },
-                { value: "Escalate to Manager", label: "Escalated" },
-                { value: "Student Confirmation", label: "Student Confirm" },
-                { value: "Ticket Closed", label: "Closed" }
+                { value: "Identify Issue", label: "Identify Issue" }
             ];
         }
     };
