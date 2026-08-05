@@ -138,7 +138,7 @@ export const removeStudentEnrollment = async (studentCourseId: string): Promise<
 };
 
 export const getStudentDetailsByUsername = async (username: string): Promise<UserFullDetails> => {
-    const response = await fetch(`${QA_API_BASE_URL}/userFullDetails/username/${username}`);
+    const response = await fetch(`${QA_API_BASE_URL}/userFullDetails/username/${username}/`);
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: `Failed to fetch student details for ${username}` }));
         throw new Error(errorData.message || 'Failed to fetch student details');

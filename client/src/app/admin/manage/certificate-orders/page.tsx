@@ -101,7 +101,7 @@ const getCleanedCourseCodes = (order: CertificateOrder, studentData?: FullStuden
         const enrollment = Object.values(studentData.studentEnrollments).find(
             e => String(e.parent_course_id) === String(term) || String(e.course_code) === String(term)
         );
-        return enrollment ? enrollment.course_code : term;
+        return enrollment ? enrollment.parent_course_id : term;
     });
     return [...new Set(mapped)].join(',');
 };
@@ -166,6 +166,12 @@ const CertificateStatusCell = ({
                 // Individual Transcript Print URL logic
                 const transPrintUrl = `${LMS_API_URL}/transcript-templates/${enrollment?.parent_course_id || id}/print/${order.created_by}`;
 
+                // Old Transcript Print URL logic
+                const oldTransBaseUrl = (enrollment?.parent_course_id || id) === '1'
+                    ? 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-print-all-transcript'
+                    : 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-print-all-transcript-advanced';
+                const oldTransPrintUrl = `${oldTransBaseUrl}?courseCode=${enrollment?.parent_course_id || id}&tableMode=0&fixedStudentNumber=${order.created_by}`;
+
                 return (
                     <div key={id} className="space-y-1.5 border-l-2 border-muted pl-2 py-1">
                         <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1 leading-tight">{courseNameMap.get(id) || `ID: ${id}`}</p>
@@ -188,6 +194,12 @@ const CertificateStatusCell = ({
                                                 <Button asChild size="icon" variant="ghost" className="h-6 w-6">
                                                     <a href={transPrintUrl} target="_blank" rel="noopener noreferrer">
                                                         <Printer className="h-3.5 w-3.5 text-blue-600" title="Print Transcript" />
+                                                    </a>
+                                                </Button>
+                                                {/* Old Transcript Button */}
+                                                <Button asChild size="icon" variant="ghost" className="h-6 w-6">
+                                                    <a href={oldTransPrintUrl} target="_blank" rel="noopener noreferrer">
+                                                        <Printer className="h-3.5 w-3.5 text-orange-500" title="Print Old Transcript" />
                                                     </a>
                                                 </Button>
                                             </div>
@@ -245,8 +257,8 @@ const OrderActionsCell = ({ order, onUpdateClick, studentData, balanceData, isLo
         const currentCourses = order.course_code.split(',').map(id => id.trim()).filter(Boolean);
         const allEligibleEnrollments = Object.values(studentData.studentEnrollments).filter(e => e.certificate_eligibility);
         const newEnrollments = allEligibleEnrollments.filter(e => 
-            !currentCourses.includes(e.parent_course_id) && 
-            !currentCourses.includes(e.course_code)
+            !currentCourses.includes(String(e.parent_course_id)) && 
+            !currentCourses.includes(String(e.course_code))
         );
         return { isUpdateAvailable: newEnrollments.length > 0 };
     }, [studentData, order.course_code]);
@@ -309,7 +321,7 @@ export default function CertificateOrdersListPage() {
     const courseNameMap = useMemo(() => {
         const map = new Map<string, string>();
         parentCourses?.forEach(course => {
-            map.set(course.id, course.course_name);
+            map.set(String(course.id), course.course_name);
             if (course.course_code) {
                 map.set(course.course_code.trim(), course.course_name);
             }
@@ -403,10 +415,10 @@ export default function CertificateOrdersListPage() {
         const newEligibleCourseIds = Object.values(studentInfo.studentEnrollments)
             .filter(e => 
                 e.certificate_eligibility && 
-                !currentCourses.includes(e.parent_course_id) && 
-                !currentCourses.includes(e.course_code)
+                !currentCourses.includes(String(e.parent_course_id)) && 
+                !currentCourses.includes(String(e.course_code))
             )
-            .map(e => e.course_code);
+            .map(e => String(e.parent_course_id));
         const allCourseIds = [...new Set([...currentCourses, ...newEligibleCourseIds])];
         updateCourses({ orderId: orderToUpdate.id, courseCodes: allCourseIds.join(',') });
     };
@@ -497,7 +509,7 @@ export default function CertificateOrdersListPage() {
                                     {(() => {
                                         const currentCourses = orderToUpdate?.course_code.split(',').map(s => s.trim()).filter(Boolean) || [];
                                         return Object.values(studentDataMap.get(orderToUpdate!.created_by)?.studentData?.studentEnrollments || {})
-                                            .filter(e => e.certificate_eligibility && !currentCourses.includes(e.parent_course_id) && !currentCourses.includes(e.course_code))
+                                            .filter(e => e.certificate_eligibility && !currentCourses.includes(String(e.parent_course_id)) && !currentCourses.includes(String(e.course_code)))
                                             .map(enrollment => (
                                                 <div key={enrollment.parent_course_id}>
                                                     <h4 className="font-semibold text-card-foreground">{enrollment.parent_course_name}</h4>
