@@ -40,6 +40,7 @@ import Image from "next/image";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/recordings", label: "Course Content", icon: Video },
+  { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
   { href: "/dashboard/tickets", label: "Tickets", icon: Ticket },
   { href: "/dashboard/announcements", label: "Announcements", icon: Megaphone },
   { href: "/dashboard/more", label: "More", icon: MoreHorizontal },

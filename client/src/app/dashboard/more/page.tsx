@@ -17,7 +17,8 @@ import {
   BookText,
   Gamepad2,
   GraduationCap,
-  Package
+  Package,
+  CreditCard
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -67,6 +68,7 @@ export default function MorePage() {
       { href: "/dashboard/tickets", label: "Tickets", icon: Ticket },
       { href: "/dashboard/announcements", label: "Announcements", icon: Megaphone },
       { href: "/dashboard/delivery", label: "Delivery Orders", icon: Package },
+      { href: "/dashboard/payments", label: "Payments & Billing", icon: CreditCard },
       { href: "/dashboard/certificate-order", label: "Certificate Order", icon: Award },
       { href: "/dashboard/convocation-booking", label: "Convocation Booking", icon: GraduationCap },
       { href: "/dashboard/bnf", label: "BNF", icon: BookOpen },

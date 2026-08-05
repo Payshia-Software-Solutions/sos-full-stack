@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Ticket as TicketIcon, Clock, CheckCircle, PlusCircle, Award, Library, BookOpen, FileText, Gamepad2, AlertCircle, BookText, GraduationCap, Video, User } from "lucide-react";
+import { ArrowRight, Ticket as TicketIcon, Clock, CheckCircle, PlusCircle, Award, Library, BookOpen, FileText, Gamepad2, AlertCircle, BookText, GraduationCap, Video, User, CreditCard } from "lucide-react";
 import { UnreadBadge } from "@/components/dashboard/UnreadBadge";
 import { CeylonPharmacyIcon, DPadIcon, HunterProIcon, LuckyWheelIcon, MediMindIcon, PharmaHunterIcon, PharmaReaderIcon, WinPharmaIcon, WordPalletIcon } from "@/components/icons/module-icons";
 import { getStudentEnrollments } from "@/lib/actions/users";
@@ -350,6 +350,7 @@ export default function StudentDashboardPage() {
         { title: "Recordings", description: "View your study materials & videos.", href: "/dashboard/recordings", icon: <Video className="w-8 h-8 text-white" />, colorClass: "from-pink-400 to-rose-500" },
         { title: "Create a Ticket", description: "Get help from our support staff.", href: "/dashboard/create-ticket", icon: <PlusCircle className="w-8 h-8 text-white" />, colorClass: "from-blue-400 to-indigo-500" },
         { title: "Study Pack", description: "Request course materials delivery.", href: "/dashboard/delivery", icon: <FileText className="w-8 h-8 text-white" />, colorClass: "from-orange-400 to-red-500" },
+        { title: "Payments", description: "Settle your fees and view billing history.", href: "/dashboard/payments", icon: <CreditCard className="w-8 h-8 text-white" />, colorClass: "from-emerald-400 to-green-500" },
         { title: "Order Certificate", description: "Request a hard copy of your certificate.", href: "/dashboard/certificate-order", icon: <Award className="w-8 h-8 text-white" />, colorClass: "from-green-400 to-teal-500" },
         { title: "BNF", description: "Access the British National Formulary.", href: "/dashboard/bnf", icon: <BookOpen className="w-8 h-8 text-white" />, colorClass: "from-red-400 to-rose-500" },
         { title: "Games & Challenges", description: "Test your knowledge and have fun.", href: "/dashboard/games", icon: <Gamepad2 className="w-8 h-8 text-white" />, colorClass: "from-yellow-400 to-amber-500" },
