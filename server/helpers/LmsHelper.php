@@ -27,10 +27,9 @@ class LmsHelper
         // Calculate length of prefix to substring correctly
         $prefixLength = strlen($prefix) + 1;
         
-        $sql = "SELECT MAX(CAST(SUBSTRING(username, :prefixLength) AS UNSIGNED)) AS maxId FROM users WHERE username LIKE :prefix";
+        $sql = "SELECT MAX(CAST(SUBSTRING(username, $prefixLength) AS UNSIGNED)) AS maxId FROM users WHERE username LIKE :prefix";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
-            'prefixLength' => $prefixLength,
             'prefix' => $prefix . '%'
         ]);
         $row = $stmt->fetch();
