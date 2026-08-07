@@ -63,6 +63,17 @@ class TempLmsUser
     public function updateUser($id, $data)
     {
         $data['id'] = $id;
+        
+        // Filter input data to match query placeholders exactly
+        $allowedKeys = [
+            'id', 'email_address', 'civil_status', 'first_name', 'last_name', 'password',
+            'nic_number', 'phone_number', 'whatsapp_number', 'address_l1', 'address_l2',
+            'city', 'district', 'postal_code', 'paid_amount', 'aprroved_status', 'created_at',
+            'full_name', 'name_with_initials', 'gender', 'index_number', 'name_on_certificate',
+            'selected_course'
+        ];
+        $filteredData = array_intersect_key($data, array_flip($allowedKeys));
+
         $sql = "UPDATE temp_lms_user SET 
                     email_address = :email_address,
                     civil_status = :civil_status,
@@ -88,7 +99,7 @@ class TempLmsUser
                     selected_course = :selected_course
                 WHERE id = :id";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($data);
+        $stmt->execute($filteredData);
     }
 
     public function recordActivation($id, $activatedBy, $activatedAt)
