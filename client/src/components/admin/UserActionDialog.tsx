@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ export function UserActionDialog({ user, courses, onSuccess }: { user: any, cour
   const [loadingAction, setLoadingAction] = useState<'reject' | 'activate' | 'update' | null>(null);
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [loadingEnrollments, setLoadingEnrollments] = useState(false);
+  const [activationError, setActivationError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchEnrollments = async () => {
@@ -124,6 +126,7 @@ export function UserActionDialog({ user, courses, onSuccess }: { user: any, cour
       return;
     }
     setLoadingAction('activate');
+    setActivationError(null);
     try {
       const res = await fetch(`${LMS_API_URL}/temp-users/${user.id}/activate`, {
         method: "POST",
@@ -136,10 +139,10 @@ export function UserActionDialog({ user, courses, onSuccess }: { user: any, cour
         setIsOpen(false);
         onSuccess();
       } else {
-        toast({ description: `Activation failed: ${data.error || 'Unknown error'}`, variant: "destructive" });
+        setActivationError(data.details || data.error || 'Unknown error');
       }
     } catch (error) {
-      toast({ description: "Activation failed due to a network error", variant: "destructive" });
+      setActivationError("Activation failed due to a network error");
     } finally {
       setLoadingAction(null);
     }
@@ -153,6 +156,7 @@ export function UserActionDialog({ user, courses, onSuccess }: { user: any, cour
       if (!open) {
         setIsEditing(false);
         setEditedUser(user);
+        setActivationError(null);
       }
     }}>
       <DialogTrigger asChild>
@@ -166,6 +170,12 @@ export function UserActionDialog({ user, courses, onSuccess }: { user: any, cour
             <DialogTitle className="text-xl">User Information | REF #{user.id}</DialogTitle>
           </div>
         </DialogHeader>
+
+        {user.existing_approved_index && (
+          <div className="bg-destructive/10 border border-destructive/30 rounded-md p-3 text-destructive text-sm font-semibold flex items-center gap-2 mt-2">
+            ⚠️ This student is already activated with Index Number: {user.existing_approved_index}. You cannot activate this duplicate registration.
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
           <div className="lg:col-span-2 space-y-6">
@@ -364,14 +374,16 @@ export function UserActionDialog({ user, courses, onSuccess }: { user: any, cour
                   {loadingAction === 'reject' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   Reject
                 </Button>
-                <Button 
-                className="w-full bg-green-600 hover:bg-green-700 text-white" 
-                onClick={handleActivate}
-                disabled={loadingAction !== null || !courses.some((c: any) => c.course_code === selectedCourse)}
-              >
-                {loadingAction === 'activate' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Approve & Activate
-              </Button>
+                 {!user.existing_approved_index && (
+                  <Button 
+                    className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                    onClick={handleActivate}
+                    disabled={loadingAction !== null || !courses.some((c: any) => c.course_code === selectedCourse)}
+                  >
+                    {loadingAction === 'activate' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Approve & Activate
+                  </Button>
+                )}
               </div>
             )}
 
@@ -399,6 +411,22 @@ export function UserActionDialog({ user, courses, onSuccess }: { user: any, cour
           </div>
         </div>
       </DialogContent>
+
+      <AlertDialog open={!!activationError} onOpenChange={(open) => { if (!open) setActivationError(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive flex items-center gap-2">
+               Activation Failed
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base text-foreground mt-2">
+              {activationError}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setActivationError(null)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

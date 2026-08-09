@@ -63,6 +63,17 @@ class TempLmsUser
     public function updateUser($id, $data)
     {
         $data['id'] = $id;
+        
+        // Filter input data to match query placeholders exactly
+        $allowedKeys = [
+            'id', 'email_address', 'civil_status', 'first_name', 'last_name', 'password',
+            'nic_number', 'phone_number', 'whatsapp_number', 'address_l1', 'address_l2',
+            'city', 'district', 'postal_code', 'paid_amount', 'aprroved_status', 'created_at',
+            'full_name', 'name_with_initials', 'gender', 'index_number', 'name_on_certificate',
+            'selected_course'
+        ];
+        $filteredData = array_intersect_key($data, array_flip($allowedKeys));
+
         $sql = "UPDATE temp_lms_user SET 
                     email_address = :email_address,
                     civil_status = :civil_status,
@@ -88,7 +99,7 @@ class TempLmsUser
                     selected_course = :selected_course
                 WHERE id = :id";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($data);
+        $stmt->execute($filteredData);
     }
 
     public function recordActivation($id, $activatedBy, $activatedAt)
@@ -170,7 +181,9 @@ class TempLmsUser
         }
         
         $orderClause = "t.id DESC";
-        if (count($slipIds) > 0) {
+        if ($status === 'Approved') {
+            $orderClause = "t.index_number DESC";
+        } elseif (count($slipIds) > 0) {
             $inList = implode(',', $slipIds);
             $orderClause = "t.id IN ($inList) DESC, t.id DESC";
         }
@@ -180,7 +193,14 @@ class TempLmsUser
                 (SELECT GROUP_CONCAT(p.slip_path SEPARATOR ',') 
                  FROM payment_requests p 
                  WHERE p.unique_number = CAST(t.id AS CHAR) AND p.number_type = 'ref_number'
-                ) AS slip_paths
+                ) AS slip_paths,
+                (SELECT t2.index_number 
+                 FROM temp_lms_user t2 
+                 WHERE t2.aprroved_status = 'Approved' 
+                   AND t2.id != t.id 
+                   AND (t2.email_address = t.email_address OR (t.nic_number IS NOT NULL AND t.nic_number != '' AND t2.nic_number = t.nic_number))
+                 LIMIT 1
+                ) AS existing_approved_index
             FROM temp_lms_user t
             WHERE $whereString
             ORDER BY $orderClause

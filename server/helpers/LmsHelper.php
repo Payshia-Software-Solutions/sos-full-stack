@@ -27,10 +27,9 @@ class LmsHelper
         // Calculate length of prefix to substring correctly
         $prefixLength = strlen($prefix) + 1;
         
-        $sql = "SELECT MAX(CAST(SUBSTRING(username, :prefixLength) AS UNSIGNED)) AS maxId FROM users WHERE username LIKE :prefix";
+        $sql = "SELECT MAX(CAST(SUBSTRING(username, $prefixLength) AS UNSIGNED)) AS maxId FROM users WHERE username LIKE :prefix";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
-            'prefixLength' => $prefixLength,
             'prefix' => $prefix . '%'
         ]);
         $row = $stmt->fetch();
@@ -45,18 +44,16 @@ class LmsHelper
         // Check Availability
         $checkSql = "SELECT COUNT(*) AS count FROM users WHERE username = :username";
         $checkStmt = $pdo->prepare($checkSql);
-        $checkStmt->execute(['username' => $userName]);
-        $exists = $checkStmt->fetch()['count'] > 0;
-
-        if ($exists) {
-            // Fallback: just count all users and append that count
-            $allSql = "SELECT COUNT(*) AS totalCount FROM users";
-            $allStmt = $pdo->query($allSql);
-            $totalCount = $allStmt->fetch()['totalCount'];
-
-            $newUserId = str_pad($totalCount + 1, 3, '0', STR_PAD_LEFT);
-
-            // Create User ID & User Name again
+        
+        while (true) {
+            $checkStmt->execute(['username' => $userName]);
+            $exists = $checkStmt->fetch()['count'] > 0;
+            if (!$exists) {
+                break;
+            }
+            // If it exists, increment maxId and generate the next sequential ID in the batch
+            $maxId++;
+            $newUserId = str_pad($maxId + 1, 3, '0', STR_PAD_LEFT);
             $userName = $prefix . $newUserId;
             $userId = "PA/" . $batchCode . "/" . $newUserId;
         }
