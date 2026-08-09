@@ -36,7 +36,7 @@ export default function AccountActivationPage() {
   const [totalPending, setTotalPending] = useState(0);
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date();
-    d.setDate(d.getDate() - 7);
+    d.setMonth(d.getMonth() - 2);
     return d.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState<string>(() => {
@@ -50,7 +50,7 @@ export default function AccountActivationPage() {
   const [totalApproved, setTotalApproved] = useState(0);
   const [approvedStartDate, setApprovedStartDate] = useState<string>(() => {
     const d = new Date();
-    d.setDate(d.getDate() - 7);
+    d.setMonth(d.getMonth() - 2);
     return d.toISOString().split('T')[0];
   });
   const [approvedEndDate, setApprovedEndDate] = useState<string>(() => {
@@ -273,9 +273,10 @@ export default function AccountActivationPage() {
       const data = await res.json();
       if (res.ok) {
         toast({ description: `User activated successfully. Index: ${data.username}` });
-        fetchUsers();
+        fetchPendingUsers();
+        fetchApprovedUsers();
       } else {
-        toast({ description: `Activation failed: ${data.error || 'Unknown error'}`, variant: "destructive" });
+        toast({ description: `Activation failed: ${data.details || data.error || 'Unknown error'}`, variant: "destructive" });
       }
     } catch (error) {
       toast({ description: "Activation failed due to a network error", variant: "destructive" });
@@ -392,9 +393,6 @@ export default function AccountActivationPage() {
                             <TableCell><Badge variant="destructive">{user.aprroved_status}</Badge></TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
-                                <Button size="sm" variant="outline" className="text-blue-500 hover:text-blue-600 border-blue-500/30" onClick={() => window.open(`/admin/manage/payment-update?student_id=${user.index_number || user.username || user.id}`, '_blank')}>
-                                  Add Payment
-                                </Button>
                                 {user.slip_paths ? (
                                   <Button size="sm" variant="outline" onClick={() => handleViewSlips(user.id)}>
                                     View Slip{user.slip_paths.includes(',') ? 's' : ''}
