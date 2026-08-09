@@ -181,7 +181,9 @@ class TempLmsUser
         }
         
         $orderClause = "t.id DESC";
-        if (count($slipIds) > 0) {
+        if ($status === 'Approved') {
+            $orderClause = "t.index_number DESC";
+        } elseif (count($slipIds) > 0) {
             $inList = implode(',', $slipIds);
             $orderClause = "t.id IN ($inList) DESC, t.id DESC";
         }
@@ -191,7 +193,14 @@ class TempLmsUser
                 (SELECT GROUP_CONCAT(p.slip_path SEPARATOR ',') 
                  FROM payment_requests p 
                  WHERE p.unique_number = CAST(t.id AS CHAR) AND p.number_type = 'ref_number'
-                ) AS slip_paths
+                ) AS slip_paths,
+                (SELECT t2.index_number 
+                 FROM temp_lms_user t2 
+                 WHERE t2.aprroved_status = 'Approved' 
+                   AND t2.id != t.id 
+                   AND (t2.email_address = t.email_address OR (t.nic_number IS NOT NULL AND t.nic_number != '' AND t2.nic_number = t.nic_number))
+                 LIMIT 1
+                ) AS existing_approved_index
             FROM temp_lms_user t
             WHERE $whereString
             ORDER BY $orderClause

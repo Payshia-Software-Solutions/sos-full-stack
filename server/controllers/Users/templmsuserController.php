@@ -203,10 +203,37 @@ class TempLmsUserController
                 throw new Exception("Temporary user not found.");
             }
 
+            if ($tempUser['aprroved_status'] === 'Approved') {
+                throw new Exception("This registration has already been approved and activated.");
+            }
+
+            // Check if there is already an approved user with the same email in the temp_lms_user table
+            $checkEmailStmt = $GLOBALS['pdo']->prepare("SELECT index_number FROM temp_lms_user WHERE email_address = ? AND aprroved_status = 'Approved' AND id != ? LIMIT 1");
+            $checkEmailStmt->execute([$tempUser['email_address'], $id]);
+            $existingIndex = $checkEmailStmt->fetchColumn();
+            if ($existingIndex) {
+                throw new Exception("This email address ({$tempUser['email_address']}) is already associated with an approved and active student account (Index Number: {$existingIndex}).");
+            }
+
+            // Check if there is already an approved user with the same NIC in the temp_lms_user table
+            if (!empty($tempUser['nic_number'])) {
+                $checkNicStmt = $GLOBALS['pdo']->prepare("SELECT index_number FROM temp_lms_user WHERE nic_number = ? AND aprroved_status = 'Approved' AND id != ? LIMIT 1");
+                $checkNicStmt->execute([$tempUser['nic_number'], $id]);
+                $existingIndex = $checkNicStmt->fetchColumn();
+                if ($existingIndex) {
+                    throw new Exception("This NIC number ({$tempUser['nic_number']}) is already associated with an approved and active student account (Index Number: {$existingIndex}).");
+                }
+            }
+
             // Generate Index
             $indexData = LmsHelper::GenerateLmsIndexNumber($GLOBALS['pdo'], $studentBatch);
             $userName = $indexData['userName'];
             $userId = $indexData['userId'];
+
+            // Update Temp User first to ensure no duplicate inserts can happen if it throws a constraint violation (since MyISAM does not support rollbacks)
+            $tempUser['aprroved_status'] = 'Approved';
+            $tempUser['index_number'] = $userName;
+            $this->model->updateUser($id, $tempUser);
 
             // Determine status_id (title)
             $statusId = 'Mr.';
@@ -276,11 +303,6 @@ class TempLmsUserController
             // Enroll Student
             $enrollStmt = $GLOBALS['pdo']->prepare("INSERT INTO student_course (course_code, student_id, enrollment_key) VALUES (?, ?, ?)");
             $enrollStmt->execute([$studentBatch, $userId, 'ForceAdmin']);
-
-            // Update Temp User
-            $tempUser['aprroved_status'] = 'Approved';
-            $tempUser['index_number'] = $userName;
-            $this->model->updateUser($id, $tempUser);
 
             // Record activation details
             $lkTimezone = new DateTimeZone('Asia/Colombo');
