@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { getStudentDetailsByUsername } from '@/lib/actions/users';
 import { getBatchByCode, getParentCourseById } from '@/lib/actions/courses';
-import { getCertificatePrintStatusById } from '@/lib/actions/certificates';
+import { getCertificatePrintStatusById, getCertificateTemplate } from '@/lib/actions/certificates';
 import type { UserFullDetails, ParentCourse, UserCertificatePrintStatus, ApiCourse } from '@/lib/types';
 import { CertificateLayout } from '@/components/print/CertificateLayout';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,13 @@ export default function PrintCertificatePage() {
         queryKey: ['parentCourseDataForCert', batchData?.parent_course_id],
         queryFn: () => getParentCourseById(batchData!.parent_course_id),
         enabled: !!batchData?.parent_course_id,
+    });
+
+    // Step 5: Fetch certificate template only if certData is available.
+    const { data: templateData, isLoading: isLoadingTemplate } = useQuery({
+        queryKey: ['certificateTemplateForPrint', certData?.course_code],
+        queryFn: () => getCertificateTemplate(certData!.course_code),
+        enabled: !!certData?.course_code,
     });
     
     useEffect(() => {
@@ -90,7 +97,7 @@ export default function PrintCertificatePage() {
             </div>
             <main className="flex justify-center items-start min-h-screen p-8 print:p-0">
                 <div className="print-container bg-white shadow-lg print:shadow-none">
-                     <CertificateLayout
+                      <CertificateLayout
                         studentName={studentData?.name_on_certificate || 'Loading Student...'}
                         studentIndex={certData.student_number}
                         courseName={courseData?.course_name || 'Loading Course...'}
@@ -98,10 +105,10 @@ export default function PrintCertificatePage() {
                         certificateId={certData.certificate_id}
                         courseData={courseData}
                         batchCode={certData.course_code}
-                     />
+                        template={templateData?.success ? templateData.template : null}
+                      />
                 </div>
             </main>
         </div>
     );
 }
-

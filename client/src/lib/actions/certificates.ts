@@ -515,3 +515,25 @@ export const getConvocationStudentCeremonyNumber = async (studentNumber: string,
         return null;
     }
 };
+
+export const getCertificateTemplate = async (courseCode: string): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/certificate-templates/${courseCode}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch certificate template');
+    }
+    return response.json();
+};
+
+export const saveCertificateTemplate = async (payload: any): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/certificate-templates`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to save certificate template');
+    }
+    return response.json();
+};
