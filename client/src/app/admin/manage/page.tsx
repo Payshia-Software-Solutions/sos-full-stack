@@ -222,6 +222,13 @@ const managementTasks: ManagementTask[] = [
     category: "Certificates & Convocation"
   },
   {
+    title: "Certificate Designer",
+    description: "Design and manage certificate printing layouts for courses.",
+    icon: <Award className="w-8 h-8 text-white" />,
+    href: "/admin/manage/certificate-design",
+    category: "Certificates & Convocation"
+  },
+  {
     title: "Transcript Designer",
     description: "Design and manage transcript templates for courses.",
     icon: <FileSignature className="w-8 h-8 text-white" />,
