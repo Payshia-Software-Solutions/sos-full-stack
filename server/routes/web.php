@@ -162,6 +162,7 @@ $blogRoutes = require './routes/BlogRoutes.php';
 $pharmaReaderRoutes = require './routes/pharmaReaderRoutes.php';
 $smsTemplateRoutes = require './routes/smsTemplateRoutes.php';
 $transcriptTemplateRoutes = require './routes/TranscriptTemplateRoutes.php';
+$certificateTemplateRoutes = require './routes/CertificateTemplateRoutes.php';
 $leadRoutes = require './routes/Lead/LeadRoutes.php';
 // Combine all routes
 $routes = array_merge(
@@ -304,6 +305,7 @@ $routes = array_merge(
     $pharmaReaderRoutes,
     $smsTemplateRoutes,
     $transcriptTemplateRoutes,
+    $certificateTemplateRoutes,
     $leadRoutes
 );
 
@@ -408,8 +410,8 @@ foreach ($routes as $route => $handler) {
 
     // Convert route URI to regex (without query parameters){trackingNumber} student_number
     $routeRegex = str_replace(
-        ['{id}', '{reply_id}', '{post_id}', '{created_by}', '{username}', '{role}', '{assignment_id}', '{course_code}', '{offset}', '{limit}', '{setting_name}', '{loggedUser}', '{title_id}', '{slug}', '{module_code}', '{value}', '{studentId}', '{tracking_number}', '{index_number}', '{provinceId}', '{student_number}', '{questionId}', '{levelId}', '{medicineId}', '{batch_id}', '{status}'],
-        ['(\d+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '(\d+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-\%\s]+)'],
+        ['{id}', '{reply_id}', '{post_id}', '{created_by}', '{username}', '{role}', '{assignment_id}', '{course_code}', '{offset}', '{limit}', '{setting_name}', '{loggedUser}', '{title_id}', '{slug}', '{module_code}', '{value}', '{studentId}', '{tracking_number}', '{index_number}', '{provinceId}', '{student_number}', '{questionId}', '{levelId}', '{medicineId}', '{batch_id}', '{status}', '{course_id}'],
+        ['(\d+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '(\d+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-\%\s]+)', '(\d+)'],
         $routeUri
     );
 
