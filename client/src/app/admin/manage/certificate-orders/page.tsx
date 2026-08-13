@@ -117,11 +117,13 @@ const needsCleaning = (order: CertificateOrder, studentData?: FullStudentData): 
 const CertificateStatusCell = ({ 
     order, 
     studentDataMap, 
-    courseNameMap 
+    courseNameMap,
+    courseCodeMap
 }: { 
     order: CertificateOrder, 
     studentDataMap: Map<string, { studentData?: FullStudentData, balanceData?: StudentBalanceData }>,
-    courseNameMap: Map<string, string>
+    courseNameMap: Map<string, string>,
+    courseCodeMap: Map<string, string>
 }) => {
     const queryClient = useQueryClient();
     const { user } = useAuth();
@@ -160,8 +162,12 @@ const CertificateStatusCell = ({
                 const cert = getGeneratedDoc(id);
                 const enrollment = Object.values(studentData.studentEnrollments).find(e => e.parent_course_id === id || e.course_code === id);
                 
-                // Individual Certificate Print URL logic
-                const certPrintUrl = `https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-list-certificate?courseCode=${enrollment?.parent_course_id || id}&tableMode=0&fixedStudentNumber=${order.created_by}`;
+                // Individual Certificate Print URL logic (using new Designer printer route)
+                const courseIdKey = String(enrollment?.parent_course_id || id).trim();
+                const parentCourseCode = courseCodeMap.get(courseIdKey) || '';
+                const certPrintUrl = cert 
+                    ? `/print/certificate/${cert.certificate_id}${parentCourseCode ? `?course_code=${parentCourseCode}` : ''}`
+                    : '#';
 
                 // Individual Transcript Print URL logic
                 const transPrintUrl = `${LMS_API_URL}/transcript-templates/${enrollment?.parent_course_id || id}/print/${order.created_by}`;
@@ -296,6 +302,7 @@ export default function CertificateOrdersListPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [courseFilter, setCourseFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     const [isExporting, setIsExporting] = useState(false);
     const [selectedOrderDetails, setSelectedOrderDetails] = useState<CertificateOrder | null>(null);
     const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
@@ -324,6 +331,17 @@ export default function CertificateOrdersListPage() {
             map.set(String(course.id), course.course_name);
             if (course.course_code) {
                 map.set(course.course_code.trim(), course.course_name);
+            }
+        });
+        return map;
+    }, [parentCourses]);
+
+    const courseCodeMap = useMemo(() => {
+        const map = new Map<string, string>();
+        parentCourses?.forEach(course => {
+            map.set(String(course.id), course.course_code);
+            if (course.course_code) {
+                map.set(course.course_code.trim(), course.course_code);
             }
         });
         return map;
@@ -375,12 +393,12 @@ export default function CertificateOrdersListPage() {
 
     const openUpdateDialog = (order: CertificateOrder) => { setOrderToUpdate(order); setIsUpdateDialogOpen(true); };
 
-    useEffect(() => { setCurrentPage(1); }, [searchTerm, courseFilter]);
+    useEffect(() => { setCurrentPage(1); }, [searchTerm, courseFilter, itemsPerPage]);
 
-    const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
     const paginatedOrders = useMemo(() => {
-        return filteredOrders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-    }, [filteredOrders, currentPage]);
+        return filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    }, [filteredOrders, currentPage, itemsPerPage]);
 
     const studentNumbersToFetch = useMemo(() => {
         return [...new Set(paginatedOrders.map(o => o.created_by).filter(sn => !studentDataMap.has(sn)))];
@@ -390,17 +408,30 @@ export default function CertificateOrdersListPage() {
         queryKey: ['batchStudentData', studentNumbersToFetch],
         queryFn: async () => {
             if (studentNumbersToFetch.length === 0) return null;
-            const promises = studentNumbersToFetch.map(sn => Promise.all([
-                getStudentFullInfo(sn).catch(() => null),
-                getStudentBalance(sn).catch(() => null),
-            ]));
-            const results = await Promise.all(promises);
-            const newMap = new Map(studentDataMap);
-            results.forEach((res, index) => {
-                newMap.set(studentNumbersToFetch[index], { studentData: res[0], balanceData: res[1] });
-            });
-            setStudentDataMap(newMap);
-            return newMap;
+            
+            const CHUNK_SIZE = 5;
+            let currentMap = new Map(studentDataMap);
+
+            for (let i = 0; i < studentNumbersToFetch.length; i += CHUNK_SIZE) {
+                const chunk = studentNumbersToFetch.slice(i, i + CHUNK_SIZE);
+                const chunkResults = await Promise.all(
+                    chunk.map(async (sn) => {
+                        const [studentData, balanceData] = await Promise.all([
+                            getStudentFullInfo(sn).catch(() => null),
+                            getStudentBalance(sn).catch(() => null),
+                        ]);
+                        return { sn, studentData, balanceData };
+                    })
+                );
+
+                chunkResults.forEach(({ sn, studentData, balanceData }) => {
+                    currentMap.set(sn, { studentData, balanceData });
+                });
+
+                // Update state progressively after each 5-student chunk completes
+                setStudentDataMap(new Map(currentMap));
+            }
+            return currentMap;
         },
         enabled: studentNumbersToFetch.length > 0,
         refetchOnWindowFocus: false,
@@ -648,6 +679,17 @@ export default function CertificateOrdersListPage() {
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                         <div><CardTitle>Certificate Orders</CardTitle><CardDescription>{filteredOrders.length} records found.</CardDescription></div>
                         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                            <Select value={String(itemsPerPage)} onValueChange={(val) => setItemsPerPage(Number(val))}>
+                                <SelectTrigger className="w-full sm:w-[110px]">
+                                    <SelectValue placeholder="10 / page" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="10">10 / page</SelectItem>
+                                    <SelectItem value="25">25 / page</SelectItem>
+                                    <SelectItem value="50">50 / page</SelectItem>
+                                    <SelectItem value="100">100 / page</SelectItem>
+                                </SelectContent>
+                            </Select>
                             <Select value={courseFilter} onValueChange={setCourseFilter}>
                                 <SelectTrigger className="w-full sm:w-[200px]">
                                     <SelectValue placeholder="Filter by Course" />
@@ -697,6 +739,7 @@ export default function CertificateOrdersListPage() {
                                                 order={order} 
                                                 studentDataMap={studentDataMap} 
                                                 courseNameMap={courseNameMap} 
+                                                courseCodeMap={courseCodeMap}
                                             />
                                         </TableCell>
                                         <TableCell><OrderActionsCell order={order} onUpdateClick={() => openUpdateDialog(order)} studentData={studentDataMap.get(order.created_by)?.studentData} balanceData={studentDataMap.get(order.created_by)?.balanceData} isLoading={isLoadingStudentData && !studentDataMap.has(order.created_by)} /></TableCell>
