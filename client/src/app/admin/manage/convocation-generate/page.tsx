@@ -10,6 +10,7 @@ import {
     getUserCertificatePrintStatus 
 } from '@/lib/actions/certificates';
 import { getParentCourses } from '@/lib/actions/courses';
+import { LMS_API_URL } from '@/lib/config';
 import type { 
     ConvocationCeremony, 
     ConvocationRegistration, 
@@ -53,10 +54,12 @@ const ITEMS_PER_PAGE = 25;
 // --- Sub-component for single-booking certificate management ---
 const BookingCertificateControl = ({ 
     registration,
-    courseNameMap 
+    courseNameMap,
+    courseCodeMap
 }: { 
     registration: ConvocationRegistration,
-    courseNameMap: Map<string, string>
+    courseNameMap: Map<string, string>,
+    courseCodeMap: Map<string, string>
 }) => {
     const queryClient = useQueryClient();
     const { user } = useAuth();
@@ -79,7 +82,7 @@ const BookingCertificateControl = ({
     const courseIds = registration.course_id.split(',').map(id => id.trim()).filter(Boolean);
     
     const getGeneratedDoc = (courseId: string, type: string) => {
-        return certStatus?.certificateStatus?.find(c => c.parent_course_id === courseId && c.type === type);
+        return certStatus?.certificateStatus?.find(c => String(c.parent_course_id) === courseId && c.type === type);
     };
 
     if (isLoading) return <div className="space-y-2"><Skeleton className="h-6 w-24" /><Skeleton className="h-6 w-24" /></div>;
@@ -90,26 +93,21 @@ const BookingCertificateControl = ({
         <div className="flex flex-col gap-4">
             {courseIds.map(id => {
                 const cert = getGeneratedDoc(id, 'Certificate');
+                const courseIdKey = String(id).trim();
                 
-                // Certificate URLs logic
-                const certBaseUrl = id === '2' 
-                    ? 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/print-all-advanced-course.php'
-                    : id === '7'
-                    ? 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/english-certificate'
-                    : id === '3'
-                    ? 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/workshop-certificate.php'
-                    : 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/print-all-certificates-course.php';
-                const certPrintUrl = `${certBaseUrl}?courseCode=${id}&showSession=${registration.session}&tableMode=0&fixedStudentNumber=${registration.student_number}`;
+                // Certificate URLs logic — pass course_code as query param so the
+                // print page can directly fetch the template without a data chain.
+                const parentCourseCode = courseCodeMap.get(courseIdKey) || '';
+                const certPrintUrl = cert 
+                    ? `/print/certificate/${cert.certificate_id}${parentCourseCode ? `?course_code=${parentCourseCode}` : ''}`
+                    : '#';
 
                 // Transcript URLs logic (Note: Transcript button appears if Cert is generated)
-                const transBaseUrl = id === '2'
-                    ? 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/print-all-transcript-advanced.php'
-                    : 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/print-all-transcript.php';
-                const transPrintUrl = `${transBaseUrl}?courseCode=${id}&showSession=${registration.session}&tableMode=0&fixedStudentNumber=${registration.student_number}`;
+                const transPrintUrl = `${LMS_API_URL}/transcript-templates/${id}/print/${registration.student_number}`;
 
                 return (
                     <div key={id} className="space-y-1.5 border-l-2 border-muted pl-2 py-1">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{courseNameMap.get(id) || `ID: ${id}`}</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{courseNameMap.get(courseIdKey) || `Course ID: ${id}`}</p>
                         <div className="flex flex-wrap gap-2">
                             {/* Certificate Section */}
                             <div className="flex items-center gap-1.5">
@@ -206,6 +204,10 @@ export default function ConvocationCertificateGenPage() {
     const [bulkEtah, setBulkEtah] = useState<string | null>(null);
     const generationStartTimeRef = useRef<number | null>(null);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedCeremonyId, selectedSession, selectedCourseId, searchTerm]);
+
     const { data: ceremonies, isLoading: isLoadingCeremonies } = useQuery<ConvocationCeremony[]>({
         queryKey: ['convocationCeremonies'],
         queryFn: getConvocationCeremonies,
@@ -225,7 +227,12 @@ export default function ConvocationCertificateGenPage() {
 
     const courseNameMap = useMemo(() => {
         if (!parentCourses) return new Map<string, string>();
-        return new Map(parentCourses.map(c => [c.id, c.course_name]));
+        return new Map(parentCourses.map(c => [String(c.id), c.course_name]));
+    }, [parentCourses]);
+
+    const courseCodeMap = useMemo(() => {
+        if (!parentCourses) return new Map<string, string>();
+        return new Map(parentCourses.map(c => [String(c.id), c.course_code]));
     }, [parentCourses]);
 
     const filteredRegs = useMemo(() => {
@@ -236,8 +243,9 @@ export default function ConvocationCertificateGenPage() {
                 r.student_number.toLowerCase().includes(lower) || 
                 r.reference_number.toLowerCase().includes(lower) ||
                 (r.name_on_certificate || '').toLowerCase().includes(lower);
-            const matchesSession = selectedSession === 'all' || r.session === selectedSession;
-            const matchesCourse = selectedCourseId === 'all' || r.course_id.split(',').map(id => id.trim()).includes(selectedCourseId);
+            const matchesSession = selectedSession === 'all' || String(r.session) === String(selectedSession);
+            const courseIdList = String(r.course_id || '').split(',').map(id => id.trim());
+            const matchesCourse = selectedCourseId === 'all' || courseIdList.includes(String(selectedCourseId).trim());
             
             // Only show active/pending bookings for generation
             const isInactive = r.registration_status === 'Rejected' || r.registration_status === 'Canceled';
@@ -397,8 +405,8 @@ export default function ConvocationCertificateGenPage() {
                                     <SelectValue placeholder={isLoadingCeremonies ? "Loading..." : "Choose Ceremony"} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {ceremonies?.filter(c => c.accept_booking === '1').map(c => (
-                                        <SelectItem key={c.id} value={c.id}>{c.convocation_name}</SelectItem>
+                                    {ceremonies?.filter(c => String(c.accept_booking) === '1').map(c => (
+                                        <SelectItem key={c.id} value={String(c.id)}>{c.convocation_name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -426,7 +434,7 @@ export default function ConvocationCertificateGenPage() {
                                     <SelectContent>
                                         <SelectItem value="all">All Courses</SelectItem>
                                         {parentCourses?.map(c => (
-                                            <SelectItem key={c.id} value={c.id}>{c.course_name}</SelectItem>
+                                            <SelectItem key={c.id} value={String(c.id)}>{c.course_name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -529,6 +537,7 @@ export default function ConvocationCertificateGenPage() {
                                                 <BookingCertificateControl 
                                                     registration={reg}
                                                     courseNameMap={courseNameMap}
+                                                    courseCodeMap={courseCodeMap}
                                                 />
                                             </TableCell>
                                             <TableCell className="text-right pr-6">
