@@ -112,7 +112,7 @@ export default function CreateConvocationBookingPage() {
   });
 
   const activeCeremonies = useMemo(() => {
-    return allCeremonies?.filter(c => c.accept_booking === '1') || [];
+    return allCeremonies?.filter(c => String(c.accept_booking) === '1') || [];
   }, [allCeremonies]);
   
   const { data: packages, isLoading: isLoadingPackages } = useQuery<ConvocationPackage[]>({

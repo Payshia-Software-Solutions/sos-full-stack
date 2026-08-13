@@ -51,7 +51,7 @@ const CeremonyForm = ({ ceremony, onClose }: { ceremony?: ConvocationCeremony | 
             parent_seats: ceremony ? parseInt(ceremony.parent_seats, 10) : 0,
             student_seats: ceremony ? parseInt(ceremony.student_seats, 10) : 0,
             session_2: ceremony ? parseInt(ceremony.session_2, 10) : 0,
-            accept_booking: ceremony ? ceremony.accept_booking === '1' : true,
+            accept_booking: ceremony ? String(ceremony.accept_booking) === '1' : true,
         },
     });
     
@@ -248,8 +248,8 @@ export default function ManageConvocationCeremoniesPage() {
                                                 <TableCell>{c.session_count}</TableCell>
                                                 <TableCell>{c.student_seats}</TableCell>
                                                 <TableCell>
-                                                    <Badge variant={c.accept_booking === '1' ? 'default' : 'secondary'}>
-                                                        {c.accept_booking === '1' ? 'Open' : 'Closed'}
+                                                    <Badge variant={String(c.accept_booking) === '1' ? 'default' : 'secondary'}>
+                                                        {String(c.accept_booking) === '1' ? 'Open' : 'Closed'}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right space-x-1">

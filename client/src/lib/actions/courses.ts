@@ -113,10 +113,12 @@ export const getParentCourseList = async (): Promise<ParentCourse[]> => {
 
 export const getParentCourses = async (): Promise<ParentCourse[]> => {
     const response = await fetch(`${QA_API_BASE_URL}/parent-main-course`);
-     if (!response.ok) {
+    if (!response.ok) {
         throw new Error('Failed to fetch parent courses');
     }
-    return response.json();
+    const json = await response.json();
+    // API returns { data: [...], Count: N } or a plain array
+    return Array.isArray(json) ? json : (json.data ?? []);
 }
 
 export const getParentCourse = async (id: string): Promise<ParentCourse> => {

@@ -12,6 +12,25 @@ const roboto = Roboto({
   weight: ['400', '700', '900'],
 });
 
+export const FONT_LIST = [
+  { value: "Inter", label: "Inter (Sans)", family: "'Inter', sans-serif" },
+  { value: "Montserrat", label: "Montserrat (Sans)", family: "'Montserrat', sans-serif" },
+  { value: "Calibri", label: "Calibri (Body)", family: "'Calibri', 'Carlito', sans-serif" },
+  { value: "Playfair Display", label: "Playfair Display (Serif)", family: "'Playfair Display', serif" },
+  { value: "Cinzel", label: "Cinzel (Serif)", family: "'Cinzel', serif" },
+  { value: "Lora", label: "Lora (Serif)", family: "'Lora', serif" },
+  { value: "Great Vibes", label: "Great Vibes (Script)", family: "'Great Vibes', cursive" },
+  { value: "Alex Brush", label: "Alex Brush (Script)", family: "'Alex Brush', cursive" },
+  { value: "Bradley Hand ITC", label: "Bradley Hand ITC (Script)", family: "'Bradley Hand', 'Bradley Hand ITC', 'Caveat', cursive" },
+];
+
+export const getFontFamilyStyle = (fontFamily?: string) => {
+  if (!fontFamily) return "'Inter', sans-serif";
+  const found = FONT_LIST.find(f => f.value === fontFamily);
+  if (found) return found.family;
+  return `'${fontFamily}', sans-serif`;
+};
+
 
 export interface CertificateTemplate {
   template_id: number;
@@ -52,6 +71,7 @@ export const CertificateLayout = ({
   template 
 }: CertificateLayoutProps) => {
 
+  const verificationUrl = `https://pharmacollege.lk/result-view?CourseCode=${encodeURIComponent(batchCode || '')}&LoggedUser=${encodeURIComponent(studentIndex || '')}`;
   const isPortrait = template?.orientation === 'Portrait';
   const hasTemplate = !!template && template.is_active === 1;
 
@@ -127,7 +147,7 @@ export const CertificateLayout = ({
         >
           <style dangerouslySetInnerHTML={{ __html: printStyles }} />
           {/* Dynamic Google Fonts Link */}
-          <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@400..900&family=Great+Vibes&family=Inter:wght@300..900&family=Lora:ital,wght@0,400..700;1,400..700&family=Montserrat:wght@300..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
+          <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=Caveat:wght@400..700&family=Cinzel:wght@400..900&family=Great+Vibes&family=Inter:wght@300..900&family=Lora:ital,wght@0,400..700;1,400..700&family=Montserrat:wght@300..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
 
           {dynamicElements.map((el) => {
             let displayText = el.content;
@@ -160,7 +180,7 @@ export const CertificateLayout = ({
                   }}
                 >
                   <img 
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('https://pharmacollege.lk/verify/' + certificateId)}`} 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(verificationUrl)}`} 
                     alt="Verification QR Code" 
                     className="w-full h-full object-contain"
                   />
@@ -188,7 +208,7 @@ export const CertificateLayout = ({
                   className={weightClass}
                   style={{
                     fontSize: `${el.fontSize}px`,
-                    fontFamily: el.fontFamily || 'Inter',
+                    fontFamily: getFontFamilyStyle(el.fontFamily),
                     color: el.color || '#000000',
                     whiteSpace: 'pre-wrap',
                     lineHeight: 1.2
@@ -259,7 +279,7 @@ export const CertificateLayout = ({
           }}
         >
           <img 
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('https://pharmacollege.lk/verify/' + certificateId)}`} 
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(verificationUrl)}`} 
             alt="Verification QR Code" 
             className="w-full h-full object-contain"
           />

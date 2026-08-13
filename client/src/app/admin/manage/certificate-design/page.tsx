@@ -1,3 +1,4 @@
+// Certificate Studio Designer Page (Updated with Rulers & CM Inspector)
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -13,6 +14,7 @@ import { Loader2, Save, Move, Image as ImageIcon, Eye, Plus, Trash2, AlignLeft, 
 import { toast } from '@/hooks/use-toast';
 import { getParentCourses } from '@/lib/actions/courses';
 import { getCertificateTemplate, saveCertificateTemplate } from '@/lib/actions/certificates';
+import { FONT_LIST, getFontFamilyStyle } from '@/components/print/CertificateLayout';
 
 // Type definitions for drag-and-drop template elements
 export interface CertificateElement {
@@ -28,6 +30,34 @@ export interface CertificateElement {
     width?: number;
     fontFamily?: string;
 }
+
+// Helpers to convert percentage coordinates (0-100%) to/from Physical Centimeters (cm)
+const getPageDimensionsCm = (pageSize: string, orientation: string) => {
+    const isPortrait = orientation === 'Portrait';
+    if (pageSize === 'Letter') {
+        return isPortrait ? { width: 21.59, height: 27.94 } : { width: 27.94, height: 21.59 };
+    }
+    // A4 Default
+    return isPortrait ? { width: 21.0, height: 29.7 } : { width: 29.7, height: 21.0 };
+};
+
+const xToLeftCm = (x: number, docWidthCm: number) => {
+    return Number(((x / 100) * docWidthCm).toFixed(2));
+};
+
+const leftCmToX = (leftCm: number, docWidthCm: number) => {
+    if (docWidthCm <= 0) return 0;
+    return Math.min(100, Math.max(0, Number(((leftCm / docWidthCm) * 100).toFixed(2))));
+};
+
+const yToTopCm = (y: number, docHeightCm: number) => {
+    return Number(((y / 100) * docHeightCm).toFixed(2));
+};
+
+const topCmToY = (topCm: number, docHeightCm: number) => {
+    if (docHeightCm <= 0) return 0;
+    return Math.min(100, Math.max(0, Number(((topCm / docHeightCm) * 100).toFixed(2))));
+};
 
 const DEFAULT_BACKGROUNDS = [
     { name: "English Course Standard", url: "https://content-provider.pharmacollege.lk/certificates/certificate-bg-english-free-v1.png" },
@@ -673,12 +703,13 @@ export default function CertificateDesignPage() {
     };
 
     const selectedElement = elements.find(el => el.id === selectedElementId);
+    const docDimensions = getPageDimensionsCm(pageSize, orientation);
 
     if (!selectedCourseCode) {
         return (
             <div className="p-4 md:p-8 space-y-6 pb-20 bg-[#0c0d0e] text-white min-h-[80vh] flex flex-col justify-center items-center border border-gray-800 rounded-2xl shadow-2xl">
                 {/* Dynamic Google Fonts Link */}
-                <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@400..900&family=Great+Vibes&family=Inter:wght@300..900&family=Lora:ital,wght@0,400..700;1,400..700&family=Montserrat:wght@300..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
+                <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=Caveat:wght@400..700&family=Cinzel:wght@400..900&family=Great+Vibes&family=Inter:wght@300..900&family=Lora:ital,wght@0,400..700;1,400..700&family=Montserrat:wght@300..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
                 <div className="max-w-md w-full space-y-6 text-center">
                     <header className="space-y-2">
                         <div className="text-4xl justify-center flex mb-2">🎨</div>
@@ -723,7 +754,7 @@ export default function CertificateDesignPage() {
     return (
         <div className="flex flex-col w-full h-[calc(100vh-80px)] md:h-[calc(100vh-8px)] min-h-[600px] bg-[#0e0f11] text-gray-200 border border-gray-850 rounded-2xl rounded-b-none overflow-hidden shadow-2xl font-sans -mb-4 md:-mb-8">
             {/* Dynamic Google Fonts Link */}
-            <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@400..900&family=Great+Vibes&family=Inter:wght@300..900&family=Lora:ital,wght@0,400..700;1,400..700&family=Montserrat:wght@300..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
+            <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=Caveat:wght@400..700&family=Cinzel:wght@400..900&family=Great+Vibes&family=Inter:wght@300..900&family=Lora:ital,wght@0,400..700;1,400..700&family=Montserrat:wght@300..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
 
             {/* Photoshop/Word Top Action Bar */}
             <div className="h-14 bg-gray-900/95 border-b border-gray-800 flex items-center justify-between px-4 gap-4 flex-shrink-0">
@@ -758,19 +789,16 @@ export default function CertificateDesignPage() {
                                 <SelectTrigger className="w-36 h-8 bg-gray-950 border-gray-800 text-xs text-white font-mono">
                                     <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-gray-800 text-white">
-                                    <SelectItem value="Inter">Inter</SelectItem>
-                                    <SelectItem value="Montserrat">Montserrat</SelectItem>
-                                    <SelectItem value="Playfair Display">Playfair Display</SelectItem>
-                                    <SelectItem value="Cinzel">Cinzel</SelectItem>
-                                    <SelectItem value="Lora">Lora</SelectItem>
-                                    <SelectItem value="Great Vibes">Great Vibes</SelectItem>
-                                    <SelectItem value="Alex Brush">Alex Brush</SelectItem>
+                                <SelectContent className="bg-gray-900 border-gray-800 text-white max-h-[320px]">
+                                    {FONT_LIST.map((font) => (
+                                        <SelectItem key={font.value} value={font.value} className="cursor-pointer py-1.5 hover:bg-gray-800 focus:bg-gray-800">
+                                            <span style={{ fontFamily: font.family, fontSize: '13px' }}>{font.label}</span>
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
                         
-                        {/* Font size quick input */}
                         <div className="flex items-center border border-gray-800 rounded bg-gray-950 h-8 px-1">
                             <span className="text-[10px] text-gray-500 px-1 font-mono">Size</span>
                             <input 
@@ -782,7 +810,6 @@ export default function CertificateDesignPage() {
                             <span className="text-[10px] text-gray-500 pr-1">px</span>
                         </div>
                         
-                        {/* Alignment Toggles */}
                         <div className="flex border border-gray-800 rounded overflow-hidden bg-gray-950 h-8">
                             <Button 
                                 variant={selectedElement.align === 'left' ? "default" : "ghost"}
@@ -813,7 +840,6 @@ export default function CertificateDesignPage() {
                             </Button>
                         </div>
 
-                        {/* Font Weight */}
                         <Select 
                             value={selectedElement.fontWeight} 
                             onValueChange={(val: any) => updateSelectedElement({ fontWeight: val })}
@@ -829,7 +855,6 @@ export default function CertificateDesignPage() {
                             </SelectContent>
                         </Select>
                         
-                        {/* Color Swatch */}
                         <div className="flex items-center gap-1.5 bg-gray-950 border border-gray-800 h-8 px-2 rounded">
                             <input 
                                 type="color" 
@@ -846,9 +871,7 @@ export default function CertificateDesignPage() {
                     </div>
                 )}
 
-                {/* Actions & Buttons */}
                 <div className="flex gap-2 items-center">
-                    {/* Top Toolbar Zoom Controls */}
                     <div className="flex items-center gap-1.5 bg-gray-950 border border-gray-850 rounded-md px-1.5 h-8 mr-1">
                         <Button 
                             variant="ghost" 
@@ -911,11 +934,8 @@ export default function CertificateDesignPage() {
                 </div>
             </div>
 
-            {/* Photoshop Three-Pane Studio Layout */}
             <div className="flex flex-1 overflow-hidden h-[calc(100%-56px)]">
-                {/* 1. LEFT PANEL: Layers, Preset Library & Page Sizing (280px) */}
                 <div className="w-72 bg-gray-950 border-r border-gray-850 flex flex-col h-full flex-shrink-0 overflow-y-auto p-4 space-y-5">
-                    {/* Presets & Elements Adder */}
                     <div className="space-y-2">
                         <Label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Canvas Library Elements</Label>
                         <div className="grid grid-cols-2 gap-1.5">
@@ -946,7 +966,6 @@ export default function CertificateDesignPage() {
                         </div>
                     </div>
 
-                    {/* Layers Panel */}
                     <div className="space-y-2 border-t border-gray-850 pt-4">
                         <div className="flex justify-between items-center">
                             <Label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Placed Layers</Label>
@@ -1012,7 +1031,6 @@ export default function CertificateDesignPage() {
                         </div>
                     </div>
 
-                    {/* Page & Canvas Setup */}
                     <div className="space-y-4 border-t border-gray-850 pt-4 flex-1">
                         <Label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Page Configurations</Label>
                         
@@ -1095,9 +1113,7 @@ export default function CertificateDesignPage() {
                     </div>
                 </div>
 
-                {/* 2. CENTER PANEL: Scrollable Vector Viewport */}
                 <div className="flex-1 bg-[#121316] overflow-hidden flex flex-col items-center justify-start relative p-4 select-none">
-                    {/* Canvas Scroll wrapper */}
                     <div className="w-full h-full overflow-auto flex justify-center items-center p-8 py-20">
                         {isLoadingTemplate ? (
                             <div className="flex flex-col items-center justify-center p-12 text-gray-400">
@@ -1105,32 +1121,85 @@ export default function CertificateDesignPage() {
                                 <p className="text-sm">Loading Visual Canvas...</p>
                             </div>
                         ) : (
-                            <div className="flex-shrink-0 transition-transform duration-100 ease-out py-8 px-12" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
-                                {/* Drag Bounding Box representing A4 sheet */}
+                            <div className="flex-shrink-0 transition-transform duration-100 ease-out py-6 px-8 flex flex-col items-start" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
+                                {/* Top Horizontal Ruler (X-Axis in Centimeters) */}
                                 <div 
-                                    ref={canvasRef}
-                                    className={`relative border border-white/10 bg-white text-black shadow-[0_20px_50px_rgba(0,0,0,0.8)] select-none overflow-hidden ${
-                                        orientation === 'Landscape' 
-                                            ? 'w-[800px] aspect-[297/210]' 
-                                            : 'w-[560px] aspect-[210/297]'
+                                    className={`h-5 bg-gray-900/90 border border-gray-800 rounded-t border-b-0 relative flex items-end select-none overflow-hidden font-mono text-[9px] text-gray-400 mb-0 ml-6 ${
+                                        orientation === 'Landscape' ? 'w-[800px]' : 'w-[560px]'
                                     }`}
-                                    style={{
-                                        backgroundImage: backImage ? `url('${backImage}')` : 'none',
-                                        backgroundSize: 'cover',
-                                        backgroundPosition: 'center',
-                                        backgroundRepeat: 'no-repeat',
-                                        backgroundColor: '#fafafa'
-                                    }}
                                 >
-                                    {/* Grid background guide */}
+                                    {Array.from({ length: Math.ceil(docDimensions.width) + 1 }).map((_, cm) => {
+                                        const pct = (cm / docDimensions.width) * 100;
+                                        if (pct > 100) return null;
+                                        const isMajor = cm % 2 === 0;
+                                        return (
+                                            <div key={cm} className="absolute bottom-0 flex flex-col items-center transform -translate-x-1/2" style={{ left: `${pct}%` }}>
+                                                {isMajor && <span className="text-[8px] text-gray-400 -mt-1 leading-none mb-0.5">{cm}</span>}
+                                                <div className={`bg-gray-500 ${isMajor ? 'h-2.5 w-[1px]' : 'h-1.5 w-[1px] opacity-50'}`} />
+                                            </div>
+                                        );
+                                    })}
+                                    {/* Active Marker on X Ruler */}
+                                    {selectedElement && (
+                                        <div 
+                                            className="absolute top-0 bottom-0 w-[2px] bg-emerald-400 z-30 pointer-events-none transition-all duration-75"
+                                            style={{ left: `${selectedElement.x}%` }}
+                                            title={`Left: ${xToLeftCm(selectedElement.x, docDimensions.width)} cm`}
+                                        />
+                                    )}
+                                </div>
+
+                                {/* Canvas + Left Vertical Ruler Container */}
+                                <div className="flex items-start">
+                                    {/* Left Vertical Ruler (Y-Axis in Centimeters) */}
+                                    <div 
+                                        className={`w-6 bg-gray-900/90 border border-gray-800 rounded-l border-r-0 relative select-none overflow-hidden font-mono text-[9px] text-gray-400 flex-shrink-0 ${
+                                            orientation === 'Landscape' ? 'h-[565.65px]' : 'h-[792px]'
+                                        }`}
+                                    >
+                                        {Array.from({ length: Math.ceil(docDimensions.height) + 1 }).map((_, cm) => {
+                                            const pct = (cm / docDimensions.height) * 100;
+                                            if (pct > 100) return null;
+                                            const isMajor = cm % 2 === 0;
+                                            return (
+                                                <div key={cm} className="absolute right-0 flex items-center transform -translate-y-1/2" style={{ top: `${pct}%` }}>
+                                                    {isMajor && <span className="text-[8px] text-gray-400 mr-1 leading-none">{cm}</span>}
+                                                    <div className={`bg-gray-500 ${isMajor ? 'w-2.5 h-[1px]' : 'w-1.5 h-[1px] opacity-50'}`} />
+                                                </div>
+                                            );
+                                        })}
+                                        {/* Active Marker on Y Ruler */}
+                                        {selectedElement && (
+                                            <div 
+                                                className="absolute left-0 right-0 h-[2px] bg-emerald-400 z-30 pointer-events-none transition-all duration-75"
+                                                style={{ top: `${selectedElement.y}%` }}
+                                                title={`Top: ${yToTopCm(selectedElement.y, docDimensions.height)} cm`}
+                                            />
+                                        )}
+                                    </div>
+
+                                    {/* Canvas Document */}
+                                    <div 
+                                        ref={canvasRef}
+                                        className={`relative border border-white/10 bg-white text-black shadow-[0_20px_50px_rgba(0,0,0,0.8)] select-none overflow-hidden ${
+                                            orientation === 'Landscape' 
+                                                ? 'w-[800px] aspect-[297/210]' 
+                                                : 'w-[560px] aspect-[210/297]'
+                                        }`}
+                                        style={{
+                                            backgroundImage: backImage ? `url('${backImage}')` : 'none',
+                                            backgroundSize: 'cover',
+                                            backgroundPosition: 'center',
+                                            backgroundRepeat: 'no-repeat',
+                                            backgroundColor: '#fafafa'
+                                        }}
+                                    >
                                     <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:3%_3%] opacity-25 pointer-events-none"/>
 
-                                    {/* Placed Elements */}
                                     {elements.map(el => {
                                         const isSelected = selectedElementId === el.id;
                                         const isMultiSelected = selectedElementIds.includes(el.id);
                                         
-                                        // Preview replacement text
                                         let displayText = el.content;
                                         if (displayText) {
                                             displayText = displayText
@@ -1200,7 +1269,6 @@ export default function CertificateDesignPage() {
                                             );
                                         }
 
-                                        // CSS font weights mapping
                                         const weightClass = 
                                             el.fontWeight === 'black' ? 'font-black' :
                                             el.fontWeight === 'bold' ? 'font-bold' :
@@ -1228,8 +1296,8 @@ export default function CertificateDesignPage() {
                                                 <div 
                                                     className={weightClass}
                                                     style={{
-                                                        fontSize: `${el.fontSize * 0.71}px`, // scaled relative to A4 print template layout
-                                                        fontFamily: el.fontFamily || 'Inter',
+                                                        fontSize: `${el.fontSize * 0.71}px`,
+                                                        fontFamily: getFontFamilyStyle(el.fontFamily),
                                                         color: el.color,
                                                         whiteSpace: 'pre-wrap',
                                                         lineHeight: 1.2
@@ -1277,14 +1345,13 @@ export default function CertificateDesignPage() {
                                     })}
                                 </div>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
+            </div>
 
-                {/* 3. RIGHT PANEL: Property Inspector & Alignment Controls (320px) */}
                 <div className="w-80 bg-gray-950 border-l border-gray-850 flex flex-col h-full flex-shrink-0 overflow-y-auto p-4 space-y-4">
                     {selectedElementIds.length > 1 ? (
-                        /* Bulk Selection Card */
                         <div className="space-y-4">
                             <h3 className="text-xs uppercase font-bold text-yellow-500 tracking-wider flex items-center gap-1.5">
                                 ⚡ Bulk Inspector
@@ -1467,16 +1534,16 @@ export default function CertificateDesignPage() {
                             </Card>
                         </div>
                     ) : selectedElement ? (
-                        /* Single Element Inspector */
                         <div className="space-y-4">
                             <h3 className="text-xs uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
                                 <span>Properties Inspector</span>
-                                <span className="text-[10px] font-mono text-gray-500">X: {Math.round(selectedElement.x)}% Y: {Math.round(selectedElement.y)}%</span>
+                                <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                                    L: {xToLeftCm(selectedElement.x, docDimensions.width)}cm | T: {yToTopCm(selectedElement.y, docDimensions.height)}cm
+                                </span>
                             </h3>
 
                             <Card className="border-gray-850 bg-gray-900/60 text-white">
                                 <CardContent className="p-4 space-y-4">
-                                    {/* Text Content Editor */}
                                     {selectedElement.type !== 'qr_code' && (
                                         <div className="space-y-1.5">
                                             <Label htmlFor="elContent" className="text-xs text-gray-400">Content Text</Label>
@@ -1498,7 +1565,6 @@ export default function CertificateDesignPage() {
                                         </div>
                                     )}
 
-                                    {/* Dimensions / Sizes */}
                                     <div className="grid grid-cols-2 gap-3.5">
                                         <div className="space-y-1">
                                             <Label htmlFor="elSize" className="text-[11px] text-gray-400">
@@ -1532,7 +1598,6 @@ export default function CertificateDesignPage() {
                                         </div>
                                     </div>
 
-                                    {/* Font Family */}
                                     {selectedElement.type !== 'qr_code' && (
                                         <div className="space-y-1.5">
                                             <Label htmlFor="elFontFamily" className="text-xs text-gray-400">Typography Font</Label>
@@ -1543,20 +1608,17 @@ export default function CertificateDesignPage() {
                                                 <SelectTrigger id="elFontFamily" className="h-8 bg-gray-950 border-gray-800 text-xs text-white font-mono">
                                                     <SelectValue />
                                                 </SelectTrigger>
-                                                <SelectContent className="bg-gray-900 border-gray-800 text-white text-xs">
-                                                    <SelectItem value="Inter">Inter (Sans)</SelectItem>
-                                                    <SelectItem value="Montserrat">Montserrat (Sans)</SelectItem>
-                                                    <SelectItem value="Playfair Display">Playfair Display (Serif)</SelectItem>
-                                                    <SelectItem value="Cinzel">Cinzel (Serif)</SelectItem>
-                                                    <SelectItem value="Lora">Lora (Serif)</SelectItem>
-                                                    <SelectItem value="Great Vibes">Great Vibes (Script)</SelectItem>
-                                                    <SelectItem value="Alex Brush">Alex Brush (Script)</SelectItem>
+                                                <SelectContent className="bg-gray-900 border-gray-800 text-white text-xs max-h-[320px]">
+                                                    {FONT_LIST.map((font) => (
+                                                        <SelectItem key={font.value} value={font.value} className="cursor-pointer py-2 hover:bg-gray-800 focus:bg-gray-800">
+                                                            <span style={{ fontFamily: font.family, fontSize: '14px' }}>{font.label}</span>
+                                                        </SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                         </div>
                                     )}
 
-                                    {/* Align & Color */}
                                     {selectedElement.type !== 'qr_code' && (
                                         <div className="grid grid-cols-2 gap-3.5">
                                             <div className="space-y-1.5">
@@ -1622,6 +1684,58 @@ export default function CertificateDesignPage() {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Precise Placement in Centimeters (Left & Top) */}
+                                    <div className="grid grid-cols-2 gap-3.5 pt-3 border-t border-gray-800">
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between items-center">
+                                                <Label htmlFor="elLeftCm" className="text-[11px] text-gray-400">Left (cm)</Label>
+                                                <span className="text-[9px] font-mono text-gray-500">{Math.round(selectedElement.x)}%</span>
+                                            </div>
+                                            <div className="relative flex items-center">
+                                                <Input 
+                                                    id="elLeftCm" 
+                                                    type="number"
+                                                    step="0.1"
+                                                    min="0"
+                                                    max={docDimensions.width}
+                                                    value={xToLeftCm(selectedElement.x, docDimensions.width)}
+                                                    onChange={(e) => {
+                                                        const val = parseFloat(e.target.value);
+                                                        if (!isNaN(val)) {
+                                                            updateSelectedElement({ x: leftCmToX(val, docDimensions.width) });
+                                                        }
+                                                    }}
+                                                    className="h-8 bg-gray-950 border-gray-800 text-xs font-mono font-semibold pr-7"
+                                                />
+                                                <span className="absolute right-2 text-[10px] text-gray-500 font-mono pointer-events-none">cm</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between items-center">
+                                                <Label htmlFor="elTopCm" className="text-[11px] text-gray-400">Top (cm)</Label>
+                                                <span className="text-[9px] font-mono text-gray-500">{Math.round(selectedElement.y)}%</span>
+                                            </div>
+                                            <div className="relative flex items-center">
+                                                <Input 
+                                                    id="elTopCm" 
+                                                    type="number"
+                                                    step="0.1"
+                                                    min="0"
+                                                    max={docDimensions.height}
+                                                    value={yToTopCm(selectedElement.y, docDimensions.height)}
+                                                    onChange={(e) => {
+                                                        const val = parseFloat(e.target.value);
+                                                        if (!isNaN(val)) {
+                                                            updateSelectedElement({ y: topCmToY(val, docDimensions.height) });
+                                                        }
+                                                    }}
+                                                    className="h-8 bg-gray-950 border-gray-800 text-xs font-mono font-semibold pr-7"
+                                                />
+                                                <span className="absolute right-2 text-[10px] text-gray-500 font-mono pointer-events-none">cm</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </CardContent>
                             </Card>
 
