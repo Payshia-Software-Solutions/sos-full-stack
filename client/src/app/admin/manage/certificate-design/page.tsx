@@ -1,4 +1,4 @@
-// Certificate Studio Designer Page (Updated with Rulers & CM Inspector)
+// Unified Studio Designer Page (Certificate & Transcript Vector Studio)
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -10,16 +10,17 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Save, Move, Image as ImageIcon, Eye, Plus, Trash2, AlignLeft, AlignCenter, AlignRight, Type, Check, ExternalLink } from 'lucide-react';
+import { Loader2, Save, Move, Image as ImageIcon, Eye, Plus, Trash2, AlignLeft, AlignCenter, AlignRight, Type, Check, ExternalLink, FileText, Award } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { getParentCourses } from '@/lib/actions/courses';
 import { getCertificateTemplate, saveCertificateTemplate } from '@/lib/actions/certificates';
+import { getTranscriptTemplate, saveTranscriptTemplate } from '@/lib/actions/transcripts';
 import { FONT_LIST, getFontFamilyStyle } from '@/components/print/CertificateLayout';
 
 // Type definitions for drag-and-drop template elements
-export interface CertificateElement {
+export interface DocumentElement {
     id: string;
-    type: 'title' | 'paragraph' | 'course_name' | 'student_name' | 'sentence' | 'qr_code' | 'info_block' | 'company_br';
+    type: 'title' | 'paragraph' | 'course_name' | 'student_name' | 'sentence' | 'qr_code' | 'info_block' | 'company_br' | 'image';
     content: string;
     x: number; // percentage (0 - 100)
     y: number; // percentage (0 - 100)
@@ -29,6 +30,7 @@ export interface CertificateElement {
     align: 'left' | 'center' | 'right';
     width?: number;
     fontFamily?: string;
+    imageUrl?: string;
 }
 
 // Helpers to convert percentage coordinates (0-100%) to/from Physical Centimeters (cm)
@@ -60,21 +62,22 @@ const topCmToY = (topCm: number, docHeightCm: number) => {
 };
 
 const DEFAULT_BACKGROUNDS = [
-    { name: "English Course Standard", url: "https://content-provider.pharmacollege.lk/certificates/certificate-bg-english-free-v1.png" },
     { name: "Pharma Course Standard", url: "https://content-provider.pharmacollege.lk/certificates/certificate-bg-standard.png" },
+    { name: "English Course Standard", url: "https://content-provider.pharmacollege.lk/certificates/certificate-bg-english-free-v1.png" },
     { name: "Workshop General", url: "https://content-provider.pharmacollege.lk/certificates/certificate-bg-workshop.png" }
 ];
 
-export default function CertificateDesignPage() {
+export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { initialDocType?: 'Certificate' | 'Transcript' }) {
     const queryClient = useQueryClient();
     
+    const [docType, setDocType] = useState<'Certificate' | 'Transcript'>(initialDocType);
     const [selectedCourseCode, setSelectedCourseCode] = useState<string>('');
     const [templateName, setTemplateName] = useState<string>('');
     const [isActive, setIsActive] = useState<boolean>(true);
     const [backImage, setBackImage] = useState<string>('');
     const [orientation, setOrientation] = useState<'Landscape' | 'Portrait'>('Landscape');
     const [pageSize, setPageSize] = useState<'A4' | 'Letter'>('A4');
-    const [elements, setElements] = useState<CertificateElement[]>([]);
+    const [elements, setElements] = useState<DocumentElement[]>([]);
     const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
     const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
     const [zoom, setZoom] = useState<number>(1.0);
@@ -95,25 +98,53 @@ export default function CertificateDesignPage() {
         queryFn: getParentCourses,
     });
 
-    // Fetch template for selected course
-    const { data: templateResponse, isLoading: isLoadingTemplate, refetch: refetchTemplate } = useQuery({
+    // Fetch template for selected course & docType
+    const { data: certTemplateResp, isLoading: isLoadingCertTemplate, refetch: refetchCertTemplate } = useQuery({
         queryKey: ['certificateTemplate', selectedCourseCode],
         queryFn: () => getCertificateTemplate(selectedCourseCode),
-        enabled: !!selectedCourseCode,
+        enabled: !!selectedCourseCode && docType === 'Certificate',
     });
+
+    const { data: transTemplateResp, isLoading: isLoadingTransTemplate, refetch: refetchTransTemplate } = useQuery({
+        queryKey: ['transcriptTemplate', selectedCourseCode],
+        queryFn: () => {
+            const courseObj = courses?.find((c: any) => c.course_code === selectedCourseCode || String(c.id) === String(selectedCourseCode));
+            const courseIdToFetch = courseObj ? String(courseObj.id) : selectedCourseCode;
+            return getTranscriptTemplate(courseIdToFetch);
+        },
+        enabled: !!selectedCourseCode && docType === 'Transcript',
+    });
+
+    const isLoadingTemplate = docType === 'Certificate' ? isLoadingCertTemplate : isLoadingTransTemplate;
+    const templateResponse = docType === 'Certificate' ? certTemplateResp : transTemplateResp;
 
     const handleCourseChange = (courseCode: string) => {
         setSelectedCourseCode(courseCode);
     };
 
-    const saveMutation = useMutation({
+    const saveCertMutation = useMutation({
         mutationFn: saveCertificateTemplate,
         onSuccess: (data) => {
             if (data.success) {
                 toast({ title: 'Success', description: 'Certificate template saved successfully!' });
                 queryClient.invalidateQueries({ queryKey: ['certificateTemplate', selectedCourseCode] });
             } else {
-                toast({ variant: 'destructive', title: 'Error', description: data.error || 'Failed to save template.' });
+                toast({ variant: 'destructive', title: 'Error', description: data.error || 'Failed to save certificate template.' });
+            }
+        },
+        onError: (err: any) => {
+            toast({ variant: 'destructive', title: 'Error', description: err.message || 'An error occurred while saving.' });
+        }
+    });
+
+    const saveTransMutation = useMutation({
+        mutationFn: (data: { courseId: string, templateData: any }) => saveTranscriptTemplate(data.courseId, data.templateData),
+        onSuccess: (data) => {
+            if (data.success || data.message) {
+                toast({ title: 'Success', description: 'Transcript template saved successfully!' });
+                queryClient.invalidateQueries({ queryKey: ['transcriptTemplate', selectedCourseCode] });
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: data.error || 'Failed to save transcript template.' });
             }
         },
         onError: (err: any) => {
@@ -125,36 +156,70 @@ export default function CertificateDesignPage() {
     useEffect(() => {
         if (templateResponse?.success && templateResponse.template) {
             const t = templateResponse.template;
-            setTemplateName(t.template_name || '');
-            setIsActive(Number(t.is_active) === 1);
-            setBackImage(t.back_image || '');
-            setOrientation((t.orientation as 'Landscape' | 'Portrait') || 'Landscape');
             
-            // Try loading dynamic elements from template_json
-            if (t.template_json) {
-                try {
-                    const parsed = JSON.parse(t.template_json);
-                    setElements(parsed.elements || []);
-                    setPageSize(parsed.pageSize || 'A4');
-                } catch (e) {
-                    // Fallback to legacy fields converted into elements
+            if (docType === 'Certificate') {
+                setTemplateName(t.template_name || `Certificate for ${selectedCourseCode}`);
+                setIsActive(Number(t.is_active) === 1);
+                setBackImage(t.back_image || DEFAULT_BACKGROUNDS[0].url);
+                setOrientation((t.orientation as 'Landscape' | 'Portrait') || 'Landscape');
+                
+                if (t.template_json) {
+                    try {
+                        const parsed = JSON.parse(t.template_json);
+                        setElements(parsed.elements || []);
+                        setPageSize(parsed.pageSize || 'A4');
+                    } catch (e) {
+                        loadLegacyElements(t);
+                    }
+                } else {
                     loadLegacyElements(t);
                 }
             } else {
-                loadLegacyElements(t);
+                // Transcript loading
+                let parsedData: any = {};
+                let foundTemplate = false;
+
+                if (t.template_data) {
+                    try {
+                        parsedData = typeof t.template_data === 'string' ? JSON.parse(t.template_data) : t.template_data;
+                        foundTemplate = true;
+                    } catch (e) {
+                        parsedData = {};
+                    }
+                }
+
+                // Fallback to certificate_template table if transcript_templates table returned empty
+                if (!foundTemplate && certTemplateResp?.success && certTemplateResp?.template?.template_json) {
+                    try {
+                        parsedData = JSON.parse(certTemplateResp.template.template_json);
+                        t.back_image = certTemplateResp.template.back_image;
+                        t.orientation = certTemplateResp.template.orientation;
+                    } catch (e) {}
+                }
+
+                setTemplateName(parsedData.template_name || `Transcript for ${selectedCourseCode}`);
+                setIsActive(parsedData.isActive !== false);
+                setBackImage(parsedData.backImage || t.back_image || DEFAULT_BACKGROUNDS[0].url);
+                setOrientation((parsedData.orientation as 'Landscape' | 'Portrait') || (t.orientation as 'Landscape' | 'Portrait') || 'Portrait');
+                setPageSize((parsedData.pageSize as 'A4' | 'Letter') || 'A4');
+
+                if (parsedData.elements && Array.isArray(parsedData.elements) && parsedData.elements.length > 0) {
+                    setElements(parsedData.elements);
+                } else {
+                    loadDefaultElements('Transcript');
+                }
             }
             setSelectedElementId(null);
         } else {
             // Default template initialization
-            setTemplateName('');
+            setTemplateName(`${docType} for ${selectedCourseCode || 'Course'}`);
             setIsActive(true);
             setBackImage(DEFAULT_BACKGROUNDS[0].url);
-            setOrientation('Landscape');
             setPageSize('A4');
-            loadDefaultElements();
+            loadDefaultElements(docType);
             setSelectedElementId(null);
         }
-    }, [templateResponse]);
+    }, [templateResponse, selectedCourseCode, docType]);
 
     // Keydown listeners for arrow key navigation (nudging), delete element, and duplicate (Ctrl+D)
     useEffect(() => {
@@ -199,510 +264,379 @@ export default function CertificateDesignPage() {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedElementId, elements]);
+    }, [selectedElementId]);
 
-    const loadLegacyElements = (t: any) => {
-        const legacy: CertificateElement[] = [
-            {
-                id: 'student-name',
-                type: 'student_name',
-                content: 'JOHN SMITH',
-                x: Number(t.left_margin) || 50,
-                y: Number(t.top_to_name) / 10 || 45,
-                fontSize: 48,
-                fontWeight: 'bold',
-                color: '#111827',
-                align: 'center'
-            },
-            {
-                id: 'qr-code',
-                type: 'qr_code',
-                content: '[QR Code Verification]',
-                x: Number(t.left_to_qr) || 80,
-                y: Number(t.top_to_qr) / 10 || 75,
-                fontSize: 15, // width in percentage
-                fontWeight: 'normal',
-                color: '#000000',
-                align: 'center'
-            },
-            {
-                id: 'info-block',
-                type: 'info_block',
-                content: "Certificate ID - CPC-12345\nIssued Date - August 12, 2026\nStudent Number - 2026-001",
-                x: Number(t.left_to_date) || 80,
-                y: Number(t.top_to_date) / 10 || 85,
-                fontSize: 12,
-                fontWeight: 'normal',
-                color: '#6b7280',
-                align: 'left'
-            }
-        ];
-        setElements(legacy);
+    const loadDefaultElements = (type: 'Certificate' | 'Transcript') => {
+        if (type === 'Transcript') {
+            setElements([
+                { id: '1', type: 'title', content: 'ACADEMIC TRANSCRIPT', x: 50, y: 8, fontSize: 24, fontWeight: 'bold', color: '#000000', align: 'center', fontFamily: 'Inter' },
+                { id: '2', type: 'course_name', content: '{{COURSE_NAME}}', x: 50, y: 14, fontSize: 18, fontWeight: 'bold', color: '#000000', align: 'center', fontFamily: 'Inter' },
+                { id: '3', type: 'paragraph', content: 'This is to certify that {{STUDENT_NAME}} has successfully completed the Certificate Course in Pharmaceuticals conducted by Ceylon Pharma College.', x: 50, y: 22, fontSize: 12, fontWeight: 'normal', color: '#1E293B', align: 'center', width: 92, fontFamily: 'Inter' },
+                { id: '4', type: 'sentence', content: '{{MODULE_LIST}}', x: 50, y: 40, fontSize: 11, fontWeight: 'normal', color: '#0F172A', align: 'left', width: 90, fontFamily: 'Inter' },
+                { id: '5', type: 'info_block', content: 'Candidate Name: {{STUDENT_NAME}}\nDuration: {{DURATION}}\nCompleted Date: {{COMPLETED_DATE}}\nStudent Number: {{STUDENT_ID}}\nCertificate Number: {{CERTIFICATE_ID}}', x: 24, y: 68, fontSize: 11, fontWeight: 'normal', color: '#000000', align: 'left', fontFamily: 'Inter' },
+                { id: '6', type: 'sentence', content: 'Grade: {{GRADE}}', x: 14, y: 82, fontSize: 20, fontWeight: 'bold', color: '#000000', align: 'left', fontFamily: 'Inter' },
+                { id: '7', type: 'image', content: 'https://content-provider.pharmacollege.lk/certificates/sample-signature.png', x: 80, y: 66, fontSize: 16, fontWeight: 'normal', color: '#000000', align: 'center', width: 22 },
+                { id: '8', type: 'company_br', content: 'Dilip Fonseka,\nCourse Director', x: 80, y: 74, fontSize: 11, fontWeight: 'bold', color: '#000000', align: 'center', fontFamily: 'Inter' },
+                { id: '9', type: 'qr_code', content: '{{QR_CODE}}', x: 85, y: 84, fontSize: 14, fontWeight: 'normal', color: '#000000', align: 'right', fontFamily: 'Inter' },
+                { id: '10', type: 'sentence', content: 'TRNS/253555/260815/CPCC29/CREF4623', x: 26, y: 92, fontSize: 9, fontWeight: 'normal', color: '#64748B', align: 'left', fontFamily: 'Inter' },
+                { id: '11', type: 'sentence', content: 'Grade Scale: A+ (90-100), A (80-89), A- (75-79), B+ (70-74), B (65-69), B- (60-64), C+ (55-59), C (45-54), C- (40-44), D+ (35-39), D (30-34), E (0-29)', x: 50, y: 96, fontSize: 8, fontWeight: 'normal', color: '#94A3B8', align: 'center', width: 95, fontFamily: 'Inter' },
+            ]);
+            setOrientation('Portrait');
+        } else {
+            setElements([
+                { id: '1', type: 'title', content: 'CERTIFICATE OF COMPLETION', x: 50, y: 18, fontSize: 24, fontWeight: 'bold', color: '#0F172A', align: 'center', fontFamily: 'Inter' },
+                { id: '2', type: 'paragraph', content: 'This is to certify that', x: 50, y: 26, fontSize: 14, fontWeight: 'normal', color: '#475569', align: 'center', fontFamily: 'Inter' },
+                { id: '3', type: 'student_name', content: '{{STUDENT_NAME}}', x: 50, y: 38, fontSize: 32, fontWeight: 'bold', color: '#1E293B', align: 'center', fontFamily: 'Inter' },
+                { id: '4', type: 'sentence', content: 'has successfully completed the prescribed course of study in', x: 50, y: 48, fontSize: 13, fontWeight: 'normal', color: '#475569', align: 'center', fontFamily: 'Inter' },
+                { id: '5', type: 'course_name', content: '{{COURSE_NAME}}', x: 50, y: 56, fontSize: 20, fontWeight: 'semibold', color: '#0F172A', align: 'center', fontFamily: 'Inter' },
+                { id: '6', type: 'info_block', content: 'Certificate ID: {{CERTIFICATE_ID}}\nIssued Date: {{ISSUED_DATE}}\nStudent Number: {{STUDENT_ID}}', x: 22, y: 84, fontSize: 11, fontWeight: 'normal', color: '#64748B', align: 'left', fontFamily: 'Inter' },
+                { id: '7', type: 'company_br', content: 'Ceylon Pharma College (Pvt) Ltd', x: 82, y: 84, fontSize: 11, fontWeight: 'semibold', color: '#64748B', align: 'right', fontFamily: 'Inter' },
+                { id: '8', type: 'qr_code', content: '{{QR_CODE}}', x: 8, y: 82, fontSize: 14, fontWeight: 'normal', color: '#000000', align: 'left', fontFamily: 'Inter' },
+            ]);
+            setOrientation('Landscape');
+        }
     };
 
-    const loadDefaultElements = () => {
+    const loadLegacyElements = (t: any) => {
+        const top_name = t.top_to_name ? (t.top_to_name / 800) * 100 : 38;
+        const top_date = t.top_to_date ? (t.top_to_date / 800) * 100 : 84;
+        const left_date = t.left_to_date ? t.left_to_date : 22;
+        const top_qr = t.top_to_qr ? (t.top_to_qr / 800) * 100 : 82;
+        const left_qr = t.left_to_qr ? t.left_to_qr : 8;
+
         setElements([
-            {
-                id: 'title',
-                type: 'title',
-                content: 'CERTIFICATE OF COMPLETION',
-                x: 50,
-                y: 20,
-                fontSize: 32,
-                fontWeight: 'bold',
-                color: '#374151',
-                align: 'center'
-            },
-            {
-                id: 'p-awarded',
-                type: 'paragraph',
-                content: 'This certificate is awarded to',
-                x: 50,
-                y: 35,
-                fontSize: 18,
-                fontWeight: 'normal',
-                color: '#4b5563',
-                align: 'center'
-            },
-            {
-                id: 'student-name',
-                type: 'student_name',
-                content: '{{STUDENT_NAME}}',
-                x: 50,
-                y: 45,
-                fontSize: 48,
-                fontWeight: 'bold',
-                color: '#111827',
-                align: 'center'
-            },
-            {
-                id: 'sentence',
-                type: 'sentence',
-                content: 'in recognition of the successful completion and dedication to the course',
-                x: 50,
-                y: 56,
-                fontSize: 16,
-                fontWeight: 'normal',
-                color: '#4b5563',
-                align: 'center'
-            },
-            {
-                id: 'course-name',
-                type: 'course_name',
-                content: '{{COURSE_NAME}}',
-                x: 50,
-                y: 65,
-                fontSize: 24,
-                fontWeight: 'bold',
-                color: '#0f172a',
-                align: 'center'
-            },
-            {
-                id: 'qr-code',
-                type: 'qr_code',
-                content: '[QR Code]',
-                x: 82,
-                y: 75,
-                fontSize: 14, // width percentage
-                fontWeight: 'normal',
-                color: '#000000',
-                align: 'center'
-            },
-            {
-                id: 'info-block',
-                type: 'info_block',
-                content: "Certificate ID - {{CERTIFICATE_ID}}\nIssued Date - {{ISSUED_DATE}}\nStudent Number - {{STUDENT_ID}}",
-                x: 15,
-                y: 82,
-                fontSize: 12,
-                fontWeight: 'normal',
-                color: '#6b7280',
-                align: 'left'
-            },
-            {
-                id: 'company-br',
-                type: 'company_br',
-                content: 'Company Reg No: PV00253555',
-                x: 82,
-                y: 92,
-                fontSize: 10,
-                fontWeight: 'normal',
-                color: '#9ca3af',
-                align: 'right'
-            }
+            { id: '1', type: 'title', content: 'CERTIFICATE OF COMPLETION', x: 50, y: 18, fontSize: 24, fontWeight: 'bold', color: '#0F172A', align: 'center', fontFamily: 'Inter' },
+            { id: '2', type: 'paragraph', content: 'This is to certify that', x: 50, y: 26, fontSize: 14, fontWeight: 'normal', color: '#475569', align: 'center', fontFamily: 'Inter' },
+            { id: '3', type: 'student_name', content: '{{STUDENT_NAME}}', x: 50, y: top_name, fontSize: 32, fontWeight: 'bold', color: '#1E293B', align: 'center', fontFamily: 'Inter' },
+            { id: '4', type: 'sentence', content: 'has successfully completed the prescribed course of study in', x: 50, y: 48, fontSize: 13, fontWeight: 'normal', color: '#475569', align: 'center', fontFamily: 'Inter' },
+            { id: '5', type: 'course_name', content: '{{COURSE_NAME}}', x: 50, y: 56, fontSize: 20, fontWeight: 'semibold', color: '#0F172A', align: 'center', fontFamily: 'Inter' },
+            { id: '6', type: 'info_block', content: 'Certificate ID: {{CERTIFICATE_ID}}\nIssued Date: {{ISSUED_DATE}}\nStudent Number: {{STUDENT_ID}}', x: left_date, y: top_date, fontSize: 11, fontWeight: 'normal', color: '#64748B', align: 'left', fontFamily: 'Inter' },
+            { id: '7', type: 'company_br', content: 'Ceylon Pharma College (Pvt) Ltd', x: 82, y: top_date, fontSize: 11, fontWeight: 'semibold', color: '#64748B', align: 'right', fontFamily: 'Inter' },
+            { id: '8', type: 'qr_code', content: '{{QR_CODE}}', x: left_qr, y: top_qr, fontSize: t.qr_width || 14, fontWeight: 'normal', color: '#000000', align: 'left', fontFamily: 'Inter' },
         ]);
     };
 
-    const addElement = (type: CertificateElement['type']) => {
-        const id = `${type}-${Date.now()}`;
-        let defaultContent = '';
-        let fontSize = 16;
-        let fontWeight: CertificateElement['fontWeight'] = 'normal';
-        let color = '#374151';
-
-        switch (type) {
-            case 'title':
-                defaultContent = 'CERTIFICATE TITLE';
-                fontSize = 28;
-                fontWeight = 'bold';
-                break;
-            case 'paragraph':
-                defaultContent = 'Custom Paragraph Text';
-                fontSize = 16;
-                break;
-            case 'course_name':
-                defaultContent = '{{COURSE_NAME}}';
-                fontSize = 24;
-                fontWeight = 'bold';
-                break;
-            case 'student_name':
-                defaultContent = '{{STUDENT_NAME}}';
-                fontSize = 44;
-                fontWeight = 'bold';
-                break;
-            case 'sentence':
-                defaultContent = 'in recognition of the successful completion of the course';
-                fontSize = 14;
-                break;
-            case 'qr_code':
-                defaultContent = '[QR Code]';
-                fontSize = 12; // width percentage
-                break;
-            case 'info_block':
-                defaultContent = "Certificate ID - {{CERTIFICATE_ID}}\nIssued Date - {{ISSUED_DATE}}\nStudent Number - {{STUDENT_ID}}";
-                fontSize = 11;
-                color = '#6b7280';
-                break;
-            case 'company_br':
-                defaultContent = 'PV00253555';
-                fontSize = 10;
-                color = '#9ca3af';
-                break;
-        }
-
-        const newEl: CertificateElement = {
+    const addElement = (type: DocumentElement['type']) => {
+        const id = Date.now().toString();
+        let newEl: DocumentElement = {
             id,
             type,
-            content: defaultContent,
+            content: 'New Text',
             x: 50,
             y: 50,
-            fontSize,
-            fontWeight,
-            color,
-            align: 'center'
+            fontSize: 16,
+            fontWeight: 'normal',
+            color: '#1E293B',
+            align: 'center',
+            fontFamily: 'Inter',
+            width: 90
         };
 
-        setElements([...elements, newEl]);
+        if (type === 'title') {
+            newEl.content = docType === 'Transcript' ? 'ACADEMIC RECORD' : 'CERTIFICATE OF ACHIEVEMENT';
+            newEl.fontSize = 22;
+            newEl.fontWeight = 'bold';
+        } else if (type === 'student_name') {
+            newEl.content = '{{STUDENT_NAME}}';
+            newEl.fontSize = docType === 'Transcript' ? 20 : 30;
+            newEl.fontWeight = 'bold';
+        } else if (type === 'course_name') {
+            newEl.content = '{{COURSE_NAME}}';
+            newEl.fontSize = docType === 'Transcript' ? 16 : 20;
+            newEl.fontWeight = 'semibold';
+        } else if (type === 'sentence') {
+            newEl.content = docType === 'Transcript' ? '{{RESULTS_TABLE}}' : 'has fulfilled all statutory and academic requirements.';
+            newEl.fontSize = 11;
+            newEl.align = 'center';
+            newEl.width = 90;
+        } else if (type === 'info_block') {
+            newEl.content = docType === 'Transcript' ? 'Student ID: {{STUDENT_ID}}  |  Batch: {{BATCH}}' : 'Certificate ID: {{CERTIFICATE_ID}}\nIssued Date: {{ISSUED_DATE}}';
+            newEl.fontSize = 11;
+        } else if (type === 'company_br') {
+            newEl.content = 'Ceylon Pharma College (Pvt) Ltd';
+            newEl.fontSize = 10;
+        } else if (type === 'qr_code') {
+            newEl.content = '{{QR_CODE}}';
+            newEl.fontSize = 14;
+            newEl.align = 'left';
+        } else if (type === 'image') {
+            newEl.content = 'https://content-provider.pharmacollege.lk/certificates/sample-signature.png';
+            newEl.width = 25;
+        }
+
+        setElements(prev => [...prev, newEl]);
         setSelectedElementId(id);
+        setSelectedElementIds([id]);
     };
 
     const removeElement = (id: string) => {
-        setElements(elements.filter(el => el.id !== id));
+        setElements(prev => prev.filter(el => el.id !== id));
         if (selectedElementId === id) setSelectedElementId(null);
         setSelectedElementIds(prev => prev.filter(item => item !== id));
     };
 
     const handleDuplicateElement = (id: string) => {
-        const source = elements.find(el => el.id === id);
-        if (!source) return;
-        
-        const newElement: CertificateElement = {
-            ...source,
-            id: `el_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-            x: Math.min(95, source.x + 4),
-            y: Math.min(95, source.y + 4),
-            content: source.content + " (Copy)"
+        const target = elements.find(el => el.id === id);
+        if (!target) return;
+        const newId = Date.now().toString();
+        const duplicated: DocumentElement = {
+            ...target,
+            id: newId,
+            x: Math.min(95, target.x + 3),
+            y: Math.min(95, target.y + 3)
         };
-        
-        setElements(prev => [...prev, newElement]);
-        setSelectedElementId(newElement.id);
-        toast({ title: 'Element Duplicated', description: 'Created a copy of the selected element.' });
+        setElements(prev => [...prev, duplicated]);
+        setSelectedElementId(newId);
+        setSelectedElementIds([newId]);
+        toast({ title: 'Duplicated', description: 'Element duplicated successfully.' });
     };
 
-    const updateSelectedElement = (updates: Partial<CertificateElement>) => {
-        setElements(elements.map(el => {
+    const updateSelectedElement = (fields: Partial<DocumentElement>) => {
+        if (!selectedElementId) return;
+        setElements(prev => prev.map(el => {
             if (el.id === selectedElementId) {
-                return { ...el, ...updates };
+                return { ...el, ...fields };
             }
             return el;
         }));
+    };
+
+    const handleBulkAlign = (action: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom' | 'distribute-h' | 'distribute-v' | 'canvas-center-x' | 'canvas-center-y') => {
+        if (selectedElementIds.length === 0) return;
+        const selectedEls = elements.filter(el => selectedElementIds.includes(el.id));
+        if (selectedEls.length === 0) return;
+
+        if (action === 'left') {
+            const minX = Math.min(...selectedEls.map(el => el.x));
+            setElements(prev => prev.map(el => selectedElementIds.includes(el.id) ? { ...el, x: minX } : el));
+        } else if (action === 'center') {
+            const avgX = Math.round(selectedEls.reduce((acc, el) => acc + el.x, 0) / selectedEls.length);
+            setElements(prev => prev.map(el => selectedElementIds.includes(el.id) ? { ...el, x: avgX } : el));
+        } else if (action === 'right') {
+            const maxX = Math.max(...selectedEls.map(el => el.x));
+            setElements(prev => prev.map(el => selectedElementIds.includes(el.id) ? { ...el, x: maxX } : el));
+        } else if (action === 'top') {
+            const minY = Math.min(...selectedEls.map(el => el.y));
+            setElements(prev => prev.map(el => selectedElementIds.includes(el.id) ? { ...el, y: minY } : el));
+        } else if (action === 'middle') {
+            const avgY = Math.round(selectedEls.reduce((acc, el) => acc + el.y, 0) / selectedEls.length);
+            setElements(prev => prev.map(el => selectedElementIds.includes(el.id) ? { ...el, y: avgY } : el));
+        } else if (action === 'bottom') {
+            const maxY = Math.max(...selectedEls.map(el => el.y));
+            setElements(prev => prev.map(el => selectedElementIds.includes(el.id) ? { ...el, y: maxY } : el));
+        } else if (action === 'distribute-v' && selectedEls.length > 2) {
+            const sorted = [...selectedEls].sort((a, b) => a.y - b.y);
+            const minY = sorted[0].y;
+            const maxY = sorted[sorted.length - 1].y;
+            const gap = (maxY - minY) / (sorted.length - 1);
+            const yMap = new Map<string, number>();
+            sorted.forEach((el, idx) => {
+                yMap.set(el.id, Math.round(minY + idx * gap));
+            });
+            setElements(prev => prev.map(el => yMap.has(el.id) ? { ...el, y: yMap.get(el.id)! } : el));
+        } else if (action === 'canvas-center-x') {
+            setElements(prev => prev.map(el => selectedElementIds.includes(el.id) ? { ...el, x: 50 } : el));
+        } else if (action === 'canvas-center-y') {
+            setElements(prev => prev.map(el => selectedElementIds.includes(el.id) ? { ...el, y: 50 } : el));
+        }
+    };
+
+    const handleBulkTextAlign = (align: 'left' | 'center' | 'right') => {
+        if (selectedElementIds.length === 0) return;
+        setElements(prev => prev.map(el => selectedElementIds.includes(el.id) ? { ...el, align } : el));
+    };
+
+    const handleBulkStyleMatch = () => {
+        if (!selectedElementId || selectedElementIds.length < 2) return;
+        const refEl = elements.find(el => el.id === selectedElementId);
+        if (!refEl) return;
+        setElements(prev => prev.map(el => {
+            if (selectedElementIds.includes(el.id) && el.id !== selectedElementId) {
+                return {
+                    ...el,
+                    fontSize: refEl.fontSize,
+                    fontWeight: refEl.fontWeight,
+                    color: refEl.color,
+                    fontFamily: refEl.fontFamily,
+                    align: refEl.align
+                };
+            }
+            return el;
+        }));
+        toast({ title: 'Styles Matched', description: `Applied style properties from ${refEl.type} to selected elements.` });
+    };
+
+    // Dragging handlers
+    const handleElementMouseDown = (e: React.MouseEvent, el: DocumentElement) => {
+        e.stopPropagation();
+        setSelectedElementId(el.id);
+        if (!e.shiftKey && !selectedElementIds.includes(el.id)) {
+            setSelectedElementIds([el.id]);
+        } else if (e.shiftKey && !selectedElementIds.includes(el.id)) {
+            setSelectedElementIds(prev => [...prev, el.id]);
+        }
+
+        draggingRef.current = {
+            elementId: el.id,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialX: el.x,
+            initialY: el.y
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+        if (!draggingRef.current || !canvasRef.current) return;
+        const rect = canvasRef.current.getBoundingClientRect();
+        
+        const deltaXPixels = e.clientX - draggingRef.current.startX;
+        const deltaYPixels = e.clientY - draggingRef.current.startY;
+
+        const deltaXPercent = (deltaXPixels / rect.width) * 100;
+        const deltaYPercent = (deltaYPixels / rect.height) * 100;
+
+        let newX = Math.round(draggingRef.current.initialX + deltaXPercent);
+        let newY = Math.round(draggingRef.current.initialY + deltaYPercent);
+
+        // Constrain bounds to canvas (0 - 100)
+        newX = Math.max(0, Math.min(100, newX));
+        newY = Math.max(0, Math.min(100, newY));
+
+        const targetId = draggingRef.current.elementId;
+
+        setElements(prev => prev.map(item => {
+            if (item.id === targetId) {
+                return { ...item, x: newX, y: newY };
+            }
+            return item;
+        }));
+    };
+
+    const handleMouseUp = () => {
+        draggingRef.current = null;
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    // Edge resize drag for Wrap Width
+    const handleResizeMouseDown = (e: React.MouseEvent, el: DocumentElement) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const startX = e.clientX;
+        const initialWidth = el.width || 90;
+        
+        const handleResizeMouseMove = (moveEvent: MouseEvent) => {
+            if (!canvasRef.current) return;
+            const rect = canvasRef.current.getBoundingClientRect();
+            const deltaX = moveEvent.clientX - startX;
+            const deltaPercent = (deltaX / rect.width) * 100 * 2;
+            const newWidth = Math.max(10, Math.min(100, Math.round(initialWidth + deltaPercent)));
+            
+            setElements(prev => prev.map(item => 
+                item.id === el.id ? { ...item, width: newWidth } : item
+            ));
+        };
+
+        const handleResizeMouseUp = () => {
+            window.removeEventListener('mousemove', handleResizeMouseMove);
+            window.removeEventListener('mouseup', handleResizeMouseUp);
+        };
+
+        window.addEventListener('mousemove', handleResizeMouseMove);
+        window.addEventListener('mouseup', handleResizeMouseUp);
     };
 
     const handleBgSelect = (url: string) => {
         setBackImage(url);
     };
 
-    // Drag-and-drop Mouse Handlers
-    const handleElementMouseDown = (e: React.MouseEvent, element: CertificateElement) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setSelectedElementId(element.id);
-        
-        if (e.shiftKey) {
-            setSelectedElementIds(prev => 
-                prev.includes(element.id) ? prev.filter(id => id !== element.id) : [...prev, element.id]
-            );
-        } else {
-            setSelectedElementIds(prev => 
-                prev.includes(element.id) ? prev : [element.id]
-            );
-        }
-
-        if (!canvasRef.current) return;
-
-        draggingRef.current = {
-            elementId: element.id,
-            startX: e.clientX,
-            startY: e.clientY,
-            initialX: element.x,
-            initialY: element.y
-        };
-
-        document.addEventListener('mousemove', handleGlobalMouseMove);
-        document.addEventListener('mouseup', handleGlobalMouseUp);
-    };
-
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-        const dragInfo = draggingRef.current;
-        if (!dragInfo || !canvasRef.current) return;
-
-        const rect = canvasRef.current.getBoundingClientRect();
-        
-        const deltaX = e.clientX - dragInfo.startX;
-        const deltaY = e.clientY - dragInfo.startY;
-
-        const pctDeltaX = (deltaX / rect.width) * 100;
-        const pctDeltaY = (deltaY / rect.height) * 100;
-
-        let newX = Math.round((dragInfo.initialX + pctDeltaX) * 10) / 10;
-        let newY = Math.round((dragInfo.initialY + pctDeltaY) * 10) / 10;
-
-        // Clamp inside canvas (0-100)
-        newX = Math.max(0, Math.min(100, newX));
-        newY = Math.max(0, Math.min(100, newY));
-
-        setElements(prev => prev.map(el => {
-            if (el.id === dragInfo.elementId) {
-                return { ...el, x: newX, y: newY };
-            }
-            return el;
-        }));
-    };
-
-    const handleGlobalMouseUp = () => {
-        draggingRef.current = null;
-        document.removeEventListener('mousemove', handleGlobalMouseMove);
-        document.removeEventListener('mouseup', handleGlobalMouseUp);
-    };
-
-    const handleResizeMouseDown = (e: React.MouseEvent, el: CertificateElement) => {
-        e.stopPropagation();
-        e.preventDefault();
-        
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        
-        const canvasRect = canvas.getBoundingClientRect();
-        const startWidth = el.width || 90;
-        const startMouseX = e.clientX;
-        
-        const handleMouseMove = (moveEvent: MouseEvent) => {
-            const deltaX = moveEvent.clientX - startMouseX;
-            const deltaPct = (deltaX / canvasRect.width) * 100;
-            
-            let newWidth = startWidth;
-            if (el.align === 'center') {
-                newWidth = Math.min(100, Math.max(10, startWidth + deltaPct * 2));
-            } else if (el.align === 'right') {
-                newWidth = Math.min(100, Math.max(10, startWidth - deltaPct));
-            } else {
-                newWidth = Math.min(100, Math.max(10, startWidth + deltaPct));
-            }
-            
-            setElements(prev => prev.map(item => 
-                item.id === el.id ? { ...item, width: Math.round(newWidth) } : item
-            ));
-        };
-        
-        const handleMouseUp = () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-        };
-        
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-    };
-
-    const handleBulkAlign = (type: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom' | 'distribute-v' | 'distribute-h' | 'canvas-center-x' | 'canvas-center-y') => {
-        if (selectedElementIds.length <= 1) return;
-        
-        const refEl = elements.find(e => e.id === selectedElementIds[0]);
-        if (!refEl) return;
-        
-        if (type === 'canvas-center-x') {
-            setElements(prev => prev.map(item => 
-                selectedElementIds.includes(item.id) ? { ...item, x: 50 } : item
-            ));
-            toast({ title: 'Canvas Align', description: 'Selected elements centered horizontally on canvas.' });
-        } else if (type === 'canvas-center-y') {
-            setElements(prev => prev.map(item => 
-                selectedElementIds.includes(item.id) ? { ...item, y: 50 } : item
-            ));
-            toast({ title: 'Canvas Align', description: 'Selected elements centered vertically on canvas.' });
-        } else if (type === 'top') {
-            const sorted = [...elements].filter(e => selectedElementIds.includes(e.id)).sort((a, b) => a.y - b.y);
-            const topY = sorted[0].y;
-            setElements(prev => prev.map(item => 
-                selectedElementIds.includes(item.id) ? { ...item, y: topY } : item
-            ));
-            toast({ title: 'Align Top', description: 'Selected elements aligned to the top-most element.' });
-        } else if (type === 'bottom') {
-            const sorted = [...elements].filter(e => selectedElementIds.includes(e.id)).sort((a, b) => b.y - a.y);
-            const bottomY = sorted[0].y;
-            setElements(prev => prev.map(item => 
-                selectedElementIds.includes(item.id) ? { ...item, y: bottomY } : item
-            ));
-            toast({ title: 'Align Bottom', description: 'Selected elements aligned to the bottom-most element.' });
-        } else if (type === 'middle') {
-            const selected = elements.filter(e => selectedElementIds.includes(e.id));
-            const avgY = selected.reduce((sum, e) => sum + e.y, 0) / selected.length;
-            setElements(prev => prev.map(item => 
-                selectedElementIds.includes(item.id) ? { ...item, y: avgY } : item
-            ));
-            toast({ title: 'Align Middle', description: 'Selected elements aligned to vertical center.' });
-        } else if (type === 'left') {
-            const sorted = [...elements].filter(e => selectedElementIds.includes(e.id)).sort((a, b) => a.x - b.x);
-            const leftX = sorted[0].x;
-            setElements(prev => prev.map(item => 
-                selectedElementIds.includes(item.id) ? { ...item, x: leftX } : item
-            ));
-            toast({ title: 'Align Left', description: 'Selected elements aligned to the left-most element.' });
-        } else if (type === 'right') {
-            const sorted = [...elements].filter(e => selectedElementIds.includes(e.id)).sort((a, b) => b.x - a.x);
-            const rightX = sorted[0].x;
-            setElements(prev => prev.map(item => 
-                selectedElementIds.includes(item.id) ? { ...item, x: rightX } : item
-            ));
-            toast({ title: 'Align Right', description: 'Selected elements aligned to the right-most element.' });
-        } else if (type === 'center') {
-            const selected = elements.filter(e => selectedElementIds.includes(e.id));
-            const avgX = selected.reduce((sum, e) => sum + e.x, 0) / selected.length;
-            setElements(prev => prev.map(item => 
-                selectedElementIds.includes(item.id) ? { ...item, x: avgX } : item
-            ));
-            toast({ title: 'Align Center', description: 'Selected elements aligned to horizontal center.' });
-        } else if (type === 'distribute-v') {
-            const selected = elements.filter(e => selectedElementIds.includes(e.id)).sort((a, b) => a.y - b.y);
-            if (selected.length < 3) {
-                toast({ title: 'Distribute', description: 'Select at least 3 elements to distribute.', variant: 'destructive' });
-                return;
-            }
-            const minY = selected[0].y;
-            const maxY = selected[selected.length - 1].y;
-            const step = (maxY - minY) / (selected.length - 1);
-            
-            setElements(prev => prev.map(item => {
-                const index = selected.findIndex(e => e.id === item.id);
-                if (index !== -1) {
-                    return { ...item, y: minY + index * step };
-                }
-                return item;
-            }));
-            toast({ title: 'Distribute Vertically', description: 'Selected elements distributed evenly vertically.' });
-        } else if (type === 'distribute-h') {
-            const selected = elements.filter(e => selectedElementIds.includes(e.id)).sort((a, b) => a.x - b.x);
-            if (selected.length < 3) {
-                toast({ title: 'Distribute', description: 'Select at least 3 elements to distribute.', variant: 'destructive' });
-                return;
-            }
-            const minX = selected[0].x;
-            const maxX = selected[selected.length - 1].x;
-            const step = (maxX - minX) / (selected.length - 1);
-            
-            setElements(prev => prev.map(item => {
-                const index = selected.findIndex(e => e.id === item.id);
-                if (index !== -1) {
-                    return { ...item, x: minX + index * step };
-                }
-                return item;
-            }));
-            toast({ title: 'Distribute Horizontally', description: 'Selected elements distributed evenly horizontally.' });
-        }
-    };
-
-    const handleBulkTextAlign = (align: 'left' | 'center' | 'right') => {
-        if (selectedElementIds.length <= 1) return;
-        setElements(prev => prev.map(item => 
-            selectedElementIds.includes(item.id) ? { ...item, align } : item
-        ));
-        toast({ title: 'Text Alignment', description: `Set typography alignment to ${align} for all selected elements.` });
-    };
-
-    const handleBulkStyleMatch = () => {
-        if (selectedElementIds.length <= 1) return;
-        const refEl = elements.find(e => e.id === selectedElementIds[0]);
-        if (!refEl) return;
-        
-        setElements(prev => prev.map(item => 
-            selectedElementIds.includes(item.id) 
-                ? { 
-                    ...item, 
-                    fontSize: refEl.fontSize, 
-                    fontWeight: refEl.fontWeight, 
-                    fontFamily: refEl.fontFamily || 'Inter', 
-                    color: refEl.color 
-                  } 
-                : item
-        ));
-        toast({ title: 'Bulk Style Match', description: 'Applied font styles across all selected elements.' });
-    };
-
     const handleSave = () => {
         if (!selectedCourseCode) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please select a course first.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Please select a course workspace first.' });
             return;
         }
 
-        // Sync legacy columns for backward compatibility
         const nameEl = elements.find(el => el.type === 'student_name');
+        const dateEl = elements.find(el => el.type === 'info_block');
         const qrEl = elements.find(el => el.type === 'qr_code');
-        const infoEl = elements.find(el => el.type === 'info_block');
 
-        const left_margin = nameEl ? Math.round(nameEl.x) : 20;
-        const top_to_name = nameEl ? Math.round(nameEl.y * 10) : 500;
-        
-        // Find left_to_date and top_to_date from info block (or fallback to student name)
-        const left_to_date = infoEl ? Math.round(infoEl.x) : 50;
-        const top_to_date = infoEl ? Math.round(infoEl.y * 10) : 800;
+        const top_to_name = nameEl ? Math.round((nameEl.y / 100) * 800) : 304;
+        const left_to_date = dateEl ? Math.round(dateEl.x) : 22;
+        const top_to_date = dateEl ? Math.round((dateEl.y / 100) * 800) : 672;
 
-        const left_to_qr = qrEl ? Math.round(qrEl.x) : 80;
-        const top_to_qr = qrEl ? Math.round(qrEl.y * 10) : 800;
-        const qr_width = qrEl ? Math.round(qrEl.fontSize) : 15; // qr width uses fontSize as legacy width
+        const left_to_qr = qrEl ? Math.round(qrEl.x) : 8;
+        const top_to_qr = qrEl ? Math.round((qrEl.y / 100) * 800) : 656;
+        const qr_width = qrEl ? Math.round(qrEl.fontSize) : 14;
 
-        const payload = {
-            course_code: selectedCourseCode,
-            template_name: templateName || `Template for ${selectedCourseCode}`,
-            left_margin,
-            top_to_name,
-            left_to_date,
-            top_to_date,
-            left_to_qr,
-            top_to_qr,
-            qr_width,
-            is_active: isActive ? 1 : 0,
-            back_image: backImage,
-            orientation: orientation,
-            template_json: {
+        const courseObj = courses?.find((c: any) => c.course_code === selectedCourseCode || String(c.id) === String(selectedCourseCode));
+        const courseId = courseObj ? String(courseObj.id) : selectedCourseCode;
+
+        if (docType === 'Certificate') {
+            const payload = {
+                course_code: selectedCourseCode,
+                template_name: templateName || `Certificate for ${selectedCourseCode}`,
+                left_margin: 0,
+                top_to_name,
+                left_to_date,
+                top_to_date,
+                left_to_qr,
+                top_to_qr,
+                qr_width,
+                is_active: isActive ? 1 : 0,
+                back_image: backImage,
+                orientation: orientation,
+                template_json: JSON.stringify({
+                    docType: 'Certificate',
+                    pageSize,
+                    orientation,
+                    elements
+                })
+            };
+            saveCertMutation.mutate(payload);
+        } else {
+            const templateData = {
+                docType: 'Transcript',
+                template_name: templateName || `Transcript for ${selectedCourseCode}`,
                 pageSize,
                 orientation,
+                backImage,
+                isActive,
                 elements
-            }
-        };
+            };
+            // Save to transcript_templates table
+            saveTransMutation.mutate({ courseId, templateData });
 
-        saveMutation.mutate(payload);
+            // ALSO save to certificate_template table as dual fallback
+            const certPayload = {
+                course_code: selectedCourseCode,
+                template_name: templateName || `Transcript for ${selectedCourseCode}`,
+                left_margin: 0,
+                top_to_name,
+                left_to_date,
+                top_to_date,
+                left_to_qr,
+                top_to_qr,
+                qr_width,
+                is_active: isActive ? 1 : 0,
+                back_image: backImage,
+                orientation: orientation,
+                template_json: JSON.stringify({
+                    docType: 'Transcript',
+                    pageSize,
+                    orientation,
+                    elements
+                })
+            };
+            saveCertMutation.mutate(certPayload);
+        }
     };
 
     const selectedElement = elements.find(el => el.id === selectedElementId);
+    const selectedCourseObj = courses?.find((c: any) => c.course_code === selectedCourseCode || String(c.id) === String(selectedCourseCode));
+    const selectedCourseName = selectedCourseObj ? selectedCourseObj.course_name : 'Diploma in Pharmacy Practice';
     const docDimensions = getPageDimensionsCm(pageSize, orientation);
 
     if (!selectedCourseCode) {
@@ -712,35 +646,50 @@ export default function CertificateDesignPage() {
                 <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=Caveat:wght@400..700&family=Cinzel:wght@400..900&family=Great+Vibes&family=Inter:wght@300..900&family=Lora:ital,wght@0,400..700;1,400..700&family=Montserrat:wght@300..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
                 <div className="max-w-md w-full space-y-6 text-center">
                     <header className="space-y-2">
-                        <div className="text-4xl justify-center flex mb-2">🎨</div>
+                        <div className="text-4xl justify-center flex mb-2">{docType === 'Certificate' ? '🎨' : '📜'}</div>
                         <h1 className="text-3xl font-headline font-bold text-white tracking-tight">
-                            Certificate Studio
+                            Document Studio Designer
                         </h1>
-                        <p className="text-gray-400 text-sm">Choose a course template to begin visual vector layout design.</p>
+                        <p className="text-gray-400 text-sm">Choose a course workspace to begin designing vector layout templates.</p>
                     </header>
                     <Card className="border-gray-800 bg-gray-900 shadow-xl text-white">
                         <CardHeader className="text-left pb-3">
                             <CardTitle className="text-xs font-bold uppercase tracking-wider text-gray-400">Select Project Workspace</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {isLoadingCourses ? (
-                                <div className="flex items-center justify-center gap-2 py-4 text-gray-400 text-sm">
-                                    <Loader2 className="animate-spin h-5 w-5 text-primary"/> Loading project courses...
-                                </div>
-                            ) : (
-                                <Select value={selectedCourseCode} onValueChange={handleCourseChange}>
-                                    <SelectTrigger className="w-full bg-gray-950 border-gray-850 text-white focus:ring-primary h-10">
-                                        <SelectValue placeholder="Select a course..." />
+                            <div className="space-y-1.5">
+                                <Label className="text-xs text-gray-400">Document Type</Label>
+                                <Select value={docType} onValueChange={(val: any) => setDocType(val)}>
+                                    <SelectTrigger className="w-full bg-gray-950 border-gray-850 text-white font-semibold h-10">
+                                        <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent className="bg-gray-900 border-gray-800 text-white">
-                                        {courses?.map((course: any) => (
-                                            <SelectItem key={course.id} value={course.course_code} className="hover:bg-gray-800 focus:bg-gray-800 cursor-pointer">
-                                                {course.course_name} ({course.course_code})
-                                            </SelectItem>
-                                        ))}
+                                        <SelectItem value="Certificate" className="cursor-pointer">🎨 Certificate Template</SelectItem>
+                                        <SelectItem value="Transcript" className="cursor-pointer">📜 Academic Transcript Template</SelectItem>
                                     </SelectContent>
                                 </Select>
-                            )}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs text-gray-400">Course Workspace</Label>
+                                {isLoadingCourses ? (
+                                    <div className="flex items-center justify-center gap-2 py-4 text-gray-400 text-sm">
+                                        <Loader2 className="animate-spin h-5 w-5 text-primary"/> Loading project courses...
+                                    </div>
+                                ) : (
+                                    <Select value={selectedCourseCode} onValueChange={handleCourseChange}>
+                                        <SelectTrigger className="w-full bg-gray-950 border-gray-850 text-white focus:ring-primary h-10">
+                                            <SelectValue placeholder="Select a course..." />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-gray-900 border-gray-800 text-white">
+                                            {courses?.map((course: any) => (
+                                                <SelectItem key={course.id} value={course.course_code} className="hover:bg-gray-800 focus:bg-gray-800 cursor-pointer">
+                                                    {course.course_name} ({course.course_code})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -748,8 +697,7 @@ export default function CertificateDesignPage() {
         );
     }
 
-    const selectedCourse = courses?.find(c => c.course_code === selectedCourseCode);
-    const selectedCourseName = selectedCourse ? selectedCourse.course_name : 'English Language Development Program';
+    const savePending = saveCertMutation.isPending || saveTransMutation.isPending;
 
     return (
         <div className="flex flex-col w-full h-[calc(100vh-80px)] md:h-[calc(100vh-8px)] min-h-[600px] bg-[#0e0f11] text-gray-200 border border-gray-850 rounded-2xl rounded-b-none overflow-hidden shadow-2xl font-sans -mb-4 md:-mb-8">
@@ -760,9 +708,21 @@ export default function CertificateDesignPage() {
             <div className="h-14 bg-gray-900/95 border-b border-gray-800 flex items-center justify-between px-4 gap-4 flex-shrink-0">
                 {/* Brand & Project Selector */}
                 <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-white tracking-wider flex items-center gap-1.5 mr-2">
-                        <span className="text-primary">🎨</span> Studio
+                    <span className="text-sm font-bold text-white tracking-wider flex items-center gap-1.5 mr-1">
+                        <span className="text-primary">{docType === 'Certificate' ? '🎨' : '📜'}</span> Studio
                     </span>
+
+                    {/* Document Type Switcher (Certificate vs Transcript) */}
+                    <Select value={docType} onValueChange={(val: any) => setDocType(val)}>
+                        <SelectTrigger className="w-36 h-8 bg-gray-950 border-gray-800 text-xs text-white font-semibold">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-900 border-gray-800 text-white text-xs">
+                            <SelectItem value="Certificate" className="cursor-pointer">🎨 Certificate</SelectItem>
+                            <SelectItem value="Transcript" className="cursor-pointer">📜 Transcript</SelectItem>
+                        </SelectContent>
+                    </Select>
+
                     <Select value={selectedCourseCode} onValueChange={handleCourseChange}>
                         <SelectTrigger className="w-56 h-8 bg-gray-950 border-gray-800 text-xs text-white font-medium">
                             <SelectValue placeholder="Select course..." />
@@ -777,7 +737,7 @@ export default function CertificateDesignPage() {
                     </Select>
                 </div>
 
-                {/* Quick Selection Typography Settings (Like Photoshop Option Bar / MS Word Ribbon) */}
+                {/* Quick Selection Typography Settings */}
                 {selectedElement && selectedElement.type !== 'qr_code' ? (
                     <div className="hidden lg:flex items-center gap-3.5 border-l border-gray-800 pl-4 flex-1 justify-start">
                         {/* Font Family */}
@@ -906,29 +866,31 @@ export default function CertificateDesignPage() {
                         </Button>
                     </div>
 
+                    {docType === 'Certificate' && (
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => window.open(`/print/certificate/preview?course_code=${selectedCourseCode}`, '_blank')}
+                            className="h-8 text-xs border-gray-850 hover:bg-gray-800 text-gray-200"
+                        >
+                            <ExternalLink className="h-3.5 w-3.5 mr-1.5"/> Preview print
+                        </Button>
+                    )}
                     <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => window.open(`/print/certificate/preview?course_code=${selectedCourseCode}`, '_blank')}
-                        className="h-8 text-xs border-gray-850 hover:bg-gray-800 text-gray-200"
-                    >
-                        <ExternalLink className="h-3.5 w-3.5 mr-1.5"/> Preview print
-                    </Button>
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => refetchTemplate()}
+                        onClick={() => docType === 'Certificate' ? refetchCertTemplate() : refetchTransTemplate()}
                         className="h-8 text-xs border-gray-850 hover:bg-gray-850 text-gray-300"
                     >
                         Reset
                     </Button>
                     <Button 
                         onClick={handleSave} 
-                        disabled={saveMutation.isPending} 
+                        disabled={savePending} 
                         size="sm"
                         className="h-8 text-xs bg-primary hover:bg-primary-hover text-white font-semibold"
                     >
-                        {saveMutation.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin"/> : <Save className="mr-1.5 h-3.5 w-3.5"/>}
+                        {savePending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin"/> : <Save className="mr-1.5 h-3.5 w-3.5"/>}
                         Save Template
                     </Button>
                 </div>
@@ -942,9 +904,6 @@ export default function CertificateDesignPage() {
                             <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('title')}>
                                 <Plus className="h-3 w-3 mr-1"/> Title
                             </Button>
-                            <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('paragraph')}>
-                                <Plus className="h-3 w-3 mr-1"/> Paragraph
-                            </Button>
                             <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('student_name')}>
                                 <Plus className="h-3 w-3 mr-1"/> Student Name
                             </Button>
@@ -952,13 +911,16 @@ export default function CertificateDesignPage() {
                                 <Plus className="h-3 w-3 mr-1"/> Course Name
                             </Button>
                             <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('sentence')}>
-                                <Plus className="h-3 w-3 mr-1"/> Sentence
-                            </Button>
-                            <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('qr_code')}>
-                                <Plus className="h-3 w-3 mr-1"/> QR Code
+                                <Plus className="h-3 w-3 mr-1"/> {docType === 'Transcript' ? 'Module List' : 'Sentence'}
                             </Button>
                             <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('info_block')}>
                                 <Plus className="h-3 w-3 mr-1"/> Info Block
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('image')}>
+                                <Plus className="h-3 w-3 mr-1"/> Signature Image
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('qr_code')}>
+                                <Plus className="h-3 w-3 mr-1"/> QR Code
                             </Button>
                             <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('company_br')}>
                                 <Plus className="h-3 w-3 mr-1"/> Company BR
@@ -1084,7 +1046,7 @@ export default function CertificateDesignPage() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <Label className="text-[10px] text-gray-400">Ceylon Preset Backgrounds</Label>
+                            <Label className="text-[10px] text-gray-400">Preset Backgrounds</Label>
                             <div className="flex flex-col gap-1.5">
                                 {DEFAULT_BACKGROUNDS.map((bg) => (
                                     <button
@@ -1118,7 +1080,7 @@ export default function CertificateDesignPage() {
                         {isLoadingTemplate ? (
                             <div className="flex flex-col items-center justify-center p-12 text-gray-400">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-2"/>
-                                <p className="text-sm">Loading Visual Canvas...</p>
+                                <p className="text-sm">Loading {docType} Canvas...</p>
                             </div>
                         ) : (
                             <div className="flex-shrink-0 transition-transform duration-100 ease-out py-6 px-8 flex flex-col items-start" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
@@ -1194,161 +1156,252 @@ export default function CertificateDesignPage() {
                                             backgroundColor: '#fafafa'
                                         }}
                                     >
-                                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:3%_3%] opacity-25 pointer-events-none"/>
+                                        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:3%_3%] opacity-25 pointer-events-none"/>
 
-                                    {elements.map(el => {
-                                        const isSelected = selectedElementId === el.id;
-                                        const isMultiSelected = selectedElementIds.includes(el.id);
-                                        
-                                        let displayText = el.content;
-                                        if (displayText) {
-                                            displayText = displayText
-                                                .replace(/{{STUDENT_NAME}}/g, 'JOHN SMITH')
-                                                .replace(/\[Student Name\]/g, 'JOHN SMITH')
-                                                .replace(/{{COURSE_NAME}}/g, selectedCourseName)
-                                                .replace(/\[Course Name\]/g, selectedCourseName)
-                                                .replace(/{{CERTIFICATE_ID}}/g, 'CPC-108745')
-                                                .replace(/\[Certificate ID\]/g, 'CPC-108745')
-                                                .replace(/{{STUDENT_ID}}/g, '2026-0034')
-                                                .replace(/\[Student ID\]/g, '2026-0034')
-                                                .replace(/{{ISSUED_DATE}}/g, 'August 12, 2026')
-                                                .replace(/\[Issued Date\]/g, 'August 12, 2026')
-                                                .replace(/{{BATCH}}/g, 'EN-26')
-                                                .replace(/\[Batch\]/g, 'EN-26');
-                                        }
+                                        {elements.map(el => {
+                                            const isSelected = selectedElementId === el.id;
+                                            const isMultiSelected = selectedElementIds.includes(el.id);
+                                            
+                                            let displayText = el.content;
+                                            if (displayText) {
+                                                displayText = displayText
+                                                    .replace(/{{STUDENT_NAME}}/g, 'H.Rodriguez')
+                                                    .replace(/\[Student Name\]/g, 'H.Rodriguez')
+                                                    .replace(/{{COURSE_NAME}}/g, selectedCourseName)
+                                                    .replace(/\[Course Name\]/g, selectedCourseName)
+                                                    .replace(/{{TRANSCRIPT_ID}}/g, 'TRNS/253555/260815/CPCC29/CREF4623')
+                                                    .replace(/\[Transcript ID\]/g, 'TRNS/253555/260815/CPCC29/CREF4623')
+                                                    .replace(/{{CERTIFICATE_ID}}/g, 'CREF4623')
+                                                    .replace(/\[Certificate ID\]/g, 'CREF4623')
+                                                    .replace(/{{STUDENT_ID}}/g, 'PA30172')
+                                                    .replace(/\[Student ID\]/g, 'PA30172')
+                                                    .replace(/{{NIC}}/g, '200486202343')
+                                                    .replace(/\[NIC\]/g, '200486202343')
+                                                    .replace(/{{ISSUED_DATE}}/g, 'March 29, 2026')
+                                                    .replace(/\[Issued Date\]/g, 'March 29, 2026')
+                                                    .replace(/{{COMPLETED_DATE}}/g, 'March 29, 2026')
+                                                    .replace(/{{DURATION}}/g, '6 Months')
+                                                    .replace(/{{GRADE}}/g, 'B')
+                                                    .replace(/{{BATCH}}/g, 'CPCC29')
+                                                    .replace(/\[Batch\]/g, 'CPCC29');
+                                            }
 
-                                        if (el.type === 'qr_code') {
+                                            if (el.type === 'image') {
+                                                return (
+                                                    <div
+                                                        key={el.id}
+                                                        className={`absolute cursor-move transform -translate-x-1/2 -translate-y-1/2 transition-[outline] duration-150 flex items-center justify-center bg-transparent border-none ${
+                                                            isSelected 
+                                                                ? 'outline-1 outline outline-dashed outline-primary outline-offset-1 z-30' 
+                                                                : isMultiSelected
+                                                                    ? 'outline-1 outline outline-dashed outline-yellow-500 outline-offset-1 z-20'
+                                                                    : 'outline-none'
+                                                        }`}
+                                                        style={{
+                                                            left: `${el.x}%`,
+                                                            top: `${el.y}%`,
+                                                            width: `${el.width || 22}%`,
+                                                        }}
+                                                        onMouseDown={(e) => handleElementMouseDown(e, el)}
+                                                    >
+                                                        {el.content ? (
+                                                            <img 
+                                                                src={el.content} 
+                                                                alt="Signature / Image" 
+                                                                className="w-full h-auto object-contain max-h-32 pointer-events-none border-none bg-transparent outline-none shadow-none" 
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-12 bg-transparent border border-dashed border-gray-400 flex items-center justify-center text-[10px] text-gray-500 font-mono">
+                                                                Signature / Image
+                                                            </div>
+                                                        )}
+                                                        {isSelected && (
+                                                            <>
+                                                                <div 
+                                                                    className="absolute -top-7 left-0 bg-gray-900 border border-gray-700 text-white rounded shadow-lg flex items-center divide-x divide-gray-850 z-50 overflow-hidden h-6 select-none" 
+                                                                    onMouseDown={e => e.stopPropagation()}
+                                                                >
+                                                                    <div className="flex items-center px-1.5 gap-1 text-[8px] font-mono text-gray-400">
+                                                                        <Move className="h-2 w-2"/> Move
+                                                                    </div>
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={() => handleDuplicateElement(el.id)}
+                                                                        className="px-1.5 py-0.5 text-[8px] hover:bg-gray-800 flex items-center gap-1 transition-colors text-blue-400 hover:text-blue-300 border-l border-gray-800"
+                                                                        title="Duplicate Element (Ctrl+D)"
+                                                                    >
+                                                                        Copy
+                                                                    </button>
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={() => removeElement(el.id)}
+                                                                        className="px-1.5 py-0.5 text-[8px] hover:bg-red-500/20 text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors border-l border-gray-800"
+                                                                        title="Delete Element"
+                                                                    >
+                                                                        Delete
+                                                                    </button>
+                                                                </div>
+                                                                <div 
+                                                                    className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize bg-primary/20 hover:bg-primary/50 border-r border-primary flex items-center justify-center rounded-r z-40"
+                                                                    onMouseDown={(e) => handleResizeMouseDown(e, el)}
+                                                                    title="Drag right edge to change width"
+                                                                >
+                                                                    <div className="h-3.5 w-[1px] bg-primary" />
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                );
+                                            }
+
+                                            if (el.type === 'qr_code') {
+                                                return (
+                                                    <div
+                                                        key={el.id}
+                                                        className={`absolute cursor-move transform -translate-x-1/2 -translate-y-1/2 transition-[outline] duration-150 p-1 flex items-center justify-center bg-white/70 border rounded ${
+                                                            isSelected 
+                                                                ? 'outline-2 outline outline-primary outline-offset-1 z-30' 
+                                                                : isMultiSelected
+                                                                    ? 'outline-2 outline outline-yellow-500 outline-offset-1 z-20'
+                                                                    : 'outline-none hover:bg-black/5 hover:border-black/20'
+                                                        }`}
+                                                        style={{
+                                                            left: `${el.x}%`,
+                                                            top: `${el.y}%`,
+                                                            width: `${el.fontSize}%`,
+                                                            aspectRatio: '1/1'
+                                                        }}
+                                                        onMouseDown={(e) => handleElementMouseDown(e, el)}
+                                                    >
+                                                        <div className="bg-gray-200 border border-gray-400 w-full h-full flex flex-col items-center justify-center font-mono text-[9px] text-gray-700">
+                                                            <span>QR Code</span>
+                                                        </div>
+                                                        {isSelected && (
+                                                            <div 
+                                                                className="absolute -top-7 left-0 bg-gray-900 border border-gray-700 text-white rounded shadow-lg flex items-center divide-x divide-gray-850 z-50 overflow-hidden h-6 select-none" 
+                                                                onMouseDown={e => e.stopPropagation()}
+                                                            >
+                                                                <div className="flex items-center px-1.5 gap-1 text-[8px] font-mono text-gray-400">
+                                                                    <Move className="h-2 w-2"/> Move
+                                                                </div>
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => handleDuplicateElement(el.id)}
+                                                                    className="px-1.5 py-0.5 text-[8px] hover:bg-gray-800 flex items-center gap-1 transition-colors text-blue-400 hover:text-blue-300 border-l border-gray-800"
+                                                                    title="Duplicate Element (Ctrl+D)"
+                                                                >
+                                                                    Copy
+                                                                </button>
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => removeElement(el.id)}
+                                                                    className="px-1.5 py-0.5 text-[8px] hover:bg-red-500/20 text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors border-l border-gray-800"
+                                                                    title="Delete Element"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            }
+
+                                            const weightClass = 
+                                                el.fontWeight === 'black' ? 'font-black' :
+                                                el.fontWeight === 'bold' ? 'font-bold' :
+                                                el.fontWeight === 'semibold' ? 'font-semibold' : 'font-normal';
+
+                                            const isModuleListKeyword = displayText.includes('{{MODULE_LIST}}') || displayText.includes('{{RESULTS_TABLE}}') || displayText.includes('[Module List]');
+
                                             return (
                                                 <div
                                                     key={el.id}
-                                                    className={`absolute cursor-move transform -translate-x-1/2 -translate-y-1/2 transition-[outline] duration-150 p-1 flex items-center justify-center bg-white/70 border rounded ${
+                                                    className={`absolute cursor-move transform -translate-x-1/2 -translate-y-1/2 p-1 select-none transition-[outline] duration-150 rounded ${
                                                         isSelected 
-                                                            ? 'outline-2 outline outline-primary outline-offset-1 z-30' 
+                                                            ? 'bg-primary/5 border border-dashed border-primary outline-2 outline outline-primary outline-offset-1 z-30' 
                                                             : isMultiSelected
-                                                                ? 'outline-2 outline outline-yellow-500 outline-offset-1 z-20'
-                                                                : 'outline-none hover:bg-black/5 hover:border-black/20'
+                                                                ? 'bg-yellow-500/10 border border-dashed border-yellow-500 outline-2 outline outline-yellow-500 outline-offset-1 z-20'
+                                                                : 'border border-transparent hover:bg-black/[0.02] hover:border-gray-300'
                                                     }`}
                                                     style={{
                                                         left: `${el.x}%`,
                                                         top: `${el.y}%`,
-                                                        width: `${el.fontSize}%`,
-                                                        aspectRatio: '1/1'
+                                                        textAlign: el.align,
+                                                        width: `${el.width || 90}%`,
+                                                        maxWidth: '100%'
                                                     }}
                                                     onMouseDown={(e) => handleElementMouseDown(e, el)}
                                                 >
-                                                    <div className="bg-gray-200 border border-gray-400 w-full h-full flex flex-col items-center justify-center font-mono text-[9px] text-gray-700">
-                                                        <span>QR Code</span>
-                                                    </div>
-                                                    {isSelected && (
-                                                        <div 
-                                                            className="absolute -top-7 left-0 bg-gray-900 border border-gray-700 text-white rounded shadow-lg flex items-center divide-x divide-gray-850 z-50 overflow-hidden h-6 select-none" 
-                                                            onMouseDown={e => e.stopPropagation()}
-                                                        >
-                                                            <div className="flex items-center px-1.5 gap-1 text-[8px] font-mono text-gray-400">
-                                                                <Move className="h-2 w-2"/> Move
-                                                            </div>
-                                                            <button 
-                                                                type="button"
-                                                                onClick={() => handleDuplicateElement(el.id)}
-                                                                className="px-1.5 py-0.5 text-[8px] hover:bg-gray-800 flex items-center gap-1 transition-colors text-blue-400 hover:text-blue-300 border-l border-gray-800"
-                                                                title="Duplicate Element (Ctrl+D)"
-                                                            >
-                                                                Copy
-                                                            </button>
-                                                            <button 
-                                                                type="button"
-                                                                onClick={() => removeElement(el.id)}
-                                                                className="px-1.5 py-0.5 text-[8px] hover:bg-red-500/20 text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors border-l border-gray-800"
-                                                                title="Delete Element"
-                                                            >
-                                                                Delete
-                                                            </button>
+                                                    {isModuleListKeyword ? (
+                                                        <div className="w-full text-left font-sans space-y-1 text-gray-900 my-1">
+                                                            <div className="font-bold text-xs text-gray-900 mb-1.5">Module Name</div>
+                                                            <ul className="space-y-1 text-[11px] text-gray-800 list-disc list-inside font-medium leading-relaxed">
+                                                                <li>CPP 101 - Introduction to Pharmaceuticals & Pharmacy Practice</li>
+                                                                <li>CPP 102 - Prescription Reading & Pharmaceutical Calculations</li>
+                                                                <li>CPP 103 - Pharmaceutical Dosage Forms & Drug Administration</li>
+                                                                <li>CPP 104 - Pharmaceutical Storage, Quality Assurance & Pharmacy Law</li>
+                                                                <li>CPP 105 - Therapeutics of Common Diseases</li>
+                                                            </ul>
                                                         </div>
+                                                    ) : (
+                                                        <div 
+                                                            className={weightClass}
+                                                            style={{
+                                                                fontSize: `${el.fontSize * 0.71}px`,
+                                                                fontFamily: getFontFamilyStyle(el.fontFamily),
+                                                                color: el.color,
+                                                                whiteSpace: 'pre-wrap',
+                                                                lineHeight: 1.2
+                                                            }}
+                                                        >
+                                                            {displayText}
+                                                        </div>
+                                                    )}
+
+                                                    {isSelected && (
+                                                        <>
+                                                            <div 
+                                                                className="absolute -top-7 left-0 bg-gray-900 border border-gray-700 text-white rounded shadow-lg flex items-center divide-x divide-gray-850 z-50 overflow-hidden h-6 select-none" 
+                                                                onMouseDown={e => e.stopPropagation()}
+                                                            >
+                                                                <div className="flex items-center px-1.5 gap-1 text-[8px] font-mono text-gray-400">
+                                                                    <Move className="h-2 w-2"/> Move
+                                                                </div>
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => handleDuplicateElement(el.id)}
+                                                                    className="px-1.5 py-0.5 text-[8px] hover:bg-gray-800 flex items-center gap-1 transition-colors text-blue-400 hover:text-blue-300 border-l border-gray-800"
+                                                                    title="Duplicate Element (Ctrl+D)"
+                                                                >
+                                                                    Copy
+                                                                </button>
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => removeElement(el.id)}
+                                                                    className="px-1.5 py-0.5 text-[8px] hover:bg-red-500/20 text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors border-l border-gray-800"
+                                                                    title="Delete Element"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                            <div 
+                                                                className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize bg-primary/20 hover:bg-primary/50 border-r border-primary flex items-center justify-center rounded-r z-40"
+                                                                onMouseDown={(e) => handleResizeMouseDown(e, el)}
+                                                                title="Drag right edge to change width"
+                                                            >
+                                                                <div className="h-3.5 w-[1px] bg-primary" />
+                                                            </div>
+                                                        </>
                                                     )}
                                                 </div>
                                             );
-                                        }
-
-                                        const weightClass = 
-                                            el.fontWeight === 'black' ? 'font-black' :
-                                            el.fontWeight === 'bold' ? 'font-bold' :
-                                            el.fontWeight === 'semibold' ? 'font-semibold' : 'font-normal';
-
-                                        return (
-                                            <div
-                                                key={el.id}
-                                                className={`absolute cursor-move transform -translate-x-1/2 -translate-y-1/2 p-1 select-none transition-[outline] duration-150 rounded ${
-                                                    isSelected 
-                                                        ? 'bg-primary/5 border border-dashed border-primary outline-2 outline outline-primary outline-offset-1 z-30' 
-                                                        : isMultiSelected
-                                                            ? 'bg-yellow-500/5 border border-dashed border-yellow-500 outline-2 outline outline-yellow-500 outline-offset-1 z-20'
-                                                            : 'border border-transparent hover:bg-black/[0.02] hover:border-gray-300'
-                                                }`}
-                                                style={{
-                                                    left: `${el.x}%`,
-                                                    top: `${el.y}%`,
-                                                    textAlign: el.align,
-                                                    width: `${el.width || 90}%`,
-                                                    maxWidth: '100%'
-                                                }}
-                                                onMouseDown={(e) => handleElementMouseDown(e, el)}
-                                            >
-                                                <div 
-                                                    className={weightClass}
-                                                    style={{
-                                                        fontSize: `${el.fontSize * 0.71}px`,
-                                                        fontFamily: getFontFamilyStyle(el.fontFamily),
-                                                        color: el.color,
-                                                        whiteSpace: 'pre-wrap',
-                                                        lineHeight: 1.2
-                                                    }}
-                                                >
-                                                    {displayText}
-                                                </div>
-                                                {isSelected && (
-                                                    <>
-                                                        <div 
-                                                            className="absolute -top-7 left-0 bg-gray-900 border border-gray-700 text-white rounded shadow-lg flex items-center divide-x divide-gray-850 z-50 overflow-hidden h-6 select-none" 
-                                                            onMouseDown={e => e.stopPropagation()}
-                                                        >
-                                                            <div className="flex items-center px-1.5 gap-1 text-[8px] font-mono text-gray-400">
-                                                                <Move className="h-2 w-2"/> Move
-                                                            </div>
-                                                            <button 
-                                                                type="button"
-                                                                onClick={() => handleDuplicateElement(el.id)}
-                                                                className="px-1.5 py-0.5 text-[8px] hover:bg-gray-800 flex items-center gap-1 transition-colors text-blue-400 hover:text-blue-300 border-l border-gray-800"
-                                                                title="Duplicate Element (Ctrl+D)"
-                                                            >
-                                                                Copy
-                                                            </button>
-                                                            <button 
-                                                                type="button"
-                                                                onClick={() => removeElement(el.id)}
-                                                                className="px-1.5 py-0.5 text-[8px] hover:bg-red-500/20 text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors border-l border-gray-800"
-                                                                title="Delete Element"
-                                                            >
-                                                                Delete
-                                                            </button>
-                                                        </div>
-                                                        <div 
-                                                            className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize bg-primary/20 hover:bg-primary/50 border-r border-primary flex items-center justify-center rounded-r z-40"
-                                                            onMouseDown={(e) => handleResizeMouseDown(e, el)}
-                                                            title="Drag right edge to change width"
-                                                        >
-                                                            <div className="h-3.5 w-[1px] bg-primary" />
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
+                                        })}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
-            </div>
 
                 <div className="w-80 bg-gray-950 border-l border-gray-850 flex flex-col h-full flex-shrink-0 overflow-y-auto p-4 space-y-4">
                     {selectedElementIds.length > 1 ? (
@@ -1411,44 +1464,31 @@ export default function CertificateDesignPage() {
                                             <Button 
                                                 variant="outline" 
                                                 size="sm" 
-                                                className="h-7 text-[10px] bg-gray-950 border-gray-800 hover:bg-gray-855 text-gray-300 hover:text-white px-1"
+                                                className="h-7 text-[10px] bg-gray-950 border-gray-800 hover:bg-gray-850 text-gray-300 hover:text-white px-1"
                                                 onClick={() => handleBulkAlign('middle')}
-                                                title="Align middle coordinates vertically"
+                                                title="Align centers vertically"
                                             >
-                                                Align Middle
+                                                Align Mid
                                             </Button>
                                             <Button 
                                                 variant="outline" 
                                                 size="sm" 
                                                 className="h-7 text-[10px] bg-gray-950 border-gray-800 hover:bg-gray-850 text-gray-300 hover:text-white px-1"
                                                 onClick={() => handleBulkAlign('bottom')}
-                                                title="Align bottom edges to lowest item"
+                                                title="Align bottom edges to lowermost item"
                                             >
                                                 Align Bottom
                                             </Button>
                                         </div>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <Label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block border-b border-gray-800 pb-1">Distribute Elements (3+ items)</Label>
-                                        <div className="grid grid-cols-2 gap-2">
+                                        <div className="pt-1">
                                             <Button 
                                                 variant="outline" 
                                                 size="sm" 
-                                                className="h-7 text-[10px] bg-gray-950 border-gray-800 hover:bg-gray-850 text-gray-300 hover:text-white"
-                                                onClick={() => handleBulkAlign('distribute-h')}
-                                                title="Distribute horizontally"
-                                            >
-                                                Distribute H
-                                            </Button>
-                                            <Button 
-                                                variant="outline" 
-                                                size="sm" 
-                                                className="h-7 text-[10px] bg-gray-950 border-gray-800 hover:bg-gray-855 text-gray-300 hover:text-white"
+                                                className="h-7 text-[10px] bg-gray-950 border-gray-800 hover:bg-gray-850 text-gray-300 hover:text-white w-full"
                                                 onClick={() => handleBulkAlign('distribute-v')}
                                                 title="Distribute vertically"
                                             >
-                                                Distribute V
+                                                Distribute Vertically
                                             </Button>
                                         </div>
                                     </div>
@@ -1468,7 +1508,7 @@ export default function CertificateDesignPage() {
                                             <Button 
                                                 variant="outline" 
                                                 size="sm" 
-                                                className="h-7 text-[10px] bg-gray-950 border-gray-800 hover:bg-gray-855 text-gray-300 hover:text-white"
+                                                className="h-7 text-[10px] bg-gray-950 border-gray-800 hover:bg-gray-850 text-gray-300 hover:text-white"
                                                 onClick={() => handleBulkAlign('canvas-center-y')}
                                                 title="Center items vertically on canvas"
                                             >
@@ -1492,7 +1532,7 @@ export default function CertificateDesignPage() {
                                             <Button 
                                                 variant="outline" 
                                                 size="sm" 
-                                                className="h-7 text-[10px] bg-gray-950 border-gray-800 hover:bg-gray-855 text-gray-300 hover:text-white px-1"
+                                                className="h-7 text-[10px] bg-gray-950 border-gray-800 hover:bg-gray-850 text-gray-300 hover:text-white px-1"
                                                 onClick={() => handleBulkTextAlign('center')}
                                                 title="Set text-align center"
                                             >
@@ -1534,7 +1574,7 @@ export default function CertificateDesignPage() {
                             </Card>
                         </div>
                     ) : selectedElement ? (
-                        <div className="space-y-4">
+                        <div className="space-y-4 font-sans">
                             <h3 className="text-xs uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
                                 <span>Properties Inspector</span>
                                 <span className="text-[10px] font-mono text-emerald-400 font-bold">
@@ -1544,15 +1584,104 @@ export default function CertificateDesignPage() {
 
                             <Card className="border-gray-850 bg-gray-900/60 text-white">
                                 <CardContent className="p-4 space-y-4">
-                                    {selectedElement.type !== 'qr_code' && (
+                                    {selectedElement.type === 'image' ? (
+                                        <div className="space-y-3">
+                                            <Label className="text-xs text-gray-400 font-semibold">Signature / Image File Upload</Label>
+                                            
+                                            {selectedElement.content && (
+                                                <div className="p-2 border border-gray-800 rounded-md bg-gray-950/80 flex items-center justify-center min-h-[60px] relative">
+                                                    <img 
+                                                        src={selectedElement.content} 
+                                                        alt="Preview" 
+                                                        className="max-h-14 object-contain" 
+                                                    />
+                                                </div>
+                                            )}
+
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="imgUrl" className="text-[11px] text-gray-500">Image Asset URL or Base64</Label>
+                                                <Input 
+                                                    id="imgUrl"
+                                                    type="text" 
+                                                    value={selectedElement.content} 
+                                                    onChange={(e) => updateSelectedElement({ content: e.target.value })}
+                                                    placeholder="https://... or data:image/png;base64,..."
+                                                    className="h-8 bg-gray-950 border-gray-800 text-xs text-white font-mono"
+                                                />
+                                            </div>
+
+                                            <div className="flex flex-col gap-2 pt-1">
+                                                <label className="cursor-pointer block">
+                                                    <div className="h-9 bg-gray-900 border border-gray-800 hover:bg-gray-800 text-white rounded-md text-xs flex items-center justify-center gap-2 font-medium transition-colors">
+                                                        <ImageIcon className="h-4 w-4 text-primary"/> Choose Signature Image File...
+                                                    </div>
+                                                    <input 
+                                                        type="file" 
+                                                        accept="image/*" 
+                                                        className="hidden" 
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) {
+                                                                const reader = new FileReader();
+                                                                reader.onload = (event) => {
+                                                                    const dataUrl = event.target?.result as string;
+                                                                    updateSelectedElement({ content: dataUrl });
+                                                                    toast({ title: 'Image Uploaded', description: 'Signature image attached successfully.' });
+                                                                };
+                                                                reader.readAsDataURL(file);
+                                                            }
+                                                        }}
+                                                    />
+                                                </label>
+
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => {
+                                                        const sampleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='250' height='70' viewBox='0 0 250 70'><path d='M20 45 Q 40 10, 60 40 T 100 35 T 140 40 T 180 30 T 220 45' stroke='%23000000' stroke-width='2.5' fill='none' stroke-linecap='round'/><text x='130' y='62' font-family='sans-serif' font-size='12' font-weight='bold' fill='%23111111'>Dilip Fonseka</text></svg>";
+                                                        updateSelectedElement({ content: sampleSvg });
+                                                        toast({ title: 'Sample Signature', description: 'Loaded default signature vector.' });
+                                                    }}
+                                                    className="h-7 bg-gray-950 hover:bg-gray-900 text-primary border border-gray-800 rounded text-[11px] font-mono flex items-center justify-center transition-colors"
+                                                >
+                                                    Use Sample Signature
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : selectedElement.type !== 'qr_code' && (
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="elContent" className="text-xs text-gray-400">Content Text</Label>
-                                            {selectedElement.type === 'info_block' || selectedElement.type === 'sentence' ? (
+                                            <div className="flex justify-between items-center">
+                                                <Label htmlFor="elContent" className="text-xs text-gray-400">Content Text</Label>
+                                                {docType === 'Transcript' && (
+                                                    <div className="flex gap-1.5">
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => updateSelectedElement({ content: '{{MODULE_LIST}}' })}
+                                                            className="text-[9px] text-primary hover:underline font-mono"
+                                                            title="Reset to dynamic database variable"
+                                                        >
+                                                            Auto Variable
+                                                        </button>
+                                                        <span className="text-[9px] text-gray-600">|</span>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => updateSelectedElement({ 
+                                                                content: `Module Name:\n• CPP 101 - Introduction to Pharmaceuticals & Pharmacy Practice\n• CPP 102 - Prescription Reading & Pharmaceutical Calculations\n• CPP 103 - Pharmaceutical Dosage Forms & Drug Administration\n• CPP 104 - Pharmaceutical Storage, Quality Assurance & Pharmacy Law\n• CPP 105 - Therapeutics of Common Diseases` 
+                                                            })}
+                                                            className="text-[9px] text-blue-400 hover:underline font-mono"
+                                                            title="Load editable sample lines"
+                                                        >
+                                                            Editable Text
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {selectedElement.type === 'info_block' || selectedElement.type === 'sentence' || selectedElement.type === 'paragraph' ? (
                                                 <textarea
                                                     id="elContent"
                                                     value={selectedElement.content}
                                                     onChange={(e) => updateSelectedElement({ content: e.target.value })}
-                                                    className="w-full text-xs border border-gray-800 rounded p-2 min-h-[70px] bg-gray-950 text-white font-sans focus:outline-none focus:ring-1 focus:ring-primary"
+                                                    className="w-full text-xs border border-gray-800 rounded p-2 min-h-[90px] bg-gray-950 text-white font-sans focus:outline-none focus:ring-1 focus:ring-primary"
+                                                    placeholder="Type content or module list..."
                                                 />
                                             ) : (
                                                 <Input 
@@ -1759,16 +1888,16 @@ export default function CertificateDesignPage() {
                                     <div className="text-center py-2">
                                         <div className="text-3xl mb-1.5">🎛️</div>
                                         <div className="text-xs font-semibold text-white">No active selection</div>
-                                        <div className="text-[10px] text-gray-500 mt-0.5">Select a layer or element to edit its vector properties</div>
+                                        <div className="text-[10px] text-gray-500 mt-0.5">Select a layer or element to edit vector properties</div>
                                     </div>
                                     
                                     <div className="space-y-2.5 border-t border-gray-800 pt-3">
                                         <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Quick Tips</div>
                                         <ul className="space-y-1.5 text-[11px] list-disc list-inside leading-relaxed pl-1">
-                                            <li>Click and hold any element to drag it to a new location.</li>
-                                            <li>Use the zoom tools at the top to magnify or shrink the workspace page.</li>
-                                            <li>Hold <span className="font-semibold text-gray-300 font-mono">Shift</span> key to select multiple elements at once.</li>
-                                            <li>Drag the **right border handle** on the canvas to visually resize wrapping bounds.</li>
+                                            <li>Click and hold any element to drag it on the page.</li>
+                                            <li>Use the Document Type switcher at top to switch between Certificate & Transcript.</li>
+                                            <li>Hold <span className="font-semibold text-gray-300 font-mono">Shift</span> key to select multiple elements.</li>
+                                            <li>Drag the **right border handle** on canvas to resize wrap width.</li>
                                         </ul>
                                     </div>
                                     
@@ -1791,4 +1920,8 @@ export default function CertificateDesignPage() {
             </div>
         </div>
     );
+}
+
+export default function CertificateDesignPage() {
+    return <UnifiedDocumentStudioPage initialDocType="Certificate" />;
 }

@@ -13,7 +13,24 @@ class TranscriptTemplateController {
         $this->pdo = $pdo;
     }
 
+    private function ensureTableExists() {
+        try {
+            $sql = "CREATE TABLE IF NOT EXISTS `transcript_templates` (
+              `id` INT AUTO_INCREMENT PRIMARY KEY,
+              `course_id` VARCHAR(100) NOT NULL,
+              `template_data` LONGTEXT NULL,
+              `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              UNIQUE KEY `course_id_unique` (`course_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+            $this->pdo->exec($sql);
+        } catch (Exception $e) {
+            // Silence if created
+        }
+    }
+
     public function getTemplate($courseId) {
+        $this->ensureTableExists();
         try {
             $stmt = $this->pdo->prepare("SELECT * FROM transcript_templates WHERE course_id = ?");
             $stmt->execute([$courseId]);
@@ -31,6 +48,7 @@ class TranscriptTemplateController {
     }
 
     public function saveTemplate() {
+        $this->ensureTableExists();
         $data = json_decode(file_get_contents("php://input"));
         $courseId = $data->course_id ?? null;
         $templateData = $data->template_data ?? null;

@@ -45,7 +45,10 @@ class CertificateTemplateController {
         $isActive = isset($data->is_active) ? intval($data->is_active) : 1;
         $backImage = $data->back_image ?? '';
         $orientation = $data->orientation ?? 'Landscape';
-        $templateJson = isset($data->template_json) ? json_encode($data->template_json) : null;
+        $templateJson = null;
+        if (isset($data->template_json)) {
+            $templateJson = is_string($data->template_json) ? $data->template_json : json_encode($data->template_json);
+        }
 
         if (!$courseCode) {
             http_response_code(400);
