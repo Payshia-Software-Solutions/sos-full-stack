@@ -354,6 +354,23 @@ export default function CertificateOrdersListPage() {
         });
         return map;
     }, [parentCourses]);
+
+    const uniqueCourseOptions = useMemo(() => {
+        if (!parentCourses) return [];
+        const seen = new Set<string>();
+        const options: { id: string; name: string; courseCode: string }[] = [];
+        parentCourses.forEach(course => {
+            if (!seen.has(course.course_name)) {
+                seen.add(course.course_name);
+                options.push({ 
+                    id: String(course.id), 
+                    name: course.course_name, 
+                    courseCode: course.course_code ? course.course_code.trim() : String(course.id) 
+                });
+            }
+        });
+        return options;
+    }, [parentCourses]);
     
     const queryClient = useQueryClient();
     const { mutate: updateCourses, isPending: isUpdating } = useMutation({
@@ -391,9 +408,14 @@ export default function CertificateOrdersListPage() {
         }
 
         if (courseFilter !== 'all') {
-            result = result.filter(order => 
-                order.course_code.split(',').map(s => s.trim()).includes(courseFilter)
-            );
+            const selectedOpt = uniqueCourseOptions.find(o => o.id === courseFilter || o.courseCode === courseFilter);
+            result = result.filter(order => {
+                const orderCodes = order.course_code.split(',').map(s => s.trim());
+                return orderCodes.some(cCode => 
+                    cCode === courseFilter || 
+                    (selectedOpt && (cCode === selectedOpt.id || cCode === selectedOpt.courseCode))
+                );
+            });
         }
 
         return [...result].sort((a, b) => parseInt(b.id, 10) - parseInt(a.id, 10));
@@ -704,8 +726,8 @@ export default function CertificateOrdersListPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Courses</SelectItem>
-                                    {Array.from(courseNameMap.entries()).map(([id, name]) => (
-                                        <SelectItem key={id} value={id}>{name}</SelectItem>
+                                    {uniqueCourseOptions.map((course) => (
+                                        <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
