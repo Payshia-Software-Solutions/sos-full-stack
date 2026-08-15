@@ -160,7 +160,12 @@ const CertificateStatusCell = ({
         <div className="flex flex-col gap-3 min-w-[200px]">
             {courseIds.map(id => {
                 const cert = getGeneratedDoc(id);
-                const enrollment = Object.values(studentData.studentEnrollments).find(e => e.parent_course_id === id || e.course_code === id);
+                const enrollmentsList = Object.values(studentData?.studentEnrollments || {});
+                const enrollment = enrollmentsList.find(e => 
+                    String(e.parent_course_id) === String(id) || 
+                    String(e.course_code) === String(id) ||
+                    (courseCodeMap.has(String(e.parent_course_id)) && courseCodeMap.get(String(e.parent_course_id)) === id)
+                ) || enrollmentsList[0];
                 
                 // Individual Certificate Print URL logic (using new Designer printer route)
                 const courseIdKey = String(enrollment?.parent_course_id || id).trim();
@@ -169,8 +174,10 @@ const CertificateStatusCell = ({
                     ? `/print/certificate/${cert.certificate_id}${parentCourseCode ? `?course_code=${parentCourseCode}` : ''}`
                     : '#';
 
-                // Individual Transcript Print URL logic
-                const transPrintUrl = `${LMS_API_URL}/transcript-templates/${enrollment?.parent_course_id || id}/print/${order.created_by}`;
+                // Individual Transcript Print URL logic (using new Visual Studio printer route)
+                const transPrintUrl = cert
+                    ? `/print/certificate/${cert.certificate_id}?doc_type=Transcript${parentCourseCode ? `&course_code=${parentCourseCode}` : ''}`
+                    : `${LMS_API_URL}/transcript-templates/${enrollment?.parent_course_id || id}/print/${order.created_by}`;
 
                 // Old Transcript Print URL logic
                 const oldTransBaseUrl = (enrollment?.parent_course_id || id) === '1'
@@ -223,15 +230,16 @@ const CertificateStatusCell = ({
                                     className="h-6 text-[10px] font-bold"
                                     onClick={() => {
                                         if (!user?.username) { toast({ variant: 'destructive', title: 'Auth Error' }); return; }
-                                        if (!enrollment) { toast({ variant: 'destructive', title: 'Enrollment not found' }); return; }
+                                        const pCourseId = enrollment?.parent_course_id || id;
+                                        const batchCode = enrollment?.course_code || id;
                                         generateCertMutation.mutate({
                                             student_number: order.created_by,
                                             print_status: "0",
                                             print_by: user.username,
                                             type: "Certificate",
-                                            parentCourseCode: parseInt(enrollment.parent_course_id, 10),
+                                            parentCourseCode: parseInt(pCourseId, 10) || 1,
                                             referenceId: parseInt(order.id, 10),
-                                            course_code: enrollment.course_code,
+                                            course_code: batchCode,
                                             source: "courier"
                                         });
                                     }}
@@ -346,6 +354,23 @@ export default function CertificateOrdersListPage() {
         });
         return map;
     }, [parentCourses]);
+
+    const uniqueCourseOptions = useMemo(() => {
+        if (!parentCourses) return [];
+        const seen = new Set<string>();
+        const options: { id: string; name: string; courseCode: string }[] = [];
+        parentCourses.forEach(course => {
+            if (!seen.has(course.course_name)) {
+                seen.add(course.course_name);
+                options.push({ 
+                    id: String(course.id), 
+                    name: course.course_name, 
+                    courseCode: course.course_code ? course.course_code.trim() : String(course.id) 
+                });
+            }
+        });
+        return options;
+    }, [parentCourses]);
     
     const queryClient = useQueryClient();
     const { mutate: updateCourses, isPending: isUpdating } = useMutation({
@@ -383,9 +408,14 @@ export default function CertificateOrdersListPage() {
         }
 
         if (courseFilter !== 'all') {
-            result = result.filter(order => 
-                order.course_code.split(',').map(s => s.trim()).includes(courseFilter)
-            );
+            const selectedOpt = uniqueCourseOptions.find(o => o.id === courseFilter || o.courseCode === courseFilter);
+            result = result.filter(order => {
+                const orderCodes = order.course_code.split(',').map(s => s.trim());
+                return orderCodes.some(cCode => 
+                    cCode === courseFilter || 
+                    (selectedOpt && (cCode === selectedOpt.id || cCode === selectedOpt.courseCode))
+                );
+            });
         }
 
         return [...result].sort((a, b) => parseInt(b.id, 10) - parseInt(a.id, 10));
@@ -696,8 +726,8 @@ export default function CertificateOrdersListPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Courses</SelectItem>
-                                    {Array.from(courseNameMap.entries()).map(([id, name]) => (
-                                        <SelectItem key={id} value={id}>{name}</SelectItem>
+                                    {uniqueCourseOptions.map((course) => (
+                                        <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>

@@ -113,7 +113,10 @@ export const CertificateLayout = ({
     
     if (template.template_json) {
       try {
-        const parsed = JSON.parse(template.template_json);
+        let parsed = typeof template.template_json === 'string' ? JSON.parse(template.template_json) : template.template_json;
+        if (typeof parsed === 'string') {
+          parsed = JSON.parse(parsed);
+        }
         dynamicElements = parsed.elements || [];
         templatePageSize = parsed.pageSize || 'A4';
       } catch (e) {
@@ -163,8 +166,34 @@ export const CertificateLayout = ({
                 .replace(/\[Student ID\]/g, studentIndex)
                 .replace(/{{ISSUED_DATE}}/g, formattedDate)
                 .replace(/\[Issued Date\]/g, formattedDate)
+                .replace(/{{COMPLETED_DATE}}/g, formattedDate)
+                .replace(/{{DURATION}}/g, '6 Months')
+                .replace(/{{GRADE}}/g, 'B')
+                .replace(/{{TRANSCRIPT_REF_ID}}/g, `TRNS/${studentIndex}/${batchCode || 'CPCC'}/${certificateId}`)
                 .replace(/{{BATCH}}/g, batchCode || '')
                 .replace(/\[Batch\]/g, batchCode || '');
+            }
+
+            if (el.type === 'image') {
+              return (
+                <div 
+                  key={el.id}
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                  style={{
+                    left: `${el.x}%`,
+                    top: `${el.y}%`,
+                    width: `${el.width || 22}%`,
+                  }}
+                >
+                  {el.content && (
+                    <img 
+                      src={el.content} 
+                      alt="Signature" 
+                      className="w-full h-auto object-contain max-h-32 border-none bg-transparent outline-none shadow-none"
+                    />
+                  )}
+                </div>
+              );
             }
 
             if (el.type === 'qr_code') {
@@ -193,6 +222,8 @@ export const CertificateLayout = ({
               el.fontWeight === 'bold' ? 'font-bold' :
               el.fontWeight === 'semibold' ? 'font-semibold' : 'font-normal';
 
+            const isModuleListKeyword = displayText && (displayText.includes('{{MODULE_LIST}}') || displayText.includes('{{RESULTS_TABLE}}') || displayText.includes('[Module List]'));
+
             return (
               <div 
                 key={el.id}
@@ -200,22 +231,36 @@ export const CertificateLayout = ({
                 style={{
                   left: `${el.x}%`,
                   top: `${el.y}%`,
-                  width: `${el.width || 90}%`,
                   textAlign: el.align,
+                  width: `${el.width || 90}%`,
+                  maxWidth: '100%'
                 }}
               >
-                <div 
-                  className={weightClass}
-                  style={{
-                    fontSize: `${el.fontSize}px`,
-                    fontFamily: getFontFamilyStyle(el.fontFamily),
-                    color: el.color || '#000000',
-                    whiteSpace: 'pre-wrap',
-                    lineHeight: 1.2
-                  }}
-                >
-                  {displayText}
-                </div>
+                {isModuleListKeyword ? (
+                  <div className="w-full text-left font-sans space-y-1 text-gray-900 my-1">
+                    <div className="font-bold text-xs text-gray-900 mb-1.5">Module Name</div>
+                    <ul className="space-y-1 text-[11px] text-gray-800 list-disc list-inside font-medium leading-relaxed">
+                      <li>CPP 101 - Introduction to Pharmaceuticals & Pharmacy Practice</li>
+                      <li>CPP 102 - Prescription Reading & Pharmaceutical Calculations</li>
+                      <li>CPP 103 - Pharmaceutical Dosage Forms & Drug Administration</li>
+                      <li>CPP 104 - Pharmaceutical Storage, Quality Assurance & Pharmacy Law</li>
+                      <li>CPP 105 - Therapeutics of Common Diseases</li>
+                    </ul>
+                  </div>
+                ) : (
+                  <div 
+                    className={weightClass}
+                    style={{
+                      fontSize: `${el.fontSize}px`,
+                      fontFamily: getFontFamilyStyle(el.fontFamily),
+                      color: el.color,
+                      whiteSpace: 'pre-wrap',
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {displayText}
+                  </div>
+                )}
               </div>
             );
           })}
