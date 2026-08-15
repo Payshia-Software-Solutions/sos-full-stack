@@ -160,7 +160,12 @@ const CertificateStatusCell = ({
         <div className="flex flex-col gap-3 min-w-[200px]">
             {courseIds.map(id => {
                 const cert = getGeneratedDoc(id);
-                const enrollment = Object.values(studentData.studentEnrollments).find(e => e.parent_course_id === id || e.course_code === id);
+                const enrollmentsList = Object.values(studentData?.studentEnrollments || {});
+                const enrollment = enrollmentsList.find(e => 
+                    String(e.parent_course_id) === String(id) || 
+                    String(e.course_code) === String(id) ||
+                    (courseCodeMap.has(String(e.parent_course_id)) && courseCodeMap.get(String(e.parent_course_id)) === id)
+                ) || enrollmentsList[0];
                 
                 // Individual Certificate Print URL logic (using new Designer printer route)
                 const courseIdKey = String(enrollment?.parent_course_id || id).trim();
@@ -225,15 +230,16 @@ const CertificateStatusCell = ({
                                     className="h-6 text-[10px] font-bold"
                                     onClick={() => {
                                         if (!user?.username) { toast({ variant: 'destructive', title: 'Auth Error' }); return; }
-                                        if (!enrollment) { toast({ variant: 'destructive', title: 'Enrollment not found' }); return; }
+                                        const pCourseId = enrollment?.parent_course_id || id;
+                                        const batchCode = enrollment?.course_code || id;
                                         generateCertMutation.mutate({
                                             student_number: order.created_by,
                                             print_status: "0",
                                             print_by: user.username,
                                             type: "Certificate",
-                                            parentCourseCode: parseInt(enrollment.parent_course_id, 10),
+                                            parentCourseCode: parseInt(pCourseId, 10) || 1,
                                             referenceId: parseInt(order.id, 10),
-                                            course_code: enrollment.course_code,
+                                            course_code: batchCode,
                                             source: "courier"
                                         });
                                     }}
