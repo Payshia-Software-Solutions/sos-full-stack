@@ -169,8 +169,10 @@ const CertificateStatusCell = ({
                     ? `/print/certificate/${cert.certificate_id}${parentCourseCode ? `?course_code=${parentCourseCode}` : ''}`
                     : '#';
 
-                // Individual Transcript Print URL logic
-                const transPrintUrl = `${LMS_API_URL}/transcript-templates/${enrollment?.parent_course_id || id}/print/${order.created_by}`;
+                // Individual Transcript Print URL logic (using new Visual Studio printer route)
+                const transPrintUrl = cert
+                    ? `/print/certificate/${cert.certificate_id}?doc_type=Transcript${parentCourseCode ? `&course_code=${parentCourseCode}` : ''}`
+                    : `${LMS_API_URL}/transcript-templates/${enrollment?.parent_course_id || id}/print/${order.created_by}`;
 
                 // Old Transcript Print URL logic
                 const oldTransBaseUrl = (enrollment?.parent_course_id || id) === '1'

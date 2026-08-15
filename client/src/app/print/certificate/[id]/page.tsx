@@ -73,21 +73,63 @@ export default function PrintCertificatePage() {
         return fetchedCourseData;
     }, [courseCodeParam, parentCourses, resolvedParentCourseId, fetchedCourseData]);
 
+    const docTypeParam = searchParams.get('doc_type') || 'Certificate';
+
     // Step 7: Resolve course_code for template lookup.
     const templateCourseCode = courseCodeParam || courseData?.course_code || null;
 
-    // Step 8: Fetch certificate template using the resolved course_code.
+    // Step 8: Fetch certificate/transcript template using resolved course_code.
     const { data: templateData } = useQuery({
-        queryKey: ['certificateTemplateForPrint', templateCourseCode],
-        queryFn: () => getCertificateTemplate(templateCourseCode!),
+        queryKey: ['documentTemplateForPrint', templateCourseCode, docTypeParam],
+        queryFn: async () => {
+            if (docTypeParam === 'Transcript') {
+                const courseObj = parentCourses?.find(c => c.course_code === templateCourseCode || String(c.id) === String(templateCourseCode));
+                const courseIdToFetch = courseObj ? String(courseObj.id) : templateCourseCode;
+                try {
+                    const transRes = await getTranscriptTemplate(courseIdToFetch!);
+                    if (transRes?.success && transRes?.template) {
+                        let parsedData: any = {};
+                        try {
+                            parsedData = typeof transRes.template.template_data === 'string' ? JSON.parse(transRes.template.template_data) : transRes.template.template_data;
+                        } catch (e) {}
+                        if (parsedData.elements && parsedData.elements.length > 0) {
+                            return {
+                                success: true,
+                                template: {
+                                    template_id: 1,
+                                    template_name: parsedData.template_name || 'Transcript',
+                                    left_margin: 0,
+                                    top_to_name: 0,
+                                    left_to_date: 0,
+                                    top_to_date: 0,
+                                    left_to_qr: 0,
+                                    top_to_qr: 0,
+                                    qr_width: 14,
+                                    is_active: parsedData.isActive !== false ? 1 : 0,
+                                    back_image: parsedData.backImage || '',
+                                    course_code: templateCourseCode!,
+                                    orientation: parsedData.orientation || 'Portrait',
+                                    template_json: JSON.stringify({
+                                        pageSize: parsedData.pageSize || 'A4',
+                                        orientation: parsedData.orientation || 'Portrait',
+                                        elements: parsedData.elements || []
+                                    })
+                                }
+                            };
+                        }
+                    }
+                } catch (e) {}
+            }
+            return getCertificateTemplate(templateCourseCode!);
+        },
         enabled: !!templateCourseCode,
     });
 
     useEffect(() => {
         if (!isLoadingCert && certData) {
-            document.title = `Certificate - ${certData.student_number}`;
+            document.title = `${docTypeParam} - ${certData.student_number}`;
         }
-    }, [isLoadingCert, certData]);
+    }, [isLoadingCert, certData, docTypeParam]);
 
     const handlePrint = () => {
         window.print();
