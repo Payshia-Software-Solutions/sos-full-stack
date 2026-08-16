@@ -21,7 +21,7 @@ import { FONT_LIST, getFontFamilyStyle, formatInlineText } from '@/components/pr
 // Type definitions for drag-and-drop template elements
 export interface DocumentElement {
     id: string;
-    type: 'title' | 'paragraph' | 'course_name' | 'student_name' | 'sentence' | 'qr_code' | 'info_block' | 'company_br' | 'image' | 'grading_scale' | 'divider';
+    type: 'title' | 'paragraph' | 'course_name' | 'student_name' | 'sentence' | 'qr_code' | 'info_block' | 'company_br' | 'image' | 'grading_scale' | 'divider' | 'student_grade';
     content: string;
     x: number; // percentage (0 - 100)
     y: number; // percentage (0 - 100)
@@ -287,12 +287,12 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                 { id: '3', type: 'paragraph', content: 'This is to certify that {{STUDENT_NAME}} has successfully completed the Certificate Course in Pharmaceuticals conducted by Ceylon Pharma College.', x: 50, y: 22, fontSize: 12, fontWeight: 'normal', color: '#1E293B', align: 'center', width: 90, fontFamily: 'Inter' },
                 { id: '4', type: 'sentence', content: '{{MODULE_LIST}}', x: 50, y: 40, fontSize: 11, fontWeight: 'normal', color: '#0F172A', align: 'left', width: 90, fontFamily: 'Inter' },
                 { id: '5', type: 'info_block', content: 'Candidate Name: {{STUDENT_NAME}}\nDuration: {{DURATION}}\nCompleted Date: {{COMPLETED_DATE}}\nStudent Number: {{STUDENT_ID}}\nCertificate Number: {{CERTIFICATE_ID}}', x: 24, y: 66, fontSize: 11, fontWeight: 'normal', color: '#000000', align: 'left', fontFamily: 'Inter' },
-                { id: '6', type: 'sentence', content: 'Grade: {{GRADE}}', x: 14, y: 80, fontSize: 20, fontWeight: 'bold', color: '#000000', align: 'left', fontFamily: 'Inter' },
+                { id: '6', type: 'student_grade', content: 'Final Grade : {{GRADE}}', x: 16, y: 80, fontSize: 18, fontWeight: 'bold', color: '#000000', align: 'left', fontFamily: 'Inter' },
                 { id: '7', type: 'image', content: 'https://content-provider.pharmacollege.lk/certificates/sample-signature.png', x: 80, y: 66, fontSize: 16, fontWeight: 'normal', color: '#000000', align: 'center', width: 22 },
                 { id: '8', type: 'company_br', content: 'Dilip Fonseka,\nCourse Director', x: 80, y: 74, fontSize: 11, fontWeight: 'bold', color: '#000000', align: 'center', fontFamily: 'Inter' },
                 { id: '9', type: 'qr_code', content: '{{QR_CODE}}', x: 85, y: 84, fontSize: 14, fontWeight: 'normal', color: '#000000', align: 'right', fontFamily: 'Inter' },
                 { id: 'd2', type: 'divider', content: '', x: 50, y: 89, width: 90, strokeWidth: 1, color: '#000000', fontSize: 12, fontWeight: 'normal', align: 'center' },
-                { id: 'gs1', type: 'grading_scale', content: 'Grading Scale', x: 24, y: 94, fontSize: 10, fontWeight: 'normal', color: '#000000', align: 'left', width: 45, fontFamily: 'Inter' },
+                { id: 'gs1', type: 'grading_scale', content: "Percentage | Grade | Classification\n85–100 | A+ | Distinction\n75–84 | A | Excellent\n65–74 | B | Very Good\n55–64 | C | Good\n50–54 | D | Pass\nBelow 50 | F | Fail", x: 24, y: 94, fontSize: 10, fontWeight: 'normal', color: '#000000', align: 'left', width: 45, fontFamily: 'Inter' },
                 { id: '10', type: 'sentence', content: 'TRNS/253555/260815/CPCC29/CREF4623', x: 74, y: 97, fontSize: 8, fontWeight: 'normal', color: '#64748B', align: 'right', fontFamily: 'Inter' },
             ]);
             setOrientation('Portrait');
@@ -377,16 +377,23 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
             newEl.content = 'https://content-provider.pharmacollege.lk/certificates/sample-signature.png';
             newEl.width = 25;
         } else if (type === 'grading_scale') {
-            newEl.content = 'Grading Scale';
-            newEl.fontSize = 11;
+            newEl.content = "Percentage | Grade | Classification\n85–100 | A+ | Distinction\n75–84 | A | Excellent\n65–74 | B | Very Good\n55–64 | C | Good\n50–54 | D | Pass\nBelow 50 | F | Fail";
+            newEl.fontSize = 10;
             newEl.fontWeight = 'normal';
             newEl.align = 'left';
-            newEl.width = 50;
+            newEl.width = 45;
             newEl.color = '#000000';
         } else if (type === 'divider') {
             newEl.content = '';
             newEl.width = 90;
             newEl.strokeWidth = 1;
+            newEl.color = '#000000';
+        } else if (type === 'student_grade') {
+            newEl.content = 'Final Grade : {{GRADE}}';
+            newEl.fontSize = 18;
+            newEl.fontWeight = 'bold';
+            newEl.align = 'left';
+            newEl.width = 40;
             newEl.color = '#000000';
         }
 
@@ -977,6 +984,9 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                             <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('divider')}>
                                 <Plus className="h-3 w-3 mr-1"/> Horizontal Line
                             </Button>
+                            <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('student_grade')}>
+                                <Plus className="h-3 w-3 mr-1"/> Student Grade
+                            </Button>
                         </div>
                     </div>
 
@@ -1400,36 +1410,62 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                                                                 }}
                                                             />
                                                         </div>
-                                                    ) : el.type === 'grading_scale' ? (
-                                                        <div 
-                                                            className="w-full text-left font-sans space-y-1 select-none pointer-events-none"
-                                                            style={{
-                                                                fontSize: `${el.fontSize * 0.71}px`,
-                                                                fontFamily: getFontFamilyStyle(el.fontFamily),
-                                                                color: el.color || '#000000',
-                                                                lineHeight: el.lineHeight || 1.3
-                                                            }}
-                                                        >
-                                                            <div className="font-bold text-[11px] mb-1" style={{ color: el.color || '#000000' }}>Grading Scale</div>
-                                                            <table className="w-full text-[9px] border-collapse font-sans text-left" style={{ color: el.color || '#000000' }}>
-                                                                <thead>
-                                                                    <tr className="border-b border-gray-400 font-bold">
-                                                                        <th className="py-0.5 pr-3 font-bold">Percentage</th>
-                                                                        <th className="py-0.5 pr-3 font-bold">Grade</th>
-                                                                        <th className="py-0.5 font-bold">Classification</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody className="divide-y divide-gray-200">
-                                                                    <tr><td className="py-0.5 pr-3">85–100</td><td className="py-0.5 pr-3 font-bold">A+</td><td className="py-0.5">Distinction</td></tr>
-                                                                    <tr><td className="py-0.5 pr-3">75–84</td><td className="py-0.5 pr-3 font-bold">A</td><td className="py-0.5">Excellent</td></tr>
-                                                                    <tr><td className="py-0.5 pr-3">65–74</td><td className="py-0.5 pr-3 font-bold">B</td><td className="py-0.5">Very Good</td></tr>
-                                                                    <tr><td className="py-0.5 pr-3">55–64</td><td className="py-0.5 pr-3 font-bold">C</td><td className="py-0.5">Good</td></tr>
-                                                                    <tr><td className="py-0.5 pr-3">50–54</td><td className="py-0.5 pr-3 font-bold">D</td><td className="py-0.5">Pass</td></tr>
-                                                                    <tr><td className="py-0.5 pr-3">Below 50</td><td className="py-0.5 pr-3 font-bold">F</td><td className="py-0.5">Fail</td></tr>
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    ) : isModuleListKeyword ? (
+                                                    ) : el.type === 'grading_scale' ? (() => {
+                                                        const defaultRows = [
+                                                            ['Percentage', 'Grade', 'Classification'],
+                                                            ['85–100', 'A+', 'Distinction'],
+                                                            ['75–84', 'A', 'Excellent'],
+                                                            ['65–74', 'B', 'Very Good'],
+                                                            ['55–64', 'C', 'Good'],
+                                                            ['50–54', 'D', 'Pass'],
+                                                            ['Below 50', 'F', 'Fail']
+                                                        ];
+                                                        let scaleRows = defaultRows;
+                                                        if (el.content && el.content !== 'Grading Scale' && el.content.trim() !== '') {
+                                                            const lines = el.content.split('\n').filter((l: string) => l.trim() !== '');
+                                                            if (lines.length > 0) {
+                                                                scaleRows = lines.map((line: string) => {
+                                                                    if (line.includes('|')) return line.split('|').map((c: string) => c.trim());
+                                                                    if (line.includes('\t')) return line.split('\t').map((c: string) => c.trim());
+                                                                    if (line.includes(',')) return line.split(',').map((c: string) => c.trim());
+                                                                    return [line.trim()];
+                                                                });
+                                                            }
+                                                        }
+                                                        const headerRow = scaleRows[0] || ['Percentage', 'Grade', 'Classification'];
+                                                        const bodyRows = scaleRows.slice(1);
+
+                                                        return (
+                                                            <div 
+                                                                className="w-full text-left font-sans space-y-1 select-none pointer-events-none"
+                                                                style={{
+                                                                    fontSize: `${el.fontSize * 0.71}px`,
+                                                                    fontFamily: getFontFamilyStyle(el.fontFamily),
+                                                                    color: el.color || '#000000',
+                                                                    lineHeight: el.lineHeight || 1.3
+                                                                }}
+                                                            >
+                                                                <table className="w-full text-[9px] border-collapse font-sans text-left" style={{ color: el.color || '#000000' }}>
+                                                                    <thead>
+                                                                        <tr className="border-b border-gray-400 font-bold">
+                                                                            {headerRow.map((col: string, idx: number) => (
+                                                                                <th key={idx} className="py-0.5 pr-3 font-bold">{col}</th>
+                                                                            ))}
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody className="divide-y divide-gray-200">
+                                                                        {bodyRows.map((row: string[], rIdx: number) => (
+                                                                            <tr key={rIdx}>
+                                                                                {row.map((cell: string, cIdx: number) => (
+                                                                                    <td key={cIdx} className={`py-0.5 pr-3 ${cIdx === 1 ? 'font-bold' : ''}`}>{cell}</td>
+                                                                                ))}
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        );
+                                                    })() : isModuleListKeyword ? (
                                                         <div className="w-full text-left font-sans space-y-1 text-gray-900 my-1">
                                                             <div className="font-bold text-xs text-gray-900 mb-1.5">Module Name</div>
                                                             <ul className="space-y-1 text-[11px] text-gray-800 list-disc list-inside font-medium leading-relaxed">
@@ -1804,13 +1840,13 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                                                     )}
                                                 </div>
                                             </div>
-                                            {selectedElement.type === 'info_block' || selectedElement.type === 'sentence' || selectedElement.type === 'paragraph' ? (
+                                            {selectedElement.type === 'info_block' || selectedElement.type === 'sentence' || selectedElement.type === 'paragraph' || selectedElement.type === 'grading_scale' ? (
                                                 <textarea
                                                     id="elContent"
                                                     value={selectedElement.content}
                                                     onChange={(e) => updateSelectedElement({ content: e.target.value })}
-                                                    className="w-full text-xs border border-gray-800 rounded p-2 min-h-[160px] bg-gray-950 text-white font-sans focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
-                                                    placeholder="Type content or module list..."
+                                                    className="w-full text-xs border border-gray-800 rounded p-2 min-h-[160px] bg-gray-950 text-white font-mono focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                                                    placeholder={selectedElement.type === 'grading_scale' ? "Percentage | Grade | Classification\n85–100 | A+ | Distinction\n75–84 | A | Excellent" : "Type content or module list..."}
                                                 />
                                             ) : (
                                                 <Input 
@@ -2148,7 +2184,18 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                                     </Button>
                                 </div>
 
-                                {docType === 'Transcript' && (
+                                {selectedElement.type === 'grading_scale' ? (
+                                    <Button 
+                                        type="button" 
+                                        size="sm" 
+                                        onClick={() => updateSelectedElement({ 
+                                            content: "Percentage | Grade | Classification\n85–100 | A+ | Distinction\n75–84 | A | Excellent\n65–74 | B | Very Good\n55–64 | C | Good\n50–54 | D | Pass\nBelow 50 | F | Fail" 
+                                        })}
+                                        className="h-7 text-[11px] bg-emerald-900/40 hover:bg-emerald-800/60 text-emerald-300 border border-emerald-700/60 font-medium flex items-center gap-1"
+                                    >
+                                        Insert Default Table Rows
+                                    </Button>
+                                ) : docType === 'Transcript' && (
                                     <div className="flex items-center gap-2 text-xs">
                                         <button 
                                             type="button" 
@@ -2173,10 +2220,12 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
 
                             <textarea 
                                 id="modalTextarea"
-                                value={selectedElement.content}
+                                value={selectedElement.type === 'grading_scale' && (!selectedElement.content || selectedElement.content === 'Grading Scale') ? 
+                                    "Percentage | Grade | Classification\n85–100 | A+ | Distinction\n75–84 | A | Excellent\n65–74 | B | Very Good\n55–64 | C | Good\n50–54 | D | Pass\nBelow 50 | F | Fail" : selectedElement.content
+                                }
                                 onChange={(e) => updateSelectedElement({ content: e.target.value })}
-                                className="w-full h-56 p-3 bg-gray-900 border border-gray-800 rounded-md text-sm text-white font-sans focus:ring-1 focus:ring-primary focus:outline-none leading-relaxed"
-                                placeholder="Enter content or module list lines..."
+                                className="w-full h-56 p-3 bg-gray-900 border border-gray-800 rounded-md text-sm text-white font-mono focus:ring-1 focus:ring-primary focus:outline-none leading-relaxed"
+                                placeholder={selectedElement.type === 'grading_scale' ? "Percentage | Grade | Classification\n85–100 | A+ | Distinction\n75–84 | A | Excellent" : "Enter content or module list lines..."}
                             />
                         </div>
 
