@@ -246,6 +246,30 @@ export const CertificateLayout = ({
             }
 
             if (el.type === 'grading_scale') {
+              const defaultRows = [
+                ['Percentage', 'Grade', 'Classification'],
+                ['85–100', 'A+', 'Distinction'],
+                ['75–84', 'A', 'Excellent'],
+                ['65–74', 'B', 'Very Good'],
+                ['55–64', 'C', 'Good'],
+                ['50–54', 'D', 'Pass'],
+                ['Below 50', 'F', 'Fail']
+              ];
+              let scaleRows = defaultRows;
+              if (el.content && el.content !== 'Grading Scale' && el.content.trim() !== '') {
+                const lines = el.content.split('\n').filter((l: string) => l.trim() !== '');
+                if (lines.length > 0) {
+                  scaleRows = lines.map((line: string) => {
+                    if (line.includes('|')) return line.split('|').map((c: string) => c.trim());
+                    if (line.includes('\t')) return line.split('\t').map((c: string) => c.trim());
+                    if (line.includes(',')) return line.split(',').map((c: string) => c.trim());
+                    return [line.trim()];
+                  });
+                }
+              }
+              const headerRow = scaleRows[0] || ['Percentage', 'Grade', 'Classification'];
+              const bodyRows = scaleRows.slice(1);
+
               return (
                 <div 
                   key={el.id}
@@ -264,22 +288,22 @@ export const CertificateLayout = ({
                       color: el.color || '#000000',
                     }}
                   >
-                    <div className="font-bold text-xs mb-1" style={{ color: el.color || '#000000' }}>Grading Scale</div>
                     <table className="w-full text-[10px] border-collapse font-sans text-left" style={{ color: el.color || '#000000' }}>
                       <thead>
                         <tr className="border-b border-gray-400 font-bold">
-                          <th className="py-0.5 pr-4 font-bold">Percentage</th>
-                          <th className="py-0.5 pr-4 font-bold">Grade</th>
-                          <th className="py-0.5 font-bold">Classification</th>
+                          {headerRow.map((col: string, idx: number) => (
+                            <th key={idx} className="py-0.5 pr-4 font-bold">{col}</th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
-                        <tr><td className="py-0.5 pr-4">85–100</td><td className="py-0.5 pr-4 font-bold">A+</td><td className="py-0.5">Distinction</td></tr>
-                        <tr><td className="py-0.5 pr-4">75–84</td><td className="py-0.5 pr-4 font-bold">A</td><td className="py-0.5">Excellent</td></tr>
-                        <tr><td className="py-0.5 pr-4">65–74</td><td className="py-0.5 pr-4 font-bold">B</td><td className="py-0.5">Very Good</td></tr>
-                        <tr><td className="py-0.5 pr-4">55–64</td><td className="py-0.5 pr-4 font-bold">C</td><td className="py-0.5">Good</td></tr>
-                        <tr><td className="py-0.5 pr-4">50–54</td><td className="py-0.5 pr-4 font-bold">D</td><td className="py-0.5">Pass</td></tr>
-                        <tr><td className="py-0.5 pr-4">Below 50</td><td className="py-0.5 pr-4 font-bold">F</td><td className="py-0.5">Fail</td></tr>
+                        {bodyRows.map((row: string[], rIdx: number) => (
+                          <tr key={rIdx}>
+                            {row.map((cell: string, cIdx: number) => (
+                              <td key={cIdx} className={`py-0.5 pr-4 ${cIdx === 1 ? 'font-bold' : ''}`}>{cell}</td>
+                            ))}
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
