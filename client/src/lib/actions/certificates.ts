@@ -448,3 +448,48 @@ export const saveCertificateTemplate = async (payload: any): Promise<any> => {
     }
     return response.json();
 };
+
+export const getCertificatePrintStatusById = async (certificateId: string): Promise<UserCertificatePrintStatus | null> => {
+    if (!certificateId) return null;
+    
+    // 1. Try fetching by certificate_id parameter
+    try {
+        const response = await fetch(`${QA_API_BASE_URL}/user_certificate_print_status/?certificateId=${encodeURIComponent(certificateId)}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                return data[0];
+            }
+            if (data && !data.error && data.id) {
+                return data;
+            }
+        }
+    } catch (e) {}
+
+    // 2. Try fetching by studentNumber parameter
+    try {
+        const response = await fetch(`${QA_API_BASE_URL}/user_certificate_print_status/?studentNumber=${encodeURIComponent(certificateId)}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                return data[0];
+            }
+            if (data && !data.error && data.id) {
+                return data;
+            }
+        }
+    } catch (e) {}
+
+    // 3. Fallback: Try fetching by direct record ID endpoint
+    try {
+        const directRes = await fetch(`${QA_API_BASE_URL}/user_certificate_print_status/${encodeURIComponent(certificateId)}`);
+        if (directRes.ok) {
+            const directData = await directRes.json();
+            if (directData && !directData.error && directData.id) {
+                return directData;
+            }
+        }
+    } catch (e) {}
+
+    return null;
+};
