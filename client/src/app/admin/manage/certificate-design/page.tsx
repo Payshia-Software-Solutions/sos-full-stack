@@ -10,17 +10,18 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Save, Move, Image as ImageIcon, Eye, Plus, Trash2, AlignLeft, AlignCenter, AlignRight, Type, Check, ExternalLink, FileText, Award } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Loader2, Save, Move, Image as ImageIcon, Eye, Plus, Trash2, AlignLeft, AlignCenter, AlignRight, Type, Check, ExternalLink, FileText, Award, Edit3, Maximize2, Bold, Italic } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { getParentCourses } from '@/lib/actions/courses';
 import { getCertificateTemplate, saveCertificateTemplate } from '@/lib/actions/certificates';
 import { getTranscriptTemplate, saveTranscriptTemplate } from '@/lib/actions/transcripts';
-import { FONT_LIST, getFontFamilyStyle } from '@/components/print/CertificateLayout';
+import { FONT_LIST, getFontFamilyStyle, formatInlineText } from '@/components/print/CertificateLayout';
 
 // Type definitions for drag-and-drop template elements
 export interface DocumentElement {
     id: string;
-    type: 'title' | 'paragraph' | 'course_name' | 'student_name' | 'sentence' | 'qr_code' | 'info_block' | 'company_br' | 'image';
+    type: 'title' | 'paragraph' | 'course_name' | 'student_name' | 'sentence' | 'qr_code' | 'info_block' | 'company_br' | 'image' | 'grading_scale' | 'divider';
     content: string;
     x: number; // percentage (0 - 100)
     y: number; // percentage (0 - 100)
@@ -29,8 +30,10 @@ export interface DocumentElement {
     color: string;
     align: 'left' | 'center' | 'right';
     width?: number;
+    lineHeight?: number;
     fontFamily?: string;
     imageUrl?: string;
+    strokeWidth?: number;
 }
 
 // Helpers to convert percentage coordinates (0-100%) to/from Physical Centimeters (cm)
@@ -77,6 +80,7 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
     const [backImage, setBackImage] = useState<string>('');
     const [orientation, setOrientation] = useState<'Landscape' | 'Portrait'>('Landscape');
     const [pageSize, setPageSize] = useState<'A4' | 'Letter'>('A4');
+    const [isTextModalOpen, setIsTextModalOpen] = useState(false);
     const [elements, setElements] = useState<DocumentElement[]>([]);
     const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
     const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
@@ -166,8 +170,16 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                 if (t.template_json) {
                     try {
                         const parsed = JSON.parse(t.template_json);
-                        setElements(parsed.elements || []);
-                        setPageSize(parsed.pageSize || 'A4');
+                        const hasTranscriptElements = parsed.elements && parsed.elements.some((el: any) => 
+                            (el.content && el.content.includes('ACADEMIC TRANSCRIPT')) || 
+                            (el.content && el.content.includes('{{MODULE_LIST}}'))
+                        );
+                        if (hasTranscriptElements) {
+                            loadDefaultElements('Certificate');
+                        } else {
+                            setElements(parsed.elements || []);
+                            setPageSize(parsed.pageSize || 'A4');
+                        }
                     } catch (e) {
                         loadLegacyElements(t);
                     }
@@ -269,17 +281,19 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
     const loadDefaultElements = (type: 'Certificate' | 'Transcript') => {
         if (type === 'Transcript') {
             setElements([
-                { id: '1', type: 'title', content: 'ACADEMIC TRANSCRIPT', x: 50, y: 8, fontSize: 24, fontWeight: 'bold', color: '#000000', align: 'center', fontFamily: 'Inter' },
-                { id: '2', type: 'course_name', content: '{{COURSE_NAME}}', x: 50, y: 14, fontSize: 18, fontWeight: 'bold', color: '#000000', align: 'center', fontFamily: 'Inter' },
-                { id: '3', type: 'paragraph', content: 'This is to certify that {{STUDENT_NAME}} has successfully completed the Certificate Course in Pharmaceuticals conducted by Ceylon Pharma College.', x: 50, y: 22, fontSize: 12, fontWeight: 'normal', color: '#1E293B', align: 'center', width: 92, fontFamily: 'Inter' },
+                { id: '1', type: 'title', content: 'ACADEMIC TRANSCRIPT', x: 50, y: 7, fontSize: 22, fontWeight: 'bold', color: '#000000', align: 'center', fontFamily: 'Inter' },
+                { id: '2', type: 'course_name', content: '{{COURSE_NAME}}', x: 50, y: 12, fontSize: 16, fontWeight: 'bold', color: '#000000', align: 'center', fontFamily: 'Inter' },
+                { id: 'd1', type: 'divider', content: '', x: 50, y: 16, width: 90, strokeWidth: 1, color: '#000000', fontSize: 12, fontWeight: 'normal', align: 'center' },
+                { id: '3', type: 'paragraph', content: 'This is to certify that {{STUDENT_NAME}} has successfully completed the Certificate Course in Pharmaceuticals conducted by Ceylon Pharma College.', x: 50, y: 22, fontSize: 12, fontWeight: 'normal', color: '#1E293B', align: 'center', width: 90, fontFamily: 'Inter' },
                 { id: '4', type: 'sentence', content: '{{MODULE_LIST}}', x: 50, y: 40, fontSize: 11, fontWeight: 'normal', color: '#0F172A', align: 'left', width: 90, fontFamily: 'Inter' },
-                { id: '5', type: 'info_block', content: 'Candidate Name: {{STUDENT_NAME}}\nDuration: {{DURATION}}\nCompleted Date: {{COMPLETED_DATE}}\nStudent Number: {{STUDENT_ID}}\nCertificate Number: {{CERTIFICATE_ID}}', x: 24, y: 68, fontSize: 11, fontWeight: 'normal', color: '#000000', align: 'left', fontFamily: 'Inter' },
-                { id: '6', type: 'sentence', content: 'Grade: {{GRADE}}', x: 14, y: 82, fontSize: 20, fontWeight: 'bold', color: '#000000', align: 'left', fontFamily: 'Inter' },
+                { id: '5', type: 'info_block', content: 'Candidate Name: {{STUDENT_NAME}}\nDuration: {{DURATION}}\nCompleted Date: {{COMPLETED_DATE}}\nStudent Number: {{STUDENT_ID}}\nCertificate Number: {{CERTIFICATE_ID}}', x: 24, y: 66, fontSize: 11, fontWeight: 'normal', color: '#000000', align: 'left', fontFamily: 'Inter' },
+                { id: '6', type: 'sentence', content: 'Grade: {{GRADE}}', x: 14, y: 80, fontSize: 20, fontWeight: 'bold', color: '#000000', align: 'left', fontFamily: 'Inter' },
                 { id: '7', type: 'image', content: 'https://content-provider.pharmacollege.lk/certificates/sample-signature.png', x: 80, y: 66, fontSize: 16, fontWeight: 'normal', color: '#000000', align: 'center', width: 22 },
                 { id: '8', type: 'company_br', content: 'Dilip Fonseka,\nCourse Director', x: 80, y: 74, fontSize: 11, fontWeight: 'bold', color: '#000000', align: 'center', fontFamily: 'Inter' },
                 { id: '9', type: 'qr_code', content: '{{QR_CODE}}', x: 85, y: 84, fontSize: 14, fontWeight: 'normal', color: '#000000', align: 'right', fontFamily: 'Inter' },
-                { id: '10', type: 'sentence', content: 'TRNS/253555/260815/CPCC29/CREF4623', x: 26, y: 92, fontSize: 9, fontWeight: 'normal', color: '#64748B', align: 'left', fontFamily: 'Inter' },
-                { id: '11', type: 'sentence', content: 'Grade Scale: A+ (90-100), A (80-89), A- (75-79), B+ (70-74), B (65-69), B- (60-64), C+ (55-59), C (45-54), C- (40-44), D+ (35-39), D (30-34), E (0-29)', x: 50, y: 96, fontSize: 8, fontWeight: 'normal', color: '#94A3B8', align: 'center', width: 95, fontFamily: 'Inter' },
+                { id: 'd2', type: 'divider', content: '', x: 50, y: 89, width: 90, strokeWidth: 1, color: '#000000', fontSize: 12, fontWeight: 'normal', align: 'center' },
+                { id: 'gs1', type: 'grading_scale', content: 'Grading Scale', x: 24, y: 94, fontSize: 10, fontWeight: 'normal', color: '#000000', align: 'left', width: 45, fontFamily: 'Inter' },
+                { id: '10', type: 'sentence', content: 'TRNS/253555/260815/CPCC29/CREF4623', x: 74, y: 97, fontSize: 8, fontWeight: 'normal', color: '#64748B', align: 'right', fontFamily: 'Inter' },
             ]);
             setOrientation('Portrait');
         } else {
@@ -362,6 +376,18 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
         } else if (type === 'image') {
             newEl.content = 'https://content-provider.pharmacollege.lk/certificates/sample-signature.png';
             newEl.width = 25;
+        } else if (type === 'grading_scale') {
+            newEl.content = 'Grading Scale';
+            newEl.fontSize = 11;
+            newEl.fontWeight = 'normal';
+            newEl.align = 'left';
+            newEl.width = 50;
+            newEl.color = '#000000';
+        } else if (type === 'divider') {
+            newEl.content = '';
+            newEl.width = 90;
+            newEl.strokeWidth = 1;
+            newEl.color = '#000000';
         }
 
         setElements(prev => [...prev, newEl]);
@@ -815,6 +841,25 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                             </SelectContent>
                         </Select>
                         
+                        <Select 
+                            value={String(selectedElement.lineHeight || 1.3)} 
+                            onValueChange={(val: string) => updateSelectedElement({ lineHeight: parseFloat(val) })}
+                        >
+                            <SelectTrigger className="w-24 h-8 bg-gray-950 border-gray-800 text-xs text-white" title="Line Spacing / Height">
+                                <span className="text-[10px] text-gray-400 mr-1">Line:</span>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-900 border-gray-800 text-white">
+                                <SelectItem value="0.9">0.9 Tight</SelectItem>
+                                <SelectItem value="1.0">1.0 Single</SelectItem>
+                                <SelectItem value="1.2">1.2 Normal</SelectItem>
+                                <SelectItem value="1.3">1.3 Default</SelectItem>
+                                <SelectItem value="1.5">1.5 Relaxed</SelectItem>
+                                <SelectItem value="1.8">1.8 Wide</SelectItem>
+                                <SelectItem value="2.0">2.0 Double</SelectItem>
+                            </SelectContent>
+                        </Select>
+
                         <div className="flex items-center gap-1.5 bg-gray-950 border border-gray-800 h-8 px-2 rounded">
                             <input 
                                 type="color" 
@@ -879,10 +924,11 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                     <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => docType === 'Certificate' ? refetchCertTemplate() : refetchTransTemplate()}
+                        onClick={() => loadDefaultElements(docType)}
                         className="h-8 text-xs border-gray-850 hover:bg-gray-850 text-gray-300"
+                        title="Reset canvas layout to default"
                     >
-                        Reset
+                        Reset Layout
                     </Button>
                     <Button 
                         onClick={handleSave} 
@@ -924,6 +970,12 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                             </Button>
                             <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('company_br')}>
                                 <Plus className="h-3 w-3 mr-1"/> Company BR
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('grading_scale')}>
+                                <Plus className="h-3 w-3 mr-1"/> Grading Scale
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('divider')}>
+                                <Plus className="h-3 w-3 mr-1"/> Horizontal Line
                             </Button>
                         </div>
                     </div>
@@ -1331,8 +1383,53 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                                                         maxWidth: '100%'
                                                     }}
                                                     onMouseDown={(e) => handleElementMouseDown(e, el)}
+                                                    onDoubleClick={() => {
+                                                        if (el.type !== 'image' && el.type !== 'qr_code') {
+                                                            setIsTextModalOpen(true);
+                                                        }
+                                                    }}
                                                 >
-                                                    {isModuleListKeyword ? (
+                                                    {el.type === 'divider' ? (
+                                                        <div className="w-full flex items-center justify-center py-1">
+                                                            <div 
+                                                                style={{
+                                                                    width: '100%',
+                                                                    height: `${el.strokeWidth || 1}px`,
+                                                                    backgroundColor: el.color || '#000000',
+                                                                    borderRadius: '1px'
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    ) : el.type === 'grading_scale' ? (
+                                                        <div 
+                                                            className="w-full text-left font-sans space-y-1 select-none pointer-events-none"
+                                                            style={{
+                                                                fontSize: `${el.fontSize * 0.71}px`,
+                                                                fontFamily: getFontFamilyStyle(el.fontFamily),
+                                                                color: el.color || '#000000',
+                                                                lineHeight: el.lineHeight || 1.3
+                                                            }}
+                                                        >
+                                                            <div className="font-bold text-[11px] mb-1" style={{ color: el.color || '#000000' }}>Grading Scale</div>
+                                                            <table className="w-full text-[9px] border-collapse font-sans text-left" style={{ color: el.color || '#000000' }}>
+                                                                <thead>
+                                                                    <tr className="border-b border-gray-400 font-bold">
+                                                                        <th className="py-0.5 pr-3 font-bold">Percentage</th>
+                                                                        <th className="py-0.5 pr-3 font-bold">Grade</th>
+                                                                        <th className="py-0.5 font-bold">Classification</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="divide-y divide-gray-200">
+                                                                    <tr><td className="py-0.5 pr-3">85–100</td><td className="py-0.5 pr-3 font-bold">A+</td><td className="py-0.5">Distinction</td></tr>
+                                                                    <tr><td className="py-0.5 pr-3">75–84</td><td className="py-0.5 pr-3 font-bold">A</td><td className="py-0.5">Excellent</td></tr>
+                                                                    <tr><td className="py-0.5 pr-3">65–74</td><td className="py-0.5 pr-3 font-bold">B</td><td className="py-0.5">Very Good</td></tr>
+                                                                    <tr><td className="py-0.5 pr-3">55–64</td><td className="py-0.5 pr-3 font-bold">C</td><td className="py-0.5">Good</td></tr>
+                                                                    <tr><td className="py-0.5 pr-3">50–54</td><td className="py-0.5 pr-3 font-bold">D</td><td className="py-0.5">Pass</td></tr>
+                                                                    <tr><td className="py-0.5 pr-3">Below 50</td><td className="py-0.5 pr-3 font-bold">F</td><td className="py-0.5">Fail</td></tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    ) : isModuleListKeyword ? (
                                                         <div className="w-full text-left font-sans space-y-1 text-gray-900 my-1">
                                                             <div className="font-bold text-xs text-gray-900 mb-1.5">Module Name</div>
                                                             <ul className="space-y-1 text-[11px] text-gray-800 list-disc list-inside font-medium leading-relaxed">
@@ -1351,10 +1448,10 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                                                                 fontFamily: getFontFamilyStyle(el.fontFamily),
                                                                 color: el.color,
                                                                 whiteSpace: 'pre-wrap',
-                                                                lineHeight: 1.2
+                                                                lineHeight: el.lineHeight || 1.3
                                                             }}
                                                         >
-                                                            {displayText}
+                                                            {formatInlineText(displayText)}
                                                         </div>
                                                     )}
 
@@ -1367,6 +1464,16 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                                                                 <div className="flex items-center px-1.5 gap-1 text-[8px] font-mono text-gray-400">
                                                                     <Move className="h-2 w-2"/> Move
                                                                 </div>
+                                                                {el.type !== 'image' && el.type !== 'qr_code' && el.type !== 'divider' && (
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={() => setIsTextModalOpen(true)}
+                                                                        className="px-1.5 py-0.5 text-[8px] hover:bg-gray-800 flex items-center gap-1 transition-colors text-primary font-semibold border-l border-gray-800"
+                                                                        title="Edit Text & Format Bold"
+                                                                    >
+                                                                        <Edit3 className="h-2.5 w-2.5"/> Edit Text
+                                                                    </button>
+                                                                )}
                                                                 <button 
                                                                     type="button"
                                                                     onClick={() => handleDuplicateElement(el.id)}
@@ -1651,36 +1758,58 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                                         <div className="space-y-1.5">
                                             <div className="flex justify-between items-center">
                                                 <Label htmlFor="elContent" className="text-xs text-gray-400">Content Text</Label>
-                                                {docType === 'Transcript' && (
-                                                    <div className="flex gap-1.5">
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => updateSelectedElement({ content: '{{MODULE_LIST}}' })}
-                                                            className="text-[9px] text-primary hover:underline font-mono"
-                                                            title="Reset to dynamic database variable"
-                                                        >
-                                                            Auto Variable
-                                                        </button>
-                                                        <span className="text-[9px] text-gray-600">|</span>
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => updateSelectedElement({ 
-                                                                content: `Module Name:\n• CPP 101 - Introduction to Pharmaceuticals & Pharmacy Practice\n• CPP 102 - Prescription Reading & Pharmaceutical Calculations\n• CPP 103 - Pharmaceutical Dosage Forms & Drug Administration\n• CPP 104 - Pharmaceutical Storage, Quality Assurance & Pharmacy Law\n• CPP 105 - Therapeutics of Common Diseases` 
-                                                            })}
-                                                            className="text-[9px] text-blue-400 hover:underline font-mono"
-                                                            title="Load editable sample lines"
-                                                        >
-                                                            Editable Text
-                                                        </button>
-                                                    </div>
-                                                )}
+                                                <div className="flex items-center gap-1.5">
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setIsTextModalOpen(true)}
+                                                        className="text-[10px] bg-gray-800 hover:bg-gray-750 text-gray-200 border border-gray-700 px-1.5 py-0.5 rounded flex items-center gap-1 transition-colors"
+                                                        title="Open spacious modal editor"
+                                                    >
+                                                        <Maximize2 className="h-2.5 w-2.5 text-primary"/> Expand
+                                                    </button>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => {
+                                                            const textarea = document.getElementById('elContent') as HTMLTextAreaElement;
+                                                            if (!textarea || !selectedElement) return;
+                                                            const start = textarea.selectionStart;
+                                                            const end = textarea.selectionEnd;
+                                                            const fullText = selectedElement.content || '';
+                                                            if (start !== undefined && end !== undefined && start !== end) {
+                                                                const selected = fullText.substring(start, end);
+                                                                const newText = fullText.substring(0, start) + `**${selected}**` + fullText.substring(end);
+                                                                updateSelectedElement({ content: newText });
+                                                                toast({ title: 'Bold Applied', description: `Wrapped "${selected}" in bold.` });
+                                                            } else {
+                                                                toast({ title: 'Selection Hint', description: 'Highlight text in the box below first, then click Bold.' });
+                                                            }
+                                                        }}
+                                                        className="text-[10px] bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 px-1.5 py-0.5 rounded font-bold transition-colors"
+                                                        title="Make highlighted text bold (**text**)"
+                                                    >
+                                                        ** Bold Selected
+                                                    </button>
+                                                    {docType === 'Transcript' && (
+                                                        <>
+                                                            <span className="text-[9px] text-gray-600">|</span>
+                                                            <button 
+                                                                type="button" 
+                                                                onClick={() => updateSelectedElement({ content: '{{MODULE_LIST}}' })}
+                                                                className="text-[9px] text-primary hover:underline font-mono"
+                                                                title="Reset to dynamic database variable"
+                                                            >
+                                                                Auto Variable
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
                                             {selectedElement.type === 'info_block' || selectedElement.type === 'sentence' || selectedElement.type === 'paragraph' ? (
                                                 <textarea
                                                     id="elContent"
                                                     value={selectedElement.content}
                                                     onChange={(e) => updateSelectedElement({ content: e.target.value })}
-                                                    className="w-full text-xs border border-gray-800 rounded p-2 min-h-[90px] bg-gray-950 text-white font-sans focus:outline-none focus:ring-1 focus:ring-primary"
+                                                    className="w-full text-xs border border-gray-800 rounded p-2 min-h-[160px] bg-gray-950 text-white font-sans focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
                                                     placeholder="Type content or module list..."
                                                 />
                                             ) : (
@@ -1798,7 +1927,9 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                                     {/* Width slider */}
                                     {selectedElement.type !== 'qr_code' && (
                                         <div className="space-y-2 border-t border-gray-800 pt-3">
-                                            <Label htmlFor="elWidth" className="text-xs text-gray-400">Wrap Width (%)</Label>
+                                            <Label htmlFor="elWidth" className="text-xs text-gray-400">
+                                                {selectedElement.type === 'divider' ? 'Line Length / Width (%)' : 'Wrap Width (%)'}
+                                            </Label>
                                             <div className="flex items-center gap-3">
                                                 <Slider
                                                     id="elWidth"
@@ -1810,6 +1941,37 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                                                     className="flex-1"
                                                 />
                                                 <span className="text-xs font-mono font-semibold text-gray-400 w-8 text-right">{selectedElement.width || 90}%</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Horizontal Line Controls (Stroke Weight & Color) */}
+                                    {selectedElement.type === 'divider' && (
+                                        <div className="space-y-3 border-t border-gray-800 pt-3">
+                                            <div className="space-y-1.5">
+                                                <div className="flex justify-between items-center">
+                                                    <Label htmlFor="strokeWidth" className="text-xs text-gray-400">Line Weight / Thickness (px)</Label>
+                                                    <span className="text-xs font-mono font-bold text-primary">{selectedElement.strokeWidth || 1}px</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <Slider
+                                                        id="strokeWidth"
+                                                        min={1}
+                                                        max={15}
+                                                        step={1}
+                                                        value={[selectedElement.strokeWidth || 1]}
+                                                        onValueChange={([val]) => updateSelectedElement({ strokeWidth: val })}
+                                                        className="flex-1"
+                                                    />
+                                                    <Input 
+                                                        type="number"
+                                                        min="1"
+                                                        max="20"
+                                                        value={selectedElement.strokeWidth || 1}
+                                                        onChange={(e) => updateSelectedElement({ strokeWidth: Math.max(1, parseInt(e.target.value) || 1) })}
+                                                        className="w-14 h-8 bg-gray-950 border-gray-800 text-xs font-mono text-center font-bold"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -1918,9 +2080,117 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                     )}
                 </div>
             </div>
+            {/* Modal Dialog for Spacious Text Editing */}
+            {selectedElement && (
+                <Dialog open={isTextModalOpen} onOpenChange={setIsTextModalOpen}>
+                    <DialogContent className="sm:max-w-[700px] bg-gray-950 border-gray-800 text-white shadow-2xl">
+                        <DialogHeader>
+                            <DialogTitle className="text-base font-semibold flex items-center justify-between">
+                                <span className="flex items-center gap-2">
+                                    <Edit3 className="h-4 w-4 text-primary"/> Edit Content & Inline Formatting
+                                </span>
+                                <span className="text-xs font-mono text-primary bg-primary/10 px-2.5 py-0.5 rounded uppercase border border-primary/20">
+                                    Type: {selectedElement.type}
+                                </span>
+                            </DialogTitle>
+                            <DialogDescription className="text-xs text-gray-400">
+                                Highlight text inside the box below and click <strong>** Bold Selection **</strong> to make specific words bold in real-time.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-3 py-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2 bg-gray-900 border border-gray-800 p-2 rounded-md">
+                                <div className="flex items-center gap-2">
+                                    <Button 
+                                        type="button" 
+                                        size="sm" 
+                                        onClick={() => {
+                                            const textarea = document.getElementById('modalTextarea') as HTMLTextAreaElement;
+                                            if (!textarea || !selectedElement) return;
+                                            const start = textarea.selectionStart;
+                                            const end = textarea.selectionEnd;
+                                            const fullText = selectedElement.content || '';
+                                            if (start !== undefined && end !== undefined && start !== end) {
+                                                const selected = fullText.substring(start, end);
+                                                const newText = fullText.substring(0, start) + `**${selected}**` + fullText.substring(end);
+                                                updateSelectedElement({ content: newText });
+                                                toast({ title: 'Bold Applied', description: `Wrapped "${selected}" in bold.` });
+                                            } else {
+                                                toast({ title: 'Highlight Text First', description: 'Select the words you want bold inside the box below.' });
+                                            }
+                                        }}
+                                        className="h-8 text-xs bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 font-bold flex items-center gap-1.5"
+                                    >
+                                        <Bold className="h-3.5 w-3.5"/> ** Bold Selection **
+                                    </Button>
+                                    <Button 
+                                        type="button" 
+                                        size="sm" 
+                                        variant="outline"
+                                        onClick={() => {
+                                            const textarea = document.getElementById('modalTextarea') as HTMLTextAreaElement;
+                                            if (!textarea || !selectedElement) return;
+                                            const start = textarea.selectionStart;
+                                            const end = textarea.selectionEnd;
+                                            const fullText = selectedElement.content || '';
+                                            if (start !== undefined && end !== undefined && start !== end) {
+                                                const selected = fullText.substring(start, end);
+                                                const newText = fullText.substring(0, start) + `*${selected}*` + fullText.substring(end);
+                                                updateSelectedElement({ content: newText });
+                                                toast({ title: 'Italic Applied', description: `Wrapped "${selected}" in italics.` });
+                                            } else {
+                                                toast({ title: 'Highlight Text First', description: 'Select the words you want italicized inside the box below.' });
+                                            }
+                                        }}
+                                        className="h-8 text-xs border-gray-800 hover:bg-gray-800 text-gray-300 italic font-serif flex items-center gap-1.5"
+                                    >
+                                        <Italic className="h-3.5 w-3.5"/> * Italic Selection *
+                                    </Button>
+                                </div>
+
+                                {docType === 'Transcript' && (
+                                    <div className="flex items-center gap-2 text-xs">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => updateSelectedElement({ content: '{{MODULE_LIST}}' })}
+                                            className="text-primary hover:underline font-mono"
+                                        >
+                                            Auto Variable
+                                        </button>
+                                        <span className="text-gray-700">|</span>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => updateSelectedElement({ 
+                                                content: `Module Name:\n• CPP 101 - Introduction to Pharmaceuticals & Pharmacy Practice\n• CPP 102 - Prescription Reading & Pharmaceutical Calculations\n• CPP 103 - Pharmaceutical Dosage Forms & Drug Administration\n• CPP 104 - Pharmaceutical Storage, Quality Assurance & Pharmacy Law\n• CPP 105 - Therapeutics of Common Diseases` 
+                                            })}
+                                            className="text-blue-400 hover:underline font-mono"
+                                        >
+                                            Editable Sample
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            <textarea 
+                                id="modalTextarea"
+                                value={selectedElement.content}
+                                onChange={(e) => updateSelectedElement({ content: e.target.value })}
+                                className="w-full h-56 p-3 bg-gray-900 border border-gray-800 rounded-md text-sm text-white font-sans focus:ring-1 focus:ring-primary focus:outline-none leading-relaxed"
+                                placeholder="Enter content or module list lines..."
+                            />
+                        </div>
+
+                        <DialogFooter>
+                            <Button onClick={() => setIsTextModalOpen(false)} className="bg-primary hover:bg-primary-hover text-white h-8 text-xs font-semibold px-4">
+                                Done & Apply
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
         </div>
     );
-}
+};
 
 export default function CertificateDesignPage() {
     return <UnifiedDocumentStudioPage initialDocType="Certificate" />;
