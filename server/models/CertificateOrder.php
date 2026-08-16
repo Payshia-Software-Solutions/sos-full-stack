@@ -10,9 +10,20 @@ class CertificateOrder
         $this->pdo = $pdo;
     }
 
+    private function ensureTrackingColumnsExist()
+    {
+        try {
+            $this->pdo->exec("ALTER TABLE `cc_certificate_order` ADD COLUMN `tracking_number` VARCHAR(255) NULL AFTER `certificate_status`");
+        } catch (Exception $e) {}
+        try {
+            $this->pdo->exec("ALTER TABLE `cc_certificate_order` ADD COLUMN `courier_service` VARCHAR(100) NULL AFTER `tracking_number`");
+        } catch (Exception $e) {}
+    }
+
     // Read all certificate orders
     public function getAllOrders()
     {
+        $this->ensureTrackingColumnsExist();
         $sql = "SELECT 
             o.`id`, 
             o.`created_by`, 
@@ -29,6 +40,8 @@ class CertificateOrder
             o.`package_id`, 
             o.`certificate_id`, 
             o.`certificate_status`, 
+            o.`tracking_number`,
+            o.`courier_service`,
             o.`advanced_id`, 
             o.`advanced_id_status`, 
             o.`cod_amount`, 
@@ -45,7 +58,7 @@ class CertificateOrder
         LEFT JOIN 
             `user_full_details` u ON o.`created_by` = u.`username`
         ORDER BY 
-            o.`id`;
+            o.`id` DESC;
         ";
         $stmt = $this->pdo->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -204,5 +217,13 @@ class CertificateOrder
     {
         $stmt = $this->pdo->prepare("UPDATE cc_certificate_order SET course_code = ? WHERE id = ?");
         return $stmt->execute([$courses, $orderId]);
+    }
+
+    // Update certificate order status and tracking details
+    public function updateOrderStatus($orderId, $status, $trackingNumber = null, $courierService = null)
+    {
+        $this->ensureTrackingColumnsExist();
+        $stmt = $this->pdo->prepare("UPDATE cc_certificate_order SET certificate_status = ?, tracking_number = ?, courier_service = ? WHERE id = ?");
+        return $stmt->execute([$status, $trackingNumber, $courierService, $orderId]);
     }
 }

@@ -24,6 +24,33 @@ export const FONT_LIST = [
   { value: "Bradley Hand ITC", label: "Bradley Hand ITC (Script)", family: "'Bradley Hand', 'Bradley Hand ITC', 'Caveat', cursive" },
 ];
 
+export const formatInlineText = (rawText: string) => {
+  if (!rawText) return '';
+  const parts: (string | JSX.Element)[] = [];
+  let lastIndex = 0;
+  const regex = /(\*\*(.*?)\*\*|<b>(.*?)<\/b>|<strong>(.*?)<\/strong>)/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(rawText)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(rawText.substring(lastIndex, match.index));
+    }
+    const boldContent = match[2] || match[3] || match[4] || '';
+    parts.push(
+      <strong key={match.index} className="font-bold">
+        {boldContent}
+      </strong>
+    );
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < rawText.length) {
+    parts.push(rawText.substring(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : rawText;
+};
+
 export const getFontFamilyStyle = (fontFamily?: string) => {
   if (!fontFamily) return "'Inter', sans-serif";
   const found = FONT_LIST.find(f => f.value === fontFamily);
@@ -196,6 +223,70 @@ export const CertificateLayout = ({
               );
             }
 
+            if (el.type === 'divider') {
+              return (
+                <div 
+                  key={el.id}
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                  style={{
+                    left: `${el.x}%`,
+                    top: `${el.y}%`,
+                    width: `${el.width || 90}%`,
+                  }}
+                >
+                  <div 
+                    style={{
+                      width: '100%',
+                      height: `${(el as any).strokeWidth || 1}px`,
+                      backgroundColor: el.color || '#000000',
+                    }}
+                  />
+                </div>
+              );
+            }
+
+            if (el.type === 'grading_scale') {
+              return (
+                <div 
+                  key={el.id}
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                  style={{
+                    left: `${el.x}%`,
+                    top: `${el.y}%`,
+                    width: `${el.width || 60}%`,
+                  }}
+                >
+                  <div 
+                    className="w-full text-left font-sans space-y-1"
+                    style={{
+                      fontSize: `${el.fontSize || 10}px`,
+                      fontFamily: getFontFamilyStyle(el.fontFamily),
+                      color: el.color || '#000000',
+                    }}
+                  >
+                    <div className="font-bold text-xs mb-1" style={{ color: el.color || '#000000' }}>Grading Scale</div>
+                    <table className="w-full text-[10px] border-collapse font-sans text-left" style={{ color: el.color || '#000000' }}>
+                      <thead>
+                        <tr className="border-b border-gray-400 font-bold">
+                          <th className="py-0.5 pr-4 font-bold">Percentage</th>
+                          <th className="py-0.5 pr-4 font-bold">Grade</th>
+                          <th className="py-0.5 font-bold">Classification</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        <tr><td className="py-0.5 pr-4">85–100</td><td className="py-0.5 pr-4 font-bold">A+</td><td className="py-0.5">Distinction</td></tr>
+                        <tr><td className="py-0.5 pr-4">75–84</td><td className="py-0.5 pr-4 font-bold">A</td><td className="py-0.5">Excellent</td></tr>
+                        <tr><td className="py-0.5 pr-4">65–74</td><td className="py-0.5 pr-4 font-bold">B</td><td className="py-0.5">Very Good</td></tr>
+                        <tr><td className="py-0.5 pr-4">55–64</td><td className="py-0.5 pr-4 font-bold">C</td><td className="py-0.5">Good</td></tr>
+                        <tr><td className="py-0.5 pr-4">50–54</td><td className="py-0.5 pr-4 font-bold">D</td><td className="py-0.5">Pass</td></tr>
+                        <tr><td className="py-0.5 pr-4">Below 50</td><td className="py-0.5 pr-4 font-bold">F</td><td className="py-0.5">Fail</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            }
+
             if (el.type === 'qr_code') {
               return (
                 <div 
@@ -255,10 +346,10 @@ export const CertificateLayout = ({
                       fontFamily: getFontFamilyStyle(el.fontFamily),
                       color: el.color,
                       whiteSpace: 'pre-wrap',
-                      lineHeight: 1.2
+                      lineHeight: el.lineHeight || 1.3
                     }}
                   >
-                    {displayText}
+                    {formatInlineText(displayText)}
                   </div>
                 )}
               </div>
