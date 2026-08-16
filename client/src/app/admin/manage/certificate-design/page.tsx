@@ -102,25 +102,12 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
         queryFn: getParentCourses,
     });
 
-    // Fetch template for selected course & docType
-    const { data: certTemplateResp, isLoading: isLoadingCertTemplate, refetch: refetchCertTemplate } = useQuery({
-        queryKey: ['certificateTemplate', selectedCourseCode],
-        queryFn: () => getCertificateTemplate(selectedCourseCode),
-        enabled: !!selectedCourseCode && docType === 'Certificate',
+    // Fetch template for selected course & docType strictly from certificate_template table
+    const { data: templateResponse, isLoading: isLoadingTemplate } = useQuery({
+        queryKey: ['certificateTemplate', selectedCourseCode, docType],
+        queryFn: () => getCertificateTemplate(selectedCourseCode, docType),
+        enabled: !!selectedCourseCode,
     });
-
-    const { data: transTemplateResp, isLoading: isLoadingTransTemplate, refetch: refetchTransTemplate } = useQuery({
-        queryKey: ['transcriptTemplate', selectedCourseCode],
-        queryFn: () => {
-            const courseObj = courses?.find((c: any) => c.course_code === selectedCourseCode || String(c.id) === String(selectedCourseCode));
-            const courseIdToFetch = courseObj ? String(courseObj.id) : selectedCourseCode;
-            return getTranscriptTemplate(courseIdToFetch);
-        },
-        enabled: !!selectedCourseCode && docType === 'Transcript',
-    });
-
-    const isLoadingTemplate = docType === 'Certificate' ? isLoadingCertTemplate : isLoadingTransTemplate;
-    const templateResponse = docType === 'Certificate' ? certTemplateResp : transTemplateResp;
 
     const handleCourseChange = (courseCode: string) => {
         setSelectedCourseCode(courseCode);
@@ -130,7 +117,7 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
         mutationFn: saveCertificateTemplate,
         onSuccess: (data) => {
             if (data.success) {
-                toast({ title: 'Success', description: 'Certificate template saved successfully!' });
+                toast({ title: 'Success', description: `${docType} template saved successfully!` });
                 queryClient.invalidateQueries({ queryKey: ['certificateTemplate', selectedCourseCode] });
             } else {
                 toast({ variant: 'destructive', title: 'Error', description: data.error || 'Failed to save certificate template.' });
@@ -189,24 +176,13 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
             } else {
                 // Transcript loading
                 let parsedData: any = {};
-                let foundTemplate = false;
 
                 if (t.template_data) {
                     try {
                         parsedData = typeof t.template_data === 'string' ? JSON.parse(t.template_data) : t.template_data;
-                        foundTemplate = true;
                     } catch (e) {
                         parsedData = {};
                     }
-                }
-
-                // Fallback to certificate_template table if transcript_templates table returned empty
-                if (!foundTemplate && certTemplateResp?.success && certTemplateResp?.template?.template_json) {
-                    try {
-                        parsedData = JSON.parse(certTemplateResp.template.template_json);
-                        t.back_image = certTemplateResp.template.back_image;
-                        t.orientation = certTemplateResp.template.orientation;
-                    } catch (e) {}
                 }
 
                 setTemplateName(parsedData.template_name || `Transcript for ${selectedCourseCode}`);
@@ -607,64 +583,28 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
         const courseObj = courses?.find((c: any) => c.course_code === selectedCourseCode || String(c.id) === String(selectedCourseCode));
         const courseId = courseObj ? String(courseObj.id) : selectedCourseCode;
 
-        if (docType === 'Certificate') {
-            const payload = {
-                course_code: selectedCourseCode,
-                template_name: templateName || `Certificate for ${selectedCourseCode}`,
-                left_margin: 0,
-                top_to_name,
-                left_to_date,
-                top_to_date,
-                left_to_qr,
-                top_to_qr,
-                qr_width,
-                is_active: isActive ? 1 : 0,
-                back_image: backImage,
-                orientation: orientation,
-                template_json: JSON.stringify({
-                    docType: 'Certificate',
-                    pageSize,
-                    orientation,
-                    elements
-                })
-            };
-            saveCertMutation.mutate(payload);
-        } else {
-            const templateData = {
-                docType: 'Transcript',
-                template_name: templateName || `Transcript for ${selectedCourseCode}`,
+        const payload = {
+            course_code: selectedCourseCode,
+            docType: docType,
+            template_name: templateName || `${docType} for ${selectedCourseCode}`,
+            left_margin: 0,
+            top_to_name,
+            left_to_date,
+            top_to_date,
+            left_to_qr,
+            top_to_qr,
+            qr_width,
+            is_active: isActive ? 1 : 0,
+            back_image: backImage,
+            orientation: orientation,
+            template_json: JSON.stringify({
+                docType,
                 pageSize,
                 orientation,
-                backImage,
-                isActive,
                 elements
-            };
-            // Save to transcript_templates table
-            saveTransMutation.mutate({ courseId, templateData });
-
-            // ALSO save to certificate_template table as dual fallback
-            const certPayload = {
-                course_code: selectedCourseCode,
-                template_name: templateName || `Transcript for ${selectedCourseCode}`,
-                left_margin: 0,
-                top_to_name,
-                left_to_date,
-                top_to_date,
-                left_to_qr,
-                top_to_qr,
-                qr_width,
-                is_active: isActive ? 1 : 0,
-                back_image: backImage,
-                orientation: orientation,
-                template_json: JSON.stringify({
-                    docType: 'Transcript',
-                    pageSize,
-                    orientation,
-                    elements
-                })
-            };
-            saveCertMutation.mutate(certPayload);
-        }
+            })
+        };
+        saveCertMutation.mutate(payload);
     };
 
     const selectedElement = elements.find(el => el.id === selectedElementId);

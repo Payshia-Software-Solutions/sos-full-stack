@@ -4,10 +4,10 @@
 import { useEffect, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { getStudentDetailsByUsername } from '@/lib/actions/users';
+import { getStudentDetailsByUsername, getStudentEnrollments } from '@/lib/actions/users';
 import { getBatchByCode, getParentCourseById, getParentCourses } from '@/lib/actions/courses';
 import { getCertificatePrintStatusById, getCertificateTemplate } from '@/lib/actions/certificates';
-import type { UserFullDetails, ParentCourse, UserCertificatePrintStatus, ApiCourse } from '@/lib/types';
+import type { UserFullDetails, ParentCourse, UserCertificatePrintStatus, ApiCourse, StudentEnrollmentInfo } from '@/lib/types';
 import { CertificateLayout } from '@/components/print/CertificateLayout';
 import { Button } from '@/components/ui/button';
 import { Printer, Loader2 } from 'lucide-react';
@@ -73,7 +73,7 @@ export default function PrintCertificatePage() {
             print_status: '1',
             print_by: 'Admin',
             type: docTypeParam,
-            parent_course_id: courseCodeParam || ''
+            parent_course_id: ''
         };
     }, [certData, certificateId, courseCodeParam, searchParams, docTypeParam]);
 
@@ -84,6 +84,13 @@ export default function PrintCertificatePage() {
         enabled: !!effectiveCertData.student_number,
     });
 
+    // Step 3.5: Fetch student course enrollments to resolve exact batch code (e.g. CPCC31)
+    const { data: studentEnrollments } = useQuery<StudentEnrollmentInfo[]>({
+        queryKey: ['studentEnrollmentsForCert', effectiveCertData.student_number],
+        queryFn: () => getStudentEnrollments(effectiveCertData.student_number),
+        enabled: !!effectiveCertData.student_number,
+    });
+
     // Step 4: Fetch all parent courses for fast in-memory course resolution.
     const { data: parentCourses } = useQuery<ParentCourse[]>({
         queryKey: ['allParentCourses'],
@@ -91,81 +98,81 @@ export default function PrintCertificatePage() {
         staleTime: 5 * 60 * 1000,
     });
 
-    // Step 5: Fetch batch details if parent_course_id is missing from certData and no param provided.
+    // Step 5: Fetch batch details when course_code is a batch code (e.g. CPCC31) to resolve parent course
     const { data: batchData } = useQuery<ApiCourse>({
         queryKey: ['batchDataForCert', effectiveCertData.course_code],
-        queryFn: () => getBatchByCode(effectiveCertData.course_code),
-        enabled: !!effectiveCertData.course_code && !effectiveCertData.parent_course_id && !courseCodeParam,
+        queryFn: async () => {
+            try {
+                return await getBatchByCode(effectiveCertData.course_code);
+            } catch (e) {
+                return null as any;
+            }
+        },
+        enabled: !!effectiveCertData.course_code,
     });
 
-    const resolvedParentCourseId = effectiveCertData.parent_course_id || batchData?.parent_course_id;
+    const resolvedParentCourseId = (certData && certData.parent_course_id) ? certData.parent_course_id : batchData?.parent_course_id;
 
     // Step 6: Fallback fetch for individual parent course if not found in list.
     const { data: fetchedCourseData } = useQuery<ParentCourse>({
         queryKey: ['parentCourseDataForCert', resolvedParentCourseId],
         queryFn: () => getParentCourseById(String(resolvedParentCourseId)),
-        enabled: !!resolvedParentCourseId && !courseCodeParam,
+        enabled: !!resolvedParentCourseId,
     });
 
-    // Step 7: Resolve final courseData object.
+    // Step 7: Resolve final parent courseData object.
     const courseData: ParentCourse | undefined = useMemo(() => {
-        if (courseCodeParam && parentCourses) {
-            const matched = parentCourses.find(c => c.course_code === courseCodeParam || String(c.id) === String(courseCodeParam));
-            if (matched) return matched;
+        const codeToMatch = courseCodeParam || effectiveCertData.course_code;
+        // 1. Try matching parent course directly with courseCodeParam or effectiveCertData.course_code (e.g. CS0005)
+        if (parentCourses && codeToMatch) {
+            const matchedDirect = parentCourses.find(c => c.course_code === codeToMatch || String(c.id) === String(codeToMatch));
+            if (matchedDirect) return matchedDirect;
         }
+        // 2. Try matching using parent_course_id from batchData (e.g. batch CPCC29 -> parent_course_id = 1 -> CS0005)
         if (resolvedParentCourseId && parentCourses) {
-            const matched = parentCourses.find(c => String(c.id) === String(resolvedParentCourseId) || c.course_code === String(resolvedParentCourseId));
-            if (matched) return matched;
+            const matchedParent = parentCourses.find(c => String(c.id) === String(resolvedParentCourseId) || c.course_code === String(resolvedParentCourseId));
+            if (matchedParent) return matchedParent;
         }
-        return fetchedCourseData;
-    }, [courseCodeParam, parentCourses, resolvedParentCourseId, fetchedCourseData]);
+        // 3. Fallback to fetchedCourseData or first parentCourse in list
+        return fetchedCourseData || (parentCourses && parentCourses.length > 0 ? parentCourses[0] : undefined);
+    }, [parentCourses, courseCodeParam, effectiveCertData.course_code, resolvedParentCourseId, fetchedCourseData]);
 
-    // Step 8: Resolve course_code for template lookup.
-    const templateCourseCode = courseCodeParam || effectiveCertData.course_code || courseData?.course_code || null;
+    // Step 8: Resolve parent course_code (e.g. CS0005) for template lookup.
+    const templateCourseCode = courseData?.course_code || courseCodeParam || effectiveCertData.course_code || null;
 
-    // Step 9: Fetch certificate/transcript template using resolved course_code.
+    // Step 8.5: Resolve exact student batch code (e.g. CPCC31) for QR Code URL
+    const effectiveBatchCode = useMemo(() => {
+        if (effectiveCertData.course_code && !effectiveCertData.course_code.startsWith('CS')) {
+            return effectiveCertData.course_code;
+        }
+        if (studentEnrollments && studentEnrollments.length > 0) {
+            const targetParentId = courseData?.id || resolvedParentCourseId;
+            const matched = studentEnrollments.find(e => 
+                (targetParentId && String((e as any).parent_course_id) === String(targetParentId)) ||
+                (e.course_code && !e.course_code.startsWith('CS'))
+            );
+            if (matched && matched.course_code) {
+                return matched.course_code;
+            }
+            if (studentEnrollments[0].course_code) {
+                return studentEnrollments[0].course_code;
+            }
+        }
+        return effectiveCertData.course_code;
+    }, [effectiveCertData.course_code, studentEnrollments, courseData, resolvedParentCourseId]);
+
+    // Step 9: Fetch certificate/transcript template from certificate_template table
     const { data: templateData } = useQuery({
         queryKey: ['documentTemplateForPrint', templateCourseCode, docTypeParam],
         queryFn: async () => {
-            if (docTypeParam === 'Transcript') {
-                const courseObj = parentCourses?.find(c => c.course_code === templateCourseCode || String(c.id) === String(templateCourseCode));
-                const courseIdToFetch = courseObj ? String(courseObj.id) : templateCourseCode;
-                try {
-                    const transRes = await getTranscriptTemplate(courseIdToFetch!);
-                    if (transRes?.success && transRes?.template) {
-                        let parsedData: any = {};
-                        try {
-                            parsedData = typeof transRes.template.template_data === 'string' ? JSON.parse(transRes.template.template_data) : transRes.template.template_data;
-                        } catch (e) {}
-                        if (parsedData.elements && parsedData.elements.length > 0) {
-                            return {
-                                success: true,
-                                template: {
-                                    template_id: 1,
-                                    template_name: parsedData.template_name || 'Transcript',
-                                    left_margin: 0,
-                                    top_to_name: 0,
-                                    left_to_date: 0,
-                                    top_to_date: 0,
-                                    left_to_qr: 0,
-                                    top_to_qr: 0,
-                                    qr_width: 14,
-                                    is_active: parsedData.isActive !== false ? 1 : 0,
-                                    back_image: parsedData.backImage || '',
-                                    course_code: templateCourseCode!,
-                                    orientation: parsedData.orientation || 'Portrait',
-                                    template_json: JSON.stringify({
-                                        pageSize: parsedData.pageSize || 'A4',
-                                        orientation: parsedData.orientation || 'Portrait',
-                                        elements: parsedData.elements || []
-                                    })
-                                }
-                            };
-                        }
-                    }
-                } catch (e) {}
+            try {
+                const res = await getCertificateTemplate(templateCourseCode!, docTypeParam);
+                if (res?.success && res?.template) {
+                    return res;
+                }
+            } catch (e) {}
 
-                // Default Transcript Template layout if no database transcript exists yet
+            if (docTypeParam === 'Transcript') {
                 return {
                     success: true,
                     template: {
@@ -191,44 +198,20 @@ export default function PrintCertificatePage() {
                 };
             }
 
-            // Fetch Certificate Template
-            const certRes = await getCertificateTemplate(templateCourseCode!);
-            if (certRes?.success && certRes?.template) {
-                const t = certRes.template;
-                if (t.template_json) {
-                    try {
-                        const parsed = JSON.parse(t.template_json);
-                        const hasTranscriptElements = parsed.elements && parsed.elements.some((el: any) => 
-                            (el.content && el.content.includes('ACADEMIC TRANSCRIPT')) || 
-                            (el.content && el.content.includes('{{MODULE_LIST}}'))
-                        );
-                        if (hasTranscriptElements) {
-                            t.template_json = JSON.stringify({
-                                pageSize: 'A4',
-                                orientation: 'Landscape',
-                                elements: DEFAULT_CERTIFICATE_ELEMENTS
-                            });
-                        }
-                    } catch (e) {}
-                }
-                return certRes;
-            }
-
-            // Default Certificate Template layout
             return {
                 success: true,
                 template: {
                     template_id: 1,
-                    template_name: 'Certificate of Completion',
+                    template_name: 'Default Certificate',
                     left_margin: 0,
-                    top_to_name: 0,
-                    left_to_date: 0,
-                    top_to_date: 0,
-                    left_to_qr: 0,
-                    top_to_qr: 0,
+                    top_to_name: 304,
+                    left_to_date: 22,
+                    top_to_date: 672,
+                    left_to_qr: 8,
+                    top_to_qr: 656,
                     qr_width: 14,
                     is_active: 1,
-                    back_image: 'https://content-provider.pharmacollege.lk/certificates/certificate-bg-standard.png',
+                    back_image: '',
                     course_code: templateCourseCode!,
                     orientation: 'Landscape',
                     template_json: JSON.stringify({
@@ -281,7 +264,7 @@ export default function PrintCertificatePage() {
                         issueDate={effectiveCertData.print_date}
                         certificateId={effectiveCertData.certificate_id}
                         courseData={courseData}
-                        batchCode={effectiveCertData.course_code}
+                        batchCode={effectiveBatchCode}
                         template={templateData?.success ? templateData.template : null}
                     />
                 </div>

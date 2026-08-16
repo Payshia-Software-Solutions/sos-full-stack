@@ -11,8 +11,22 @@ class CertificateTemplateController {
 
     public function getTemplate($courseCode) {
         try {
-            $stmt = $this->pdo->prepare("SELECT * FROM certificate_template WHERE course_code = ?");
-            $stmt->execute([$courseCode]);
+            $docType = $_GET['doc_type'] ?? 'Certificate';
+
+            if (strtoupper($docType) === 'TRANSCRIPT') {
+                $stmt = $this->pdo->prepare("SELECT * FROM certificate_template WHERE (course_code = ? OR course_code = ?) AND (template_name LIKE '%Transcript%' OR template_json LIKE '%Transcript%' OR course_code LIKE '%TRANSCRIPT%') ORDER BY template_id DESC LIMIT 1");
+                $stmt->execute([$courseCode, $courseCode . '_TRANSCRIPT']);
+            } else {
+                $stmt = $this->pdo->prepare("SELECT * FROM certificate_template WHERE course_code = ? AND template_name NOT LIKE '%Transcript%' AND (template_json NOT LIKE '%Transcript%' OR template_json IS NULL) ORDER BY template_id DESC LIMIT 1");
+                $stmt->execute([$courseCode]);
+                
+                // Fallback if no specific cert record found
+                if (!$stmt->rowCount()) {
+                    $stmt = $this->pdo->prepare("SELECT * FROM certificate_template WHERE course_code = ? ORDER BY template_id ASC LIMIT 1");
+                    $stmt->execute([$courseCode]);
+                }
+            }
+
             $template = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($template) {
@@ -33,7 +47,7 @@ class CertificateTemplateController {
         }
         $data = json_decode($jsonInput);
         
-        $courseCode = $data->course_code ?? null;
+        $rawCourseCode = $data->course_code ?? null;
         $templateName = $data->template_name ?? null;
         $leftMargin = isset($data->left_margin) ? intval($data->left_margin) : 0;
         $topToName = isset($data->top_to_name) ? intval($data->top_to_name) : 0;
@@ -45,77 +59,153 @@ class CertificateTemplateController {
         $isActive = isset($data->is_active) ? intval($data->is_active) : 1;
         $backImage = $data->back_image ?? '';
         $orientation = $data->orientation ?? 'Landscape';
+        $docType = $data->docType ?? $data->doc_type ?? null;
+
+        if (!$docType && $templateName && strpos(strtolower($templateName), 'transcript') !== false) {
+            $docType = 'Transcript';
+        }
+        if (!$docType) {
+            $docType = 'Certificate';
+        }
+
         $templateJson = null;
         if (isset($data->template_json)) {
             $templateJson = is_string($data->template_json) ? $data->template_json : json_encode($data->template_json);
         }
 
-        if (!$courseCode) {
+        if (!$rawCourseCode) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Missing course_code']);
             return;
         }
 
-        if (!$templateName) {
-            $templateName = "Template for " . $courseCode;
-        }
+        $cleanCourseCode = str_replace('_TRANSCRIPT', '', $rawCourseCode);
 
         try {
-            // Check if exists
-            $stmt = $this->pdo->prepare("SELECT template_id FROM certificate_template WHERE course_code = ?");
-            $stmt->execute([$courseCode]);
-            $exists = $stmt->fetch();
+            if ($docType === 'Transcript') {
+                $dbCourseCode = $cleanCourseCode . '_TRANSCRIPT';
+                if (!$templateName) {
+                    $templateName = "Transcript for " . $cleanCourseCode;
+                }
 
-            if ($exists) {
-                $templateId = $exists['template_id'];
-                $updateStmt = $this->pdo->prepare("UPDATE certificate_template SET 
-                    template_name = ?, 
-                    left_margin = ?, 
-                    top_to_name = ?, 
-                    left_to_date = ?, 
-                    top_to_date = ?, 
-                    left_to_qr = ?, 
-                    top_to_qr = ?, 
-                    qr_width = ?, 
-                    is_active = ?, 
-                    back_image = ?, 
-                    orientation = ?,
-                    template_json = ? 
-                    WHERE template_id = ?");
-                $updateStmt->execute([
-                    $templateName, 
-                    $leftMargin, 
-                    $topToName, 
-                    $leftToDate, 
-                    $topToDate, 
-                    $leftToQr, 
-                    $topToQr, 
-                    $qrWidth, 
-                    $isActive, 
-                    $backImage, 
-                    $orientation, 
-                    $templateJson,
-                    $templateId
-                ]);
+                $stmt = $this->pdo->prepare("SELECT template_id FROM certificate_template WHERE (course_code = ? OR course_code = ?) AND (template_name LIKE '%Transcript%' OR template_json LIKE '%Transcript%' OR course_code LIKE '%TRANSCRIPT%') LIMIT 1");
+                $stmt->execute([$cleanCourseCode, $dbCourseCode]);
+                $exists = $stmt->fetch();
+
+                if ($exists) {
+                    $templateId = $exists['template_id'];
+                    $updateStmt = $this->pdo->prepare("UPDATE certificate_template SET 
+                        template_name = ?, 
+                        left_margin = ?, 
+                        top_to_name = ?, 
+                        left_to_date = ?, 
+                        top_to_date = ?, 
+                        left_to_qr = ?, 
+                        top_to_qr = ?, 
+                        qr_width = ?, 
+                        is_active = ?, 
+                        back_image = ?, 
+                        course_code = ?,
+                        orientation = ?,
+                        template_json = ? 
+                        WHERE template_id = ?");
+                    $updateStmt->execute([
+                        $templateName, 
+                        $leftMargin, 
+                        $topToName, 
+                        $leftToDate, 
+                        $topToDate, 
+                        $leftToQr, 
+                        $topToQr, 
+                        $qrWidth, 
+                        $isActive, 
+                        $backImage, 
+                        $dbCourseCode,
+                        $orientation, 
+                        $templateJson,
+                        $templateId
+                    ]);
+                } else {
+                    $insertStmt = $this->pdo->prepare("INSERT INTO certificate_template 
+                        (template_name, left_margin, top_to_name, left_to_date, top_to_date, left_to_qr, top_to_qr, qr_width, is_active, back_image, course_code, orientation, template_json) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $insertStmt->execute([
+                        $templateName, 
+                        $leftMargin, 
+                        $topToName, 
+                        $leftToDate, 
+                        $topToDate, 
+                        $leftToQr, 
+                        $topToQr, 
+                        $qrWidth, 
+                        $isActive, 
+                        $backImage, 
+                        $dbCourseCode, 
+                        $orientation,
+                        $templateJson
+                    ]);
+                }
             } else {
-                $insertStmt = $this->pdo->prepare("INSERT INTO certificate_template 
-                    (template_name, left_margin, top_to_name, left_to_date, top_to_date, left_to_qr, top_to_qr, qr_width, is_active, back_image, course_code, orientation, template_json) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $insertStmt->execute([
-                    $templateName, 
-                    $leftMargin, 
-                    $topToName, 
-                    $leftToDate, 
-                    $topToDate, 
-                    $leftToQr, 
-                    $topToQr, 
-                    $qrWidth, 
-                    $isActive, 
-                    $backImage, 
-                    $courseCode, 
-                    $orientation,
-                    $templateJson
-                ]);
+                $dbCourseCode = $cleanCourseCode;
+                if (!$templateName) {
+                    $templateName = "Certificate for " . $cleanCourseCode;
+                }
+
+                $stmt = $this->pdo->prepare("SELECT template_id FROM certificate_template WHERE course_code = ? AND template_name NOT LIKE '%Transcript%' AND (template_json NOT LIKE '%Transcript%' OR template_json IS NULL) LIMIT 1");
+                $stmt->execute([$dbCourseCode]);
+                $exists = $stmt->fetch();
+
+                if ($exists) {
+                    $templateId = $exists['template_id'];
+                    $updateStmt = $this->pdo->prepare("UPDATE certificate_template SET 
+                        template_name = ?, 
+                        left_margin = ?, 
+                        top_to_name = ?, 
+                        left_to_date = ?, 
+                        top_to_date = ?, 
+                        left_to_qr = ?, 
+                        top_to_qr = ?, 
+                        qr_width = ?, 
+                        is_active = ?, 
+                        back_image = ?, 
+                        orientation = ?,
+                        template_json = ? 
+                        WHERE template_id = ?");
+                    $updateStmt->execute([
+                        $templateName, 
+                        $leftMargin, 
+                        $topToName, 
+                        $leftToDate, 
+                        $topToDate, 
+                        $leftToQr, 
+                        $topToQr, 
+                        $qrWidth, 
+                        $isActive, 
+                        $backImage, 
+                        $orientation, 
+                        $templateJson,
+                        $templateId
+                    ]);
+                } else {
+                    $insertStmt = $this->pdo->prepare("INSERT INTO certificate_template 
+                        (template_name, left_margin, top_to_name, left_to_date, top_to_date, left_to_qr, top_to_qr, qr_width, is_active, back_image, course_code, orientation, template_json) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $insertStmt->execute([
+                        $templateName, 
+                        $leftMargin, 
+                        $topToName, 
+                        $leftToDate, 
+                        $topToDate, 
+                        $leftToQr, 
+                        $topToQr, 
+                        $qrWidth, 
+                        $isActive, 
+                        $backImage, 
+                        $dbCourseCode, 
+                        $orientation,
+                        $templateJson
+                    ]);
+                }
             }
 
             echo json_encode(['success' => true, 'message' => 'Template saved successfully']);

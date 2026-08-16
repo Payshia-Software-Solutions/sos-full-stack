@@ -426,9 +426,9 @@ export const generateCertificate = async (payload: GenerateCertificatePayload): 
     return response.json();
 };
 
-export const getCertificateTemplate = async (courseCode: string): Promise<any> => {
+export const getCertificateTemplate = async (courseCode: string, docType: string = 'Certificate'): Promise<any> => {
     if (!courseCode) return { success: false, message: 'No course code provided' };
-    const response = await fetch(`${QA_API_BASE_URL}/certificate-templates/${courseCode}`);
+    const response = await fetch(`${QA_API_BASE_URL}/certificate-templates/${courseCode}?doc_type=${docType}`);
     if (!response.ok) {
         throw new Error('Failed to fetch certificate template');
     }
