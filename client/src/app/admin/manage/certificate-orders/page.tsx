@@ -1,20 +1,35 @@
 "use client";
 
 import { LMS_API_URL } from "@/lib/config";
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { getCertificateOrders, updateCertificateOrderCourses, deleteCertificateOrder, generateCertificate, getUserCertificatePrintStatus } from '@/lib/actions/certificates';
+import { 
+    getCertificateOrders, 
+    updateCertificateOrderCourses, 
+    updateCertificateOrderStatus, 
+    deleteCertificateOrder, 
+    generateCertificate, 
+    getUserCertificatePrintStatus 
+} from '@/lib/actions/certificates';
 import { getStudentFullInfo, getStudentBalance } from '@/lib/actions/users';
 import { getParentCourses } from '@/lib/actions/courses';
-import type { CertificateOrder, FullStudentData, UpdateCertificateOrderCoursesPayload, UserCertificatePrintStatus, GenerateCertificatePayload, StudentBalanceData, ParentCourse } from '@/lib/types';
+import type { 
+    CertificateOrder, 
+    FullStudentData, 
+    UserCertificatePrintStatus, 
+    GenerateCertificatePayload 
+} from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, CheckCircle, Loader2, XCircle, Search, Wallet, FileDown, Phone, Home, Mail, User, ListOrdered, Award, Copy, Trash2, Printer, Sparkles, ScrollText, FileText, ExternalLink, FileCheck } from 'lucide-react';
+import { 
+    AlertTriangle, CheckCircle, Loader2, XCircle, Search, FileDown, Phone, Home, Mail, User, 
+    ListOrdered, Award, Copy, Trash2, Printer, Sparkles, ScrollText, FileText, ExternalLink, 
+    Eye, Truck, Check, Clock, PackageCheck, AlertCircle
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
@@ -36,12 +51,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -53,284 +62,87 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { format } from 'date-fns';
 
-const ITEMS_PER_PAGE = 25;
 const CONTENT_PROVIDER_URL = process.env.NEXT_PUBLIC_CONTENT_PROVIDER_URL || 'https://content-provider.pharmacollege.lk';
 
-// --- Cell component to check and display convocation status ---
-const fetchConvocationStatus = async (studentNumber: string) => {
-    if (!studentNumber) return null;
-    try {
-        const baseUrl = LMS_API_URL;
-        const response = await fetch(`${baseUrl}/convocation-registrations/get-records-student-number/${studentNumber}`);
-        if (response.status === 404) {
-            return null;
-        }
-        if (!response.ok) {
-            throw new Error('Failed to fetch status');
-        }
-        const data = await response.json();
-        return data && data.registration_id ? data : null;
-    } catch (error) {
-        console.error(`Failed to fetch convocation status for ${studentNumber}:`, error);
-        throw error;
-    }
-};
-
-const ConvocationStatusCell = ({ studentNumber }: { studentNumber: string }) => {
-    const { data, isLoading, isError } = useQuery({
-        queryKey: ['convocationStatus', studentNumber],
-        queryFn: () => fetchConvocationStatus(studentNumber),
-        retry: (failureCount, error: any) => {
-            if (error?.message?.includes('404')) return false;
-            return failureCount < 2;
-        },
-        staleTime: 1000 * 60 * 5,
-    });
-
-    if (isLoading) return <Skeleton className="h-5 w-28" />;
-    if (isError) return <Badge variant="outline">Check Failed</Badge>;
-    if (data) return <Badge variant="destructive">Convocation Registered</Badge>;
-    return <Badge variant="secondary">Normal</Badge>;
-};
-
-
-const getCleanedCourseCodes = (order: CertificateOrder, studentData?: FullStudentData): string => {
-    if (!studentData) return order.course_code;
-    const terms = order.course_code.split(',').map(s => s.trim()).filter(Boolean);
-    const mapped = terms.map(term => {
-        const enrollment = Object.values(studentData.studentEnrollments).find(
-            e => String(e.parent_course_id) === String(term) || String(e.course_code) === String(term)
-        );
-        return enrollment ? enrollment.parent_course_id : term;
-    });
-    return [...new Set(mapped)].join(',');
-};
-
-const needsCleaning = (order: CertificateOrder, studentData?: FullStudentData): boolean => {
-    if (!studentData) return false;
-    const current = order.course_code.split(',').map(s => s.trim()).filter(Boolean).join(',');
-    const cleaned = getCleanedCourseCodes(order, studentData);
-    return current !== cleaned;
-};
-
-// --- Certificate Management Component ---
-const CertificateStatusCell = ({ 
-    order, 
-    studentDataMap, 
-    courseNameMap,
-    courseCodeMap
-}: { 
-    order: CertificateOrder, 
-    studentDataMap: Map<string, { studentData?: FullStudentData, balanceData?: StudentBalanceData }>,
-    courseNameMap: Map<string, string>,
-    courseCodeMap: Map<string, string>
-}) => {
-    const queryClient = useQueryClient();
-    const { user } = useAuth();
-
-    const studentData = studentDataMap.get(order.created_by)?.studentData;
-    const courseIds = order.course_code.split(',').map(id => id.trim()).filter(Boolean);
-
-    const { data: certStatus, isLoading: isLoadingCerts, refetch } = useQuery<{ certificateStatus: UserCertificatePrintStatus[] }>({
-        queryKey: ['userCertificateStatus', order.created_by],
-        queryFn: () => getUserCertificatePrintStatus(order.created_by),
-        staleTime: 5 * 60 * 1000,
-        enabled: !!order.created_by,
-    });
-
-    const generateCertMutation = useMutation({
-        mutationFn: (payload: GenerateCertificatePayload) => generateCertificate(payload),
-        onSuccess: () => {
-            toast({ title: "Certificate Generated", description: "Document record created successfully." });
-            refetch();
-        },
-        onError: (error: Error) => toast({ variant: 'destructive', title: 'Generation Failed', description: error.message })
-    });
-
-    const getGeneratedDoc = (courseId: string) => {
-        return certStatus?.certificateStatus?.find(c => 
-            (String(c.parent_course_id) === String(courseId) || String(c.course_code) === String(courseId)) && 
-            (c.type === 'Certificate' || c.type === 'Workshop-Certificate')
-        );
-    };
-
-    if (isLoadingCerts || !studentData) return <div className="space-y-2"><Skeleton className="h-6 w-24" /><Skeleton className="h-6 w-24" /></div>;
-
-    return (
-        <div className="flex flex-col gap-3 min-w-[200px]">
-            {courseIds.map(id => {
-                const cert = getGeneratedDoc(id);
-                const enrollmentsList = Object.values(studentData?.studentEnrollments || {});
-                const enrollment = enrollmentsList.find(e => 
-                    String(e.parent_course_id) === String(id) || 
-                    String(e.course_code) === String(id) ||
-                    (courseCodeMap.has(String(e.parent_course_id)) && courseCodeMap.get(String(e.parent_course_id)) === id)
-                ) || enrollmentsList[0];
-                
-                // Individual Certificate Print URL logic (using new Designer printer route)
-                const courseIdKey = String(enrollment?.parent_course_id || id).trim();
-                const parentCourseCode = courseCodeMap.get(courseIdKey) || '';
-                const certPrintUrl = cert 
-                    ? `/print/certificate/${cert.certificate_id}${parentCourseCode ? `?course_code=${parentCourseCode}` : ''}`
-                    : '#';
-
-                // Individual Transcript Print URL logic (using new Visual Studio printer route)
-                const transPrintUrl = cert
-                    ? `/print/certificate/${cert.certificate_id}?doc_type=Transcript${parentCourseCode ? `&course_code=${parentCourseCode}` : ''}`
-                    : `${LMS_API_URL}/transcript-templates/${enrollment?.parent_course_id || id}/print/${order.created_by}`;
-
-                // Old Transcript Print URL logic
-                const oldTransBaseUrl = (enrollment?.parent_course_id || id) === '1'
-                    ? 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-print-all-transcript'
-                    : 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-print-all-transcript-advanced';
-                const oldTransPrintUrl = `${oldTransBaseUrl}?courseCode=${enrollment?.parent_course_id || id}&tableMode=0&fixedStudentNumber=${order.created_by}`;
-
-                return (
-                    <div key={id} className="space-y-1.5 border-l-2 border-muted pl-2 py-1">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1 leading-tight">{courseNameMap.get(id) || `ID: ${id}`}</p>
-                        <div className="flex flex-wrap items-center gap-2">
-                            {cert ? (
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <div className="flex items-center gap-1">
-                                                <Badge variant={cert.print_status === '1' ? 'default' : 'secondary'} className="font-mono text-[9px] h-5 px-1.5">
-                                                    <FileCheck className="h-2.5 w-2.5 mr-1" />
-                                                    {cert.certificate_id}
-                                                </Badge>
-                                                <Button asChild size="icon" variant="ghost" className="h-6 w-6">
-                                                    <a href={certPrintUrl} target="_blank" rel="noopener noreferrer">
-                                                        <Printer className="h-3.5 w-3.5" title="Print Certificate" />
-                                                    </a>
-                                                </Button>
-                                                {/* Transcript Button */}
-                                                <Button asChild size="icon" variant="ghost" className="h-6 w-6">
-                                                    <a href={transPrintUrl} target="_blank" rel="noopener noreferrer">
-                                                        <Printer className="h-3.5 w-3.5 text-blue-600" title="Print Transcript" />
-                                                    </a>
-                                                </Button>
-                                                {/* Old Transcript Button */}
-                                                <Button asChild size="icon" variant="ghost" className="h-6 w-6">
-                                                    <a href={oldTransPrintUrl} target="_blank" rel="noopener noreferrer">
-                                                        <Printer className="h-3.5 w-3.5 text-orange-500" title="Print Old Transcript" />
-                                                    </a>
-                                                </Button>
-                                            </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top">
-                                            <p className="text-xs font-bold">Issued Documents</p>
-                                            <p className="text-[10px] opacity-70">Cert Status: {cert.print_status === '1' ? 'Printed' : 'Generated'}</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            ) : (
-                                <Button 
-                                    size="xs" 
-                                    variant="outline" 
-                                    className="h-6 text-[10px] font-bold"
-                                    onClick={() => {
-                                        if (!user?.username) { toast({ variant: 'destructive', title: 'Auth Error' }); return; }
-                                        const pCourseId = enrollment?.parent_course_id || id;
-                                        const batchCode = enrollment?.course_code || id;
-                                        generateCertMutation.mutate({
-                                            student_number: order.created_by,
-                                            print_status: "0",
-                                            print_by: user.username,
-                                            type: "Certificate",
-                                            parentCourseCode: parseInt(pCourseId, 10) || 1,
-                                            referenceId: parseInt(order.id, 10),
-                                            course_code: batchCode,
-                                            source: "courier"
-                                        });
-                                    }}
-                                    disabled={generateCertMutation.isPending}
-                                >
-                                    {generateCertMutation.isPending ? <Loader2 className="h-2.5 w-2.5 animate-spin mr-1"/> : <Award className="h-2.5 w-2.5 mr-1"/>}
-                                    Generate
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
-};
-
-
-// --- Action Component ---
-const OrderActionsCell = ({ order, onUpdateClick, studentData, balanceData, isLoading }: { 
-    order: CertificateOrder, 
-    onUpdateClick: () => void,
-    studentData?: FullStudentData,
-    balanceData?: StudentBalanceData,
-    isLoading: boolean,
-}) => {
-    const { isUpdateAvailable } = useMemo(() => {
-        if (!studentData) return { isUpdateAvailable: false };
-        const currentCourses = order.course_code.split(',').map(id => id.trim()).filter(Boolean);
-        const allEligibleEnrollments = Object.values(studentData.studentEnrollments).filter(e => e.certificate_eligibility);
-        const newEnrollments = allEligibleEnrollments.filter(e => 
-            !currentCourses.includes(String(e.parent_course_id)) && 
-            !currentCourses.includes(String(e.course_code))
-        );
-        return { isUpdateAvailable: newEnrollments.length > 0 };
-    }, [studentData, order.course_code]);
-    
-    if (isLoading) {
+// Helper badge component for order status
+const OrderStatusBadge = ({ status }: { status?: string }) => {
+    const s = (status || 'Pending').trim();
+    if (s === 'Dispatched') {
         return (
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                <Loader2 className="h-4 w-4 animate-spin" /> <span>Checking...</span>
-            </div>
+            <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 gap-1 font-medium">
+                <Truck className="h-3 w-3"/> Dispatched
+            </Badge>
         );
     }
-    
-    const balance = balanceData?.studentBalance;
-
+    if (s === 'Completed' || s === 'Delivered') {
+        return (
+            <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 gap-1 font-medium">
+                <Check className="h-3 w-3"/> Completed
+            </Badge>
+        );
+    }
+    if (s === 'Processing') {
+        return (
+            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 gap-1 font-medium">
+                <Clock className="h-3 w-3"/> Processing
+            </Badge>
+        );
+    }
+    if (s === 'Generated' || s === 'Printed') {
+        return (
+            <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 gap-1 font-medium">
+                <PackageCheck className="h-3 w-3"/> Generated
+            </Badge>
+        );
+    }
+    if (s === 'Cancelled') {
+        return (
+            <Badge className="bg-red-500/20 text-red-400 border-red-500/30 gap-1 font-medium">
+                <XCircle className="h-3 w-3"/> Cancelled
+            </Badge>
+        );
+    }
     return (
-        <div className="flex flex-col items-start sm:items-center gap-2">
-            <div className="flex-shrink-0">
-                {isUpdateAvailable ? (
-                    <Button variant="default" size="sm" onClick={onUpdateClick}>Update Available</Button>
-                ) : (
-                    <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200 hover:bg-green-200">Up to date</Badge>
-                )}
-            </div>
-            {balance !== undefined && (
-                <div className={cn("flex items-center gap-1.5 text-xs font-medium p-1.5 rounded-md", balance > 0 ? 'bg-destructive/10 text-destructive' : 'bg-green-100 text-green-800')}>
-                    <Wallet className="h-3.5 w-3.5" /> <span>LKR {balance.toLocaleString()}</span>
-                </div>
-            )}
-        </div>
+        <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 gap-1 font-medium">
+            <Clock className="h-3 w-3"/> Pending
+        </Badge>
     );
 };
 
+export default function CertificateOrdersPage() {
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
 
-export default function CertificateOrdersListPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [courseFilter, setCourseFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
     const [isExporting, setIsExporting] = useState(false);
+
+    // Selected order for full modal view
     const [selectedOrderDetails, setSelectedOrderDetails] = useState<CertificateOrder | null>(null);
-    const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
-    const [orderToUpdate, setOrderToUpdate] = useState<CertificateOrder | null>(null);
     const [orderToDelete, setOrderToDelete] = useState<CertificateOrder | null>(null);
+
+    // Form state inside modal for status & tracking updates
+    const [editStatus, setEditStatus] = useState<string>('Pending');
+    const [editCourierService, setEditCourierService] = useState<string>('Pronto');
+    const [editTrackingNumber, setEditTrackingNumber] = useState<string>('');
+
     const [rangeFrom, setRangeFrom] = useState('');
     const [rangeTo, setRangeTo] = useState('');
 
-    const [studentDataMap, setStudentDataMap] = useState<Map<string, { studentData?: FullStudentData, balanceData?: StudentBalanceData }>>(new Map());
-
-    const { data: orders, isLoading: isLoadingOrders, isError, error } = useQuery<CertificateOrder[]>({
-        queryKey: ['certificateOrders'],
-        queryFn: getCertificateOrders,
-        staleTime: 5 * 60 * 1000,
-    });
-
+    // Fetch parent courses for dropdown filter
     const { data: parentCourses } = useQuery<ParentCourse[]>({
         queryKey: ['parentCourses'],
         queryFn: getParentCourses,
-        staleTime: Infinity,
+        staleTime: 1000 * 60 * 15,
+    });
+
+    // Fetch certificate orders
+    const { data: orders, isLoading: isLoadingOrders, isError, error } = useQuery<CertificateOrder[]>({
+        queryKey: ['certificateOrders'],
+        queryFn: getCertificateOrders,
+        staleTime: 1000 * 60 * 2,
     });
 
     const courseNameMap = useMemo(() => {
@@ -371,18 +183,29 @@ export default function CertificateOrdersListPage() {
         });
         return options;
     }, [parentCourses]);
-    
-    const queryClient = useQueryClient();
-    const { mutate: updateCourses, isPending: isUpdating } = useMutation({
-        mutationFn: (payload: UpdateCertificateOrderCoursesPayload) => updateCertificateOrderCourses(payload),
-        onSuccess: (data) => {
-            toast({ title: "Update Successful", description: "The certificate order has been updated." });
+
+    // Mutation to update status & tracking
+    const updateStatusMutation = useMutation({
+        mutationFn: updateCertificateOrderStatus,
+        onSuccess: () => {
+            toast({ title: "Status Updated", description: "Order status & tracking details saved successfully." });
             queryClient.invalidateQueries({ queryKey: ['certificateOrders'] });
-            setIsUpdateDialogOpen(false); setOrderToUpdate(null);
+            if (selectedOrderDetails) {
+                setSelectedOrderDetails(prev => prev ? {
+                    ...prev,
+                    certificate_status: editStatus as any,
+                    status: editStatus,
+                    tracking_number: editTrackingNumber,
+                    courier_service: editCourierService
+                } : null);
+            }
         },
-        onError: (error: Error) => toast({ variant: 'destructive', title: 'Update Failed', description: error.message })
+        onError: (err: Error) => {
+            toast({ variant: 'destructive', title: 'Update Failed', description: err.message });
+        }
     });
-    
+
+    // Mutation to delete order
     const deleteMutation = useMutation({
         mutationFn: (orderId: string) => deleteCertificateOrder(orderId),
         onSuccess: () => {
@@ -390,9 +213,77 @@ export default function CertificateOrdersListPage() {
             queryClient.invalidateQueries({ queryKey: ['certificateOrders'] });
             setOrderToDelete(null);
         },
-        onError: (error: Error) => toast({ variant: 'destructive', title: 'Deletion Failed', description: error.message }),
+        onError: (err: Error) => toast({ variant: 'destructive', title: 'Deletion Failed', description: err.message }),
     });
 
+    // Sync form state when modal opens
+    useEffect(() => {
+        if (selectedOrderDetails) {
+            setEditStatus(selectedOrderDetails.certificate_status || selectedOrderDetails.status || 'Pending');
+            setEditCourierService(selectedOrderDetails.courier_service || 'Pronto');
+            setEditTrackingNumber(selectedOrderDetails.tracking_number || '');
+        }
+    }, [selectedOrderDetails]);
+
+    // Lazy load student & cert details ONLY when modal opens
+    const { data: modalStudentData, isLoading: isLoadingModalStudent } = useQuery({
+        queryKey: ['modalStudentInfo', selectedOrderDetails?.created_by],
+        queryFn: async () => {
+            if (!selectedOrderDetails?.created_by) return null;
+            const [studentData, balanceData] = await Promise.all([
+                getStudentFullInfo(selectedOrderDetails.created_by).catch(() => null),
+                getStudentBalance(selectedOrderDetails.created_by).catch(() => null),
+            ]);
+            return { studentData, balanceData };
+        },
+        enabled: !!selectedOrderDetails?.created_by,
+        staleTime: 1000 * 60 * 5
+    });
+
+    const { data: modalCertStatus, refetch: refetchModalCertStatus } = useQuery<{ certificateStatus: UserCertificatePrintStatus[] }>({
+        queryKey: ['modalCertStatus', selectedOrderDetails?.created_by],
+        queryFn: () => getUserCertificatePrintStatus(selectedOrderDetails!.created_by),
+        enabled: !!selectedOrderDetails?.created_by,
+        staleTime: 1000 * 60 * 2
+    });
+
+    const generateCertMutation = useMutation({
+        mutationFn: (payload: GenerateCertificatePayload) => generateCertificate(payload),
+        onSuccess: () => {
+            toast({ title: "Certificate Generated", description: "Document record created & status updated to Generated." });
+            refetchModalCertStatus();
+            if (selectedOrderDetails) {
+                setEditStatus('Generated');
+                updateStatusMutation.mutate({
+                    orderId: selectedOrderDetails.id,
+                    status: 'Generated',
+                    tracking_number: editTrackingNumber
+                });
+            }
+        },
+        onError: (err: Error) => toast({ variant: 'destructive', title: 'Generation Failed', description: err.message })
+    });
+
+    const handleSaveStatus = () => {
+        if (!selectedOrderDetails) return;
+
+        // Mandatory tracking number validation if status is Dispatched
+        if (editStatus === 'Dispatched' && (!editTrackingNumber || editTrackingNumber.trim() === '')) {
+            toast({
+                variant: 'destructive',
+                title: 'Tracking Number Required',
+                description: 'A tracking number is mandatory when changing status to Dispatched!'
+            });
+            return;
+        }
+
+        updateStatusMutation.mutate({
+            orderId: selectedOrderDetails.id,
+            status: editStatus,
+            courier_service: editCourierService,
+            tracking_number: editTrackingNumber
+        });
+    };
 
     const filteredOrders = useMemo(() => {
         if (!orders) return [];
@@ -402,8 +293,9 @@ export default function CertificateOrdersListPage() {
         if (lowercasedFilter) {
             result = orders.filter(order =>
                 order.created_by.toLowerCase().includes(lowercasedFilter) ||
-                order.name_on_certificate.toLowerCase().includes(lowercasedFilter) ||
-                String(order.id).toLowerCase().includes(lowercasedFilter)
+                (order.name_on_certificate && order.name_on_certificate.toLowerCase().includes(lowercasedFilter)) ||
+                String(order.id).toLowerCase().includes(lowercasedFilter) ||
+                (order.tracking_number && order.tracking_number.toLowerCase().includes(lowercasedFilter))
             );
         }
 
@@ -419,9 +311,7 @@ export default function CertificateOrdersListPage() {
         }
 
         return [...result].sort((a, b) => parseInt(b.id, 10) - parseInt(a.id, 10));
-    }, [orders, searchTerm, courseFilter]);
-
-    const openUpdateDialog = (order: CertificateOrder) => { setOrderToUpdate(order); setIsUpdateDialogOpen(true); };
+    }, [orders, searchTerm, courseFilter, uniqueCourseOptions]);
 
     useEffect(() => { setCurrentPage(1); }, [searchTerm, courseFilter, itemsPerPage]);
 
@@ -430,73 +320,16 @@ export default function CertificateOrdersListPage() {
         return filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
     }, [filteredOrders, currentPage, itemsPerPage]);
 
-    const studentNumbersToFetch = useMemo(() => {
-        return [...new Set(paginatedOrders.map(o => o.created_by).filter(sn => !studentDataMap.has(sn)))];
-    }, [paginatedOrders, studentDataMap]);
-
-    const { isLoading: isLoadingStudentData } = useQuery({
-        queryKey: ['batchStudentData', studentNumbersToFetch],
-        queryFn: async () => {
-            if (studentNumbersToFetch.length === 0) return null;
-            
-            const CHUNK_SIZE = 5;
-            let currentMap = new Map(studentDataMap);
-
-            for (let i = 0; i < studentNumbersToFetch.length; i += CHUNK_SIZE) {
-                const chunk = studentNumbersToFetch.slice(i, i + CHUNK_SIZE);
-                const chunkResults = await Promise.all(
-                    chunk.map(async (sn) => {
-                        const [studentData, balanceData] = await Promise.all([
-                            getStudentFullInfo(sn).catch(() => null),
-                            getStudentBalance(sn).catch(() => null),
-                        ]);
-                        return { sn, studentData, balanceData };
-                    })
-                );
-
-                chunkResults.forEach(({ sn, studentData, balanceData }) => {
-                    currentMap.set(sn, { studentData, balanceData });
-                });
-
-                // Update state progressively after each 5-student chunk completes
-                setStudentDataMap(new Map(currentMap));
-            }
-            return currentMap;
-        },
-        enabled: studentNumbersToFetch.length > 0,
-        refetchOnWindowFocus: false,
-    });
-
-    const handleConfirmUpdate = () => {
-        if (!orderToUpdate) return;
-        const studentInfo = studentDataMap.get(orderToUpdate.created_by)?.studentData;
-        if (!studentInfo) return;
-
-        const currentCourses = orderToUpdate.course_code.split(',').map(s => s.trim()).filter(Boolean);
-        const newEligibleCourseIds = Object.values(studentInfo.studentEnrollments)
-            .filter(e => 
-                e.certificate_eligibility && 
-                !currentCourses.includes(String(e.parent_course_id)) && 
-                !currentCourses.includes(String(e.course_code))
-            )
-            .map(e => String(e.parent_course_id));
-        const allCourseIds = [...new Set([...currentCourses, ...newEligibleCourseIds])];
-        updateCourses({ orderId: orderToUpdate.id, courseCodes: allCourseIds.join(',') });
-    };
-
-    const handleExport = async () => {
+    const handleExport = () => {
         if (!filteredOrders.length) return;
         setIsExporting(true);
         try {
-            const headers = ['Order ID', 'Student ID', 'Name on Cert', 'Course Code(s)', 'Payment', 'Garland', 'Scroll', 'File', 'Status', 'Print Status', 'Order Date'];
-            const rows = filteredOrders.map(order => [
-                order.id, order.created_by, order.name_on_certificate || 'N/A', order.course_code, order.payment || '0.00',
-                order.garlent === '1' ? 'Yes' : 'No', order.scroll === '1' ? 'Yes' : 'No', order.certificate_file === '1' ? 'Yes' : 'No',
-                order.certificate_status, order.print_status || 'Pending', new Date(order.created_at).toLocaleDateString()
-            ]);
-
-            const csvContent = [headers.join(','), ...rows.map(row => row.map(val => `"${String(val || '').replace(/"/g, '""')}"`).join(','))].join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const headers = "Order ID,Student Number,Student Name,Courses,Mobile,Address,City,District,Payment,Status,Tracking Number,Courier Service,Date\n";
+            const rows = filteredOrders.map(o => 
+                `"${o.id}","${o.created_by}","${o.name_on_certificate || ''}","${o.course_code}","${o.mobile}","${o.address_line1 || ''}","${o.city_id || ''}","${o.district || ''}","${o.payment || '0'}","${o.certificate_status || o.status || 'Pending'}","${o.tracking_number || ''}","${o.courier_service || ''}","${o.created_at}"`
+            ).join("\n");
+            
+            const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.setAttribute('href', url);
@@ -505,133 +338,54 @@ export default function CertificateOrdersListPage() {
             link.click();
             document.body.removeChild(link);
             toast({ title: "Export Successful" });
-        } catch (err) {
+        } catch {
             toast({ variant: 'destructive', title: "Export Failed" });
         } finally {
             setIsExporting(false);
         }
     };
 
-    const handlePageInputChange = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            const pageNum = parseInt(e.currentTarget.value, 10);
-            if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) setCurrentPage(pageNum);
-        }
-    };
-
-    // Bulk print URL helpers for Certificates
-    const getBulkPrintBaseUrl = (courseId: string) => {
-        return 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-list-certificate';
-    };
-
-    // Bulk print URL helpers for Transcripts
+    const getBulkPrintBaseUrl = () => 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-list-certificate';
     const getBulkTranscriptPrintBaseUrl = (courseId: string) => {
         if (courseId === '1') return 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-print-all-transcript';
         return 'https://admin.pharmacollege.lk/assets/content/lms-management/certification/print-view/courier-print-all-transcript-advanced';
     };
-    
-    if (isLoadingOrders) return <div className="p-8"><Skeleton className="h-64 w-full" /></div>;
-    if (isError) return <div className="p-8"><Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error.message}</AlertDescription></Alert></div>;
+
+    if (isLoadingOrders) return <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-64 w-full" /></div>;
+    if (isError) return <div className="p-8 text-red-400">Failed to load certificate orders: {(error as Error).message}</div>;
 
     return (
-        <div className="p-4 md:p-8 space-y-6 pb-20">
+        <div className="p-4 md:p-8 space-y-6 pb-20 text-gray-100">
             <header className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-headline font-semibold">Certificate Orders</h1>
-                    <p className="text-muted-foreground">Manage certificate requests, verify payments, and issue documents.</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Certificate Orders</h1>
+                    <p className="text-sm text-muted-foreground">Manage certificate requests, verify details, update tracking, and issue documents.</p>
                 </div>
-                <Button onClick={handleExport} disabled={isExporting || filteredOrders.length === 0}>
+                <Button onClick={handleExport} disabled={isExporting || filteredOrders.length === 0} className="bg-primary hover:bg-primary-hover text-white">
                     {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
                     Export to CSV
                 </Button>
             </header>
 
+            {/* Delete Confirmation Alert */}
             <AlertDialog open={!!orderToDelete} onOpenChange={() => setOrderToDelete(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the order #{orderToDelete?.id}.</AlertDialogDescription></AlertDialogHeader>
+                <AlertDialogContent className="bg-gray-900 border-gray-800 text-white">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-gray-400">
+                            This will permanently delete Certificate Order #{orderToDelete?.id}.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteMutation.mutate(orderToDelete!.id)} disabled={deleteMutation.isPending}>
+                        <AlertDialogCancel disabled={deleteMutation.isPending} className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteMutation.mutate(orderToDelete!.id)} disabled={deleteMutation.isPending} className="bg-red-600 hover:bg-red-700 text-white">
                             {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete Order
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
 
-            <AlertDialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Update Certificate Order</AlertDialogTitle>
-                        <AlertDialogDescription asChild>
-                           {orderToUpdate && studentDataMap.get(orderToUpdate.created_by)?.studentData ? (
-                             <div className="text-sm">
-                                <p className="mb-3">This student is eligible for additional courses. Do you want to add them to this order?</p>
-                                <div className="space-y-4 rounded-md border bg-muted/50 p-3 max-h-60 overflow-y-auto">
-                                    {(() => {
-                                        const currentCourses = orderToUpdate?.course_code.split(',').map(s => s.trim()).filter(Boolean) || [];
-                                        return Object.values(studentDataMap.get(orderToUpdate!.created_by)?.studentData?.studentEnrollments || {})
-                                            .filter(e => e.certificate_eligibility && !currentCourses.includes(String(e.parent_course_id)) && !currentCourses.includes(String(e.course_code)))
-                                            .map(enrollment => (
-                                                <div key={enrollment.parent_course_id}>
-                                                    <h4 className="font-semibold text-card-foreground">{enrollment.parent_course_name}</h4>
-                                                    <ul className="mt-1 list-disc list-inside text-xs text-muted-foreground pl-2">
-                                                        {enrollment.criteria_details.map(c => <li key={c.id} className="flex items-center justify-between"><span>{c.list_name}</span>{c.evaluation.completed ? <CheckCircle className="h-3.5 w-3.5 text-green-600" /> : <XCircle className="h-3.5 w-3.5 text-red-600" />}</li>)}
-                                                    </ul>
-                                                </div>
-                                            ));
-                                    })()}
-                                </div>
-                            </div>
-                           ) : <div><Loader2 className="animate-spin mr-2"/>Loading...</div>}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isUpdating}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirmUpdate} disabled={isUpdating || !orderToUpdate}>
-                            {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Update Order
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-            <Dialog open={!!selectedOrderDetails} onOpenChange={(open) => !open && setSelectedOrderDetails(null)}>
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>Order Details: #{selectedOrderDetails?.id}</DialogTitle>
-                        <DialogDescription>Student info and verification documents.</DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4 space-y-6 text-sm">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <div className="space-y-1"><Label className="text-xs uppercase text-muted-foreground font-bold">Delivery Address</Label><p className="p-3 bg-muted rounded-md font-medium leading-relaxed">{selectedOrderDetails?.address_line1}<br/>{selectedOrderDetails?.address_line2 && <>{selectedOrderDetails.address_line2}<br/></>}{selectedOrderDetails?.city_id}, {selectedOrderDetails?.district}</p></div>
-                                <div className="space-y-1"><Label className="text-xs uppercase text-muted-foreground font-bold">Contact Phone</Label><p className="p-2 bg-muted rounded-md font-mono">{selectedOrderDetails?.mobile}</p></div>
-                            </div>
-                            <div className="space-y-4">
-                                <div className="space-y-2"><Label className="text-xs uppercase text-muted-foreground font-bold">Additional Items Ordered</Label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {selectedOrderDetails?.garlent === '1' && <Badge variant="outline" className="gap-1.5"><Sparkles className="h-3.5 w-3.5 text-primary"/> Garland</Badge>}
-                                        {selectedOrderDetails?.scroll === '1' && <Badge variant="outline" className="gap-1.5"><ScrollText className="h-3.5 w-3.5 text-primary"/> Scroll</Badge>}
-                                        {selectedOrderDetails?.certificate_file === '1' && <Badge variant="outline" className="gap-1.5"><FileText className="h-3.5 w-3.5 text-primary"/> Cert. File</Badge>}
-                                    </div>
-                                </div>
-                                <div className="space-y-1 pt-2 border-t"><Label className="text-xs uppercase text-muted-foreground font-bold">Verification Amount</Label><p className="text-lg font-bold text-primary">LKR {parseFloat(selectedOrderDetails?.payment || '0').toLocaleString('en-US', { minimumFractionDigits: 2 })}</p></div>
-                            </div>
-                        </div>
-                        {selectedOrderDetails?.payment_slip && (
-                            <div className="space-y-2 border-t pt-4">
-                                <Label className="text-xs uppercase text-muted-foreground font-bold">Payment Verification Document</Label>
-                                <div className="relative aspect-[16/9] w-full max-w-sm rounded-lg overflow-hidden border-2 bg-muted mx-auto">
-                                    <Image src={`${CONTENT_PROVIDER_URL}/content-provider/uploads/certificate-payment-slips/${selectedOrderDetails.payment_slip}`} alt="Payment Slip" layout="fill" objectFit="contain" data-ai-hint="payment slip" />
-                                    <a href={`${CONTENT_PROVIDER_URL}/content-provider/uploads/certificate-payment-slips/${selectedOrderDetails.payment_slip}`} target="_blank" rel="noopener noreferrer" className="absolute bottom-2 right-2"><Button size="sm" variant="secondary"><ExternalLink className="h-3.5 w-3.5 mr-1.5"/>Full Size</Button></a>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            {/* Bulk Printing Actions */}
-            {/* Bulk Printing Actions */}
+            {/* Bulk Printing Actions Toolbar */}
             <Card className={cn("border-primary/20 bg-primary/5 shadow-md transition-all", courseFilter === 'all' && "opacity-60")}>
                 <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex flex-col md:flex-row items-center gap-4">
@@ -640,62 +394,60 @@ export default function CertificateOrdersListPage() {
                                 <Printer className="h-5 w-5 text-primary" />
                             </div>
                             <div>
-                                <p className="text-sm font-bold">Bulk Actions{courseFilter !== 'all' ? `: ${courseNameMap.get(courseFilter)}` : ''}</p>
-                                <p className="text-xs text-muted-foreground">
-                                    {courseFilter === 'all' ? 'Select a course filter to enable batch printing.' : 'Batch document management.'}
-                                </p>
+                                <p className="text-sm font-bold">Bulk Printing{courseFilter !== 'all' ? `: ${courseNameMap.get(courseFilter)}` : ''}</p>
+                                <p className="text-xs text-muted-foreground">Select a course filter to enable batch printing.</p>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1.5">
-                                <Label htmlFor="rangeFrom" className="text-[10px] font-bold uppercase text-muted-foreground">From</Label>
+                                <Label htmlFor="rangeFrom" className="text-[10px] font-bold uppercase text-muted-foreground">From ID</Label>
                                 <Input 
-                                    id="rangeFrom"
+                                    id="rangeFrom" 
                                     type="number" 
                                     placeholder="Start ID" 
-                                    className="h-8 w-20 text-xs px-2" 
+                                    className="h-8 w-20 text-xs px-2 bg-gray-950 border-gray-800 text-white" 
                                     value={rangeFrom} 
-                                    onChange={(e) => setRangeFrom(e.target.value)}
-                                    disabled={courseFilter === 'all'}
+                                    onChange={(e) => setRangeFrom(e.target.value)} 
+                                    disabled={courseFilter === 'all'} 
                                 />
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <Label htmlFor="rangeTo" className="text-[10px] font-bold uppercase text-muted-foreground">To</Label>
+                                <Label htmlFor="rangeTo" className="text-[10px] font-bold uppercase text-muted-foreground">To ID</Label>
                                 <Input 
-                                    id="rangeTo"
+                                    id="rangeTo" 
                                     type="number" 
                                     placeholder="End ID" 
-                                    className="h-8 w-20 text-xs px-2" 
+                                    className="h-8 w-20 text-xs px-2 bg-gray-950 border-gray-800 text-white" 
                                     value={rangeTo} 
-                                    onChange={(e) => setRangeTo(e.target.value)}
-                                    disabled={courseFilter === 'all'}
+                                    onChange={(e) => setRangeTo(e.target.value)} 
+                                    disabled={courseFilter === 'all'} 
                                 />
                             </div>
                         </div>
                     </div>
                     <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                        <Button asChild variant="outline" size="xs" className="flex-1 md:flex-initial bg-background text-[10px]" disabled={courseFilter === 'all'}>
-                            <a href={courseFilter !== 'all' ? `${getBulkPrintBaseUrl(courseFilter)}?courseCode=${courseFilter}&tableMode=1${rangeFrom ? `&rangeFrom=${rangeFrom}` : ''}${rangeTo ? `&rangeTo=${rangeTo}` : ''}` : '#'} target="_blank" rel="noopener noreferrer">
+                        <Button asChild variant="outline" size="sm" className="h-8 text-[11px]" disabled={courseFilter === 'all'}>
+                            <a href={courseFilter !== 'all' ? `${getBulkPrintBaseUrl()}?courseCode=${courseFilter}&tableMode=1${rangeFrom ? `&rangeFrom=${rangeFrom}` : ''}${rangeTo ? `&rangeTo=${rangeTo}` : ''}` : '#'} target="_blank" rel="noopener noreferrer">
                                 <ListOrdered className="mr-1.5 h-3 w-3 text-primary" /> List Table
                             </a>
                         </Button>
-                        <Button asChild variant="outline" size="xs" className="flex-1 md:flex-initial bg-background text-[10px]" disabled={courseFilter === 'all'}>
-                            <a href={courseFilter !== 'all' ? `${getBulkPrintBaseUrl(courseFilter)}?courseCode=${courseFilter}&tableMode=0${rangeFrom ? `&rangeFrom=${rangeFrom}` : ''}${rangeTo ? `&rangeTo=${rangeTo}` : ''}` : '#'} target="_blank" rel="noopener noreferrer">
+                        <Button asChild variant="outline" size="sm" className="h-8 text-[11px]" disabled={courseFilter === 'all'}>
+                            <a href={courseFilter !== 'all' ? `${getBulkPrintBaseUrl()}?courseCode=${courseFilter}&tableMode=0${rangeFrom ? `&rangeFrom=${rangeFrom}` : ''}${rangeTo ? `&rangeTo=${rangeTo}` : ''}` : '#'} target="_blank" rel="noopener noreferrer">
                                 <Award className="mr-1.5 h-3 w-3 text-primary" /> Batch Certs
                             </a>
                         </Button>
-                        <Button asChild variant="outline" size="xs" className="flex-1 md:flex-initial bg-background text-[10px]" disabled={courseFilter === 'all'}>
+                        <Button asChild variant="outline" size="sm" className="h-8 text-[11px]" disabled={courseFilter === 'all'}>
                             <a href={courseFilter !== 'all' ? `${getBulkTranscriptPrintBaseUrl(courseFilter)}?courseCode=${courseFilter}&tableMode=1${rangeFrom ? `&rangeFrom=${rangeFrom}` : ''}${rangeTo ? `&rangeTo=${rangeTo}` : ''}` : '#'} target="_blank" rel="noopener noreferrer">
-                                <ListOrdered className="mr-1.5 h-3 w-3 text-blue-600" /> Trans Table
+                                <ListOrdered className="mr-1.5 h-3 w-3 text-blue-400" /> Trans Table
                             </a>
                         </Button>
-                        <Button asChild variant="outline" size="xs" className="flex-1 md:flex-initial bg-background text-[10px]" disabled={courseFilter === 'all'}>
+                        <Button asChild variant="outline" size="sm" className="h-8 text-[11px]" disabled={courseFilter === 'all'}>
                             <a href={courseFilter !== 'all' ? `${getBulkTranscriptPrintBaseUrl(courseFilter)}?courseCode=${courseFilter}&tableMode=0${rangeFrom ? `&rangeFrom=${rangeFrom}` : ''}${rangeTo ? `&rangeTo=${rangeTo}` : ''}` : '#'} target="_blank" rel="noopener noreferrer">
-                                <FileText className="mr-1.5 h-3 w-3 text-blue-600" /> Batch Trans
+                                <FileText className="mr-1.5 h-3 w-3 text-blue-400" /> Batch Trans
                             </a>
                         </Button>
-                        <Button asChild variant="default" size="xs" className="flex-1 md:flex-initial text-[10px]" disabled={courseFilter === 'all'}>
+                        <Button asChild variant="default" size="sm" className="h-8 text-[11px]" disabled={courseFilter === 'all'}>
                             <Link href={courseFilter !== 'all' ? `/print/certificate-address-list?courseCode=${courseFilter}${rangeFrom ? `&rangeFrom=${rangeFrom}` : ''}${rangeTo ? `&rangeTo=${rangeTo}` : ''}` : '#'} target="_blank">
                                 <Home className="mr-1.5 h-3 w-3" /> Address List
                             </Link>
@@ -704,115 +456,406 @@ export default function CertificateOrdersListPage() {
                 </CardContent>
             </Card>
 
-            <Card className="shadow-lg">
+            {/* Main Orders Table Card */}
+            <Card className="shadow-lg bg-gray-950 border-gray-850">
                 <CardHeader>
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                        <div><CardTitle>Certificate Orders</CardTitle><CardDescription>{filteredOrders.length} records found.</CardDescription></div>
+                        <div>
+                            <CardTitle className="text-xl">Orders ({filteredOrders.length})</CardTitle>
+                            <CardDescription className="text-xs text-muted-foreground">Fast, real-time list of all student certificate orders.</CardDescription>
+                        </div>
                         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                             <Select value={String(itemsPerPage)} onValueChange={(val) => setItemsPerPage(Number(val))}>
-                                <SelectTrigger className="w-full sm:w-[110px]">
-                                    <SelectValue placeholder="10 / page" />
+                                <SelectTrigger className="w-full sm:w-[110px] bg-gray-900 border-gray-800 text-xs">
+                                    <SelectValue placeholder="25 / page" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="bg-gray-900 border-gray-800 text-white">
                                     <SelectItem value="10">10 / page</SelectItem>
                                     <SelectItem value="25">25 / page</SelectItem>
                                     <SelectItem value="50">50 / page</SelectItem>
                                     <SelectItem value="100">100 / page</SelectItem>
                                 </SelectContent>
                             </Select>
+
                             <Select value={courseFilter} onValueChange={setCourseFilter}>
-                                <SelectTrigger className="w-full sm:w-[200px]">
+                                <SelectTrigger className="w-full sm:w-[220px] bg-gray-900 border-gray-800 text-xs">
                                     <SelectValue placeholder="Filter by Course" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="bg-gray-900 border-gray-800 text-white">
                                     <SelectItem value="all">All Courses</SelectItem>
                                     {uniqueCourseOptions.map((course) => (
                                         <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
+
                             <div className="relative w-full sm:w-auto sm:max-w-xs">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input placeholder="Search student or name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10"/>
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                <Input 
+                                    placeholder="Search student, order or tracking..." 
+                                    value={searchTerm} 
+                                    onChange={(e) => setSearchTerm(e.target.value)} 
+                                    className="pl-9 h-9 bg-gray-900 border-gray-800 text-xs text-white"
+                                />
                             </div>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="relative w-full overflow-auto border rounded-lg hidden md:block">
-                        <Table><TableHeader><TableRow><TableHead>Order ID</TableHead><TableHead>Student</TableHead><TableHead>Course(s)</TableHead><TableHead>Extras</TableHead><TableHead>Payment</TableHead><TableHead>Convocation</TableHead><TableHead>Issuance & Print</TableHead><TableHead>Eligibility</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                    <div className="relative w-full overflow-auto border border-gray-850 rounded-lg">
+                        <Table>
+                            <TableHeader className="bg-gray-900/60">
+                                <TableRow className="border-gray-850 hover:bg-transparent">
+                                    <TableHead className="w-[90px]">Order ID</TableHead>
+                                    <TableHead>Student</TableHead>
+                                    <TableHead>Course(s)</TableHead>
+                                    <TableHead>Payment</TableHead>
+                                    <TableHead>Order Status</TableHead>
+                                    <TableHead>Courier / Tracking</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
                             <TableBody>
                                 {paginatedOrders.map(order => (
-                                    <TableRow key={order.id}>
-                                        <TableCell>#{order.id}</TableCell>
-                                        <TableCell className="font-medium text-xs"><strong>{order.created_by}</strong><br/>{order.name_on_certificate}</TableCell>
+                                    <TableRow key={order.id} className="border-gray-850 hover:bg-gray-900/40 transition-colors">
+                                        <TableCell className="font-mono text-xs font-semibold">
+                                            #{order.id}
+                                        </TableCell>
+                                        <TableCell className="font-medium text-xs">
+                                            <strong className="text-white">{order.created_by}</strong>
+                                            <br/>
+                                            <span className="text-gray-400 text-[11px]">{order.name_on_certificate || 'N/A'}</span>
+                                        </TableCell>
                                         <TableCell className="min-w-[180px]">
-                                            <div className="flex flex-col gap-1.5">
+                                            <div className="flex flex-col gap-1">
                                                 {order.course_code.split(',').map(id => (
-                                                    <Badge key={id} variant="secondary" className="justify-start h-auto py-1 px-2 text-[10px] font-medium border-primary/10">
-                                                        {courseNameMap.get(id.trim()) || `ID: ${id}`}
+                                                    <Badge key={id} variant="secondary" className="justify-start h-auto py-0.5 px-2 text-[10px] font-medium border-gray-800 bg-gray-900 text-gray-300">
+                                                        {courseNameMap.get(id.trim()) || `Course ${id}`}
                                                     </Badge>
                                                 ))}
                                             </div>
                                         </TableCell>
-                                        <TableCell>
-                                            <div className="flex gap-1">
-                                                {order.garlent === '1' && <Sparkles className="h-4 w-4 text-primary"/>}
-                                                {order.scroll === '1' && <ScrollText className="h-4 w-4 text-primary"/>}
-                                                {order.certificate_file === '1' && <FileText className="h-4 w-4 text-primary"/>}
-                                            </div>
+                                        <TableCell className="font-mono text-xs text-emerald-400 font-semibold">
+                                            LKR {parseFloat(order.payment || '0').toLocaleString()}
                                         </TableCell>
-                                        <TableCell className="font-mono text-xs">LKR {parseFloat(order.payment || '0').toLocaleString()}</TableCell>
-                                        <TableCell><ConvocationStatusCell studentNumber={order.created_by} /></TableCell>
                                         <TableCell>
-                                            <CertificateStatusCell 
-                                                order={order} 
-                                                studentDataMap={studentDataMap} 
-                                                courseNameMap={courseNameMap} 
-                                                courseCodeMap={courseCodeMap}
-                                            />
+                                            <OrderStatusBadge status={order.certificate_status || order.status} />
                                         </TableCell>
-                                        <TableCell><OrderActionsCell order={order} onUpdateClick={() => openUpdateDialog(order)} studentData={studentDataMap.get(order.created_by)?.studentData} balanceData={studentDataMap.get(order.created_by)?.balanceData} isLoading={isLoadingStudentData && !studentDataMap.has(order.created_by)} /></TableCell>
-                                        <TableCell className="text-right space-x-1">
-                                            {needsCleaning(order, studentDataMap.get(order.created_by)?.studentData) && (
-                                                <Button 
-                                                    variant="destructive" 
-                                                    size="sm" 
-                                                    onClick={() => {
-                                                        const cleaned = getCleanedCourseCodes(order, studentDataMap.get(order.created_by)?.studentData);
-                                                        updateCourses({ orderId: order.id, courseCodes: cleaned });
-                                                    }}
-                                                    disabled={isUpdating}
-                                                    className="bg-red-600 hover:bg-red-700 text-white font-semibold"
-                                                >
-                                                    {isUpdating && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1"/>}
-                                                    Clean Entry
-                                                </Button>
+                                        <TableCell className="text-xs">
+                                            {order.tracking_number ? (
+                                                <span className="font-mono text-primary font-bold text-[11px]">
+                                                    #{order.tracking_number}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] text-gray-500 italic">Not Dispatched</span>
                                             )}
-                                            <Button variant="outline" size="sm" asChild>
+                                        </TableCell>
+                                        <TableCell className="text-right space-x-1">
+                                            <Button 
+                                                variant="default" 
+                                                size="sm" 
+                                                onClick={() => setSelectedOrderDetails(order)}
+                                                className="h-7 text-[11px] bg-primary hover:bg-primary-hover text-white font-semibold"
+                                            >
+                                                <Eye className="h-3.5 w-3.5 mr-1" /> View Order
+                                            </Button>
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                asChild 
+                                                className="h-7 text-[11px] bg-gray-900 border-gray-800 text-gray-200 hover:bg-gray-800"
+                                            >
                                                 <a href={`/print/certificate-address-list?courseCode=${order.course_code.split(',')[0].trim()}&rangeFrom=${order.id}&rangeTo=${order.id}`} target="_blank" rel="noopener noreferrer">
-                                                    <Printer className="h-3.5 w-3.5 mr-1" /> Label
+                                                    <Printer className="h-3.5 w-3.5 mr-1 text-primary" /> Label
                                                 </a>
                                             </Button>
-                                            <Button variant="outline" size="sm" onClick={() => setSelectedOrderDetails(order)}>View</Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setOrderToDelete(order)}><Trash2 className="h-4 w-4"/></Button>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-red-500/10" 
+                                                onClick={() => setOrderToDelete(order)}
+                                                title="Delete Order"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5"/>
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
                     </div>
-                    {/* Mobile View Omitted for Brevity in this block, but maintained functionality */}
-                    {paginatedOrders.length === 0 && <div className="text-center py-10"><p className="text-muted-foreground">No orders found.</p></div>}
+
+                    {paginatedOrders.length === 0 && (
+                        <div className="text-center py-12 text-gray-500">
+                            <p className="text-sm">No certificate orders found matching the filter.</p>
+                        </div>
+                    )}
                 </CardContent>
+
                 {totalPages > 1 && (
-                    <CardFooter className="flex items-center justify-center space-x-2 pt-6">
-                        <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}>Previous</Button>
-                        <div className="flex items-center justify-center text-sm font-medium">Page<Input key={currentPage} type="number" defaultValue={currentPage} onKeyDown={handlePageInputChange} className="h-8 w-16 mx-2 text-center" />of {totalPages}</div>
-                        <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}>Next</Button>
+                    <CardFooter className="flex items-center justify-between border-t border-gray-850 pt-4">
+                        <span className="text-xs text-gray-400 font-mono">
+                            Page {currentPage} of {totalPages} ({filteredOrders.length} records)
+                        </span>
+                        <div className="flex items-center space-x-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} 
+                                disabled={currentPage === 1}
+                                className="h-8 text-xs bg-gray-900 border-gray-800 text-white"
+                            >
+                                Previous
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} 
+                                disabled={currentPage === totalPages}
+                                className="h-8 text-xs bg-gray-900 border-gray-800 text-white"
+                            >
+                                Next
+                            </Button>
+                        </div>
                     </CardFooter>
                 )}
             </Card>
+
+            {/* SINGLE COMPREHENSIVE VIEW ORDER MODAL DIALOG */}
+            {selectedOrderDetails && (
+                <Dialog open={!!selectedOrderDetails} onOpenChange={(open) => !open && setSelectedOrderDetails(null)}>
+                    <DialogContent className="sm:max-w-[780px] bg-gray-950 border-gray-850 text-white shadow-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="text-lg font-bold flex items-center justify-between">
+                                <span className="flex items-center gap-2">
+                                    <FileText className="h-5 w-5 text-primary"/> Certificate Order #{selectedOrderDetails.id}
+                                </span>
+                                <OrderStatusBadge status={selectedOrderDetails.certificate_status || selectedOrderDetails.status} />
+                            </DialogTitle>
+                            <DialogDescription className="text-xs text-gray-400">
+                                Student Details, Courier Tracking, and Document Generation
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-5 py-2">
+                            {/* SECTION 1: Student & Shipping Info */}
+                            <Card className="bg-gray-900/70 border-gray-800 text-white">
+                                <CardHeader className="py-3 px-4 border-b border-gray-800">
+                                    <CardTitle className="text-xs uppercase tracking-wider font-bold text-gray-400 flex items-center gap-1.5">
+                                        <User className="h-3.5 w-3.5 text-primary"/> Student & Delivery Address
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                                    <div className="space-y-1.5">
+                                        <div>
+                                            <span className="text-gray-400">Candidate Name:</span>
+                                            <p className="font-bold text-sm text-white">{selectedOrderDetails.name_on_certificate || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-400">Student Index / Username:</span>
+                                            <p className="font-mono text-primary font-bold">{selectedOrderDetails.created_by}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-400">Contact Telephone:</span>
+                                            <p className="font-mono text-gray-200">{selectedOrderDetails.mobile} {selectedOrderDetails.telephone_1 ? `/ ${selectedOrderDetails.telephone_1}` : ''}</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5 bg-gray-950 p-3 rounded-md border border-gray-850">
+                                        <span className="text-gray-400 font-bold uppercase text-[10px] flex items-center gap-1">
+                                            <Home className="h-3 w-3 text-primary"/> Shipping Address:
+                                        </span>
+                                        <p className="font-medium text-gray-300 leading-relaxed">
+                                            {selectedOrderDetails.address_line1}
+                                            {selectedOrderDetails.address_line2 && <><br/>{selectedOrderDetails.address_line2}</>}
+                                            <br/>
+                                            <span className="text-white font-semibold">{selectedOrderDetails.city_id}, {selectedOrderDetails.district}</span>
+                                        </p>
+                                        <div className="pt-2 flex justify-end">
+                                            <Button asChild variant="outline" size="sm" className="h-7 text-xs bg-gray-900 border-gray-800 text-white hover:bg-gray-800">
+                                                <a href={`/print/certificate-address-list?courseCode=${selectedOrderDetails.course_code.split(',')[0].trim()}&rangeFrom=${selectedOrderDetails.id}&rangeTo=${selectedOrderDetails.id}`} target="_blank" rel="noopener noreferrer">
+                                                    <Printer className="h-3.5 w-3.5 mr-1.5 text-primary"/> Print Delivery Label
+                                                </a>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* SECTION 2: Order Status & Courier Tracking Update */}
+                            <Card className="bg-gray-900/70 border-gray-800 text-white">
+                                <CardHeader className="py-3 px-4 border-b border-gray-800">
+                                    <CardTitle className="text-xs uppercase tracking-wider font-bold text-gray-400 flex items-center justify-between">
+                                        <span className="flex items-center gap-1.5">
+                                            <Truck className="h-3.5 w-3.5 text-orange-400"/> Courier & Status Management
+                                        </span>
+                                        {editStatus === 'Dispatched' && (
+                                            <span className="text-[10px] text-amber-400 font-normal">
+                                                * Tracking No. Required
+                                            </span>
+                                        )}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-4 space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <Label className="text-[11px] text-gray-400">Order Status</Label>
+                                            <Select value={editStatus} onValueChange={setEditStatus}>
+                                                <SelectTrigger className="h-8 bg-gray-950 border-gray-800 text-xs text-white">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-gray-900 border-gray-800 text-white">
+                                                    <SelectItem value="Pending">Pending</SelectItem>
+                                                    <SelectItem value="Generated">Generated</SelectItem>
+                                                    <SelectItem value="Dispatched">Dispatched</SelectItem>
+                                                    <SelectItem value="Completed">Completed</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <Label className="text-[11px] text-gray-400">Tracking Number {editStatus === 'Dispatched' && <span className="text-red-400">*</span>}</Label>
+                                            <Input 
+                                                value={editTrackingNumber} 
+                                                onChange={(e) => setEditTrackingNumber(e.target.value)}
+                                                className="h-8 bg-gray-950 border-gray-800 text-xs font-mono text-white"
+                                                placeholder="e.g. WAYBILL-982347"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end">
+                                        <Button 
+                                            onClick={handleSaveStatus} 
+                                            disabled={updateStatusMutation.isPending}
+                                            size="sm"
+                                            className="h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4"
+                                        >
+                                            {updateStatusMutation.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin"/>}
+                                            Update Order Status & Tracking
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* SECTION 3: Document Issuance & Vector Printing */}
+                            <Card className="bg-gray-900/70 border-gray-800 text-white">
+                                <CardHeader className="py-3 px-4 border-b border-gray-800">
+                                    <CardTitle className="text-xs uppercase tracking-wider font-bold text-gray-400 flex items-center gap-1.5">
+                                        <Award className="h-3.5 w-3.5 text-primary"/> Document Issuance & Printing
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-4 space-y-3">
+                                    {selectedOrderDetails.course_code.split(',').map(courseId => {
+                                        const cId = courseId.trim();
+                                        const parentCourseCode = courseCodeMap.get(cId) || cId;
+                                        const courseName = courseNameMap.get(cId) || `Course ${cId}`;
+                                        
+                                        const genDoc = modalCertStatus?.certificateStatus?.find(
+                                            s => String(s.parent_course_id) === String(cId) || String(s.course_code) === String(cId) || String(s.parent_course_id) === String(parentCourseCode)
+                                        );
+
+                                        return (
+                                            <div key={cId} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-gray-950 border border-gray-850 rounded-md">
+                                                <div>
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <p className="font-bold text-xs text-white">{courseName}</p>
+                                                        {genDoc?.certificate_id && (
+                                                            <Badge variant="outline" className="text-[10px] font-mono bg-emerald-500/15 text-emerald-400 border-emerald-500/30 font-bold py-0 px-2">
+                                                                Cert ID: #{genDoc.certificate_id}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[10px] text-gray-400 font-mono mt-0.5">Course Code / ID: {cId}</p>
+                                                </div>
+
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    {genDoc ? (
+                                                        <>
+                                                            <Button asChild size="sm" className="h-7 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
+                                                                <a 
+                                                                    href={`/print/certificate/${genDoc.certificate_id}?doc_type=Certificate&course_code=${parentCourseCode}`} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer"
+                                                                >
+                                                                    <Award className="h-3 w-3 mr-1"/> Print Certificate
+                                                                </a>
+                                                            </Button>
+                                                            <Button asChild size="sm" className="h-7 text-[11px] bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+                                                                <a 
+                                                                    href={`/print/certificate/${genDoc.certificate_id}?doc_type=Transcript&course_code=${parentCourseCode}`} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer"
+                                                                >
+                                                                    <FileText className="h-3 w-3 mr-1"/> Print Transcript
+                                                                </a>
+                                                            </Button>
+                                                        </>
+                                                    ) : (
+                                                        <Button 
+                                                            size="sm"
+                                                            disabled={generateCertMutation.isPending}
+                                                            onClick={() => {
+                                                                generateCertMutation.mutate({
+                                                                    student_number: selectedOrderDetails.created_by,
+                                                                    print_status: "0",
+                                                                    print_by: user?.username || "Admin",
+                                                                    type: "Online Verification",
+                                                                    parentCourseCode: Number(cId) || 0,
+                                                                    referenceId: Number(cId) || 0,
+                                                                    course_code: String(cId),
+                                                                    source: "Manual Generation"
+                                                                });
+                                                            }}
+                                                            className="h-7 text-[11px] bg-primary hover:bg-primary-hover text-white font-semibold"
+                                                        >
+                                                            {generateCertMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1"/> : <Sparkles className="h-3 w-3 mr-1"/>}
+                                                            Generate Certificate Record
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </CardContent>
+                            </Card>
+
+                            {/* SECTION 4: Payment Verification Slip */}
+                            {selectedOrderDetails.payment_slip && (
+                                <Card className="bg-gray-900/70 border-gray-800 text-white">
+                                    <CardHeader className="py-3 px-4 border-b border-gray-800">
+                                        <CardTitle className="text-xs uppercase tracking-wider font-bold text-gray-400 flex items-center justify-between">
+                                            <span>Payment Receipt Document</span>
+                                            <span className="font-mono text-emerald-400 font-bold text-sm">
+                                                LKR {parseFloat(selectedOrderDetails.payment || '0').toLocaleString()}
+                                            </span>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-4">
+                                        <div className="relative aspect-[16/9] w-full max-w-sm rounded-lg overflow-hidden border border-gray-800 bg-gray-950 mx-auto">
+                                            <Image 
+                                                src={`${CONTENT_PROVIDER_URL}/content-provider/uploads/certificate-payment-slips/${selectedOrderDetails.payment_slip}`} 
+                                                alt="Payment Slip" 
+                                                layout="fill" 
+                                                objectFit="contain" 
+                                            />
+                                            <a 
+                                                href={`${CONTENT_PROVIDER_URL}/content-provider/uploads/certificate-payment-slips/${selectedOrderDetails.payment_slip}`} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                className="absolute bottom-2 right-2"
+                                            >
+                                                <Button size="sm" variant="secondary" className="h-7 text-[11px] bg-gray-900/90 text-white hover:bg-gray-800">
+                                                    <ExternalLink className="h-3 w-3 mr-1"/> View Full Image
+                                                </Button>
+                                            </a>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            )}
         </div>
     );
 }

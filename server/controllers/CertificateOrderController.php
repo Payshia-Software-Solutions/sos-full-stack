@@ -363,4 +363,34 @@ class CertificateOrderController
             echo json_encode(['error' => 'Order not found or update failed']);
         }
     }
+
+    // PUT update status and courier tracking for a certificate order
+    public function updateStatus($orderId)
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        if (!isset($data['status']) || empty($data['status'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Status is required']);
+            return;
+        }
+
+        $status = trim($data['status']);
+        $trackingNumber = isset($data['tracking_number']) ? trim($data['tracking_number']) : null;
+        $courierService = isset($data['courier_service']) ? trim($data['courier_service']) : null;
+
+        if (strcasecmp($status, 'Dispatched') === 0 && (empty($trackingNumber) || strlen($trackingNumber) === 0)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Tracking Number is required when changing status to Dispatched!']);
+            return;
+        }
+
+        $success = $this->model->updateOrderStatus($orderId, $status, $trackingNumber, $courierService);
+        if ($success) {
+            echo json_encode(['status' => 'success', 'message' => 'Order status updated successfully']);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to update order status']);
+        }
+    }
 }

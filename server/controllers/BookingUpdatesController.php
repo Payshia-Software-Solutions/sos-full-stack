@@ -27,63 +27,69 @@ class BookingUpdatesController
     }
 
     /**
-     * Generates a certificate for a booking.
+     * Generates a certificate for a booking or direct student request.
      */
     public function generateCertificate()
     {
-        // Get the booking ID from the POST request
         $data = json_decode(file_get_contents('php://input'), true);
         $bookingId = $data['booking_id'] ?? null;
+        $studentNumber = $data['student_number'] ?? $data['student_id'] ?? null;
+        $courseCodeInput = $data['course_code'] ?? $data['parentCourseCode'] ?? null;
+        $printBy = $data['print_by'] ?? 'system';
 
-        if (!$bookingId) {
+        if (!$bookingId && !$studentNumber) {
             http_response_code(400);
-            echo json_encode(['error' => 'Booking ID is required.']);
+            echo json_encode(['error' => 'Booking ID or Student Number is required.']);
             return;
         }
 
-        // Get booking information
-        $bookingInfo = $this->convocationRegistrationModel->getRegistrationById($bookingId);
-
-        if (!$bookingInfo) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Booking not found.']);
-            return;
+        if ($bookingId) {
+            $bookingInfo = $this->convocationRegistrationModel->getRegistrationById($bookingId);
+            if (!$bookingInfo) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Booking not found.']);
+                return;
+            }
+            $studentNumber = $bookingInfo['student_number'];
+            $courseIds = explode(',', $bookingInfo['course_id']);
+        } else {
+            $courseIds = is_array($courseCodeInput) ? $courseCodeInput : explode(',', (string)$courseCodeInput);
         }
 
-        $studentNumber = $bookingInfo['student_number'];
-        $studentEnrollments = $this->studentCourseModel->getByStudentNumber($studentNumber);
-
-        $courseIds = explode(',', $bookingInfo['course_id']);
         $generatedCertificates = [];
 
         foreach ($courseIds as $courseCode) {
-            $courseCode = trim($courseCode);
-            $batchCode = $this->studentCourseModel->getByStudentNumberAndParentCourseId($studentNumber, $courseCode)['course_code'];
-            
+            $courseCode = trim((string)$courseCode);
             if (empty($courseCode)) {
                 continue;
             }
+
+            $sc = $this->studentCourseModel->getByStudentNumberAndParentCourseId($studentNumber, $courseCode);
+            $batchCode = (!empty($sc) && !empty($sc['course_code'])) ? $sc['course_code'] : $courseCode;
+
             $existingCertificate = $this->userCertificatePrintStatusNewModel->getByStudentNumberCourseCodeAndType($studentNumber, $batchCode, 'Certificate');
+            if (!$existingCertificate && $batchCode !== $courseCode) {
+                $existingCertificate = $this->userCertificatePrintStatusNewModel->getByStudentNumberCourseCodeAndType($studentNumber, $courseCode, 'Certificate');
+            }
+
             if ($existingCertificate) {
                 $generatedCertificates[] = [
                     'course_code' => $batchCode,
-                    'certificate_id' => $existingCertificate['id'],
+                    'certificate_id' => $existingCertificate['id'] ?? ($existingCertificate['certificate_id'] ?? null),
                     'status' => 'already_exists'
                 ];
                 continue;
             }
             
-            // Data for the new certificate status entry
             $certificateData = [
                 'student_number' => $studentNumber,
                 'course_code' => $batchCode,
                 'type' => 'Certificate',
                 'print_status' => 'generated',
-                'print_by' => 'system' // Assuming 'system' as the default user for generation
+                'print_by' => $printBy
             ];
 
             try {
-                // Create a new certificate entry and get the generated ID
                 $certificateId = $this->userCertificatePrintStatusNewModel->createStatus($certificateData);
                 $generatedCertificates[] = [
                     'course_code' => $batchCode,
