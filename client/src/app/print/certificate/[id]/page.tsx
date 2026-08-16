@@ -161,49 +161,18 @@ export default function PrintCertificatePage() {
         return effectiveCertData.course_code;
     }, [effectiveCertData.course_code, studentEnrollments, courseData, resolvedParentCourseId]);
 
-    // Step 9: Fetch certificate/transcript template using resolved course_code.
+    // Step 9: Fetch certificate/transcript template from certificate_template table
     const { data: templateData } = useQuery({
         queryKey: ['documentTemplateForPrint', templateCourseCode, docTypeParam],
         queryFn: async () => {
-            if (docTypeParam === 'Transcript') {
-                const courseObj = parentCourses?.find(c => c.course_code === templateCourseCode || String(c.id) === String(templateCourseCode));
-                const courseIdToFetch = courseObj ? String(courseObj.id) : templateCourseCode;
-                try {
-                    const transRes = await getTranscriptTemplate(courseIdToFetch!);
-                    if (transRes?.success && transRes?.template) {
-                        let parsedData: any = {};
-                        try {
-                            parsedData = typeof transRes.template.template_data === 'string' ? JSON.parse(transRes.template.template_data) : transRes.template.template_data;
-                        } catch (e) {}
-                        if (parsedData.elements && parsedData.elements.length > 0) {
-                            return {
-                                success: true,
-                                template: {
-                                    template_id: 1,
-                                    template_name: parsedData.template_name || 'Transcript',
-                                    left_margin: 0,
-                                    top_to_name: 0,
-                                    left_to_date: 0,
-                                    top_to_date: 0,
-                                    left_to_qr: 0,
-                                    top_to_qr: 0,
-                                    qr_width: 14,
-                                    is_active: parsedData.isActive !== false ? 1 : 0,
-                                    back_image: parsedData.backImage || '',
-                                    course_code: templateCourseCode!,
-                                    orientation: parsedData.orientation || 'Portrait',
-                                    template_json: JSON.stringify({
-                                        pageSize: parsedData.pageSize || 'A4',
-                                        orientation: parsedData.orientation || 'Portrait',
-                                        elements: parsedData.elements || []
-                                    })
-                                }
-                            };
-                        }
-                    }
-                } catch (e) {}
+            try {
+                const res = await getCertificateTemplate(templateCourseCode!, docTypeParam);
+                if (res?.success && res?.template) {
+                    return res;
+                }
+            } catch (e) {}
 
-                // Default Transcript Template layout if no database transcript exists yet
+            if (docTypeParam === 'Transcript') {
                 return {
                     success: true,
                     template: {
@@ -229,44 +198,20 @@ export default function PrintCertificatePage() {
                 };
             }
 
-            // Fetch Certificate Template
-            const certRes = await getCertificateTemplate(templateCourseCode!);
-            if (certRes?.success && certRes?.template) {
-                const t = certRes.template;
-                if (t.template_json) {
-                    try {
-                        const parsed = JSON.parse(t.template_json);
-                        const hasTranscriptElements = parsed.elements && parsed.elements.some((el: any) => 
-                            (el.content && el.content.includes('ACADEMIC TRANSCRIPT')) || 
-                            (el.content && el.content.includes('{{MODULE_LIST}}'))
-                        );
-                        if (hasTranscriptElements) {
-                            t.template_json = JSON.stringify({
-                                pageSize: 'A4',
-                                orientation: 'Landscape',
-                                elements: DEFAULT_CERTIFICATE_ELEMENTS
-                            });
-                        }
-                    } catch (e) {}
-                }
-                return certRes;
-            }
-
-            // Default Certificate Template layout
             return {
                 success: true,
                 template: {
                     template_id: 1,
-                    template_name: 'Certificate of Completion',
+                    template_name: 'Default Certificate',
                     left_margin: 0,
-                    top_to_name: 0,
-                    left_to_date: 0,
-                    top_to_date: 0,
-                    left_to_qr: 0,
-                    top_to_qr: 0,
+                    top_to_name: 304,
+                    left_to_date: 22,
+                    top_to_date: 672,
+                    left_to_qr: 8,
+                    top_to_qr: 656,
                     qr_width: 14,
                     is_active: 1,
-                    back_image: 'https://content-provider.pharmacollege.lk/certificates/certificate-bg-standard.png',
+                    back_image: '',
                     course_code: templateCourseCode!,
                     orientation: 'Landscape',
                     template_json: JSON.stringify({
