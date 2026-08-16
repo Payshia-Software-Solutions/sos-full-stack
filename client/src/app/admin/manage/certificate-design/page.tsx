@@ -148,51 +148,47 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
         if (templateResponse?.success && templateResponse.template) {
             const t = templateResponse.template;
             
+            // Parse JSON from template_json or template_data
+            let parsed: any = {};
+            const rawJson = t.template_json || t.template_data;
+            if (rawJson) {
+                try {
+                    parsed = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson;
+                } catch (e) {
+                    parsed = {};
+                }
+            }
+            
             if (docType === 'Certificate') {
                 setTemplateName(t.template_name || `Certificate for ${selectedCourseCode}`);
                 setIsActive(Number(t.is_active) === 1);
                 setBackImage(t.back_image || DEFAULT_BACKGROUNDS[0].url);
                 setOrientation((t.orientation as 'Landscape' | 'Portrait') || 'Landscape');
                 
-                if (t.template_json) {
-                    try {
-                        const parsed = JSON.parse(t.template_json);
-                        const hasTranscriptElements = parsed.elements && parsed.elements.some((el: any) => 
-                            (el.content && el.content.includes('ACADEMIC TRANSCRIPT')) || 
-                            (el.content && el.content.includes('{{MODULE_LIST}}'))
-                        );
-                        if (hasTranscriptElements) {
-                            loadDefaultElements('Certificate');
-                        } else {
-                            setElements(parsed.elements || []);
-                            setPageSize(parsed.pageSize || 'A4');
-                        }
-                    } catch (e) {
-                        loadLegacyElements(t);
+                if (parsed.elements && Array.isArray(parsed.elements) && parsed.elements.length > 0) {
+                    const hasTranscriptElements = parsed.elements.some((el: any) => 
+                        (el.content && el.content.includes('ACADEMIC TRANSCRIPT')) || 
+                        (el.content && el.content.includes('{{MODULE_LIST}}'))
+                    );
+                    if (hasTranscriptElements) {
+                        loadDefaultElements('Certificate');
+                    } else {
+                        setElements(parsed.elements);
+                        setPageSize(parsed.pageSize || 'A4');
                     }
                 } else {
                     loadLegacyElements(t);
                 }
             } else {
                 // Transcript loading
-                let parsedData: any = {};
+                setTemplateName(parsed.template_name || t.template_name || `Transcript for ${selectedCourseCode}`);
+                setIsActive(parsed.isActive !== undefined ? parsed.isActive : (t.is_active !== undefined ? Number(t.is_active) === 1 : true));
+                setBackImage(parsed.backImage || t.back_image || DEFAULT_BACKGROUNDS[0].url);
+                setOrientation((parsed.orientation as 'Landscape' | 'Portrait') || (t.orientation as 'Landscape' | 'Portrait') || 'Portrait');
+                setPageSize((parsed.pageSize as 'A4' | 'Letter') || 'A4');
 
-                if (t.template_data) {
-                    try {
-                        parsedData = typeof t.template_data === 'string' ? JSON.parse(t.template_data) : t.template_data;
-                    } catch (e) {
-                        parsedData = {};
-                    }
-                }
-
-                setTemplateName(parsedData.template_name || `Transcript for ${selectedCourseCode}`);
-                setIsActive(parsedData.isActive !== false);
-                setBackImage(parsedData.backImage || t.back_image || DEFAULT_BACKGROUNDS[0].url);
-                setOrientation((parsedData.orientation as 'Landscape' | 'Portrait') || (t.orientation as 'Landscape' | 'Portrait') || 'Portrait');
-                setPageSize((parsedData.pageSize as 'A4' | 'Letter') || 'A4');
-
-                if (parsedData.elements && Array.isArray(parsedData.elements) && parsedData.elements.length > 0) {
-                    setElements(parsedData.elements);
+                if (parsed.elements && Array.isArray(parsed.elements) && parsed.elements.length > 0) {
+                    setElements(parsed.elements);
                 } else {
                     loadDefaultElements('Transcript');
                 }
