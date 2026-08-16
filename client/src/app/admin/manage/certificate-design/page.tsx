@@ -21,7 +21,7 @@ import { FONT_LIST, getFontFamilyStyle, formatInlineText } from '@/components/pr
 // Type definitions for drag-and-drop template elements
 export interface DocumentElement {
     id: string;
-    type: 'title' | 'paragraph' | 'course_name' | 'student_name' | 'sentence' | 'qr_code' | 'info_block' | 'company_br' | 'image' | 'grading_scale' | 'divider';
+    type: 'title' | 'paragraph' | 'course_name' | 'student_name' | 'sentence' | 'qr_code' | 'info_block' | 'company_br' | 'image' | 'grading_scale' | 'divider' | 'student_grade';
     content: string;
     x: number; // percentage (0 - 100)
     y: number; // percentage (0 - 100)
@@ -287,7 +287,7 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                 { id: '3', type: 'paragraph', content: 'This is to certify that {{STUDENT_NAME}} has successfully completed the Certificate Course in Pharmaceuticals conducted by Ceylon Pharma College.', x: 50, y: 22, fontSize: 12, fontWeight: 'normal', color: '#1E293B', align: 'center', width: 90, fontFamily: 'Inter' },
                 { id: '4', type: 'sentence', content: '{{MODULE_LIST}}', x: 50, y: 40, fontSize: 11, fontWeight: 'normal', color: '#0F172A', align: 'left', width: 90, fontFamily: 'Inter' },
                 { id: '5', type: 'info_block', content: 'Candidate Name: {{STUDENT_NAME}}\nDuration: {{DURATION}}\nCompleted Date: {{COMPLETED_DATE}}\nStudent Number: {{STUDENT_ID}}\nCertificate Number: {{CERTIFICATE_ID}}', x: 24, y: 66, fontSize: 11, fontWeight: 'normal', color: '#000000', align: 'left', fontFamily: 'Inter' },
-                { id: '6', type: 'sentence', content: 'Grade: {{GRADE}}', x: 14, y: 80, fontSize: 20, fontWeight: 'bold', color: '#000000', align: 'left', fontFamily: 'Inter' },
+                { id: '6', type: 'student_grade', content: 'Final Grade : {{GRADE}}', x: 16, y: 80, fontSize: 18, fontWeight: 'bold', color: '#000000', align: 'left', fontFamily: 'Inter' },
                 { id: '7', type: 'image', content: 'https://content-provider.pharmacollege.lk/certificates/sample-signature.png', x: 80, y: 66, fontSize: 16, fontWeight: 'normal', color: '#000000', align: 'center', width: 22 },
                 { id: '8', type: 'company_br', content: 'Dilip Fonseka,\nCourse Director', x: 80, y: 74, fontSize: 11, fontWeight: 'bold', color: '#000000', align: 'center', fontFamily: 'Inter' },
                 { id: '9', type: 'qr_code', content: '{{QR_CODE}}', x: 85, y: 84, fontSize: 14, fontWeight: 'normal', color: '#000000', align: 'right', fontFamily: 'Inter' },
@@ -387,6 +387,13 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
             newEl.content = '';
             newEl.width = 90;
             newEl.strokeWidth = 1;
+            newEl.color = '#000000';
+        } else if (type === 'student_grade') {
+            newEl.content = 'Final Grade : {{GRADE}}';
+            newEl.fontSize = 18;
+            newEl.fontWeight = 'bold';
+            newEl.align = 'left';
+            newEl.width = 40;
             newEl.color = '#000000';
         }
 
@@ -976,6 +983,9 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                             </Button>
                             <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('divider')}>
                                 <Plus className="h-3 w-3 mr-1"/> Horizontal Line
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-[11px] h-7 bg-gray-900 border-gray-850 hover:bg-gray-800 text-gray-300" onClick={() => addElement('student_grade')}>
+                                <Plus className="h-3 w-3 mr-1"/> Student Grade
                             </Button>
                         </div>
                     </div>
