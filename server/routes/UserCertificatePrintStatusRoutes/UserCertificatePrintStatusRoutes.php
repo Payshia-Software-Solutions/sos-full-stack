@@ -9,10 +9,10 @@ $userCertificatePrintStatusController = new UserCertificatePrintStatusController
 return [
     // Get records with various filters
     'GET /user_certificate_print_status/' => function () use ($userCertificatePrintStatusController) {
-        $studentNumber = $_GET['studentNumber'] ?? null;
-        $courseCode = $_GET['courseCode'] ?? null;
-        $certificateId = $_GET['certificateId'] ?? null;
-        $printStatus = $_GET['printStatus'] ?? null;
+        $studentNumber = $_GET['studentNumber'] ?? $_GET['student_number'] ?? null;
+        $courseCode = $_GET['courseCode'] ?? $_GET['course_code'] ?? null;
+        $certificateId = $_GET['certificateId'] ?? $_GET['certificate_id'] ?? null;
+        $printStatus = $_GET['printStatus'] ?? $_GET['print_status'] ?? null;
 
         if ($studentNumber && $courseCode) {
             return $userCertificatePrintStatusController->getRecordsByStudentNumberAndCourseCode($studentNumber, $courseCode);

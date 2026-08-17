@@ -60,22 +60,30 @@ export default function PrintCertificatePage() {
     });
 
     const docTypeParam = searchParams.get('doc_type') || 'Certificate';
+    const studentNumberParam = searchParams.get('student_number') || searchParams.get('studentNumber') || searchParams.get('student_id');
 
     // Step 2: Fallback certData resolution so print preview always renders smoothly
     const effectiveCertData: UserCertificatePrintStatus = useMemo(() => {
-        if (certData) return certData;
+        if (certData) {
+            return {
+                ...certData,
+                student_number: certData.student_number || studentNumberParam || '',
+                course_code: certData.course_code || courseCodeParam || '',
+                type: certData.type || docTypeParam
+            };
+        }
         return {
             id: certificateId || '1',
-            certificate_id: certificateId || 'CREF4623',
-            student_number: searchParams.get('student_number') || 'PA30129',
-            course_code: courseCodeParam || 'CS0005',
+            certificate_id: certificateId || '',
+            student_number: studentNumberParam || (certificateId?.startsWith('PA') ? certificateId : ''),
+            course_code: courseCodeParam || '',
             print_date: new Date().toISOString().split('T')[0],
             print_status: '1',
             print_by: 'Admin',
             type: docTypeParam,
             parent_course_id: ''
         };
-    }, [certData, certificateId, courseCodeParam, searchParams, docTypeParam]);
+    }, [certData, certificateId, courseCodeParam, studentNumberParam, docTypeParam]);
 
     // Step 3: Fetch student details.
     const { data: studentData } = useQuery<UserFullDetails>({
@@ -235,11 +243,11 @@ export default function PrintCertificatePage() {
         window.print();
     };
 
-    if (isLoadingCert && !courseCodeParam) {
+    if (isLoadingCert && !effectiveCertData.student_number) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-gray-200 p-8">
                 <Loader2 className="h-8 w-8 animate-spin mb-4" />
-                <p>Loading Certificate Data...</p>
+                <p>Loading Document Data...</p>
                 <div className="w-[210mm] h-[297mm] bg-white shadow-lg mt-8">
                     <Skeleton className="w-full h-full" />
                 </div>
@@ -258,7 +266,7 @@ export default function PrintCertificatePage() {
             <main className="flex justify-center items-start min-h-screen p-8 print:p-0">
                 <div className="print-container bg-white shadow-lg print:shadow-none">
                     <CertificateLayout
-                        studentName={studentData?.name_on_certificate || 'Student Name'}
+                        studentName={studentData?.name_on_certificate || studentData?.full_name || 'Student Name'}
                         studentIndex={effectiveCertData.student_number}
                         courseName={courseData?.course_name || 'Certificate Course'}
                         issueDate={effectiveCertData.print_date}

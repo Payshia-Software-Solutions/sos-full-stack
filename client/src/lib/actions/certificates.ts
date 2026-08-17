@@ -452,7 +452,7 @@ export const saveCertificateTemplate = async (payload: any): Promise<any> => {
 export const getCertificatePrintStatusById = async (certificateId: string): Promise<UserCertificatePrintStatus | null> => {
     if (!certificateId) return null;
     
-    // 1. Try fetching by certificate_id parameter
+    // 1. Try fetching by certificateId query parameter
     try {
         const response = await fetch(`${QA_API_BASE_URL}/user_certificate_print_status/?certificateId=${encodeURIComponent(certificateId)}`);
         if (response.ok) {
@@ -460,13 +460,27 @@ export const getCertificatePrintStatusById = async (certificateId: string): Prom
             if (Array.isArray(data) && data.length > 0) {
                 return data[0];
             }
-            if (data && !data.error && data.id) {
+            if (data && !data.error && (data.id || data.student_number || data.certificate_id)) {
                 return data;
             }
         }
     } catch (e) {}
 
-    // 2. Try fetching by studentNumber parameter
+    // 2. Try fetching by certificate-print-status by-certificate_id endpoint
+    try {
+        const response = await fetch(`${QA_API_BASE_URL}/certificate-print-status/by-certificate_id/${encodeURIComponent(certificateId)}/`);
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                return data[0];
+            }
+            if (data && !data.error && (data.id || data.student_number || data.certificate_id)) {
+                return data;
+            }
+        }
+    } catch (e) {}
+
+    // 3. Try fetching by studentNumber parameter
     try {
         const response = await fetch(`${QA_API_BASE_URL}/user_certificate_print_status/?studentNumber=${encodeURIComponent(certificateId)}`);
         if (response.ok) {
@@ -474,18 +488,18 @@ export const getCertificatePrintStatusById = async (certificateId: string): Prom
             if (Array.isArray(data) && data.length > 0) {
                 return data[0];
             }
-            if (data && !data.error && data.id) {
+            if (data && !data.error && (data.id || data.student_number || data.certificate_id)) {
                 return data;
             }
         }
     } catch (e) {}
 
-    // 3. Fallback: Try fetching by direct record ID endpoint
+    // 4. Fallback: Try fetching by direct record ID endpoint
     try {
-        const directRes = await fetch(`${QA_API_BASE_URL}/user_certificate_print_status/${encodeURIComponent(certificateId)}`);
+        const directRes = await fetch(`${QA_API_BASE_URL}/user_certificate_print_status/${encodeURIComponent(certificateId)}/`);
         if (directRes.ok) {
             const directData = await directRes.json();
-            if (directData && !directData.error && directData.id) {
+            if (directData && !directData.error && (directData.id || directData.student_number || directData.certificate_id)) {
                 return directData;
             }
         }
