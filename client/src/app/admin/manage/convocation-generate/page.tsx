@@ -99,7 +99,7 @@ const BookingCertificateControl = ({
                 // print page can directly fetch the template without a data chain.
                 const parentCourseCode = courseCodeMap.get(courseIdKey) || '';
                 const certPrintUrl = cert 
-                    ? `/print/certificate/${cert.certificate_id}${parentCourseCode ? `?course_code=${parentCourseCode}` : ''}`
+                    ? `/print/certificate/${cert.certificate_id}?doc_type=Certificate&student_number=${encodeURIComponent(registration.student_number)}${parentCourseCode ? `&course_code=${encodeURIComponent(parentCourseCode)}` : ''}`
                     : '#';
 
                 // Transcript URLs logic (Note: Transcript button appears if Cert is generated)

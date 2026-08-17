@@ -77,8 +77,9 @@ class UserCertificatePrintStatus
     public function getRecordsByCertificateId($certificateId)
     {
         try {
-            $stmt = $this->pdo->prepare("SELECT id, student_number, certificate_id, print_date, print_status, print_by, type, course_code FROM user_certificate_print_status WHERE certificate_id = :certificate_id OR id = :certificate_id");
-            $stmt->execute(['certificate_id' => $certificateId]);
+            $numericId = is_numeric($certificateId) ? (int)$certificateId : 0;
+            $stmt = $this->pdo->prepare("SELECT id, student_number, certificate_id, print_date, print_status, print_by, type, course_code FROM user_certificate_print_status WHERE certificate_id = :certificate_id OR id = :id");
+            $stmt->execute(['certificate_id' => $certificateId, 'id' => $numericId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             return ['error' => $e->getMessage()];
