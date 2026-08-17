@@ -773,7 +773,7 @@ export default function CertificateOrdersPage() {
                                                         <>
                                                             <Button asChild size="sm" className="h-7 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
                                                                 <a 
-                                                                    href={`/print/certificate/${genDoc.certificate_id}?doc_type=Certificate&course_code=${encodeURIComponent(genDoc.course_code || selectedOrderDetails.course_code.split(',')[0].trim())}`} 
+                                                                    href={`/print/certificate/${genDoc.certificate_id}?doc_type=Certificate&course_code=${encodeURIComponent(genDoc.course_code || selectedOrderDetails.course_code.split(',')[0].trim())}&student_number=${encodeURIComponent(genDoc.student_number || selectedOrderDetails.created_by)}`} 
                                                                     target="_blank" 
                                                                     rel="noopener noreferrer"
                                                                 >
@@ -782,7 +782,7 @@ export default function CertificateOrdersPage() {
                                                             </Button>
                                                             <Button asChild size="sm" className="h-7 text-[11px] bg-blue-600 hover:bg-blue-700 text-white font-semibold">
                                                                 <a 
-                                                                    href={`/print/certificate/${genDoc.certificate_id}?doc_type=Transcript&course_code=${encodeURIComponent(genDoc.course_code || selectedOrderDetails.course_code.split(',')[0].trim())}`} 
+                                                                    href={`/print/certificate/${genDoc.certificate_id}?doc_type=Transcript&course_code=${encodeURIComponent(genDoc.course_code || selectedOrderDetails.course_code.split(',')[0].trim())}&student_number=${encodeURIComponent(genDoc.student_number || selectedOrderDetails.created_by)}`} 
                                                                     target="_blank" 
                                                                     rel="noopener noreferrer"
                                                                 >
