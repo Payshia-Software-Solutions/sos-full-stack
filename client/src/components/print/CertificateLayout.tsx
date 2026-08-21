@@ -85,6 +85,9 @@ interface CertificateLayoutProps {
   courseData?: ParentCourse;
   batchCode?: string;
   template?: CertificateTemplate | null;
+  grade?: string;
+  duration?: string;
+  completedDate?: string;
 }
 
 export const CertificateLayout = ({ 
@@ -95,7 +98,10 @@ export const CertificateLayout = ({
   certificateId, 
   courseData, 
   batchCode,
-  template 
+  template,
+  grade,
+  duration,
+  completedDate
 }: CertificateLayoutProps) => {
 
   const verificationUrl = `https://pharmacollege.lk/result-view?CourseCode=${encodeURIComponent(batchCode || '')}&LoggedUser=${encodeURIComponent(studentIndex || '')}`;
@@ -193,9 +199,9 @@ export const CertificateLayout = ({
                 .replace(/\[Student ID\]/g, studentIndex)
                 .replace(/{{ISSUED_DATE}}/g, formattedDate)
                 .replace(/\[Issued Date\]/g, formattedDate)
-                .replace(/{{COMPLETED_DATE}}/g, formattedDate)
-                .replace(/{{DURATION}}/g, '6 Months')
-                .replace(/{{GRADE}}/g, 'B')
+                .replace(/{{COMPLETED_DATE}}/g, completedDate || formattedDate)
+                .replace(/{{DURATION}}/g, duration || courseData?.course_duration || '')
+                .replace(/{{GRADE}}/g, grade !== undefined && grade !== null ? grade : 'N/A')
                 .replace(/{{TRANSCRIPT_REF_ID}}/g, `TRNS/${studentIndex}/${batchCode || 'CPCC'}/${certificateId}`)
                 .replace(/{{BATCH}}/g, batchCode || '')
                 .replace(/\[Batch\]/g, batchCode || '');

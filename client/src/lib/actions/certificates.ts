@@ -507,3 +507,101 @@ export const getCertificatePrintStatusById = async (certificateId: string): Prom
 
     return null;
 };
+
+export const sendCertificateNameSms = async (payload: SendSmsPayload): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/send-name-sms`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: `SMS sending failed. Status: ${response.status}` }));
+        throw new Error(errorData.message || 'SMS sending failed');
+    }
+    return response.json();
+};
+
+export const generateAllCertificatesForBooking = async (bookingId: string): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/booking-updates/generate-certificate`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ booking_id: bookingId })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Bulk generation failed' }));
+        throw new Error(errorData.message || 'Bulk generation failed');
+    }
+    return response.json();
+};
+
+export const getTcPayments = async (studentNumber: string): Promise<TcPaymentRecord[]> => {
+    const response = await fetch(`${QA_API_BASE_URL}/tc-payments?student_number=${studentNumber}`);
+    if (response.status === 404) return [];
+    if (!response.ok) throw new Error('Failed to fetch payment records');
+    return response.json();
+};
+
+export const submitSecondPayment = async (payload: FormData): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/payment-portal-requests`, {
+        method: 'POST',
+        body: payload,
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: `Payment submission failed. Status: ${response.status}` }));
+        throw new Error(errorData.message || 'Payment submission failed');
+    }
+    return response.json();
+};
+
+export const deleteConvocationPayment = async (registrationId: string, paymentId: string): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/convocation-registrations/${registrationId}/payment/${paymentId}`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to delete payment record' }));
+        throw new Error(errorData.message || 'Failed to delete payment record');
+    }
+};
+
+export const getGeneratedCertificatesByBatch = async (courseCode: string): Promise<GeneratedCertificateBatchInfo[]> => {
+    const response = await fetch(`${QA_API_BASE_URL}/certificate-print-status/course/${courseCode}`);
+    if (response.status === 404) return [];
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch generated certificates' }));
+        throw new Error(errorData.message || `Request failed with status ${response.status}`);
+    }
+    return response.json();
+};
+
+export const uploadConvocationStudentCsv = async (convocationId: string, file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append('convocation_id', convocationId);
+    formData.append('file', file);
+
+    const response = await fetch(`${QA_API_BASE_URL}/convocation-student-info/upload-csv/`, {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to upload CSV' }));
+        throw new Error(errorData.message || 'Failed to upload CSV');
+    }
+    return response.json();
+};
+
+export const getConvocationStudentCeremonyNumber = async (studentNumber: string, convocationId: string): Promise<string | null> => {
+    try {
+        const response = await fetch(`${QA_API_BASE_URL}/convocation-student-info/student/${studentNumber}/convocation/${convocationId}`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.ceremony_number || null;
+    } catch {
+        return null;
+    }
+};
