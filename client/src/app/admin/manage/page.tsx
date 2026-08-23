@@ -33,6 +33,13 @@ const managementTasks: ManagementTask[] = [
     category: "Student Management"
   },
   {
+    title: "Document Verification (KYC)",
+    description: "Review and verify student ID cards, birth certificates, and O/L & A/L qualifications.",
+    icon: <FileCheck className="w-8 h-8 text-white" />,
+    href: "/admin/manage/document-verification",
+    category: "Student Management"
+  },
+  {
     title: "Profile Edit Requests",
     description: "Review and approve/reject student profile update requests.",
     icon: <UserCog className="w-8 h-8 text-white" />,

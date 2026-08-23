@@ -21,7 +21,8 @@ import {
   Gamepad2,
   BookText,
   Package,
-  User
+  User,
+  ShieldCheck
 } from "lucide-react";
 import {
   Sidebar,
@@ -60,6 +61,7 @@ import {
 const baseNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/profile", label: "My Profile", icon: User },
+  { href: "/dashboard/kyc", label: "KYC Verification", icon: ShieldCheck },
   { href: "/dashboard/tickets", label: "Tickets", icon: Ticket },
   { href: "/dashboard/announcements", label: "Announcements", icon: Megaphone },
   { href: "/dashboard/bnf", label: "BNF", icon: BookOpen },
