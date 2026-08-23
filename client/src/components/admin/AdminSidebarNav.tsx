@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare, Ticket, LayoutDashboard, LogOut, Search, Wrench, Megaphone, Video, Home, MoreHorizontal, Award, ClipboardCheck, ChevronRight, Cake, CreditCard } from "lucide-react";
+import { MessageSquare, Ticket, LayoutDashboard, LogOut, Search, Wrench, Megaphone, Video, Home, MoreHorizontal, Award, ClipboardCheck, ChevronRight, Cake, CreditCard, ShieldCheck } from "lucide-react";
 import {
   Sidebar,
   SidebarHeader,
@@ -38,6 +38,7 @@ const navItems: NavItem[] = [
   { href: "/admin/chat", label: "Chats", icon: MessageSquare },
   { href: "/admin/blogs", label: "Blogs", icon: Megaphone },
   { href: "/admin/manage/convocation-generate", label: "Issue Certificates", icon: Award },
+  { href: "/admin/manage/document-verification", label: "Verify KYC", icon: ShieldCheck },
   { 
     label: "WinPharma", 
     icon: ClipboardCheck,

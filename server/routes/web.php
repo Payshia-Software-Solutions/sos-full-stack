@@ -164,6 +164,7 @@ $smsTemplateRoutes = require './routes/smsTemplateRoutes.php';
 $transcriptTemplateRoutes = require './routes/TranscriptTemplateRoutes.php';
 $certificateTemplateRoutes = require './routes/CertificateTemplateRoutes.php';
 $leadRoutes = require './routes/Lead/LeadRoutes.php';
+$studentDocumentVerificationRoutes = require './routes/Student/studentDocumentVerificationRoutes.php';
 // Combine all routes
 $routes = array_merge(
     $userRoutes,
@@ -306,7 +307,8 @@ $routes = array_merge(
     $smsTemplateRoutes,
     $transcriptTemplateRoutes,
     $certificateTemplateRoutes,
-    $leadRoutes
+    $leadRoutes,
+    $studentDocumentVerificationRoutes
 );
 
 

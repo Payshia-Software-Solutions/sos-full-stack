@@ -4,14 +4,15 @@
 import { useEffect, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { getStudentDetailsByUsername, getStudentEnrollments } from '@/lib/actions/users';
+import { getStudentDetailsByUsername, getStudentEnrollments, getStudentFullInfo } from '@/lib/actions/users';
 import { getBatchByCode, getParentCourseById, getParentCourses } from '@/lib/actions/courses';
 import { getCertificatePrintStatusById, getCertificateTemplate } from '@/lib/actions/certificates';
 import type { UserFullDetails, ParentCourse, UserCertificatePrintStatus, ApiCourse, StudentEnrollmentInfo } from '@/lib/types';
 import { CertificateLayout } from '@/components/print/CertificateLayout';
 import { Button } from '@/components/ui/button';
-import { Printer, Loader2 } from 'lucide-react';
+import { Printer, Loader2, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 import { getTranscriptTemplate } from '@/lib/actions/transcripts';
@@ -99,6 +100,13 @@ export default function PrintCertificatePage() {
         enabled: !!effectiveCertData.student_number,
     });
 
+    // Step 3.6: Fetch student full info (including assignment grades and certificate eligibility)
+    const { data: studentFullInfo, isLoading: isLoadingFullInfo } = useQuery({
+        queryKey: ['studentFullInfoForPrint', effectiveCertData.student_number],
+        queryFn: () => getStudentFullInfo(effectiveCertData.student_number),
+        enabled: !!effectiveCertData.student_number,
+    });
+
     // Step 4: Fetch all parent courses for fast in-memory course resolution.
     const { data: parentCourses } = useQuery<ParentCourse[]>({
         queryKey: ['allParentCourses'],
@@ -168,6 +176,58 @@ export default function PrintCertificatePage() {
         }
         return effectiveCertData.course_code;
     }, [effectiveCertData.course_code, studentEnrollments, courseData, resolvedParentCourseId]);
+
+    // Step 8.6: Resolve matched enrollment and compute dynamic student grade matching front-web
+    const matchedEnrollment = useMemo(() => {
+        if (!studentFullInfo?.studentEnrollments) return null;
+        const enrollments = studentFullInfo.studentEnrollments;
+        if (effectiveBatchCode && enrollments[effectiveBatchCode]) {
+            return enrollments[effectiveBatchCode];
+        }
+        if (effectiveCertData.course_code && enrollments[effectiveCertData.course_code]) {
+            return enrollments[effectiveCertData.course_code];
+        }
+        const values = Object.values(enrollments) as any[];
+        const targetParentId = courseData?.id || resolvedParentCourseId;
+        const byParent = values.find(e => 
+            (targetParentId && String(e.parent_course_id || '') === String(targetParentId)) ||
+            (courseData?.course_name && e.parent_course_name?.toLowerCase() === courseData.course_name.toLowerCase())
+        );
+        if (byParent) return byParent;
+        return values[0] || null;
+    }, [studentFullInfo, effectiveBatchCode, effectiveCertData.course_code, courseData, resolvedParentCourseId]);
+
+    const { finalGrade, gradeError } = useMemo(() => {
+        if (isLoadingFullInfo) return { finalGrade: null, gradeError: null };
+        if (!studentFullInfo) {
+            return { finalGrade: null, gradeError: `Student (${effectiveCertData.student_number}) records could not be fetched.` };
+        }
+        if (!matchedEnrollment) {
+            return { finalGrade: null, gradeError: `No active enrollment found for student ${effectiveCertData.student_number} in course ${effectiveBatchCode || effectiveCertData.course_code || courseData?.course_name || 'selected course'}.` };
+        }
+        if (!matchedEnrollment.certificate_eligibility) {
+            return { finalGrade: "Not Eligible", gradeError: `Student ${effectiveCertData.student_number} is NOT eligible for a certificate in ${matchedEnrollment.parent_course_name || matchedEnrollment.course_code}.` };
+        }
+        const avgStr = matchedEnrollment.assignment_grades?.average_grade;
+        const avg = parseFloat(avgStr);
+        if (isNaN(avg)) {
+            return { finalGrade: "Result Not Submitted", gradeError: `No assignment results submitted for student ${effectiveCertData.student_number}.` };
+        }
+        
+        // Exact same grade calculation logic as front-web (result-view)
+        if (avg >= 90) return { finalGrade: "A+", gradeError: null };
+        if (avg >= 80) return { finalGrade: "A", gradeError: null };
+        if (avg >= 75) return { finalGrade: "A-", gradeError: null };
+        if (avg >= 70) return { finalGrade: "B+", gradeError: null };
+        if (avg >= 65) return { finalGrade: "B", gradeError: null };
+        if (avg >= 60) return { finalGrade: "B-", gradeError: null };
+        if (avg >= 55) return { finalGrade: "C+", gradeError: null };
+        if (avg >= 45) return { finalGrade: "C", gradeError: null };
+        if (avg >= 40) return { finalGrade: "C-", gradeError: null };
+        if (avg >= 35) return { finalGrade: "D+", gradeError: null };
+        if (avg >= 30) return { finalGrade: "D", gradeError: null };
+        return { finalGrade: "E", gradeError: null };
+    }, [isLoadingFullInfo, studentFullInfo, matchedEnrollment, effectiveCertData.student_number, effectiveBatchCode, courseData]);
 
     // Step 9: Fetch certificate/transcript template from certificate_template table
     const { data: templateData } = useQuery({
@@ -243,13 +303,19 @@ export default function PrintCertificatePage() {
         window.print();
     };
 
-    if (isLoadingCert && !effectiveCertData.student_number) {
+    const isDocumentLoading = isLoadingCert || (isLoadingFullInfo && !studentFullInfo);
+
+    if (isDocumentLoading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-200 p-8">
-                <Loader2 className="h-8 w-8 animate-spin mb-4" />
-                <p>Loading Document Data...</p>
-                <div className="w-[210mm] h-[297mm] bg-white shadow-lg mt-8">
-                    <Skeleton className="w-full h-full" />
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-8">
+                <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                <p className="font-semibold text-gray-700 text-lg">Loading {docTypeParam} & Student Grade...</p>
+                <p className="text-sm text-gray-500 mt-1">Please wait while student records and assignment results are being verified...</p>
+                <div className="w-[210mm] h-[297mm] bg-white shadow-lg mt-6 rounded-md p-8 flex flex-col gap-6">
+                    <Skeleton className="w-1/3 h-8 mx-auto" />
+                    <Skeleton className="w-2/3 h-4 mx-auto" />
+                    <Skeleton className="w-full h-48 mt-8" />
+                    <Skeleton className="w-1/2 h-8 mt-12" />
                 </div>
             </div>
         );
@@ -257,23 +323,34 @@ export default function PrintCertificatePage() {
 
     return (
         <div className="bg-gray-200 print:bg-white">
-            <div className="fixed top-4 right-4 z-50 no-print">
-                <Button onClick={handlePrint}>
+            <div className="fixed top-4 right-4 z-50 no-print flex items-center gap-2">
+                <Button onClick={handlePrint} disabled={isDocumentLoading || matchedEnrollment?.certificate_eligibility === false}>
                     <Printer className="mr-2 h-4 w-4" />
                     Print {docTypeParam}
                 </Button>
             </div>
+            {gradeError && (
+                <div className="max-w-4xl mx-auto pt-4 px-4 no-print">
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Validation Notice</AlertTitle>
+                        <AlertDescription>{gradeError}</AlertDescription>
+                    </Alert>
+                </div>
+            )}
             <main className="flex justify-center items-start min-h-screen p-8 print:p-0">
                 <div className="print-container bg-white shadow-lg print:shadow-none">
                     <CertificateLayout
-                        studentName={studentData?.name_on_certificate || studentData?.full_name || 'Student Name'}
+                        studentName={studentData?.name_on_certificate || studentData?.full_name || studentFullInfo?.studentInfo?.name_on_certificate || studentFullInfo?.studentInfo?.full_name || 'Student Name'}
                         studentIndex={effectiveCertData.student_number}
-                        courseName={courseData?.course_name || 'Certificate Course'}
+                        courseName={matchedEnrollment?.parent_course_name || courseData?.course_name || 'Certificate Course'}
                         issueDate={effectiveCertData.print_date}
                         certificateId={effectiveCertData.certificate_id}
                         courseData={courseData}
                         batchCode={effectiveBatchCode}
                         template={templateData?.success ? templateData.template : null}
+                        grade={finalGrade || 'N/A'}
+                        duration={courseData?.course_duration || ''}
                     />
                 </div>
             </main>
