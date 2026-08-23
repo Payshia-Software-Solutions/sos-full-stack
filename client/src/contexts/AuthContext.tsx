@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Preloader } from '@/components/ui/preloader';
 import { ImpersonationBanner } from '@/components/admin/ImpersonationBanner';
 import { getStudentEnrollments } from '@/lib/actions/users';
+import { getStudentKycStatus } from '@/lib/actions/kyc';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -82,6 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: apiUser.email,
           role: apiUser.userlevel === 'Student' ? 'student' : 'staff',
           userlevel: apiUser.userlevel, // Store the specific userlevel
+          verification_status: apiUser.verification_status || 'Unverified',
           avatar: `https://placehold.co/100x100.png?text=${apiUser.fname.charAt(0)}${apiUser.lname.charAt(0)}`,
           joinedDate: apiUser.created_at,
         };
@@ -92,7 +94,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (userProfile.role === 'staff') {
           router.push('/admin/dashboard');
         } else {
-            // Student login flow
+            // Check student verification status directly from user table
+            if (userProfile.verification_status !== 'Verified') {
+              router.push('/dashboard/kyc');
+              return;
+            }
+
             const enrollments = await getStudentEnrollments(userProfile.username!);
             if (enrollments && enrollments.length > 1) {
                 // If more than one course, go to selection page

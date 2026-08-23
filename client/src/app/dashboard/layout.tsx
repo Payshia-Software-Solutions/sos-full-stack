@@ -10,6 +10,7 @@ import { MobileDetailActiveProvider, useMobileDetailActive } from '@/contexts/Mo
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { ProtectedRoute, useAuth } from "@/contexts/AuthContext";
+import { KYCVerificationGuard } from "@/components/dashboard/KYCVerificationGuard";
 import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
 import { useEffect, useRef } from "react";
 
@@ -45,7 +46,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             )}
           >
             <SidebarInset className="flex-1">
-              {children}
+              <KYCVerificationGuard>
+                {children}
+              </KYCVerificationGuard>
             </SidebarInset>
           </main>
         </div>

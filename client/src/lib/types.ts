@@ -69,6 +69,7 @@ export interface UserProfile {
   email: string;
   role: 'student' | 'staff';
   userlevel?: string; // e.g. "Admin", "Staff", "Student"
+  verification_status?: 'Unverified' | 'Pending' | 'Verified' | 'Rejected';
   avatar: string;
   joinedDate: string;
   lastLogin?: string;
@@ -1235,3 +1236,32 @@ export interface CriteriaListFormValues {
     moq: number;
     is_active: number;
 }
+
+export type DocumentVerificationStatus = 'not_submitted' | 'pending' | 'approved' | 'rejected';
+export type DocumentIdType = 'nic' | 'passport' | 'driving_license';
+
+export interface StudentDocumentVerification {
+  id?: number;
+  student_id: string;
+  id_type: DocumentIdType;
+  id_number?: string;
+  id_front_image?: string;
+  id_back_image?: string;
+  birth_certificate_front?: string;
+  birth_certificate_back?: string;
+  ol_certificate?: string;
+  al_certificate?: string;
+  other_documents?: string;
+  status: DocumentVerificationStatus;
+  rejection_reason?: string;
+  verified_by?: string;
+  verified_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Joined user fields
+  fname?: string;
+  lname?: string;
+  email?: string;
+  phone?: string;
+}
+
