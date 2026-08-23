@@ -19,6 +19,7 @@ class StudentDocumentVerificationController
     // Get student KYC verification status by student username/ID
     public function getStatusByStudent($studentId)
     {
+        $studentId = rtrim(trim($studentId), '/');
         $record = $this->model->getByStudentId($studentId);
         if ($record) {
             echo json_encode([
@@ -49,6 +50,27 @@ class StudentDocumentVerificationController
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Student ID is required']);
             return;
+        }
+
+        // Check if student already has a pending or approved request
+        $existing = $this->model->getByStudentId($studentId);
+        if ($existing) {
+            if ($existing['status'] === 'pending') {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Your document verification is already under review. You cannot submit again until an administrator verifies it.'
+                ]);
+                return;
+            }
+            if ($existing['status'] === 'approved') {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Your documents have already been verified and approved.'
+                ]);
+                return;
+            }
         }
 
         $uploadDir = './uploads/student-documents/';
