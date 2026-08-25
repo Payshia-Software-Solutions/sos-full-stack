@@ -66,18 +66,41 @@ class StudentCourseModelNew
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Read single enrollment with user details by student course ID
-    public function getByStudentNumber($userName)
+    // Helper to resolve all possible identifier variants (with/without slash, from user_full_details, and from users table)
+    private function resolveStudentIdentifiers($userName)
     {
         $identifiers = [$userName];
-        $stmtUser = $this->pdo->prepare("SELECT student_id, username FROM user_full_details WHERE student_id = ? OR username = ? LIMIT 1");
-        $stmtUser->execute([$userName, $userName]);
+
+        $noSlash = str_replace('/', '', $userName);
+        if (!empty($noSlash)) $identifiers[] = $noSlash;
+
+        if (preg_match('/^([A-Za-z]+)(\d{2})(\d{3,})$/', $userName, $matches)) {
+            $identifiers[] = $matches[1] . '/' . $matches[2] . '/' . $matches[3];
+        }
+
+        $stmtUser = $this->pdo->prepare("SELECT student_id, username FROM user_full_details WHERE student_id = ? OR username = ? OR student_id = ? OR username = ? LIMIT 1");
+        $stmtUser->execute([$userName, $userName, $noSlash, $noSlash]);
         $userInfo = $stmtUser->fetch(PDO::FETCH_ASSOC);
         if ($userInfo) {
             if (!empty($userInfo['student_id'])) $identifiers[] = $userInfo['student_id'];
             if (!empty($userInfo['username'])) $identifiers[] = $userInfo['username'];
         }
-        $identifiers = array_unique($identifiers);
+
+        $stmtUsersTable = $this->pdo->prepare("SELECT userid, username FROM users WHERE username = ? OR userid = ? OR username = ? OR userid = ? LIMIT 1");
+        $stmtUsersTable->execute([$userName, $userName, $noSlash, $noSlash]);
+        $userFallback = $stmtUsersTable->fetch(PDO::FETCH_ASSOC);
+        if ($userFallback) {
+            if (!empty($userFallback['userid'])) $identifiers[] = $userFallback['userid'];
+            if (!empty($userFallback['username'])) $identifiers[] = $userFallback['username'];
+        }
+
+        return array_values(array_unique(array_filter($identifiers)));
+    }
+
+    // Read single enrollment with user details by student course ID
+    public function getByStudentNumber($userName)
+    {
+        $identifiers = $this->resolveStudentIdentifiers($userName);
         $inQuery = implode(',', array_fill(0, count($identifiers), '?'));
 
         $stmt = $this->pdo->prepare("
@@ -251,15 +274,7 @@ class StudentCourseModelNew
 
     public function getByStudentNumberAndParentCourseId($userName, $parentCourseId)
     {
-        $identifiers = [$userName];
-        $stmtUser = $this->pdo->prepare("SELECT student_id, username FROM user_full_details WHERE student_id = ? OR username = ? LIMIT 1");
-        $stmtUser->execute([$userName, $userName]);
-        $userInfo = $stmtUser->fetch(PDO::FETCH_ASSOC);
-        if ($userInfo) {
-            if (!empty($userInfo['student_id'])) $identifiers[] = $userInfo['student_id'];
-            if (!empty($userInfo['username'])) $identifiers[] = $userInfo['username'];
-        }
-        $identifiers = array_unique($identifiers);
+        $identifiers = $this->resolveStudentIdentifiers($userName);
         $inQuery = implode(',', array_fill(0, count($identifiers), '?'));
 
         $stmt = $this->pdo->prepare("
