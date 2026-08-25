@@ -94,15 +94,66 @@ export const getStudentFullInfo = async (studentNumber: string): Promise<any> =>
 };
 
 export const getStudentEnrollments = async (studentNumber: string): Promise<StudentEnrollmentInfo[]> => {
-    const response = await fetch(`${QA_API_BASE_URL}/student-courses-new/student-number/${studentNumber}`);
-    if (response.status === 404) {
+    try {
+        const response = await fetch(`${QA_API_BASE_URL}/student-courses-new/student-number/${encodeURIComponent(studentNumber)}`);
+        let enrollments: StudentEnrollmentInfo[] = [];
+        if (response.ok) {
+            enrollments = await response.json();
+        }
+        
+        if (Array.isArray(enrollments) && enrollments.length > 0) {
+            return enrollments;
+        }
+
+        // Fallback: If student-courses-new returned empty or 404, check getStudentFullInfo
+        try {
+            const fullInfo = await getStudentFullInfo(studentNumber);
+            if (fullInfo && fullInfo.studentEnrollments && typeof fullInfo.studentEnrollments === 'object') {
+                const fallbackList: StudentEnrollmentInfo[] = Object.values(fullInfo.studentEnrollments).map((e: any) => ({
+                    student_course_id: e.id,
+                    course_code: e.course_code,
+                    student_id: e.student_id,
+                    enrollment_key: e.enrollment_key,
+                    created_at: e.created_at,
+                    parent_course_id: e.parent_course_id,
+                    course_name: e.parent_course_name || e.batch_name || e.course_code,
+                    course_img: e.course_img || '',
+                    whatsapp_link: e.whatsapp_link || '',
+                    user_id: fullInfo.studentInfo?.id,
+                    username: fullInfo.studentInfo?.username,
+                    civil_status: fullInfo.studentInfo?.civil_status,
+                    first_name: fullInfo.studentInfo?.first_name,
+                    last_name: fullInfo.studentInfo?.last_name,
+                    gender: fullInfo.studentInfo?.gender,
+                    address_line_1: fullInfo.studentInfo?.address_line_1,
+                    address_line_2: fullInfo.studentInfo?.address_line_2,
+                    city: fullInfo.studentInfo?.city,
+                    district: fullInfo.studentInfo?.district,
+                    postal_code: fullInfo.studentInfo?.postal_code,
+                    telephone_1: fullInfo.studentInfo?.telephone_1,
+                    telephone_2: fullInfo.studentInfo?.telephone_2,
+                    nic: fullInfo.studentInfo?.nic,
+                    e_mail: fullInfo.studentInfo?.e_mail,
+                    birth_day: fullInfo.studentInfo?.birth_day,
+                    updated_by: fullInfo.studentInfo?.updated_by,
+                    updated_at: fullInfo.studentInfo?.updated_at,
+                    full_name: fullInfo.studentInfo?.full_name,
+                    name_with_initials: fullInfo.studentInfo?.name_with_initials,
+                    name_on_certificate: fullInfo.studentInfo?.name_on_certificate,
+                }));
+                if (fallbackList.length > 0) {
+                    return fallbackList;
+                }
+            }
+        } catch {
+            // ignore fallback fetch error
+        }
+
+        return Array.isArray(enrollments) ? enrollments : [];
+    } catch (error) {
+        console.error(`Error fetching enrollments for ${studentNumber}:`, error);
         return [];
     }
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: `Failed to fetch enrollments for ${studentNumber}`}));
-        throw new Error(errorData.message || 'Failed to fetch enrollments');
-    }
-    return response.json();
 };
 
 export const addStudentEnrollment = async (data: { student_id: string; course_code: string }): Promise<any> => {

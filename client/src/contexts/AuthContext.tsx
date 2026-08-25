@@ -94,12 +94,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (userProfile.role === 'staff') {
           router.push('/admin/dashboard');
         } else {
-            // Check student verification status directly from user table
-            if (userProfile.verification_status !== 'Verified') {
-              router.push('/dashboard/kyc');
-              return;
-            }
-
             const enrollments = await getStudentEnrollments(userProfile.username!);
             if (enrollments && enrollments.length > 1) {
                 // If more than one course, go to selection page
