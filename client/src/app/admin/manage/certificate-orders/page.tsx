@@ -13,12 +13,14 @@ import {
     getUserCertificatePrintStatus 
 } from '@/lib/actions/certificates';
 import { getStudentFullInfo, getStudentBalance } from '@/lib/actions/users';
-import { getParentCourses } from '@/lib/actions/courses';
+import { getParentCourses, getCourses } from '@/lib/actions/courses';
 import type { 
     CertificateOrder, 
     FullStudentData, 
     UserCertificatePrintStatus, 
-    GenerateCertificatePayload 
+    GenerateCertificatePayload,
+    ParentCourse,
+    Course
 } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -138,6 +140,13 @@ export default function CertificateOrdersPage() {
         staleTime: 1000 * 60 * 15,
     });
 
+    // Fetch all batch courses
+    const { data: allCourses } = useQuery<Course[]>({
+        queryKey: ['allCourses'],
+        queryFn: getCourses,
+        staleTime: 1000 * 60 * 15,
+    });
+
     // Fetch certificate orders
     const { data: orders, isLoading: isLoadingOrders, isError, error } = useQuery<CertificateOrder[]>({
         queryKey: ['certificateOrders'],
@@ -153,8 +162,16 @@ export default function CertificateOrdersPage() {
                 map.set(course.course_code.trim(), course.course_name);
             }
         });
+        allCourses?.forEach(course => {
+            if (course.id) {
+                map.set(String(course.id), course.name);
+            }
+            if (course.courseCode) {
+                map.set(course.courseCode.trim(), course.name);
+            }
+        });
         return map;
-    }, [parentCourses]);
+    }, [parentCourses, allCourses]);
 
     const courseCodeMap = useMemo(() => {
         const map = new Map<string, string>();
@@ -164,14 +181,22 @@ export default function CertificateOrdersPage() {
                 map.set(course.course_code.trim(), course.course_code);
             }
         });
+        allCourses?.forEach(course => {
+            if (course.id) {
+                map.set(String(course.id), course.courseCode);
+            }
+            if (course.courseCode) {
+                map.set(course.courseCode.trim(), course.courseCode);
+            }
+        });
         return map;
-    }, [parentCourses]);
+    }, [parentCourses, allCourses]);
 
     const uniqueCourseOptions = useMemo(() => {
-        if (!parentCourses) return [];
         const seen = new Set<string>();
         const options: { id: string; name: string; courseCode: string }[] = [];
-        parentCourses.forEach(course => {
+        
+        parentCourses?.forEach(course => {
             if (!seen.has(course.course_name)) {
                 seen.add(course.course_name);
                 options.push({ 
@@ -181,8 +206,20 @@ export default function CertificateOrdersPage() {
                 });
             }
         });
+
+        allCourses?.forEach(course => {
+            if (course.courseCode && !seen.has(course.name)) {
+                seen.add(course.name);
+                options.push({ 
+                    id: course.courseCode.trim(), 
+                    name: course.name, 
+                    courseCode: course.courseCode.trim() 
+                });
+            }
+        });
+
         return options;
-    }, [parentCourses]);
+    }, [parentCourses, allCourses]);
 
     // Mutation to update status & tracking
     const updateStatusMutation = useMutation({
