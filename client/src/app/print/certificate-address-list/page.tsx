@@ -3,9 +3,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { getCertificateOrders } from '@/lib/actions/certificates';
-import { getParentCourses } from '@/lib/actions/courses';
+import { getParentCourses, getCourses } from '@/lib/actions/courses';
 import { getAllCities } from '@/lib/actions/locations';
-import type { CertificateOrder, ParentCourse } from '@/lib/types';
+import type { CertificateOrder, ParentCourse, Course } from '@/lib/types';
 import { useMemo, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,11 @@ export default function CertificateAddressListPage() {
         queryFn: getParentCourses,
     });
 
+    const { data: allCourses } = useQuery<Course[]>({
+        queryKey: ['allCourses'],
+        queryFn: getCourses,
+    });
+
     const { data: cities } = useQuery<City[]>({
         queryKey: ['cities'],
         queryFn: getAllCities,
@@ -47,9 +52,22 @@ export default function CertificateAddressListPage() {
 
     const courseNameMap = useMemo(() => {
         const map = new Map<string, string>();
-        parentCourses?.forEach(course => map.set(course.id, course.course_name));
+        parentCourses?.forEach(course => {
+            map.set(String(course.id), course.course_name);
+            if (course.course_code) {
+                map.set(course.course_code.trim(), course.course_name);
+            }
+        });
+        allCourses?.forEach(course => {
+            if (course.id) {
+                map.set(String(course.id), course.name);
+            }
+            if (course.courseCode) {
+                map.set(course.courseCode.trim(), course.name);
+            }
+        });
         return map;
-    }, [parentCourses]);
+    }, [parentCourses, allCourses]);
 
     const cityMap = useMemo(() => {
         const map = new Map<string, string>();
