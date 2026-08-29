@@ -215,7 +215,8 @@ export default function CreateConvocationBookingPage() {
       
       const availableForBooking = eligibleEnrollments.filter(e => 
         !activeBookedCourseIds.has(e.parent_course_id) &&
-        !activeOrderedCourseIds.has(e.parent_course_id)
+        !activeOrderedCourseIds.has(e.parent_course_id) &&
+        !activeOrderedCourseIds.has(e.course_code)
       );
 
       if (availableForBooking.length === 0) {
@@ -299,7 +300,8 @@ export default function CreateConvocationBookingPage() {
     const availableForBooking = allEnrollments.filter(e => 
         e.certificate_eligibility && 
         !activeBookedCourseIds.has(e.parent_course_id) &&
-        !activeOrderedCourseIds.has(e.parent_course_id)
+        !activeOrderedCourseIds.has(e.parent_course_id) &&
+        !activeOrderedCourseIds.has(e.course_code)
     );
     setSelectedEnrollments(availableForBooking);
     setDeselectedEligible([]);
@@ -478,7 +480,7 @@ export default function CreateConvocationBookingPage() {
                 )}
                 {allEnrollments.map(enrollment => {
                     const isEligible = enrollment.certificate_eligibility;
-                    const hasActiveOrder = activeOrderedCourseIds.has(enrollment.parent_course_id);
+                    const hasActiveOrder = activeOrderedCourseIds.has(enrollment.parent_course_id) || activeOrderedCourseIds.has(enrollment.course_code);
                     const isBookedForConvocation = activeBookedCourseIds.has(enrollment.parent_course_id);
                     const isDisabled = !isEligible || hasActiveOrder || isBookedForConvocation;
 
@@ -817,7 +819,7 @@ export default function CreateConvocationBookingPage() {
                                     {errorDetails.enrollments.map(enrollment => {
                                         const isEligible = enrollment.certificate_eligibility;
                                         const isBooked = activeBookedCourseIds.has(enrollment.parent_course_id);
-                                        const isOrdered = activeOrderedCourseIds.has(enrollment.parent_course_id);
+                                        const isOrdered = activeOrderedCourseIds.has(enrollment.parent_course_id) || activeOrderedCourseIds.has(enrollment.course_code);
 
                                         let statusBadge: React.ReactNode;
                                         if (isBooked) {

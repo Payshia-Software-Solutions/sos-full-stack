@@ -13,12 +13,14 @@ import {
     getUserCertificatePrintStatus 
 } from '@/lib/actions/certificates';
 import { getStudentFullInfo, getStudentBalance } from '@/lib/actions/users';
-import { getParentCourses } from '@/lib/actions/courses';
+import { getParentCourses, getBatches } from '@/lib/actions/courses';
 import type { 
     CertificateOrder, 
     FullStudentData, 
     UserCertificatePrintStatus, 
-    GenerateCertificatePayload 
+    GenerateCertificatePayload,
+    ParentCourse,
+    Batch
 } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -115,6 +117,7 @@ export default function CertificateOrdersPage() {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [courseFilter, setCourseFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('Pending');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(25);
     const [isExporting, setIsExporting] = useState(false);
@@ -138,6 +141,13 @@ export default function CertificateOrdersPage() {
         staleTime: 1000 * 60 * 15,
     });
 
+    // Fetch all batch courses
+    const { data: batches } = useQuery<Batch[]>({
+        queryKey: ['allBatches'],
+        queryFn: getBatches,
+        staleTime: 1000 * 60 * 15,
+    });
+
     // Fetch certificate orders
     const { data: orders, isLoading: isLoadingOrders, isError, error } = useQuery<CertificateOrder[]>({
         queryKey: ['certificateOrders'],
@@ -147,31 +157,64 @@ export default function CertificateOrdersPage() {
 
     const courseNameMap = useMemo(() => {
         const map = new Map<string, string>();
+        const parentNameById = new Map<string, string>();
+
         parentCourses?.forEach(course => {
+            parentNameById.set(String(course.id), course.course_name);
             map.set(String(course.id), course.course_name);
             if (course.course_code) {
                 map.set(course.course_code.trim(), course.course_name);
             }
         });
+
+        batches?.forEach(batch => {
+            if (batch.courseCode) {
+                const parentName = batch.parent_course_id ? parentNameById.get(String(batch.parent_course_id)) : null;
+                map.set(batch.courseCode.trim(), parentName || batch.name);
+            }
+        });
+
+        // Ensure parent courses always retain their canonical name for numeric ID keys
+        parentCourses?.forEach(course => {
+            map.set(String(course.id), course.course_name);
+        });
+
         return map;
-    }, [parentCourses]);
+    }, [parentCourses, batches]);
 
     const courseCodeMap = useMemo(() => {
         const map = new Map<string, string>();
+        const parentCodeById = new Map<string, string>();
+
         parentCourses?.forEach(course => {
-            map.set(String(course.id), course.course_code);
             if (course.course_code) {
-                map.set(course.course_code.trim(), course.course_code);
+                parentCodeById.set(String(course.id), course.course_code.trim());
+                map.set(String(course.id), course.course_code.trim());
+                map.set(course.course_code.trim(), course.course_code.trim());
             }
         });
+
+        batches?.forEach(batch => {
+            const parentCode = batch.parent_course_id ? parentCodeById.get(String(batch.parent_course_id)) : null;
+            if (batch.courseCode) {
+                map.set(batch.courseCode.trim(), parentCode || batch.courseCode.trim());
+            }
+        });
+
+        parentCourses?.forEach(course => {
+            if (course.course_code) {
+                map.set(String(course.id), course.course_code.trim());
+            }
+        });
+
         return map;
-    }, [parentCourses]);
+    }, [parentCourses, batches]);
 
     const uniqueCourseOptions = useMemo(() => {
-        if (!parentCourses) return [];
         const seen = new Set<string>();
         const options: { id: string; name: string; courseCode: string }[] = [];
-        parentCourses.forEach(course => {
+        
+        parentCourses?.forEach(course => {
             if (!seen.has(course.course_name)) {
                 seen.add(course.course_name);
                 options.push({ 
@@ -181,6 +224,7 @@ export default function CertificateOrdersPage() {
                 });
             }
         });
+
         return options;
     }, [parentCourses]);
 
@@ -300,20 +344,40 @@ export default function CertificateOrdersPage() {
         }
 
         if (courseFilter !== 'all') {
+            const matchingCodes = new Set<string>();
+            matchingCodes.add(courseFilter);
+            
+            // Add all batch codes belonging to this parent course filter
+            batches?.forEach(b => {
+                if (String(b.parent_course_id) === courseFilter) {
+                    if (b.courseCode) matchingCodes.add(b.courseCode.trim());
+                    if (b.id) matchingCodes.add(String(b.id));
+                }
+            });
+
             const selectedOpt = uniqueCourseOptions.find(o => o.id === courseFilter || o.courseCode === courseFilter);
+            if (selectedOpt) {
+                if (selectedOpt.id) matchingCodes.add(selectedOpt.id);
+                if (selectedOpt.courseCode) matchingCodes.add(selectedOpt.courseCode);
+            }
+
             result = result.filter(order => {
                 const orderCodes = order.course_code.split(',').map(s => s.trim());
-                return orderCodes.some(cCode => 
-                    cCode === courseFilter || 
-                    (selectedOpt && (cCode === selectedOpt.id || cCode === selectedOpt.courseCode))
-                );
+                return orderCodes.some(cCode => matchingCodes.has(cCode));
+            });
+        }
+
+        if (statusFilter !== 'all') {
+            result = result.filter(order => {
+                const s = (order.certificate_status || order.status || 'Pending').trim().toLowerCase();
+                return s === statusFilter.toLowerCase();
             });
         }
 
         return [...result].sort((a, b) => parseInt(b.id, 10) - parseInt(a.id, 10));
-    }, [orders, searchTerm, courseFilter, uniqueCourseOptions]);
+    }, [orders, searchTerm, courseFilter, statusFilter, uniqueCourseOptions, batches]);
 
-    useEffect(() => { setCurrentPage(1); }, [searchTerm, courseFilter, itemsPerPage]);
+    useEffect(() => { setCurrentPage(1); }, [searchTerm, courseFilter, statusFilter, itemsPerPage]);
 
     const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
     const paginatedOrders = useMemo(() => {
@@ -474,6 +538,19 @@ export default function CertificateOrdersPage() {
                                     <SelectItem value="25">25 / page</SelectItem>
                                     <SelectItem value="50">50 / page</SelectItem>
                                     <SelectItem value="100">100 / page</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="w-full sm:w-[140px] bg-gray-900 border-gray-800 text-xs">
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-800 text-white">
+                                    <SelectItem value="Pending">Pending Only</SelectItem>
+                                    <SelectItem value="Generated">Generated</SelectItem>
+                                    <SelectItem value="Dispatched">Dispatched</SelectItem>
+                                    <SelectItem value="Completed">Completed</SelectItem>
+                                    <SelectItem value="all">All Statuses</SelectItem>
                                 </SelectContent>
                             </Select>
 
@@ -754,14 +831,43 @@ export default function CertificateOrdersPage() {
                                             s => String(s.parent_course_id) === String(cId) || String(s.course_code) === String(cId) || String(s.parent_course_id) === String(parentCourseCode)
                                         );
 
+                                        const enrollmentsList = modalStudentData?.studentData?.studentEnrollments 
+                                            ? (Array.isArray(modalStudentData.studentData.studentEnrollments) 
+                                                ? modalStudentData.studentData.studentEnrollments 
+                                                : Object.values(modalStudentData.studentData.studentEnrollments))
+                                            : [];
+
+                                        const courseEnrollment: any = enrollmentsList.find(
+                                            (e: any) => String(e.parent_course_id) === String(cId) || String(e.course_code) === String(cId) || String(e.id) === String(cId)
+                                        );
+
+                                        const courseBalance = courseEnrollment?.studentBalance !== undefined 
+                                            ? Number(courseEnrollment.studentBalance) 
+                                            : (modalStudentData?.balanceData?.studentBalance !== undefined ? Number(modalStudentData.balanceData.studentBalance) : 0);
+
+                                        const hasDueBalance = courseBalance > 0;
+
                                         return (
                                             <div key={cId} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-gray-950 border border-gray-850 rounded-md">
                                                 <div>
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <p className="font-bold text-xs text-white">{courseName}</p>
                                                         {genDoc?.certificate_id && (
-                                                            <Badge variant="outline" className="text-[10px] font-mono bg-emerald-500/15 text-emerald-400 border-emerald-500/30 font-bold py-0 px-2">
+                                                            <Badge variant="outline" className="text-[10px] font-mono bg-purple-500/15 text-purple-400 border-purple-500/30 font-bold py-0 px-2">
                                                                 Cert ID: #{genDoc.certificate_id}
+                                                            </Badge>
+                                                        )}
+                                                        {isLoadingModalStudent ? (
+                                                            <Badge variant="outline" className="text-[10px] font-mono bg-gray-800 text-gray-400 py-0 px-2 animate-pulse">
+                                                                Checking Balance...
+                                                            </Badge>
+                                                        ) : hasDueBalance ? (
+                                                            <Badge variant="destructive" className="text-[10px] font-mono bg-red-500/20 text-red-400 border-red-500/30 font-bold py-0 px-2 flex items-center gap-1">
+                                                                <AlertCircle className="h-3 w-3" /> Due: LKR {courseBalance.toLocaleString()}
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="outline" className="text-[10px] font-mono bg-emerald-500/15 text-emerald-400 border-emerald-500/30 font-bold py-0 px-2 flex items-center gap-1">
+                                                                <CheckCircle className="h-3 w-3" /> Paid (LKR 0 Due)
                                                             </Badge>
                                                         )}
                                                     </div>
@@ -790,11 +896,29 @@ export default function CertificateOrdersPage() {
                                                                 </a>
                                                             </Button>
                                                         </>
+                                                    ) : hasDueBalance ? (
+                                                        <Button 
+                                                            size="sm"
+                                                            disabled={true}
+                                                            className="h-7 text-[11px] bg-red-950/60 border border-red-800/80 text-red-300 font-semibold cursor-not-allowed opacity-80"
+                                                            title={`Cannot generate certificate: Student has an outstanding balance of LKR ${courseBalance.toLocaleString()}`}
+                                                        >
+                                                            <AlertTriangle className="h-3 w-3 mr-1 text-red-400"/>
+                                                            Payment Due (LKR {courseBalance.toLocaleString()})
+                                                        </Button>
                                                     ) : (
                                                         <Button 
                                                             size="sm"
-                                                            disabled={generateCertMutation.isPending}
+                                                            disabled={generateCertMutation.isPending || isLoadingModalStudent}
                                                             onClick={() => {
+                                                                if (hasDueBalance) {
+                                                                    toast({
+                                                                        variant: "destructive",
+                                                                        title: "Payment Due",
+                                                                        description: `Cannot generate certificate. Student has an unpaid balance of LKR ${courseBalance.toLocaleString()} for this course.`
+                                                                    });
+                                                                    return;
+                                                                }
                                                                 generateCertMutation.mutate({
                                                                     student_number: selectedOrderDetails.created_by,
                                                                     print_status: "0",
