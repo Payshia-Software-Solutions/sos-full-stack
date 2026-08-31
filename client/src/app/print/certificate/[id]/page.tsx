@@ -30,7 +30,7 @@ const DEFAULT_TRANSCRIPT_ELEMENTS = [
     { id: '9', type: 'qr_code', content: '{{QR_CODE}}', x: 85, y: 84, fontSize: 14, fontWeight: 'normal', color: '#000000', align: 'right', fontFamily: 'Inter' },
     { id: 'd2', type: 'divider', content: '', x: 50, y: 89, width: 90, strokeWidth: 1, color: '#000000', fontSize: 12, fontWeight: 'normal', align: 'center' },
     { id: 'gs1', type: 'grading_scale', content: 'Grading Scale', x: 24, y: 94, fontSize: 10, fontWeight: 'normal', color: '#000000', align: 'left', width: 45, fontFamily: 'Inter' },
-    { id: '10', type: 'sentence', content: 'TRNS/253555/260815/CPCC29/CREF4623', x: 74, y: 97, fontSize: 8, fontWeight: 'normal', color: '#64748B', align: 'right', fontFamily: 'Inter' },
+    { id: '10', type: 'sentence', content: '{{TRANSCRIPT_REF_ID}}', x: 74, y: 97, fontSize: 8, fontWeight: 'normal', color: '#64748B', align: 'right', fontFamily: 'Inter' },
 ];
 
 const DEFAULT_CERTIFICATE_ELEMENTS = [

@@ -265,7 +265,7 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                 { id: '9', type: 'qr_code', content: '{{QR_CODE}}', x: 85, y: 84, fontSize: 14, fontWeight: 'normal', color: '#000000', align: 'right', fontFamily: 'Inter' },
                 { id: 'd2', type: 'divider', content: '', x: 50, y: 89, width: 90, strokeWidth: 1, color: '#000000', fontSize: 12, fontWeight: 'normal', align: 'center' },
                 { id: 'gs1', type: 'grading_scale', content: "Percentage | Grade | Classification\n85–100 | A+ | Distinction\n75–84 | A | Excellent\n65–74 | B | Very Good\n55–64 | C | Good\n50–54 | D | Pass\nBelow 50 | F | Fail", x: 24, y: 94, fontSize: 10, fontWeight: 'normal', color: '#000000', align: 'left', width: 45, fontFamily: 'Inter' },
-                { id: '10', type: 'sentence', content: 'TRNS/253555/260815/CPCC29/CREF4623', x: 74, y: 97, fontSize: 8, fontWeight: 'normal', color: '#64748B', align: 'right', fontFamily: 'Inter' },
+                { id: '10', type: 'sentence', content: '{{TRANSCRIPT_REF_ID}}', x: 74, y: 97, fontSize: 8, fontWeight: 'normal', color: '#64748B', align: 'right', fontFamily: 'Inter' },
             ]);
             setOrientation('Portrait');
         } else {
@@ -1167,6 +1167,7 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                                                     .replace(/\[Student Name\]/g, 'H.Rodriguez')
                                                     .replace(/{{COURSE_NAME}}/g, selectedCourseName)
                                                     .replace(/\[Course Name\]/g, selectedCourseName)
+                                                    .replace(/{{TRANSCRIPT_REF_ID}}/g, 'TRNS/253555/260815/CPCC29/CREF4623')
                                                     .replace(/{{TRANSCRIPT_ID}}/g, 'TRNS/253555/260815/CPCC29/CREF4623')
                                                     .replace(/\[Transcript ID\]/g, 'TRNS/253555/260815/CPCC29/CREF4623')
                                                     .replace(/{{CERTIFICATE_ID}}/g, 'CREF4623')
@@ -1178,10 +1179,12 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                                                     .replace(/{{ISSUED_DATE}}/g, 'March 29, 2026')
                                                     .replace(/\[Issued Date\]/g, 'March 29, 2026')
                                                     .replace(/{{COMPLETED_DATE}}/g, 'March 29, 2026')
+                                                    .replace(/{{DATE_CODE}}/g, '260815')
                                                     .replace(/{{DURATION}}/g, '6 Months')
                                                     .replace(/{{GRADE}}/g, 'B')
                                                     .replace(/{{BATCH}}/g, 'CPCC29')
-                                                    .replace(/\[Batch\]/g, 'CPCC29');
+                                                    .replace(/\[Batch\]/g, 'CPCC29')
+                                                    .replace(/{{PV_NUMBER}}/g, '253555');
                                             }
 
                                             if (el.type === 'image') {
@@ -1792,6 +1795,38 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                                                     className="h-8 bg-gray-950 border-gray-800 text-xs text-white"
                                                 />
                                             )}
+
+                                            <div className="space-y-1 pt-1">
+                                                <Label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Insert Dynamic Variable</Label>
+                                                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                                                    {[
+                                                        { label: 'Transcript Ref ID', code: '{{TRANSCRIPT_REF_ID}}' },
+                                                        { label: 'Certificate ID', code: '{{CERTIFICATE_ID}}' },
+                                                        { label: 'Student Name', code: '{{STUDENT_NAME}}' },
+                                                        { label: 'Student ID', code: '{{STUDENT_ID}}' },
+                                                        { label: 'Batch', code: '{{BATCH}}' },
+                                                        { label: 'Grade', code: '{{GRADE}}' },
+                                                        { label: 'Course Name', code: '{{COURSE_NAME}}' },
+                                                        { label: 'Issued Date', code: '{{ISSUED_DATE}}' },
+                                                        { label: 'Completed Date', code: '{{COMPLETED_DATE}}' },
+                                                        { label: 'Duration', code: '{{DURATION}}' },
+                                                        { label: 'NIC', code: '{{NIC}}' },
+                                                    ].map((ph) => (
+                                                        <button
+                                                            key={ph.code}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const current = selectedElement.content || '';
+                                                                updateSelectedElement({ content: current ? `${current} ${ph.code}` : ph.code });
+                                                            }}
+                                                            className="text-[10px] bg-gray-900 hover:bg-gray-800 text-blue-300 border border-gray-800 hover:border-blue-500/50 px-1.5 py-0.5 rounded font-mono transition-colors"
+                                                            title={`Click to insert ${ph.code}`}
+                                                        >
+                                                            +{ph.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
 
@@ -2163,6 +2198,38 @@ export function UnifiedDocumentStudioPage({ initialDocType = 'Certificate' }: { 
                                 className="w-full h-56 p-3 bg-gray-900 border border-gray-800 rounded-md text-sm text-white font-mono focus:ring-1 focus:ring-primary focus:outline-none leading-relaxed"
                                 placeholder={selectedElement.type === 'grading_scale' ? "Percentage | Grade | Classification\n85–100 | A+ | Distinction\n75–84 | A | Excellent" : "Enter content or module list lines..."}
                             />
+
+                            <div className="space-y-1 pt-1">
+                                <Label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Insert Dynamic Variable</Label>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {[
+                                        { label: 'Transcript Ref ID', code: '{{TRANSCRIPT_REF_ID}}' },
+                                        { label: 'Certificate ID', code: '{{CERTIFICATE_ID}}' },
+                                        { label: 'Student Name', code: '{{STUDENT_NAME}}' },
+                                        { label: 'Student ID', code: '{{STUDENT_ID}}' },
+                                        { label: 'Batch', code: '{{BATCH}}' },
+                                        { label: 'Grade', code: '{{GRADE}}' },
+                                        { label: 'Course Name', code: '{{COURSE_NAME}}' },
+                                        { label: 'Issued Date', code: '{{ISSUED_DATE}}' },
+                                        { label: 'Completed Date', code: '{{COMPLETED_DATE}}' },
+                                        { label: 'Duration', code: '{{DURATION}}' },
+                                        { label: 'NIC', code: '{{NIC}}' },
+                                    ].map((ph) => (
+                                        <button
+                                            key={ph.code}
+                                            type="button"
+                                            onClick={() => {
+                                                const current = selectedElement.content || '';
+                                                updateSelectedElement({ content: current ? `${current} ${ph.code}` : ph.code });
+                                            }}
+                                            className="text-xs bg-gray-900 hover:bg-gray-800 text-blue-300 border border-gray-800 hover:border-blue-500/50 px-2 py-1 rounded font-mono transition-colors"
+                                            title={`Click to insert ${ph.code}`}
+                                        >
+                                            +{ph.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
 
                         <DialogFooter>

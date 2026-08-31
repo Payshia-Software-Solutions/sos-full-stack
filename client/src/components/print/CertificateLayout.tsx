@@ -188,23 +188,47 @@ export const CertificateLayout = ({
           {dynamicElements.map((el) => {
             let displayText = el.content;
             if (displayText) {
+              let dateCode = '';
+              try {
+                dateCode = format(new Date(completedDate || issueDate || new Date()), 'yyMMdd');
+              } catch (e) {
+                try {
+                  dateCode = format(new Date(), 'yyMMdd');
+                } catch (err) {
+                  dateCode = '260831';
+                }
+              }
+              const effectiveBatch = batchCode || 'CPCC';
+              const effectiveCertId = certificateId || '';
+              const dynamicTranscriptRef = `TRNS/253555/${dateCode}/${effectiveBatch}/${effectiveCertId}`;
+
               displayText = displayText
+                // Replace legacy hardcoded template default if previously saved
+                .replace(/TRNS\/253555\/260815\/CPCC29\/CREF4623/g, dynamicTranscriptRef)
+                .replace(/TRNS\/253555\/\d{6}\/[A-Z0-9_-]+\/[A-Z0-9_-]+/g, dynamicTranscriptRef)
+                // Placeholders
                 .replace(/{{STUDENT_NAME}}/g, studentName)
                 .replace(/\[Student Name\]/g, studentName)
                 .replace(/{{COURSE_NAME}}/g, courseName)
                 .replace(/\[Course Name\]/g, courseName)
+                .replace(/{{TRANSCRIPT_REF_ID}}/g, dynamicTranscriptRef)
+                .replace(/{{TRANSCRIPT_ID}}/g, dynamicTranscriptRef)
+                .replace(/\[Transcript ID\]/g, dynamicTranscriptRef)
                 .replace(/{{CERTIFICATE_ID}}/g, certificateId)
                 .replace(/\[Certificate ID\]/g, certificateId)
                 .replace(/{{STUDENT_ID}}/g, studentIndex)
                 .replace(/\[Student ID\]/g, studentIndex)
+                .replace(/{{NIC}}/g, (courseData as any)?.nic || '')
+                .replace(/\[NIC\]/g, (courseData as any)?.nic || '')
                 .replace(/{{ISSUED_DATE}}/g, formattedDate)
                 .replace(/\[Issued Date\]/g, formattedDate)
                 .replace(/{{COMPLETED_DATE}}/g, completedDate || formattedDate)
+                .replace(/{{DATE_CODE}}/g, dateCode)
                 .replace(/{{DURATION}}/g, duration || courseData?.course_duration || '')
                 .replace(/{{GRADE}}/g, grade !== undefined && grade !== null ? grade : 'N/A')
-                .replace(/{{TRANSCRIPT_REF_ID}}/g, `TRNS/${studentIndex}/${batchCode || 'CPCC'}/${certificateId}`)
                 .replace(/{{BATCH}}/g, batchCode || '')
-                .replace(/\[Batch\]/g, batchCode || '');
+                .replace(/\[Batch\]/g, batchCode || '')
+                .replace(/{{PV_NUMBER}}/g, '253555');
             }
 
             if (el.type === 'image') {
