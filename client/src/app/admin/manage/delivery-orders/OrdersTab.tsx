@@ -263,6 +263,17 @@ Student ID: {id}
 Thank you,
 Ceylon Pharma College`;
 
+export const formatSriLankanPhoneNumber = (phone?: string): string => {
+    if (!phone) return '';
+    let cleaned = phone.replace(/[^0-9]/g, '');
+    if (cleaned.startsWith('94') && cleaned.length === 11) {
+        cleaned = '0' + cleaned.substring(2);
+    } else if (cleaned.length === 9 && !cleaned.startsWith('0')) {
+        cleaned = '0' + cleaned;
+    }
+    return cleaned;
+};
+
 const formatWhatsAppNumber = (phone?: string): string => {
     if (!phone) return '';
     let cleaned = phone.replace(/[^0-9]/g, '');
@@ -302,8 +313,9 @@ const StudentReminderActions = ({
 
     const studentName = student.full_name || 'Student';
     const studentId = student.username || student.student_id || '';
-    const phone = student.telephone_1 || '';
-    const waPhone = formatWhatsAppNumber(phone);
+    const rawPhone = student.telephone_1 || '';
+    const phone = formatSriLankanPhoneNumber(rawPhone);
+    const waPhone = formatWhatsAppNumber(rawPhone);
 
     const message = generateReminderMessage(
         messageTemplate,
@@ -334,10 +346,7 @@ const StudentReminderActions = ({
         }
         setSendingSms(true);
         try {
-            let smsMobile = phone.replace(/[^0-9]/g, '');
-            if (smsMobile.startsWith('94') && smsMobile.length === 11) {
-                smsMobile = '0' + smsMobile.substring(2);
-            }
+            const smsMobile = formatSriLankanPhoneNumber(phone);
             const res = await fetch(`${LMS_API_URL}/send-sms/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -469,7 +478,7 @@ const BatchReminderDialog = ({
     }, [template, sampleStudent, selectedBatch.name]);
 
     const handleCopyAllNumbers = () => {
-        const numbers = validPhoneStudents.map(s => s.telephone_1.trim()).filter(Boolean).join(', ');
+        const numbers = validPhoneStudents.map(s => formatSriLankanPhoneNumber(s.telephone_1)).filter(Boolean).join(', ');
         navigator.clipboard.writeText(numbers);
         toast({ title: 'Phone Numbers Copied!', description: `Copied ${validPhoneStudents.length} phone numbers to clipboard.` });
     };
@@ -496,10 +505,7 @@ const BatchReminderDialog = ({
 
         for (const student of validPhoneStudents) {
             try {
-                let smsMobile = student.telephone_1.replace(/[^0-9]/g, '');
-                if (smsMobile.startsWith('94') && smsMobile.length === 11) {
-                    smsMobile = '0' + smsMobile.substring(2);
-                }
+                const smsMobile = formatSriLankanPhoneNumber(student.telephone_1);
                 const msg = generateReminderMessage(template, student, selectedBatch.name);
                 const res = await fetch(`${LMS_API_URL}/send-sms/`, {
                     method: 'POST',
@@ -1162,7 +1168,7 @@ export default function OrdersTab() {
             const row = [
                 `"${student.username || student.student_id || ''}"`,
                 `"${(student.full_name || '').replace(/"/g, '""')}"`,
-                `"${student.telephone_1 || ''}"`,
+                `"${formatSriLankanPhoneNumber(student.telephone_1) || ''}"`,
                 `"${(student.address_line_1 || '').replace(/"/g, '""')}"`,
                 `"${(student.address_line_2 || '').replace(/"/g, '""')}"`,
                 `"${(student.city || '').replace(/"/g, '""')}"`,
@@ -1505,7 +1511,7 @@ export default function OrdersTab() {
                                                         <TableRow key={student.student_course_id || student.username}>
                                                             <TableCell className="font-medium">{student.username || student.student_id}</TableCell>
                                                             <TableCell>{student.full_name}</TableCell>
-                                                            <TableCell>{student.telephone_1 || 'N/A'}</TableCell>
+                                                            <TableCell>{formatSriLankanPhoneNumber(student.telephone_1) || 'N/A'}</TableCell>
                                                             <TableCell className="max-w-[250px] truncate" title={[student.address_line_1, student.city].filter(Boolean).join(', ')}>
                                                                 {[student.address_line_1, student.city].filter(Boolean).join(', ') || 'N/A'}
                                                             </TableCell>
@@ -1535,7 +1541,7 @@ export default function OrdersTab() {
                                                             <p className="font-bold">{student.full_name}</p>
                                                             <p className="text-sm text-muted-foreground">{student.username || student.student_id}</p>
                                                             {student.telephone_1 && (
-                                                                <p className="text-xs text-muted-foreground mt-1">📞 {student.telephone_1}</p>
+                                                                <p className="text-xs text-muted-foreground mt-1">📞 {formatSriLankanPhoneNumber(student.telephone_1)}</p>
                                                             )}
                                                             <p className="text-xs text-muted-foreground mt-0.5">
                                                                 📍 {[student.address_line_1, student.city].filter(Boolean).join(', ') || 'No address specified'}
