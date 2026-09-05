@@ -27,13 +27,29 @@ class LmsHelper
         // Calculate length of prefix to substring correctly
         $prefixLength = strlen($prefix) + 1;
         
-        $sql = "SELECT MAX(CAST(SUBSTRING(username, $prefixLength) AS UNSIGNED)) AS maxId FROM users WHERE username LIKE :prefix";
+        $sql = "SELECT CAST(SUBSTRING(username, $prefixLength) AS UNSIGNED) AS num 
+                FROM users 
+                WHERE username LIKE :prefix 
+                ORDER BY num ASC";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             'prefix' => $prefix . '%'
         ]);
-        $row = $stmt->fetch();
-        $maxId = $row && $row['maxId'] !== null ? (int)$row['maxId'] : 0;
+        $numbers = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $maxId = 0;
+        if (!empty($numbers)) {
+            $prev = 0;
+            foreach ($numbers as $num) {
+                $num = (int)$num;
+                // If there's an abnormal jump (e.g. gap > 500 between numbers), break to retain normal sequence
+                if ($prev > 0 && ($num - $prev) > 500) {
+                    break;
+                }
+                $maxId = $num;
+                $prev = $num;
+            }
+        }
 
         $newUserId = str_pad($maxId + 1, 3, '0', STR_PAD_LEFT);
 

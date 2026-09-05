@@ -144,7 +144,7 @@ class StudentPayment
                 'payment_status' => $data['payment_status'],
                 'payment_type' => $paymentType, // Use client provided or default 'Bank Transfer'
                 'paid_date' => $data['paid_date'],
-                'created_at' => $data['created_at'], // provided by the client
+                'created_at' => $data['created_at'] ?? date('Y-m-d H:i:s'),
                 'created_by' => $data['created_by'], // Now it's based on the username (client provided)
                 'payment_reference' => $data['payment_reference'] ?? null,
             ]);

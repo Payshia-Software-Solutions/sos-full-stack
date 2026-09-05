@@ -420,6 +420,7 @@ export default function PaymentUpdatePage() {
                 payment_reference: paymentReference.trim(),
                 payment_type: paymentType,
                 paid_date: new Date().toISOString().split('T')[0],
+                created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
                 created_by: 'Admin',
                 reason: 'Course Fee',
                 payment_status: 'Approved',
