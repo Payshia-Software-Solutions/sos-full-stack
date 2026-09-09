@@ -26,16 +26,27 @@ export default function MediMindLevelsPage() {
         enabled: !!user?.username,
     });
 
+    const validEnrollments = useMemo(() => {
+        const seen = new Set<string>();
+        return studentEnrollments.filter((enrollment) => {
+            const code = enrollment?.course_code ? String(enrollment.course_code).trim() : '';
+            if (!code || seen.has(code)) return false;
+            seen.add(code);
+            return true;
+        });
+    }, [studentEnrollments]);
+
     // Initialize or restore selected course
     useEffect(() => {
         const stored = sessionStorage.getItem('selected_course');
-        if (stored && studentEnrollments.some(e => e.course_code === stored)) {
+        if (stored && validEnrollments.some(e => String(e.course_code).trim() === stored)) {
             setSelectedCourseCode(stored);
-        } else if (studentEnrollments.length > 0) {
-            setSelectedCourseCode(studentEnrollments[0].course_code);
-            sessionStorage.setItem('selected_course', studentEnrollments[0].course_code);
+        } else if (validEnrollments.length > 0) {
+            const firstCode = String(validEnrollments[0].course_code).trim();
+            setSelectedCourseCode(firstCode);
+            sessionStorage.setItem('selected_course', firstCode);
         }
-    }, [studentEnrollments]);
+    }, [validEnrollments]);
 
     // Fetch levels ONLY assigned to the active course/batch
     const { data: levels = [], isLoading: isLoadingLevels } = useQuery<MediMindLevel[]>({
@@ -145,36 +156,41 @@ export default function MediMindLevelsPage() {
                     <h1 className="text-4xl font-headline font-bold mt-2 text-primary">Pharma Hunter</h1>
                     <p className="text-muted-foreground text-lg">Pick a challenge level to test your medical knowledge.</p>
 
-                    {studentEnrollments.length > 1 && (
+                    {validEnrollments.length > 1 && (
                         <div className="flex items-center gap-2 mt-3">
                             <GraduationCap className="h-4 w-4 text-primary shrink-0" />
                             <span className="text-xs font-semibold text-muted-foreground">Select Batch:</span>
                             <Select 
-                                value={selectedCourseCode || ''} 
+                                value={selectedCourseCode || undefined} 
                                 onValueChange={(val) => {
-                                    setSelectedCourseCode(val);
-                                    sessionStorage.setItem('selected_course', val);
+                                    if (val) {
+                                        setSelectedCourseCode(val);
+                                        sessionStorage.setItem('selected_course', val);
+                                    }
                                 }}
                             >
                                 <SelectTrigger className="w-full max-w-[340px] h-9 text-xs font-semibold bg-background border-primary/20">
                                     <SelectValue placeholder="Select Course / Batch" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {studentEnrollments.map((enrollment) => (
-                                        <SelectItem key={enrollment.course_code} value={enrollment.course_code} className="text-xs font-medium">
-                                            {enrollment.course_name ? `${enrollment.course_code} - ${enrollment.course_name}` : (enrollment.batch_name || enrollment.course_code)}
-                                        </SelectItem>
-                                    ))}
+                                    {validEnrollments.map((enrollment) => {
+                                        const code = String(enrollment.course_code).trim();
+                                        return (
+                                            <SelectItem key={code} value={code} className="text-xs font-medium">
+                                                {enrollment.course_name ? `${code} - ${enrollment.course_name}` : (enrollment.batch_name || code)}
+                                            </SelectItem>
+                                        );
+                                    })}
                                 </SelectContent>
                             </Select>
                         </div>
                     )}
 
-                    {studentEnrollments.length === 1 && (
+                    {validEnrollments.length === 1 && (
                         <div className="mt-2">
                             <Badge variant="outline" className="text-xs font-medium text-muted-foreground bg-primary/5 border-primary/20">
                                 <GraduationCap className="h-3.5 w-3.5 mr-1.5 text-primary" />
-                                {studentEnrollments[0].course_name ? `${studentEnrollments[0].course_code} - ${studentEnrollments[0].course_name}` : (studentEnrollments[0].batch_name || studentEnrollments[0].course_code)}
+                                {validEnrollments[0].course_name ? `${validEnrollments[0].course_code} - ${validEnrollments[0].course_name}` : (validEnrollments[0].batch_name || validEnrollments[0].course_code)}
                             </Badge>
                         </div>
                     )}

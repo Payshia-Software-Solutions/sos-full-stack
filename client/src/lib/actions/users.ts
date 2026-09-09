@@ -102,14 +102,16 @@ export const getStudentEnrollments = async (studentNumber: string): Promise<Stud
         }
         
         if (Array.isArray(enrollments) && enrollments.length > 0) {
-            return enrollments;
+            return enrollments.filter(e => e && typeof e.course_code === 'string' && e.course_code.trim() !== '');
         }
 
         // Fallback: If student-courses-new returned empty or 404, check getStudentFullInfo
         try {
             const fullInfo = await getStudentFullInfo(studentNumber);
             if (fullInfo && fullInfo.studentEnrollments && typeof fullInfo.studentEnrollments === 'object') {
-                const fallbackList: StudentEnrollmentInfo[] = Object.values(fullInfo.studentEnrollments).map((e: any) => ({
+                const fallbackList: StudentEnrollmentInfo[] = Object.values(fullInfo.studentEnrollments)
+                    .filter((e: any) => e && typeof e.course_code === 'string' && e.course_code.trim() !== '')
+                    .map((e: any) => ({
                     student_course_id: e.id,
                     course_code: e.course_code,
                     student_id: e.student_id,
