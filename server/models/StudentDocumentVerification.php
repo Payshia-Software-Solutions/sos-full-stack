@@ -43,9 +43,13 @@ class StudentDocumentVerification
             $params['status'] = $status;
         }
 
-        if (!empty($search)) {
-            $query .= " AND (v.student_id LIKE :search OR u.fname LIKE :search OR u.lname LIKE :search OR v.id_number LIKE :search)";
-            $params['search'] = "%$search%";
+        if (!empty($search) && trim($search) !== '') {
+            $query .= " AND (v.student_id LIKE :s_student_id OR u.fname LIKE :s_fname OR u.lname LIKE :s_lname OR v.id_number LIKE :s_id_number)";
+            $searchTerm = '%' . trim($search) . '%';
+            $params['s_student_id'] = $searchTerm;
+            $params['s_fname'] = $searchTerm;
+            $params['s_lname'] = $searchTerm;
+            $params['s_id_number'] = $searchTerm;
         }
 
         $query .= " ORDER BY v.updated_at DESC LIMIT :limit OFFSET :offset";
@@ -74,9 +78,13 @@ class StudentDocumentVerification
             $params['status'] = $status;
         }
 
-        if (!empty($search)) {
-            $query .= " AND (v.student_id LIKE :search OR u.fname LIKE :search OR u.lname LIKE :search OR v.id_number LIKE :search)";
-            $params['search'] = "%$search%";
+        if (!empty($search) && trim($search) !== '') {
+            $query .= " AND (v.student_id LIKE :s_student_id OR u.fname LIKE :s_fname OR u.lname LIKE :s_lname OR v.id_number LIKE :s_id_number)";
+            $searchTerm = '%' . trim($search) . '%';
+            $params['s_student_id'] = $searchTerm;
+            $params['s_fname'] = $searchTerm;
+            $params['s_lname'] = $searchTerm;
+            $params['s_id_number'] = $searchTerm;
         }
 
         $stmt = $this->pdo->prepare($query);
