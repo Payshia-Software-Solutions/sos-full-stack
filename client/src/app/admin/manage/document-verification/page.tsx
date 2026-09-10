@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAdminKycRecords, verifyKycRecord } from '@/lib/actions/kyc';
 import type { StudentDocumentVerification, DocumentVerificationStatus } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -38,7 +38,11 @@ import {
   FileText, 
   ExternalLink,
   User,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -47,6 +51,7 @@ export default function AdminDocumentVerificationPage() {
   const [records, setRecords] = useState<StudentDocumentVerification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('pending');
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -215,13 +220,30 @@ export default function AdminDocumentVerificationPage() {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search student ID, name, NIC..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && fetchRecords()}
+                  value={searchInput}
+                  onChange={(e) => {
+                    setSearchInput(e.target.value);
+                    if (e.target.value === '' && searchQuery !== '') {
+                      setSearchQuery('');
+                      setCurrentPage(1);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setSearchQuery(searchInput.trim());
+                      setCurrentPage(1);
+                    }
+                  }}
                   className="pl-8 text-sm"
                 />
               </div>
-              <Button onClick={() => { setCurrentPage(1); fetchRecords(); }} size="sm">
+              <Button 
+                onClick={() => {
+                  setSearchQuery(searchInput.trim());
+                  setCurrentPage(1);
+                }} 
+                size="sm"
+              >
                 Search
               </Button>
             </div>
@@ -345,6 +367,64 @@ export default function AdminDocumentVerificationPage() {
             </div>
           )}
         </CardContent>
+
+        {/* Pagination Controls */}
+        {totalCount > 0 && (
+          <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-6 border-t">
+            <div className="text-xs text-muted-foreground">
+              Showing <span className="font-semibold text-foreground">{records.length > 0 ? (currentPage - 1) * 20 + 1 : 0}</span> to{' '}
+              <span className="font-semibold text-foreground">{Math.min(currentPage * 20, totalCount)}</span> of{' '}
+              <span className="font-semibold text-foreground">{totalCount}</span> results
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage <= 1 || isLoading}
+                title="First Page"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2.5 gap-1 text-xs"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage <= 1 || isLoading}
+              >
+                <ChevronLeft className="h-4 w-4" /> Previous
+              </Button>
+
+              <div className="flex items-center gap-1 px-2 text-xs text-muted-foreground">
+                Page <span className="font-semibold text-foreground">{currentPage}</span> of{' '}
+                <span className="font-semibold text-foreground">{totalPages || 1}</span>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2.5 gap-1 text-xs"
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage >= totalPages || isLoading}
+              >
+                Next <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage >= totalPages || isLoading}
+                title="Last Page"
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardFooter>
+        )}
       </Card>
 
       {/* Review and Verification Modal Dialog */}
