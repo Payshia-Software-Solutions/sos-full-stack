@@ -66,6 +66,8 @@ export default function AdminDocumentVerificationPage() {
 
   // Active document preview in review dialog
   const [selectedDocPreview, setSelectedDocPreview] = useState<{ label: string; url: string } | null>(null);
+  const [isDocLoading, setIsDocLoading] = useState(false);
+  const [docLoadError, setDocLoadError] = useState(false);
 
   const fetchRecords = useCallback(async () => {
     try {
@@ -103,6 +105,8 @@ export default function AdminDocumentVerificationPage() {
       ? { label: 'Birth Certificate Front', url: record.birth_certificate_front }
       : null;
     setSelectedDocPreview(firstDoc);
+    setIsDocLoading(true);
+    setDocLoadError(false);
 
     setIsReviewOpen(true);
   };
@@ -488,7 +492,13 @@ export default function AdminDocumentVerificationPage() {
                         variant={isSelected ? 'default' : 'outline'}
                         size="sm"
                         className="text-xs gap-1.5"
-                        onClick={() => setSelectedDocPreview({ label: doc.label, url: doc.url })}
+                        onClick={() => {
+                          if (selectedDocPreview?.url !== doc.url) {
+                            setIsDocLoading(true);
+                            setDocLoadError(false);
+                            setSelectedDocPreview({ label: doc.label, url: doc.url });
+                          }
+                        }}
                       >
                         <FileText className="h-3.5 w-3.5" />
                         {doc.label}
@@ -512,7 +522,7 @@ export default function AdminDocumentVerificationPage() {
                       </a>
                     </div>
 
-                    <div className="max-w-full max-h-[460px] overflow-auto flex items-center justify-center rounded border bg-background p-2">
+                    <div className="max-w-full min-h-[300px] max-h-[460px] w-full overflow-auto flex items-center justify-center rounded border bg-background p-2">
                       {selectedDocPreview.url.endsWith('.pdf') ? (
                         <div className="p-8 text-center space-y-3">
                           <FileText className="h-16 w-16 text-red-500 mx-auto" />
@@ -524,12 +534,43 @@ export default function AdminDocumentVerificationPage() {
                           </Button>
                         </div>
                       ) : (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={getFullDocUrl(selectedDocPreview.url)}
-                          alt={selectedDocPreview.label}
-                          className="max-h-[440px] w-auto object-contain rounded"
-                        />
+                        <>
+                          {isDocLoading && (
+                            <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
+                              <RefreshCw className="h-7 w-7 animate-spin text-primary" />
+                              <span className="text-xs font-medium">Loading document image...</span>
+                            </div>
+                          )}
+                          {docLoadError ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-2">
+                              <AlertCircle className="h-8 w-8 text-destructive" />
+                              <p className="text-xs text-destructive font-medium">Failed to load document image.</p>
+                              <a
+                                href={getFullDocUrl(selectedDocPreview.url)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary underline"
+                              >
+                                Open directly in new tab
+                              </a>
+                            </div>
+                          ) : (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              key={selectedDocPreview.url}
+                              src={getFullDocUrl(selectedDocPreview.url)}
+                              alt={selectedDocPreview.label}
+                              className={`max-h-[440px] w-auto object-contain rounded transition-opacity duration-200 ${
+                                isDocLoading ? 'hidden' : 'block'
+                              }`}
+                              onLoad={() => setIsDocLoading(false)}
+                              onError={() => {
+                                setIsDocLoading(false);
+                                setDocLoadError(true);
+                              }}
+                            />
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
