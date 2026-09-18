@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +15,11 @@ import { useToast } from "@/hooks/use-toast";
 import { getBatches } from "@/lib/actions/courses";
 import { getLeads, getLeadStats, Lead, LeadStats } from "@/lib/actions/leads";
 import type { Batch } from "@/lib/types";
+import { StudentDeskHeader } from "@/components/admin/student-desk-header";
 import { 
     Search, UserPlus, Phone, Mail, Clock, Filter, Edit2, 
-    GraduationCap, CheckCircle, RefreshCw, Star
+    GraduationCap, CheckCircle, RefreshCw, MessageCircle, ExternalLink,
+    Sparkles
 } from "lucide-react";
 import Link from "next/link";
 
@@ -58,34 +60,22 @@ export default function LeadManagementPage() {
         switch (status) {
             case "Received":
             case "Lead Received":
-                return <Badge className="bg-sky-500/10 text-sky-400 border-sky-500/20">{status}</Badge>;
+                return <Badge className="bg-sky-500/10 text-sky-400 border-sky-500/20 font-medium">New Inquiry</Badge>;
             case "Course Info Provided":
+                return <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 font-medium">Info Provided</Badge>;
             case "Follow-up":
-                return <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20">{status}</Badge>;
+                return <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 font-medium">Follow-up</Badge>;
             case "Registration Link Sent":
-                return <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20">{status}</Badge>;
+                return <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 font-medium">Reg Link Sent</Badge>;
             case "Registration Completed":
             case "Payment Verified":
-            case "Student Registered":
-            case "Welcome Message Sent":
-                return <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">{status}</Badge>;
-            case "Study Pack Ordered":
-            case "Study Pack Dispatched":
-            case "Added to WhatsApp / LMS":
-                return <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20">{status}</Badge>;
+                return <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 font-medium">Paid / Pending LMS</Badge>;
             case "Enrolled":
             case "Course Started":
-            case "Progress Monitoring":
-            case "Assessment Verified":
-                return <Badge className="bg-green-500/10 text-green-400 border-green-500/20">{status}</Badge>;
-            case "Certificate Approved":
-            case "Certificate Printed":
-            case "Certificate Issued":
-            case "Alumni Updated":
-                return <Badge className="bg-teal-500/10 text-teal-400 border-teal-500/20">{status}</Badge>;
+                return <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-medium">Enrolled (Won)</Badge>;
             case "Lost":
             case "Closed":
-                return <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/20">{status}</Badge>;
+                return <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/20 font-medium">Lost</Badge>;
             default:
                 return <Badge variant="outline">{status}</Badge>;
         }
@@ -94,93 +84,87 @@ export default function LeadManagementPage() {
     const getSourceBadge = (source: string) => {
         switch (source) {
             case "WhatsApp":
-                return <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 bg-emerald-500/5">WhatsApp</Badge>;
+                return <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 bg-emerald-500/10 text-[11px]">WhatsApp</Badge>;
             case "Facebook":
-                return <Badge variant="outline" className="text-blue-500 border-blue-500/30 bg-blue-500/5">Facebook</Badge>;
+                return <Badge variant="outline" className="text-blue-400 border-blue-500/30 bg-blue-500/10 text-[11px]">Facebook</Badge>;
             case "Call":
-                return <Badge variant="outline" className="text-amber-500 border-amber-500/30 bg-amber-500/5">Phone Call</Badge>;
+                return <Badge variant="outline" className="text-amber-400 border-amber-500/30 bg-amber-500/10 text-[11px]">Phone Call</Badge>;
             case "Website":
-                return <Badge variant="outline" className="text-indigo-500 border-indigo-500/30 bg-indigo-500/5">Website</Badge>;
+                return <Badge variant="outline" className="text-indigo-400 border-indigo-500/30 bg-indigo-500/10 text-[11px]">Website</Badge>;
             case "Email":
-                return <Badge variant="outline" className="text-cyan-500 border-cyan-500/30 bg-cyan-500/5">Email</Badge>;
+                return <Badge variant="outline" className="text-cyan-400 border-cyan-500/30 bg-cyan-500/10 text-[11px]">Email</Badge>;
             default:
-                return <Badge variant="outline">{source}</Badge>;
+                return <Badge variant="outline" className="text-slate-400 border-border text-[11px]">{source}</Badge>;
         }
     };
 
-    return (
-        <div className="p-4 md:p-8 space-y-8 pb-20 text-foreground bg-background min-h-screen">
-            {/* Header */}
-            <header className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-headline font-semibold text-white">Student Lead & CRM</h1>
-                    <p className="text-muted-foreground text-sm">Log inquiries, follow up with students, and manage lifecycle phases.</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button onClick={() => refetchLeads()} variant="outline" size="icon" className="border-border bg-slate-900/30">
-                        <RefreshCw className="h-4 w-4" />
-                    </Button>
-                    <Link href="/admin/manage/leads/create" passHref>
-                        <Button className="bg-primary hover:bg-primary/95 text-white font-semibold">
-                            <UserPlus className="h-4 w-4 mr-2" /> Log New Lead
-                        </Button>
-                    </Link>
-                </div>
-            </header>
+    const getCleanWaUrl = (phone: string | null, name: string) => {
+        if (!phone) return null;
+        let clean = phone.replace(/[^0-9]/g, '');
+        if (clean.startsWith('0')) clean = '94' + clean.slice(1);
+        if (clean.length < 9) return null;
+        const msg = encodeURIComponent(`Hello ${name}, thank you for inquiring about our courses at Pharmacollege.`);
+        return `https://wa.me/${clean}?text=${msg}`;
+    };
 
-            {/* KPI Dashboard */}
+    return (
+        <div className="p-4 md:p-8 space-y-6 pb-20 text-foreground bg-background min-h-screen">
+            {/* Unified Hub Header Switcher */}
+            <StudentDeskHeader activeTab="leads" onTicketCreated={() => refetchLeads()} />
+
+            {/* Admissions & Leads KPI Dashboard */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-card border-border shadow-lg">
-                    <CardContent className="p-5 flex items-center gap-4">
-                        <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500">
-                            <Search className="h-6 w-6" />
+                <Card className="bg-card border-border shadow-md">
+                    <CardContent className="p-4 flex items-center gap-3.5">
+                        <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-500 shrink-0">
+                            <Search className="h-5 w-5" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Leads</p>
-                            <h3 className="text-2xl font-bold text-white mt-1">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Inquiries</p>
+                            <h3 className="text-xl font-bold text-white mt-0.5">
                                 {isLoadingStats ? "..." : stats?.total_leads || 0}
                             </h3>
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-card border-border shadow-lg">
-                    <CardContent className="p-5 flex items-center gap-4">
-                        <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-500">
-                            <CheckCircle className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Conversion Rate</p>
-                            <h3 className="text-2xl font-bold text-white mt-1">
-                                {isLoadingStats ? "..." : `${stats?.conversion_rate || 0}%`}
-                            </h3>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-card border-border shadow-lg">
-                    <CardContent className="p-5 flex items-center gap-4">
-                        <div className="p-3 rounded-lg bg-amber-500/10 text-amber-500">
-                            <Clock className="h-6 w-6" />
+                <Card className="bg-card border-border shadow-md">
+                    <CardContent className="p-4 flex items-center gap-3.5">
+                        <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
+                            <Clock className="h-5 w-5" />
                         </div>
                         <div>
                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Follow-up Pending</p>
-                            <h3 className="text-2xl font-bold text-white mt-1">
+                            <h3 className="text-xl font-bold text-white mt-0.5">
                                 {isLoadingStats ? "..." : stats?.follow_up_count || 0}
                             </h3>
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-card border-border shadow-lg">
-                    <CardContent className="p-5 flex items-center gap-4">
-                        <div className="p-3 rounded-lg bg-purple-500/10 text-purple-500">
-                            <GraduationCap className="h-6 w-6" />
+                <Card className="bg-card border-border shadow-md">
+                    <CardContent className="p-4 flex items-center gap-3.5">
+                        <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-500 shrink-0">
+                            <CheckCircle className="h-5 w-5" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Ongoing Students</p>
-                            <h3 className="text-2xl font-bold text-white mt-1">
-                                {isLoadingStats ? "..." : stats?.ongoing_count || 0}
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Enrolled / Won</p>
+                            <h3 className="text-xl font-bold text-white mt-0.5">
+                                {isLoadingStats ? "..." : stats?.converted_count || 0}
+                            </h3>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-card border-border shadow-md">
+                    <CardContent className="p-4 flex items-center gap-3.5">
+                        <div className="p-2.5 rounded-lg bg-purple-500/10 text-purple-500 shrink-0">
+                            <Sparkles className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Conversion Rate</p>
+                            <h3 className="text-xl font-bold text-white mt-0.5">
+                                {isLoadingStats ? "..." : `${stats?.conversion_rate || 0}%`}
                             </h3>
                         </div>
                     </CardContent>
@@ -191,10 +175,10 @@ export default function LeadManagementPage() {
             <Card className="bg-card border-border shadow-md">
                 <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
                     <div className="relative w-full md:w-80">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input 
                             placeholder="Search name, phone, email..." 
-                            className="pl-9 bg-slate-950/40 border-input text-foreground placeholder:text-muted-foreground"
+                            className="pl-9 bg-slate-950/50 border-input text-xs text-foreground placeholder:text-muted-foreground h-9"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
@@ -206,10 +190,10 @@ export default function LeadManagementPage() {
                         </div>
                         
                         <Select value={source} onValueChange={setSource}>
-                            <SelectTrigger className="w-[120px] bg-slate-950/40 border-input text-xs text-foreground">
+                            <SelectTrigger className="w-[125px] bg-slate-950/50 border-input text-xs text-foreground h-9">
                                 <SelectValue placeholder="Source" />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-950 border-border text-slate-100">
+                            <SelectContent className="bg-slate-950 border-border text-slate-100 text-xs">
                                 <SelectItem value="all">All Sources</SelectItem>
                                 <SelectItem value="Call">Phone Call</SelectItem>
                                 <SelectItem value="WhatsApp">WhatsApp</SelectItem>
@@ -220,101 +204,140 @@ export default function LeadManagementPage() {
                             </SelectContent>
                         </Select>
 
-                        <Select value={studentType} onValueChange={setStudentType}>
-                            <SelectTrigger className="w-[130px] bg-slate-950/40 border-input text-xs text-foreground">
-                                <SelectValue placeholder="Student Type" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-950 border-border text-slate-100">
-                                <SelectItem value="all">All Types</SelectItem>
-                                <SelectItem value="New">New Student</SelectItem>
-                                <SelectItem value="Old">Old Student</SelectItem>
-                                <SelectItem value="Ongoing">Ongoing</SelectItem>
-                            </SelectContent>
-                        </Select>
-
                         <Select value={status} onValueChange={setStatus}>
-                            <SelectTrigger className="w-[140px] bg-slate-950/40 border-input text-xs text-foreground">
-                                <SelectValue placeholder="Status" />
+                            <SelectTrigger className="w-[150px] bg-slate-950/50 border-input text-xs text-foreground h-9">
+                                <SelectValue placeholder="Pipeline Stage" />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-950 border-border text-slate-100">
-                                <SelectItem value="all">All Statuses</SelectItem>
-                                <SelectItem value="Received">Lead Received</SelectItem>
+                            <SelectContent className="bg-slate-950 border-border text-slate-100 text-xs">
+                                <SelectItem value="all">All Stages</SelectItem>
+                                <SelectItem value="Received">New Inquiry</SelectItem>
+                                <SelectItem value="Course Info Provided">Info Provided</SelectItem>
                                 <SelectItem value="Follow-up">Follow-up</SelectItem>
                                 <SelectItem value="Registration Link Sent">Reg Link Sent</SelectItem>
-                                <SelectItem value="Registration Completed">Reg Completed</SelectItem>
-                                <SelectItem value="Payment Verified">Payment Verified</SelectItem>
-                                <SelectItem value="Enrolled">Enrolled</SelectItem>
+                                <SelectItem value="Enrolled">Enrolled (Won)</SelectItem>
                                 <SelectItem value="Lost">Lost</SelectItem>
                             </SelectContent>
                         </Select>
+
+                        <Button 
+                            onClick={() => refetchLeads()} 
+                            variant="outline" 
+                            size="icon" 
+                            className="border-border bg-slate-900/30 h-9 w-9"
+                            title="Refresh List"
+                        >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                        </Button>
                     </div>
                 </CardContent>
             </Card>
 
             {/* Leads Table */}
-            <Card className="bg-card border-border shadow-md">
+            <Card className="bg-card border-border shadow-md overflow-hidden">
                 <CardContent className="p-0">
                     <Table>
-                        <TableHeader className="bg-slate-950/20 border-border">
+                        <TableHeader className="bg-slate-950/40 border-border">
                             <TableRow className="border-border/80 hover:bg-transparent">
-                                <TableHead className="text-slate-400 font-bold">Student Name</TableHead>
-                                <TableHead className="text-slate-400 font-bold">Contact Info</TableHead>
-                                <TableHead className="text-slate-400 font-bold">Source</TableHead>
-                                <TableHead className="text-slate-400 font-bold">Type</TableHead>
-                                <TableHead className="text-slate-400 font-bold">Status</TableHead>
-                                <TableHead className="text-slate-400 font-bold">Interested Course</TableHead>
-                                <TableHead className="text-slate-400 font-bold">Created Date</TableHead>
-                                <TableHead className="text-right text-slate-400 font-bold pr-6">Action</TableHead>
+                                <TableHead className="text-slate-400 font-bold text-xs">Student Prospect</TableHead>
+                                <TableHead className="text-slate-400 font-bold text-xs">Contact Info</TableHead>
+                                <TableHead className="text-slate-400 font-bold text-xs">Channel</TableHead>
+                                <TableHead className="text-slate-400 font-bold text-xs">Pipeline Stage</TableHead>
+                                <TableHead className="text-slate-400 font-bold text-xs">Interested Course</TableHead>
+                                <TableHead className="text-slate-400 font-bold text-xs">Inquiry Date</TableHead>
+                                <TableHead className="text-right text-slate-400 font-bold pr-6 text-xs">Quick Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {isLoadingLeads ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
-                                        Loading student leads database...
+                                    <TableCell colSpan={7} className="text-center py-10 text-muted-foreground text-xs">
+                                        Loading admissions inquiries database...
                                     </TableCell>
                                 </TableRow>
                             ) : leads.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
-                                        No leads found matching current filter criteria.
+                                    <TableCell colSpan={7} className="text-center py-10 text-muted-foreground text-xs">
+                                        No prospective inquiries found matching current filter criteria.
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 leads.map((lead) => {
                                     const matchedCourse = batches.find(b => b.id === lead.course_id || b.courseCode === lead.course_id);
+                                    const waUrl = getCleanWaUrl(lead.phone_number, lead.full_name);
+
                                     return (
                                         <TableRow 
                                             key={lead.id} 
-                                            className="border-border/30 hover:bg-slate-900/10 cursor-pointer transition-colors" 
-                                            onClick={() => router.push(`/admin/manage/leads/view/${lead.id}`)}
+                                            className="border-border/30 hover:bg-slate-900/20 cursor-pointer transition-colors" 
+                                            onClick={() => router.push(`/admin/manage/leads/edit/${lead.id}`)}
                                         >
-                                            <TableCell className="font-semibold text-white">{lead.full_name}</TableCell>
+                                            <TableCell className="font-semibold text-white text-xs">
+                                                {lead.full_name}
+                                                {lead.assigned_to && (
+                                                    <span className="block text-[10px] text-muted-foreground font-normal">
+                                                        Assigned: {lead.assigned_to}
+                                                    </span>
+                                                )}
+                                            </TableCell>
                                             <TableCell>
                                                 <div className="text-xs space-y-0.5">
-                                                    {lead.phone_number && <div className="flex items-center gap-1 text-slate-350"><Phone className="h-3 w-3 text-muted-foreground" /> {lead.phone_number}</div>}
-                                                    {lead.email && <div className="flex items-center gap-1 text-muted-foreground"><Mail className="h-3 w-3 text-muted-foreground" /> {lead.email}</div>}
+                                                    {lead.phone_number ? (
+                                                        <div className="flex items-center gap-1.5 text-slate-200">
+                                                            <Phone className="h-3 w-3 text-muted-foreground" />
+                                                            <span>{lead.phone_number}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-muted-foreground text-[11px]">No phone</span>
+                                                    )}
+                                                    {lead.email && (
+                                                        <div className="flex items-center gap-1.5 text-muted-foreground truncate max-w-[150px]">
+                                                            <Mail className="h-3 w-3 text-muted-foreground" />
+                                                            <span>{lead.email}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                             <TableCell>{getSourceBadge(lead.source)}</TableCell>
-                                            <TableCell>
-                                                <Badge variant="secondary" className="bg-slate-900/30 text-slate-300 border-border/80">
-                                                    {lead.student_type}
-                                                </Badge>
-                                            </TableCell>
                                             <TableCell>{getStatusBadge(lead.status)}</TableCell>
-                                            <TableCell className="text-sm font-medium text-slate-300">
-                                                {matchedCourse ? matchedCourse.name : lead.course_id || "General Inquiry"}
+                                            <TableCell className="text-xs font-medium text-slate-300">
+                                                {matchedCourse ? matchedCourse.name : (lead.course_id && lead.course_id !== 'general' ? lead.course_id : "General Inquiry")}
                                             </TableCell>
                                             <TableCell className="text-xs text-muted-foreground">
                                                 {new Date(lead.created_at).toLocaleDateString()}
                                             </TableCell>
                                             <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
-                                                <Link href={`/admin/manage/leads/view/${lead.id}`} passHref>
-                                                    <Button size="sm" variant="ghost" className="hover:bg-slate-900 hover:text-white text-xs">
-                                                        <Edit2 className="h-3.5 w-3.5 mr-1" /> View Details
-                                                    </Button>
-                                                </Link>
+                                                <div className="flex items-center justify-end gap-1.5">
+                                                    {/* WhatsApp Trigger */}
+                                                    {waUrl && (
+                                                        <a 
+                                                            href={waUrl} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer"
+                                                            className="p-1.5 rounded-md hover:bg-emerald-500/10 text-emerald-400 border border-border/40 hover:border-emerald-500/30 transition-colors"
+                                                            title="Chat on WhatsApp"
+                                                        >
+                                                            <MessageCircle className="h-3.5 w-3.5" />
+                                                        </a>
+                                                    )}
+
+                                                    {/* Phone Call Trigger */}
+                                                    {lead.phone_number && (
+                                                        <a 
+                                                            href={`tel:${lead.phone_number}`}
+                                                            className="p-1.5 rounded-md hover:bg-amber-500/10 text-amber-400 border border-border/40 hover:border-amber-500/30 transition-colors"
+                                                            title="Call Student"
+                                                        >
+                                                            <Phone className="h-3.5 w-3.5" />
+                                                        </a>
+                                                    )}
+
+                                                    {/* Manage / Edit Lead */}
+                                                    <Link href={`/admin/manage/leads/edit/${lead.id}`} passHref>
+                                                        <Button size="sm" variant="ghost" className="hover:bg-slate-900 hover:text-white text-xs h-7 px-2">
+                                                            <Edit2 className="h-3 w-3 mr-1" /> Manage
+                                                        </Button>
+                                                    </Link>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     );

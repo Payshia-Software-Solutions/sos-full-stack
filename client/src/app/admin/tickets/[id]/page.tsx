@@ -5,8 +5,8 @@
 import { useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { TicketDetailClient } from "@/components/dashboard/TicketDetailClient";
-import type { Ticket, StaffMember, FullStudentData } from "@/lib/types";
+import { ModernAdminTicketDetail } from "@/components/admin/ModernAdminTicketDetail";
+import type { Ticket, StaffMember } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -42,17 +42,31 @@ export default function AdminTicketDetailPage() {
 
   const updateMutation = useMutation({
     mutationFn: updateTicket,
+    onMutate: async (updatedTicket) => {
+      await queryClient.cancelQueries({ queryKey: ['ticket', ticketId] });
+      const previousTicket = queryClient.getQueryData<Ticket>(['ticket', ticketId]);
+      if (previousTicket) {
+        queryClient.setQueryData<Ticket>(['ticket', ticketId], {
+          ...previousTicket,
+          ...updatedTicket,
+        });
+      }
+      return { previousTicket };
+    },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['ticket', data.id] });
+      queryClient.setQueryData(['ticket', ticketId], data);
       queryClient.invalidateQueries({ queryKey: ['admin-tickets'] });
       queryClient.invalidateQueries({ queryKey: ['ticketMessages', data.id] });
     },
-    onError: (err: Error) => {
-        toast({
-            variant: "destructive",
-            title: "Update Failed",
-            description: err.message,
-        });
+    onError: (err: Error, _vars, context: any) => {
+      if (context?.previousTicket) {
+        queryClient.setQueryData(['ticket', ticketId], context.previousTicket);
+      }
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: err.message,
+      });
     }
   });
 
@@ -181,32 +195,18 @@ export default function AdminTicketDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-full w-full">
-      {isMobile && (
-        <div className="shrink-0 border-b bg-card px-4 py-2">
-          <Button
-            variant="ghost"
-            onClick={() => router.push("/admin/tickets")} 
-            className="w-full justify-start text-sm"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Tickets List
-          </Button>
-        </div>
-      )}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <TicketDetailClient 
-          key={ticket.id}
-          initialTicket={ticket} 
-          onUpdateTicket={handleUpdateTicket}
-          onAssignTicket={handleAssignTicket}
-          onUnlockTicket={handleUnlockTicket}
-          userRole="staff" 
-          staffAvatar={user.avatar}
-          currentStaffUsername={user.username}
-          staffMembers={staffMembers || []}
-        />
-      </div>
-    </div>
+    <ModernAdminTicketDetail
+      key={ticket.id}
+      ticket={ticket}
+      currentUser={user}
+      staffMembers={staffMembers || []}
+      onUpdateTicket={handleUpdateTicket}
+      onAssignTicket={handleAssignTicket}
+      onUnlockTicket={handleUnlockTicket}
+      onRefreshTicket={() => {
+        queryClient.invalidateQueries({ queryKey: ['ticket', ticket.id] });
+        queryClient.invalidateQueries({ queryKey: ['admin-tickets'] });
+      }}
+    />
   );
 }

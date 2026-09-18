@@ -61,6 +61,13 @@ const managementTasks: ManagementTask[] = [
     category: "Content & System"
   },
   {
+    title: "Ticket Categories",
+    description: "Manage departments, icons, and issue categories for support tickets.",
+    icon: <Settings className="w-8 h-8 text-white" />,
+    href: "/admin/tickets/categories",
+    category: "Content & System"
+  },
+  {
     title: "Find Student",
     description: "Search for a student to get a full overview.",
     icon: <Search className="w-8 h-8 text-white" />,
