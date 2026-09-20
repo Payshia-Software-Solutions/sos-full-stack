@@ -212,10 +212,12 @@ class TicketMessageController
                     "message_ids" => $newMessageIds
                 ]);
             } else {
-                // No files uploaded, return 200 with the appropriate message
-                http_response_code(200);
+                // No files uploaded, return 201 with the appropriate message
+                http_response_code(201);
                 echo json_encode([
-                    "message" => "Messages added"
+                    "message" => "Message added successfully",
+                    "id" => $newMessageId,
+                    "ticket_id" => $data['ticket_id'] ?? null
                 ]);
             }
         } else {
