@@ -68,6 +68,8 @@ $paymentRequestRoutesOld = require './routes/Payment/paymentRequestRoutes.php';
 $courseRoutes = require './routes/Course/courseRoutes.php';
 $studentPaymentRoutes = require './routes/Student/studentPaymentRoutes.php';
 $supportTicketRoutes = require './routes/TicketRoutes/supportTicketRoutes.php';
+$ticketRoutes = require './routes/TicketRoutes/ticketRoutes.php';
+$ticketCategoryRoutes = require './routes/TicketRoutes/ticketCategoryRoutes.php';
 $activityLogRoutes = require './routes/OtherRoutes/activitylogsRoutes.php';
 $levelRoutes = require './routes/OtherRoutes/levelRoutes.php';
 $prescriptionRoutes = require './routes/Prescription/prescriptionRoutes.php';
@@ -214,6 +216,8 @@ $routes = array_merge(
     $courseRoutes,
     $studentPaymentRoutes,
     $supportTicketRoutes,
+    $ticketRoutes,
+    $ticketCategoryRoutes,
     $activityLogRoutes,
     $levelRoutes,
     $prescriptionRoutes,
