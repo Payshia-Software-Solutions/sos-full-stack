@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { getBatches } from "@/lib/actions/courses";
 import { getLeads, getLeadStats, Lead, LeadStats } from "@/lib/actions/leads";
