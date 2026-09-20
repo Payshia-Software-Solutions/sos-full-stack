@@ -95,33 +95,6 @@ export function StudentDeskHeader({ activeTab, onTicketCreated }: StudentDeskHea
             {/* Segmented Switcher / Navigation Tabs */}
             <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between bg-slate-950/60 p-1 sm:p-1.5 rounded-xl border border-border/60">
                 <div className="flex items-center gap-1 p-0.5 w-full sm:w-auto overflow-x-auto no-scrollbar scrollbar-none">
-                    {/* Leads Tab */}
-                    <Link href="/admin/manage/leads" className="flex-1 sm:flex-initial shrink-0">
-                        <div
-                            className={cn(
-                                "flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap",
-                                activeTab === "leads"
-                                    ? "bg-primary text-white shadow-md shadow-primary/20"
-                                    : "text-muted-foreground hover:text-white hover:bg-slate-900/60"
-                            )}
-                        >
-                            <UserPlus className="h-3.5 w-3.5 shrink-0" />
-                            <span>Leads & Prospects</span>
-                            {followUpLeadsCount > 0 && (
-                                <Badge
-                                    className={cn(
-                                        "text-[9px] px-1.5 py-0.1 rounded-full font-bold",
-                                        activeTab === "leads"
-                                            ? "bg-white/20 text-white"
-                                            : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                                    )}
-                                >
-                                    {followUpLeadsCount}
-                                </Badge>
-                            )}
-                        </div>
-                    </Link>
-
                     {/* Support Tickets Tab */}
                     <Link href="/admin/tickets" className="flex-1 sm:flex-initial shrink-0">
                         <div
@@ -149,6 +122,33 @@ export function StudentDeskHeader({ activeTab, onTicketCreated }: StudentDeskHea
                         </div>
                     </Link>
 
+                    {/* Leads Tab */}
+                    <Link href="/admin/manage/leads" className="flex-1 sm:flex-initial shrink-0">
+                        <div
+                            className={cn(
+                                "flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap",
+                                activeTab === "leads"
+                                    ? "bg-primary text-white shadow-md shadow-primary/20"
+                                    : "text-muted-foreground hover:text-white hover:bg-slate-900/60"
+                            )}
+                        >
+                            <UserPlus className="h-3.5 w-3.5 shrink-0" />
+                            <span>Leads & Prospects</span>
+                            {followUpLeadsCount > 0 && (
+                                <Badge
+                                    className={cn(
+                                        "text-[9px] px-1.5 py-0.1 rounded-full font-bold",
+                                        activeTab === "leads"
+                                            ? "bg-white/20 text-white"
+                                            : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                                    )}
+                                >
+                                    {followUpLeadsCount}
+                                </Badge>
+                            )}
+                        </div>
+                    </Link>
+
                     {/* Staff Performance Tab */}
                     <Link href="/admin/tickets/performance" className="flex-1 sm:flex-initial shrink-0">
                         <div
@@ -167,13 +167,13 @@ export function StudentDeskHeader({ activeTab, onTicketCreated }: StudentDeskHea
 
                 <div className="hidden lg:flex items-center gap-3 pr-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-amber-400 inline-block"></span>
-                        Leads: Prospects
+                        <span className="h-2 w-2 rounded-full bg-emerald-400 inline-block"></span>
+                        Tickets: Support
                     </span>
                     <span className="text-border">•</span>
                     <span className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-emerald-400 inline-block"></span>
-                        Tickets: Support
+                        <span className="h-2 w-2 rounded-full bg-amber-400 inline-block"></span>
+                        Leads: Prospects
                     </span>
                     <span className="text-border">•</span>
                     <span className="flex items-center gap-1.5">
