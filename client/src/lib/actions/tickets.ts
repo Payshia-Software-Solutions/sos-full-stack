@@ -53,6 +53,7 @@ interface ApiMessage {
   attachments?: Attachment[];
   img_url?: string;
   read_status?: 'Read' | 'Unread';
+  created_by?: string;
 }
 
 function mapApiMessageToMessage(apiMsg: ApiMessage): Message {
@@ -78,6 +79,7 @@ function mapApiMessageToMessage(apiMsg: ApiMessage): Message {
         avatar: apiMsg.avatar,
         attachments: attachments,
         readStatus: apiMsg.read_status,
+        createdBy: apiMsg.created_by,
     };
 }
 
@@ -303,13 +305,29 @@ export const getUnreadMessageCount = async (ticketId: string, fromRole: 'student
     return response.length;
 };
 
-export const createTicketMessage = async (messageData: CreateTicketMessageClientPayload, ticketId: string): Promise<Message> => {
+export const createTicketMessage = async (
+  arg1: CreateTicketMessageClientPayload | string | number,
+  arg2: CreateTicketMessageClientPayload | string | number
+): Promise<Message> => {
+  let messageData: CreateTicketMessageClientPayload;
+  let ticketId: string;
+
+  if (typeof arg1 === 'object' && arg1 !== null) {
+    messageData = arg1 as CreateTicketMessageClientPayload;
+    ticketId = String(arg2);
+  } else {
+    ticketId = String(arg1);
+    messageData = arg2 as CreateTicketMessageClientPayload;
+  }
+
   const formData = new FormData();
   formData.append('ticket_id', ticketId);
-  formData.append('from_role', messageData.from);
-  formData.append('text', messageData.text);
+  formData.append('from_role', messageData.from || 'staff');
+  formData.append('text', messageData.text || '');
   formData.append('time', new Date().toISOString());
-  formData.append('created_by', messageData.createdBy);
+  if (messageData.createdBy) {
+    formData.append('created_by', messageData.createdBy);
+  }
 
   if (messageData.attachments && messageData.attachments.length > 0) {
     const attachmentMetadata = messageData.attachments.map(att => ({
