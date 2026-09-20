@@ -192,26 +192,34 @@ class TicketController
                 $this->model->updateAttachments($newTicketId, $csvImageUrls);
             }
 
+            http_response_code(201);
             echo json_encode([
-                "message" => "Ticket message created",
+                "message" => "Ticket created successfully",
                 "ticket" => $this->model->getById($newTicketId)
             ]);
-            // Handle JSON request (without file upload)
-            $data = json_decode(file_get_contents("php://input"), true);
-            if ($data) {
-                $newTicketId = $this->model->create($data);
-                if ($newTicketId) {
-                    echo json_encode([
-                        "message" => "Ticket created successfully",
-                        "ticket" => $this->model->getById($newTicketId)
-                    ]);
-                    return;
-                }
-            }
-            http_response_code(400);
-            echo json_encode(['error' => 'Invalid ticket data']);
             return;
         }
+
+        // Handle JSON request (without file upload)
+        $data = json_decode(file_get_contents("php://input"), true);
+        if ($data) {
+            $newTicketId = $this->model->create($data);
+            if ($newTicketId) {
+                http_response_code(201);
+                echo json_encode([
+                    "message" => "Ticket created successfully",
+                    "ticket" => $this->model->getById($newTicketId)
+                ]);
+                return;
+            }
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to create ticket']);
+            return;
+        }
+
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid ticket data']);
+        return;
     }
 
     public function updateTicket($id)
