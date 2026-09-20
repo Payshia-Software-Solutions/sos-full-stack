@@ -442,6 +442,9 @@ export default function LeadManagementPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Bottom spacer to prevent touching window edge */}
+            <div className="h-8 sm:h-12 w-full shrink-0" aria-hidden="true" />
         </div>
     );
 }

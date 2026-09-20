@@ -71,8 +71,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           <div ref={scrollContainerRef} className="flex-1 flex flex-col overflow-y-auto">
             <SidebarInset 
                 className={cn(
-                  "flex-1 flex flex-col",
-                  isMobile ? (isMobileDetailActive ? "pb-0" : "pb-24") : "pb-0"
+                  "flex-1 flex flex-col min-w-0",
+                  isMobile ? (isMobileDetailActive ? "pb-6" : "pb-28") : "pb-12 sm:pb-16"
                 )}
             >
               {children}

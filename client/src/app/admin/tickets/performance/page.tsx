@@ -528,6 +528,9 @@ export default function StaffPerformancePage() {
                 </CardContent>
             </Card>
 
+            {/* Bottom spacer to prevent touching window edge */}
+            <div className="h-8 sm:h-12 w-full shrink-0" aria-hidden="true" />
+
             {/* Staff Tickets Modal */}
             <Dialog open={!!selectedStaffForModal} onOpenChange={(open) => !open && setSelectedStaffForModal(null)}>
                 <DialogContent className="max-w-2xl w-[95vw] sm:w-full bg-slate-950 border border-border/80 text-white p-4 sm:p-6 rounded-2xl max-h-[85vh] flex flex-col">
