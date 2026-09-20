@@ -25,6 +25,7 @@ export interface Message {
   avatar?: string;
   attachments?: Attachment[];
   readStatus?: 'Read' | 'Unread';
+  createdBy?: string;
 }
 
 export interface Chat {

@@ -499,7 +499,7 @@ export function ModernAdminTicketDetail({
     // Add Internal Note Mutation
     const sendMessageMutation = useMutation({
         mutationFn: (data: { from: "staff"; text: string; attachments?: Attachment[]; createdBy: string }) =>
-            createTicketMessage(ticket.id, data),
+            createTicketMessage(data, ticket.id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["ticketMessages", ticket.id] });
             queryClient.invalidateQueries({ queryKey: ["ticket", ticket.id] });
