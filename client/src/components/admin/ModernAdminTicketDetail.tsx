@@ -531,11 +531,12 @@ export function ModernAdminTicketDetail({
         if ((!newMessage.trim() && stagedAttachments.length === 0) || isSending) return;
 
         setIsSending(true);
+        const staffAuthor = currentUser.name || currentUser.username || "Staff Support";
         sendMessageMutation.mutate({
             from: "staff",
             text: newMessage.trim(),
             attachments: stagedAttachments,
-            createdBy: currentUser.username,
+            createdBy: staffAuthor,
         });
 
         if (andResolve) {
@@ -900,7 +901,7 @@ export function ModernAdminTicketDetail({
                 <div className="flex items-center justify-between gap-3 pt-2 flex-wrap">
                     <div className="flex items-center gap-2.5 text-xs text-slate-300 bg-slate-900/90 px-3.5 py-2 rounded-xl border border-border/70 shadow-xs">
                         <div className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
-                        <span>Logging as <strong className="text-white font-semibold">{currentUser.username}</strong></span>
+                        <span>Logging as <strong className="text-white font-semibold">{currentUser.name || currentUser.username}</strong></span>
                         <span className="text-slate-600 hidden sm:inline">•</span>
                         <span className="text-slate-400 hidden sm:inline">Internal Only</span>
                     </div>
