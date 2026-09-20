@@ -28,7 +28,8 @@ import { cn } from "@/lib/utils";
 import EmojiPicker, { type EmojiClickData } from "emoji-picker-react";
 import { StudentInline360Dossier } from "@/components/admin/StudentInline360Dossier";
 import { 
-    getTicketMessages, createTicketMessage, markTicketMessagesAsRead 
+    getTicketMessages, createTicketMessage, markTicketMessagesAsRead,
+    sendTicketResolvedSms
 } from "@/lib/actions/tickets";
 import { 
     getStudentDetailsByUsername, getStudentEnrollments, getStudentBalance 
@@ -436,6 +437,27 @@ export function ModernAdminTicketDetail({
             title: `Ticket ${newStatus}`,
             description: `Ticket status has been updated to ${newStatus}.`,
         });
+
+        // Trigger SMS notification when ticket is marked as Closed / Resolved
+        if (newStatus === "Closed") {
+            const targetPhone = (studentProfile?.telephone_1 || studentProfile?.telephone_2 || "").trim();
+            if (targetPhone) {
+                sendTicketResolvedSms({
+                    mobile: targetPhone,
+                    studentName: studentProfile?.full_name || studentProfile?.name_with_initials || ticket.studentName,
+                    studentNumber: studentNumber || ticket.studentNumber,
+                    ticketId: ticket.id,
+                    subject: ticket.subject,
+                }).then(() => {
+                    toast({
+                        title: "Resolved SMS Sent",
+                        description: `Notification delivered to student (${targetPhone}).`,
+                    });
+                }).catch((smsErr: any) => {
+                    console.warn("Resolution SMS warning:", smsErr);
+                });
+            }
+        }
     };
 
     // Quick Priority Update
