@@ -210,7 +210,7 @@ export default function StaffPerformancePage() {
                             <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">
                                 Active Staff
                             </p>
-                            <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">
+                            <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">
                                 {isLoading ? "..." : `${teamStats.activeStaffCount} / ${staffMembers.length}`}
                             </h3>
                         </div>
@@ -226,7 +226,7 @@ export default function StaffPerformancePage() {
                             <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">
                                 Team Resolution
                             </p>
-                            <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">
+                            <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">
                                 {isLoading ? "..." : `${teamStats.teamResolutionRate}%`}
                             </h3>
                         </div>
@@ -242,7 +242,7 @@ export default function StaffPerformancePage() {
                             <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">
                                 In Progress Workload
                             </p>
-                            <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">
+                            <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">
                                 {isLoading ? "..." : teamStats.totalActive}
                             </h3>
                         </div>
@@ -258,7 +258,7 @@ export default function StaffPerformancePage() {
                             <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">
                                 Pending Urgent
                             </p>
-                            <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">
+                            <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">
                                 {isLoading ? "..." : teamStats.totalUrgent}
                             </h3>
                         </div>
@@ -268,18 +268,18 @@ export default function StaffPerformancePage() {
 
             {/* Top Performer Banner (Desktop & Mobile) */}
             {teamStats.topPerformer && teamStats.topPerformer.resolvedCount > 0 && (
-                <div className="bg-gradient-to-r from-amber-500/15 via-slate-900 to-slate-950 border border-amber-500/30 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0">
                             <Trophy className="h-5 w-5" />
                         </div>
                         <div>
-                            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                                <Flame className="h-3 w-3 fill-current text-amber-400" /> Top Support Performer
+                            <span className="text-[10px] font-bold text-amber-500 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                                <Flame className="h-3 w-3 fill-current text-amber-500 dark:text-amber-400" /> Top Support Performer
                             </span>
-                            <h4 className="text-sm sm:text-base font-bold text-white mt-0.5">
+                            <h4 className="text-sm sm:text-base font-bold text-foreground mt-0.5">
                                 {teamStats.topPerformer.staff.name}
-                                <span className="text-xs text-slate-400 font-normal ml-1.5">
+                                <span className="text-xs text-muted-foreground font-normal ml-1.5">
                                     (@{teamStats.topPerformer.staff.username})
                                 </span>
                             </h4>
@@ -287,13 +287,13 @@ export default function StaffPerformancePage() {
                     </div>
 
                     <div className="flex items-center gap-3 self-end sm:self-auto text-xs">
-                        <div className="bg-slate-950/80 px-2.5 py-1 rounded-lg border border-border/60 text-center">
-                            <span className="text-slate-400 block text-[10px]">Resolved</span>
-                            <span className="text-emerald-400 font-bold">{teamStats.topPerformer.resolvedCount}</span>
+                        <div className="bg-card px-2.5 py-1 rounded-lg border border-border/60 text-center">
+                            <span className="text-muted-foreground block text-[10px]">Resolved</span>
+                            <span className="text-emerald-500 dark:text-emerald-400 font-bold">{teamStats.topPerformer.resolvedCount}</span>
                         </div>
-                        <div className="bg-slate-950/80 px-2.5 py-1 rounded-lg border border-border/60 text-center">
-                            <span className="text-slate-400 block text-[10px]">Success Rate</span>
-                            <span className="text-amber-400 font-bold">{teamStats.topPerformer.resolutionRate}%</span>
+                        <div className="bg-card px-2.5 py-1 rounded-lg border border-border/60 text-center">
+                            <span className="text-muted-foreground block text-[10px]">Success Rate</span>
+                            <span className="text-amber-500 dark:text-amber-400 font-bold">{teamStats.topPerformer.resolutionRate}%</span>
                         </div>
                     </div>
                 </div>
@@ -308,7 +308,7 @@ export default function StaffPerformancePage() {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="Search staff name or username..."
-                        className="pl-8 bg-slate-950/60 border-input h-9 text-xs text-foreground placeholder:text-muted-foreground w-full"
+                        className="pl-8 bg-background border-input h-9 text-xs text-foreground placeholder:text-muted-foreground w-full"
                     />
                 </div>
 
@@ -316,10 +316,10 @@ export default function StaffPerformancePage() {
                 <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
                     {/* Timeframe Select */}
                     <Select value={timeframe} onValueChange={(val: any) => setTimeframe(val)}>
-                        <SelectTrigger className="w-full sm:w-[130px] bg-slate-950/60 border-input h-9 text-xs text-foreground">
+                        <SelectTrigger className="w-full sm:w-[130px] bg-background border-input h-9 text-xs text-foreground">
                             <SelectValue placeholder="Timeframe" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-950 border-border text-slate-100 text-xs">
+                        <SelectContent className="bg-popover border-border text-popover-foreground text-xs">
                             <SelectItem value="all">All Time</SelectItem>
                             <SelectItem value="30d">Last 30 Days</SelectItem>
                             <SelectItem value="7d">Last 7 Days</SelectItem>
@@ -328,10 +328,10 @@ export default function StaffPerformancePage() {
 
                     {/* Sort By Select */}
                     <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
-                        <SelectTrigger className="w-full sm:w-[155px] bg-slate-950/60 border-input h-9 text-xs text-foreground">
+                        <SelectTrigger className="w-full sm:w-[155px] bg-background border-input h-9 text-xs text-foreground">
                             <SelectValue placeholder="Sort By" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-950 border-border text-slate-100 text-xs">
+                        <SelectContent className="bg-popover border-border text-popover-foreground text-xs">
                             <SelectItem value="resolved">Most Resolved</SelectItem>
                             <SelectItem value="assigned">Most Assigned</SelectItem>
                             <SelectItem value="rate">Highest Success %</SelectItem>
@@ -343,9 +343,9 @@ export default function StaffPerformancePage() {
 
             {/* Staff Performance List Card */}
             <Card className="bg-card border-border shadow-md overflow-hidden">
-                <CardHeader className="p-3.5 sm:p-5 bg-slate-950/60 border-b border-border/50 flex flex-row items-center justify-between">
+                <CardHeader className="p-3.5 sm:p-5 bg-muted/40 border-b border-border flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                        <CardTitle className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
                             <BarChart3 className="h-4 w-4 text-primary" />
                             Staff Performance & Workload Overview
                         </CardTitle>
@@ -355,7 +355,7 @@ export default function StaffPerformancePage() {
                     </div>
 
                     {unassignedTickets.length > 0 && (
-                        <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-400 border-amber-500/30 shrink-0">
+                        <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-500 dark:text-amber-400 border-amber-500/30 shrink-0">
                             {unassignedTickets.length} Unassigned
                         </Badge>
                     )}
@@ -365,17 +365,17 @@ export default function StaffPerformancePage() {
                     {isLoading ? (
                         <div className="p-4 space-y-3">
                             {[...Array(5)].map((_, i) => (
-                                <Skeleton key={i} className="h-16 w-full rounded-xl bg-slate-900/40" />
+                                <Skeleton key={i} className="h-16 w-full rounded-xl bg-muted" />
                             ))}
                         </div>
                     ) : displayedStaffList.length === 0 ? (
                         <div className="p-12 text-center space-y-3">
                             <Users className="h-8 w-8 text-muted-foreground mx-auto" />
-                            <h4 className="text-sm font-semibold text-white">No staff records found</h4>
+                            <h4 className="text-sm font-semibold text-foreground">No staff records found</h4>
                             <p className="text-xs text-muted-foreground">Try clearing search filters.</p>
                         </div>
                     ) : (
-                        <div className="divide-y divide-border/30">
+                        <div className="divide-y border-border/30">
                             {displayedStaffList.map((item, index) => {
                                 const initials = item.staff.name
                                     ? item.staff.name.substring(0, 2).toUpperCase()
@@ -384,14 +384,14 @@ export default function StaffPerformancePage() {
                                 return (
                                     <div
                                         key={item.staff.id}
-                                        className="p-3.5 sm:px-5 sm:py-4 hover:bg-slate-900/25 transition-colors"
+                                        className="p-3.5 sm:px-5 sm:py-4 hover:bg-muted/40 transition-colors"
                                     >
                                         {/* MOBILE CARD VIEW (< sm) */}
                                         <div className="flex flex-col gap-2.5 sm:hidden">
                                             {/* Staff Info Row */}
                                             <div className="flex items-center justify-between gap-2">
                                                 <div className="flex items-center gap-2.5 min-w-0">
-                                                    <span className="font-mono text-xs font-bold text-slate-500 w-4">
+                                                    <span className="font-mono text-xs font-bold text-muted-foreground w-4">
                                                         #{index + 1}
                                                     </span>
                                                     <Avatar className="h-8 w-8 border border-border shrink-0">
@@ -401,7 +401,7 @@ export default function StaffPerformancePage() {
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div className="min-w-0">
-                                                        <p className="text-xs font-bold text-white truncate">{item.staff.name}</p>
+                                                        <p className="text-xs font-bold text-foreground truncate">{item.staff.name}</p>
                                                         <p className="text-[10px] text-muted-foreground font-mono truncate">@{item.staff.username}</p>
                                                     </div>
                                                 </div>
@@ -412,32 +412,32 @@ export default function StaffPerformancePage() {
                                             </div>
 
                                             {/* Stats Row */}
-                                            <div className="grid grid-cols-4 gap-1.5 bg-slate-950/70 p-2 rounded-xl border border-border/40 text-center">
+                                            <div className="grid grid-cols-4 gap-1.5 bg-muted/50 p-2 rounded-xl border border-border/60 text-center">
                                                 <div>
-                                                    <span className="text-[9px] text-slate-400 block">Assigned</span>
-                                                    <span className="text-xs font-bold text-white">{item.totalAssigned}</span>
+                                                    <span className="text-[9px] text-muted-foreground block">Assigned</span>
+                                                    <span className="text-xs font-bold text-foreground">{item.totalAssigned}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[9px] text-slate-400 block">Active</span>
-                                                    <span className="text-xs font-bold text-amber-400">{item.activeCount}</span>
+                                                    <span className="text-[9px] text-muted-foreground block">Active</span>
+                                                    <span className="text-xs font-bold text-amber-500 dark:text-amber-400">{item.activeCount}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[9px] text-slate-400 block">Resolved</span>
-                                                    <span className="text-xs font-bold text-emerald-400">{item.resolvedCount}</span>
+                                                    <span className="text-[9px] text-muted-foreground block">Resolved</span>
+                                                    <span className="text-xs font-bold text-emerald-500 dark:text-emerald-400">{item.resolvedCount}</span>
                                                 </div>
                                                 <div>
-                                                    <span className="text-[9px] text-slate-400 block">Rate</span>
-                                                    <span className="text-xs font-bold text-indigo-400">{item.resolutionRate}%</span>
+                                                    <span className="text-[9px] text-muted-foreground block">Rate</span>
+                                                    <span className="text-xs font-bold text-indigo-500 dark:text-indigo-400">{item.resolutionRate}%</span>
                                                 </div>
                                             </div>
 
                                             {/* Progress Bar & Modal Trigger */}
                                             <div className="flex items-center justify-between gap-2 pt-1">
                                                 <div className="flex-1">
-                                                    <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                                                    <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                                                         <div
-                                                            className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
-                                                            style={{ width: `${item.resolutionRate}%` }}
+                                                             className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
+                                                             style={{ width: `${item.resolutionRate}%` }}
                                                         />
                                                     </div>
                                                 </div>
@@ -446,7 +446,7 @@ export default function StaffPerformancePage() {
                                                     size="sm"
                                                     variant="outline"
                                                     onClick={() => setSelectedStaffForModal(item.staff)}
-                                                    className="h-7 px-2.5 text-[11px] font-semibold border-border bg-slate-900/50 hover:bg-slate-900 text-slate-300 cursor-pointer shrink-0"
+                                                    className="h-7 px-2.5 text-[11px] font-semibold border-border bg-background hover:bg-accent text-foreground cursor-pointer shrink-0"
                                                 >
                                                     <span>View Tickets</span>
                                                     <ChevronRight className="h-3 w-3 ml-0.5" />
@@ -458,7 +458,7 @@ export default function StaffPerformancePage() {
                                         <div className="hidden sm:flex sm:flex-row items-center justify-between gap-4">
                                             {/* Staff details */}
                                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                <span className="font-mono text-xs font-bold text-slate-500 w-5">
+                                                <span className="font-mono text-xs font-bold text-muted-foreground w-5">
                                                     #{index + 1}
                                                 </span>
                                                 <Avatar className="h-9 w-9 border border-border shrink-0">
@@ -469,7 +469,7 @@ export default function StaffPerformancePage() {
                                                 </Avatar>
                                                 <div className="min-w-0">
                                                     <div className="flex items-center gap-2">
-                                                        <h4 className="text-sm font-bold text-white truncate">{item.staff.name}</h4>
+                                                        <h4 className="text-sm font-bold text-foreground truncate">{item.staff.name}</h4>
                                                         <span className={cn("text-[10px] px-2 py-0.5 rounded-md font-semibold border", item.workloadStatus.color)}>
                                                             {item.workloadStatus.label}
                                                         </span>
@@ -483,25 +483,25 @@ export default function StaffPerformancePage() {
                                             {/* Metrics Columns */}
                                             <div className="flex items-center gap-5 shrink-0">
                                                 <div className="text-center min-w-[50px]">
-                                                    <span className="text-[10px] text-slate-400 block font-medium">Assigned</span>
-                                                    <span className="text-sm font-bold text-white">{item.totalAssigned}</span>
+                                                    <span className="text-[10px] text-muted-foreground block font-medium">Assigned</span>
+                                                    <span className="text-sm font-bold text-foreground">{item.totalAssigned}</span>
                                                 </div>
 
                                                 <div className="text-center min-w-[50px]">
-                                                    <span className="text-[10px] text-slate-400 block font-medium">Active</span>
-                                                    <span className="text-sm font-bold text-amber-400">{item.activeCount}</span>
+                                                    <span className="text-[10px] text-muted-foreground block font-medium">Active</span>
+                                                    <span className="text-sm font-bold text-amber-500 dark:text-amber-400">{item.activeCount}</span>
                                                 </div>
 
                                                 <div className="text-center min-w-[55px]">
-                                                    <span className="text-[10px] text-slate-400 block font-medium">Resolved</span>
-                                                    <span className="text-sm font-bold text-emerald-400">{item.resolvedCount}</span>
+                                                    <span className="text-[10px] text-muted-foreground block font-medium">Resolved</span>
+                                                    <span className="text-sm font-bold text-emerald-500 dark:text-emerald-400">{item.resolvedCount}</span>
                                                 </div>
 
                                                 <div className="min-w-[90px] text-right">
-                                                    <span className="text-[10px] text-slate-400 block font-medium">
+                                                    <span className="text-[10px] text-muted-foreground block font-medium">
                                                         {item.resolutionRate}% Rate
                                                     </span>
-                                                    <div className="w-20 bg-slate-900 rounded-full h-1.5 overflow-hidden ml-auto mt-1">
+                                                    <div className="w-20 bg-muted rounded-full h-1.5 overflow-hidden ml-auto mt-1">
                                                         <div
                                                             className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
                                                             style={{ width: `${item.resolutionRate}%` }}
@@ -513,7 +513,7 @@ export default function StaffPerformancePage() {
                                                     size="sm"
                                                     variant="outline"
                                                     onClick={() => setSelectedStaffForModal(item.staff)}
-                                                    className="h-8 px-3 text-xs font-semibold border-border bg-slate-900/40 hover:bg-slate-900 text-slate-300 cursor-pointer"
+                                                    className="h-8 px-3 text-xs font-semibold border-border bg-background hover:bg-accent text-foreground cursor-pointer"
                                                 >
                                                     <span>Inspect</span>
                                                     <ArrowUpRight className="h-3.5 w-3.5 ml-1 text-muted-foreground" />
@@ -533,7 +533,7 @@ export default function StaffPerformancePage() {
 
             {/* Staff Tickets Modal */}
             <Dialog open={!!selectedStaffForModal} onOpenChange={(open) => !open && setSelectedStaffForModal(null)}>
-                <DialogContent className="max-w-2xl w-[95vw] sm:w-full bg-slate-950 border border-border/80 text-white p-4 sm:p-6 rounded-2xl max-h-[85vh] flex flex-col">
+                <DialogContent className="max-w-2xl w-[95vw] sm:w-full bg-card border border-border text-foreground p-4 sm:p-6 rounded-2xl max-h-[85vh] flex flex-col">
                     <DialogHeader className="pb-3 border-b border-border/50">
                         <DialogTitle className="text-base sm:text-lg font-bold flex items-center justify-between gap-2">
                             <span>
@@ -558,22 +558,22 @@ export default function StaffPerformancePage() {
                                 >
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-1.5">
-                                            <span className="font-mono text-[11px] font-bold text-slate-400">#{ticket.id}</span>
+                                            <span className="font-mono text-[11px] font-bold text-muted-foreground">#{ticket.id}</span>
                                             <span className={cn(
                                                 "text-[10px] px-1.5 py-0.2 rounded font-semibold",
                                                 ticket.status === "Closed" || (ticket.status as string) === "Resolved"
-                                                    ? "bg-emerald-500/10 text-emerald-400"
+                                                    ? "bg-emerald-500/10 text-emerald-500 dark:text-emerald-400"
                                                     : ticket.status === "In Progress"
-                                                    ? "bg-blue-500/10 text-blue-400"
-                                                    : "bg-amber-500/10 text-amber-400"
+                                                    ? "bg-blue-500/10 text-blue-500 dark:text-blue-400"
+                                                    : "bg-amber-500/10 text-amber-500 dark:text-amber-400"
                                             )}>
                                                 {ticket.status}
                                             </span>
-                                            <span className="text-[10px] text-slate-400 truncate max-w-[120px]">
+                                            <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">
                                                 {ticket.category}
                                             </span>
                                         </div>
-                                        <p className="text-xs font-semibold text-white truncate mt-0.5">
+                                        <p className="text-xs font-semibold text-foreground truncate mt-0.5">
                                             {ticket.subject}
                                         </p>
                                     </div>
@@ -585,7 +585,7 @@ export default function StaffPerformancePage() {
                                             setSelectedStaffForModal(null);
                                             router.push(`/admin/tickets/${ticket.id}`);
                                         }}
-                                        className="h-7 px-2.5 text-[11px] font-semibold border-border bg-slate-900/60 hover:bg-slate-900 text-slate-200 cursor-pointer shrink-0"
+                                        className="h-7 px-2.5 text-[11px] font-semibold border-border bg-background hover:bg-accent text-foreground cursor-pointer shrink-0"
                                     >
                                         Open
                                     </Button>

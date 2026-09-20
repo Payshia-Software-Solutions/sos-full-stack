@@ -204,7 +204,7 @@ export function ModernTicketDesk({
             {/* Control & Filter Bar */}
             <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
                 {/* Status Quick Filter Tabs */}
-                <div className="flex items-center gap-1 p-1 bg-slate-950/60 border border-border/60 rounded-xl overflow-x-auto scrollbar-none w-full lg:w-auto">
+                <div className="flex items-center gap-1 p-1 bg-muted/60 border border-border rounded-xl overflow-x-auto scrollbar-none w-full lg:w-auto">
                     {[
                         { 
                             id: "Active", 
@@ -242,14 +242,14 @@ export function ModernTicketDesk({
                             className={cn(
                                 "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0",
                                 statusFilter === tab.id
-                                    ? "bg-primary text-white shadow-sm"
-                                    : "text-muted-foreground hover:text-white hover:bg-slate-900/60"
+                                    ? "bg-primary text-primary-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-card/80"
                             )}
                         >
                             <span>{tab.label}</span>
                             <span className={cn(
                                 "text-[10px] px-1.5 py-0.2 rounded-full font-bold",
-                                statusFilter === tab.id ? "bg-white/20 text-white" : "bg-slate-900 text-slate-400"
+                                statusFilter === tab.id ? "bg-primary-foreground/20 text-primary-foreground" : "bg-card text-muted-foreground border border-border/50"
                             )}>
                                 {tab.count}
                             </span>
@@ -267,7 +267,7 @@ export function ModernTicketDesk({
                                 "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ml-1 border shrink-0",
                                 assignedToMe
                                     ? "bg-indigo-600 text-white border-indigo-500 shadow-sm"
-                                    : "border-border/40 text-muted-foreground hover:text-white hover:bg-slate-900/60"
+                                    : "border-border text-muted-foreground hover:text-foreground hover:bg-card/80"
                             )}
                         >
                             <User className="h-3 w-3" />
@@ -288,7 +288,7 @@ export function ModernTicketDesk({
                                 setCurrentPage(1);
                             }}
                             placeholder="Search ticket #, subject, PA..."
-                            className="pl-8 bg-slate-950/60 border-input h-9 text-xs text-foreground placeholder:text-muted-foreground w-full"
+                            className="pl-8 bg-background border-input h-9 text-xs text-foreground placeholder:text-muted-foreground w-full"
                         />
                     </div>
 
@@ -302,10 +302,10 @@ export function ModernTicketDesk({
                                 setCurrentPage(1);
                             }}
                         >
-                            <SelectTrigger className="w-full sm:w-[140px] bg-slate-950/60 border-input h-9 text-xs text-foreground">
+                            <SelectTrigger className="w-full sm:w-[140px] bg-background border-input h-9 text-xs text-foreground">
                                 <SelectValue placeholder="Category" />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-950 border-border text-slate-100 text-xs">
+                            <SelectContent className="bg-popover border-border text-popover-foreground text-xs">
                                 <SelectItem value="all">All Categories</SelectItem>
                                 {availableCategories.map((cat) => (
                                     <SelectItem key={cat} value={cat}>
@@ -334,10 +334,10 @@ export function ModernTicketDesk({
                                 setCurrentPage(1);
                             }}
                         >
-                            <SelectTrigger className="w-full sm:w-[125px] bg-slate-950/60 border-input h-9 text-xs text-foreground">
+                            <SelectTrigger className="w-full sm:w-[125px] bg-background border-input h-9 text-xs text-foreground">
                                 <SelectValue placeholder="Priority" />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-950 border-border text-slate-100 text-xs">
+                            <SelectContent className="bg-popover border-border text-popover-foreground text-xs">
                                 <SelectItem value="all">All Priorities</SelectItem>
                                 <SelectItem value="High">Urgent (High)</SelectItem>
                                 <SelectItem value="Medium">Medium</SelectItem>
@@ -353,10 +353,10 @@ export function ModernTicketDesk({
                 <CardContent className="p-0">
                     {paginatedTickets.length === 0 ? (
                         <div className="p-8 sm:p-12 text-center space-y-3">
-                            <div className="p-3 rounded-full bg-slate-900/60 w-fit mx-auto text-muted-foreground border border-border/40">
+                            <div className="p-3 rounded-full bg-muted w-fit mx-auto text-muted-foreground border border-border">
                                 <LifeBuoy className="h-6 w-6" />
                             </div>
-                            <h4 className="text-sm font-semibold text-white">No support tickets found</h4>
+                            <h4 className="text-sm font-semibold text-foreground">No support tickets found</h4>
                             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                                 No tickets match your current filters. Clear filters or log a new student support inquiry.
                             </p>
@@ -365,7 +365,7 @@ export function ModernTicketDesk({
                                     onClick={onLogTicketClick}
                                     variant="outline"
                                     size="sm"
-                                    className="text-xs border-border bg-slate-900/40 text-white mt-2"
+                                    className="text-xs border-border bg-card hover:bg-accent text-foreground mt-2"
                                 >
                                     + Log Support Ticket
                                 </Button>
@@ -383,7 +383,7 @@ export function ModernTicketDesk({
                                     <div
                                         key={ticket.id}
                                         onClick={() => router.push(`/admin/tickets/${ticket.id}`)}
-                                        className="group p-3 sm:px-5 sm:py-3.5 hover:bg-slate-900/25 cursor-pointer transition-colors duration-150"
+                                        className="group p-3 sm:px-5 sm:py-3.5 hover:bg-muted/40 cursor-pointer transition-colors duration-150"
                                     >
                                         {/* MOBILE CARD VIEW (< sm) */}
                                         <div className="flex flex-col gap-2 sm:hidden">
@@ -391,12 +391,12 @@ export function ModernTicketDesk({
                                             <div className="flex items-center justify-between gap-1.5">
                                                 <div className="flex items-center gap-1.5 min-w-0">
                                                     {renderStatusBadge(ticket.status)}
-                                                    <span className="font-mono text-[11px] font-semibold text-slate-400 bg-slate-950/60 px-1.5 py-0.5 rounded border border-border/40 shrink-0">
+                                                    <span className="font-mono text-[11px] font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border shrink-0">
                                                         #{ticket.id}
                                                     </span>
                                                     <Badge
                                                         variant="secondary"
-                                                        className="text-[9px] font-normal bg-slate-900/50 text-slate-300 border-border/60 truncate max-w-[100px]"
+                                                        className="text-[9px] font-normal bg-muted text-muted-foreground border-border truncate max-w-[100px]"
                                                     >
                                                         {ticket.category || "General"}
                                                     </Badge>
@@ -412,11 +412,11 @@ export function ModernTicketDesk({
                                             {/* Subject & Description */}
                                             <div>
                                                 <div className="flex items-center gap-1.5">
-                                                    <h3 className="text-xs font-bold text-white group-hover:text-primary transition-colors line-clamp-1">
+                                                    <h3 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                                                         {ticket.subject}
                                                     </h3>
                                                     {ticket.isLocked && (
-                                                        <span title="Locked by staff" className="shrink-0 text-amber-400">
+                                                        <span title="Locked by staff" className="shrink-0 text-amber-500">
                                                             <Lock className="h-3 w-3" />
                                                         </span>
                                                     )}
@@ -429,10 +429,10 @@ export function ModernTicketDesk({
                                             </div>
 
                                             {/* Bottom Row: Student & Assignee */}
-                                            <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/20 text-xs">
-                                                <div className="flex items-center gap-1 text-slate-300 min-w-0">
+                                            <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40 text-xs">
+                                                <div className="flex items-center gap-1 text-foreground min-w-0">
                                                     <User className="h-3 w-3 text-muted-foreground shrink-0" />
-                                                    <span className="font-medium text-slate-200 truncate text-[11px]" title={ticket.studentName}>
+                                                    <span className="font-medium text-foreground truncate text-[11px]" title={ticket.studentName}>
                                                         {ticket.studentName || paNumber}
                                                     </span>
                                                     {paNumber && (
@@ -444,7 +444,7 @@ export function ModernTicketDesk({
 
                                                 <div className="shrink-0">
                                                     {ticket.assignedTo ? (
-                                                        <div className="flex items-center gap-1 text-[10px] text-slate-300 bg-slate-900/60 px-1.5 py-0.5 rounded-full border border-border/40">
+                                                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full border border-border">
                                                             <Avatar className="h-3.5 w-3.5">
                                                                 <AvatarImage src={ticket.assigneeAvatar} />
                                                                 <AvatarFallback className="text-[7px] bg-primary/20 text-primary">
@@ -454,7 +454,7 @@ export function ModernTicketDesk({
                                                             <span className="max-w-[80px] truncate">{ticket.assignedTo}</span>
                                                         </div>
                                                     ) : (
-                                                        <span className="text-[9px] text-muted-foreground/60 border border-dashed border-border/60 px-1.5 py-0.2 rounded">
+                                                        <span className="text-[9px] text-muted-foreground/60 border border-dashed border-border px-1.5 py-0.2 rounded">
                                                             Unassigned
                                                         </span>
                                                     )}
@@ -470,23 +470,23 @@ export function ModernTicketDesk({
                                                     {renderStatusBadge(ticket.status)}
                                                 </div>
 
-                                                <span className="shrink-0 font-mono text-xs font-semibold text-slate-400 bg-slate-950/60 px-1.5 py-0.5 rounded border border-border/40">
+                                                <span className="shrink-0 font-mono text-xs font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border">
                                                     #{ticket.id}
                                                 </span>
 
                                                 <div className="min-w-0 flex-1">
                                                     <div className="flex items-center gap-2">
-                                                        <h3 className="text-xs sm:text-sm font-semibold text-white group-hover:text-primary transition-colors truncate">
+                                                        <h3 className="text-xs sm:text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate">
                                                             {ticket.subject}
                                                         </h3>
                                                         {ticket.isLocked && (
-                                                            <span title="Locked by staff" className="shrink-0 text-amber-400">
+                                                            <span title="Locked by staff" className="shrink-0 text-amber-500">
                                                                 <Lock className="h-3 w-3" />
                                                             </span>
                                                         )}
                                                     </div>
                                                     {ticket.description && (
-                                                        <p className="text-xs text-muted-foreground/80 truncate mt-0.5 max-w-xl">
+                                                        <p className="text-xs text-muted-foreground truncate mt-0.5 max-w-xl">
                                                             {ticket.description}
                                                         </p>
                                                     )}
@@ -497,7 +497,7 @@ export function ModernTicketDesk({
                                             <div className="flex items-center gap-3 shrink-0">
                                                 <Badge
                                                     variant="secondary"
-                                                    className="text-[10px] font-normal bg-slate-900/50 text-slate-300 border-border/60"
+                                                    className="text-[10px] font-normal bg-muted text-muted-foreground border-border"
                                                 >
                                                     {ticket.category || "General"}
                                                 </Badge>
@@ -506,9 +506,9 @@ export function ModernTicketDesk({
                                                     {renderPriorityBadge(ticket.priority)}
                                                 </div>
 
-                                                <div className="flex items-center gap-1.5 text-xs text-slate-300">
+                                                <div className="flex items-center gap-1.5 text-xs text-foreground">
                                                     <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                                    <span className="font-medium text-slate-200 truncate max-w-[110px]" title={ticket.studentName}>
+                                                    <span className="font-medium text-foreground truncate max-w-[110px]" title={ticket.studentName}>
                                                         {ticket.studentName || paNumber}
                                                     </span>
                                                     {paNumber && (
@@ -520,7 +520,7 @@ export function ModernTicketDesk({
 
                                                 <div className="shrink-0" title={ticket.assignedTo ? `Assigned to ${ticket.assignedTo}` : "Unassigned"}>
                                                     {ticket.assignedTo ? (
-                                                        <div className="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-900/40 px-2 py-0.5 rounded-full border border-border/40">
+                                                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border">
                                                             <Avatar className="h-4 w-4">
                                                                 <AvatarImage src={ticket.assigneeAvatar} />
                                                                 <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
@@ -530,7 +530,7 @@ export function ModernTicketDesk({
                                                             <span className="max-w-[70px] truncate">{ticket.assignedTo}</span>
                                                         </div>
                                                     ) : (
-                                                        <span className="text-[10px] text-muted-foreground/60 border border-dashed border-border/60 px-1.5 py-0.5 rounded">
+                                                        <span className="text-[10px] text-muted-foreground/60 border border-dashed border-border px-1.5 py-0.5 rounded">
                                                             Unassigned
                                                         </span>
                                                     )}
@@ -540,7 +540,7 @@ export function ModernTicketDesk({
                                                     {formatRelativeTime(ticket.createdAt)}
                                                 </span>
 
-                                                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+                                                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0" />
                                             </div>
                                         </div>
                                     </div>
@@ -553,18 +553,18 @@ export function ModernTicketDesk({
 
             {/* Pagination Controls */}
             {filteredTickets.length > 0 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground p-3 bg-slate-950/60 border border-border/60 rounded-xl">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground p-3 bg-muted/40 border border-border rounded-xl">
                     <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-start">
                         <span>
-                            Showing <strong className="text-white font-medium">{Math.min(filteredTickets.length, (currentPage - 1) * pageSize + 1)}</strong> -{" "}
-                            <strong className="text-white font-medium">{Math.min(filteredTickets.length, currentPage * pageSize)}</strong> of{" "}
-                            <strong className="text-white font-medium">{filteredTickets.length}</strong> tickets
+                            Showing <strong className="text-foreground font-medium">{Math.min(filteredTickets.length, (currentPage - 1) * pageSize + 1)}</strong> -{" "}
+                            <strong className="text-foreground font-medium">{Math.min(filteredTickets.length, currentPage * pageSize)}</strong> of{" "}
+                            <strong className="text-foreground font-medium">{filteredTickets.length}</strong> tickets
                         </span>
 
                         {/* Page Size Selector */}
                         <div className="flex items-center gap-1.5 ml-auto sm:ml-4">
                             <span className="text-[11px] text-muted-foreground hidden sm:inline">Per page:</span>
-                            <div className="flex items-center bg-slate-900/80 border border-border/50 rounded-lg p-0.5">
+                            <div className="flex items-center bg-background border border-border rounded-lg p-0.5">
                                 {[10, 20, 50].map((size) => (
                                     <button
                                         key={size}
@@ -576,8 +576,8 @@ export function ModernTicketDesk({
                                         className={cn(
                                             "px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer",
                                             pageSize === size
-                                                ? "bg-primary text-white shadow-xs"
-                                                : "text-muted-foreground hover:text-white"
+                                                ? "bg-primary text-primary-foreground shadow-xs"
+                                                : "text-muted-foreground hover:text-foreground"
                                         )}
                                     >
                                         {size}
@@ -597,12 +597,12 @@ export function ModernTicketDesk({
                                 setCurrentPage((p) => Math.max(1, p - 1));
                                 window.scrollTo({ top: 320, behavior: 'smooth' });
                             }}
-                            className="flex-1 sm:flex-initial h-8 px-3 text-xs border-border bg-slate-950/40 hover:bg-slate-900 cursor-pointer disabled:opacity-35 justify-center"
+                            className="flex-1 sm:flex-initial h-8 px-3 text-xs border-border bg-background hover:bg-accent text-foreground cursor-pointer disabled:opacity-35 justify-center"
                         >
                             <ChevronLeft className="h-3.5 w-3.5 mr-1" />
                             Prev
                         </Button>
-                        <span className="px-3 py-1 bg-slate-900/80 border border-border/50 rounded-lg text-xs font-semibold text-white">
+                        <span className="px-3 py-1 bg-background border border-border rounded-lg text-xs font-semibold text-foreground">
                             {currentPage} / {totalPages}
                         </span>
                         <Button
@@ -613,7 +613,7 @@ export function ModernTicketDesk({
                                 setCurrentPage((p) => Math.min(totalPages, p + 1));
                                 window.scrollTo({ top: 320, behavior: 'smooth' });
                             }}
-                            className="flex-1 sm:flex-initial h-8 px-3 text-xs border-border bg-slate-950/40 hover:bg-slate-900 cursor-pointer disabled:opacity-35 justify-center"
+                            className="flex-1 sm:flex-initial h-8 px-3 text-xs border-border bg-background hover:bg-accent text-foreground cursor-pointer disabled:opacity-35 justify-center"
                         >
                             Next
                             <ChevronRight className="h-3.5 w-3.5 ml-1" />

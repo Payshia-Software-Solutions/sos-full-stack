@@ -122,7 +122,7 @@ export default function LeadManagementPage() {
                         </div>
                         <div className="min-w-0">
                             <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">Total Inquiries</p>
-                            <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">
+                            <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">
                                 {isLoadingStats ? "..." : stats?.total_leads || 0}
                             </h3>
                         </div>
@@ -136,7 +136,7 @@ export default function LeadManagementPage() {
                         </div>
                         <div className="min-w-0">
                             <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">Follow-up</p>
-                            <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">
+                            <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">
                                 {isLoadingStats ? "..." : stats?.follow_up_count || 0}
                             </h3>
                         </div>
@@ -150,7 +150,7 @@ export default function LeadManagementPage() {
                         </div>
                         <div className="min-w-0">
                             <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">Enrolled (Won)</p>
-                            <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">
+                            <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">
                                 {isLoadingStats ? "..." : stats?.converted_count || 0}
                             </h3>
                         </div>
@@ -164,7 +164,7 @@ export default function LeadManagementPage() {
                         </div>
                         <div className="min-w-0">
                             <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">Conversion</p>
-                            <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">
+                            <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">
                                 {isLoadingStats ? "..." : `${stats?.conversion_rate || 0}%`}
                             </h3>
                         </div>
@@ -179,7 +179,7 @@ export default function LeadManagementPage() {
                         <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                         <Input 
                             placeholder="Search name, phone, email..." 
-                            className="pl-8 bg-slate-950/50 border-input text-xs text-foreground placeholder:text-muted-foreground h-9 w-full"
+                            className="pl-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground h-9 w-full"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
@@ -187,10 +187,10 @@ export default function LeadManagementPage() {
                     
                     <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 items-center justify-end">
                         <Select value={source} onValueChange={setSource}>
-                            <SelectTrigger className="w-full sm:w-[125px] bg-slate-950/50 border-input text-xs text-foreground h-9">
+                            <SelectTrigger className="w-full sm:w-[125px] bg-background border-input text-xs text-foreground h-9">
                                 <SelectValue placeholder="Source" />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-950 border-border text-slate-100 text-xs">
+                            <SelectContent className="bg-popover border-border text-popover-foreground text-xs">
                                 <SelectItem value="all">All Sources</SelectItem>
                                 <SelectItem value="Call">Phone Call</SelectItem>
                                 <SelectItem value="WhatsApp">WhatsApp</SelectItem>
@@ -202,10 +202,10 @@ export default function LeadManagementPage() {
                         </Select>
 
                         <Select value={status} onValueChange={setStatus}>
-                            <SelectTrigger className="w-full sm:w-[140px] bg-slate-950/50 border-input text-xs text-foreground h-9">
+                            <SelectTrigger className="w-full sm:w-[140px] bg-background border-input text-xs text-foreground h-9">
                                 <SelectValue placeholder="Stage" />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-950 border-border text-slate-100 text-xs">
+                            <SelectContent className="bg-popover border-border text-popover-foreground text-xs">
                                 <SelectItem value="all">All Stages</SelectItem>
                                 <SelectItem value="Received">New Inquiry</SelectItem>
                                 <SelectItem value="Course Info Provided">Info Provided</SelectItem>
@@ -220,7 +220,7 @@ export default function LeadManagementPage() {
                             onClick={() => refetchLeads()} 
                             variant="outline" 
                             size="icon" 
-                            className="border-border bg-slate-900/30 h-9 w-9 hidden sm:flex shrink-0"
+                            className="border-border bg-card hover:bg-accent text-foreground h-9 w-9 hidden sm:flex shrink-0"
                             title="Refresh List"
                         >
                             <RefreshCw className="h-3.5 w-3.5" />
@@ -253,14 +253,14 @@ export default function LeadManagementPage() {
                                     <div
                                         key={lead.id}
                                         onClick={() => router.push(`/admin/manage/leads/edit/${lead.id}`)}
-                                        className="p-3.5 space-y-2 hover:bg-slate-900/25 active:bg-slate-900/40 cursor-pointer transition-colors"
+                                        className="p-3.5 space-y-2 hover:bg-muted/40 active:bg-muted/60 cursor-pointer transition-colors"
                                     >
                                         {/* Top Row: Name & Source */}
                                         <div className="flex items-center justify-between gap-1.5">
                                             <div className="flex items-center gap-1.5 min-w-0">
-                                                <h4 className="text-xs font-bold text-white truncate">{lead.full_name}</h4>
+                                                <h4 className="text-xs font-bold text-foreground truncate">{lead.full_name}</h4>
                                                 {lead.assigned_to && (
-                                                    <span className="text-[9px] text-slate-400 bg-slate-950 px-1 py-0.2 rounded border border-border/40 font-mono truncate max-w-[80px]">
+                                                    <span className="text-[9px] text-muted-foreground bg-muted px-1 py-0.2 rounded border border-border font-mono truncate max-w-[80px]">
                                                         {lead.assigned_to}
                                                     </span>
                                                 )}
@@ -275,7 +275,7 @@ export default function LeadManagementPage() {
 
                                         {/* Course & Pipeline Stage */}
                                         <div className="flex items-center justify-between gap-2 text-xs">
-                                            <span className="text-slate-300 font-medium truncate text-[11px]">
+                                            <span className="text-muted-foreground font-medium truncate text-[11px]">
                                                 {matchedCourse ? matchedCourse.name : (lead.course_id && lead.course_id !== 'general' ? lead.course_id : "General Inquiry")}
                                             </span>
                                             <div className="shrink-0 scale-90 origin-right">
@@ -284,10 +284,10 @@ export default function LeadManagementPage() {
                                         </div>
 
                                         {/* Bottom Row: Phone & Action Buttons */}
-                                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/20 text-xs">
+                                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40 text-xs">
                                             <div className="flex items-center gap-1 min-w-0">
                                                 {lead.phone_number ? (
-                                                    <span className="text-slate-300 font-mono text-[11px] truncate">{lead.phone_number}</span>
+                                                    <span className="text-foreground font-mono text-[11px] truncate">{lead.phone_number}</span>
                                                 ) : (
                                                     <span className="text-muted-foreground text-[10px]">No phone</span>
                                                 )}
@@ -299,7 +299,7 @@ export default function LeadManagementPage() {
                                                         href={waUrl}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="p-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20"
+                                                        className="p-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20"
                                                         title="WhatsApp"
                                                     >
                                                         <MessageCircle className="h-3.5 w-3.5" />
@@ -308,14 +308,14 @@ export default function LeadManagementPage() {
                                                 {lead.phone_number && (
                                                     <a
                                                         href={`tel:${lead.phone_number}`}
-                                                        className="p-1 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20"
+                                                        className="p-1 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 hover:bg-blue-500/20"
                                                         title="Call"
                                                     >
                                                         <Phone className="h-3.5 w-3.5" />
                                                     </a>
                                                 )}
                                                 <Link href={`/admin/manage/leads/edit/${lead.id}`}>
-                                                    <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[11px] text-slate-300 hover:text-white">
+                                                    <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-foreground">
                                                         <Edit2 className="h-3 w-3 mr-0.5" /> Edit
                                                     </Button>
                                                 </Link>
@@ -330,15 +330,15 @@ export default function LeadManagementPage() {
                     {/* DESKTOP TABLE VIEW (>= sm) */}
                     <div className="hidden sm:block">
                         <Table>
-                            <TableHeader className="bg-slate-950/40 border-border">
-                                <TableRow className="border-border/80 hover:bg-transparent">
-                                    <TableHead className="text-slate-400 font-bold text-xs">Student Prospect</TableHead>
-                                    <TableHead className="text-slate-400 font-bold text-xs">Contact Info</TableHead>
-                                    <TableHead className="text-slate-400 font-bold text-xs">Channel</TableHead>
-                                    <TableHead className="text-slate-400 font-bold text-xs">Pipeline Stage</TableHead>
-                                    <TableHead className="text-slate-400 font-bold text-xs">Interested Course</TableHead>
-                                    <TableHead className="text-slate-400 font-bold text-xs">Inquiry Date</TableHead>
-                                    <TableHead className="text-right text-slate-400 font-bold pr-6 text-xs">Quick Actions</TableHead>
+                            <TableHeader className="bg-muted/50 border-b border-border">
+                                <TableRow className="border-border hover:bg-transparent">
+                                    <TableHead className="text-muted-foreground font-bold text-xs">Student Prospect</TableHead>
+                                    <TableHead className="text-muted-foreground font-bold text-xs">Contact Info</TableHead>
+                                    <TableHead className="text-muted-foreground font-bold text-xs">Channel</TableHead>
+                                    <TableHead className="text-muted-foreground font-bold text-xs">Pipeline Stage</TableHead>
+                                    <TableHead className="text-muted-foreground font-bold text-xs">Interested Course</TableHead>
+                                    <TableHead className="text-muted-foreground font-bold text-xs">Inquiry Date</TableHead>
+                                    <TableHead className="text-right text-muted-foreground font-bold pr-6 text-xs">Quick Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -362,10 +362,10 @@ export default function LeadManagementPage() {
                                         return (
                                             <TableRow 
                                                 key={lead.id} 
-                                                className="border-border/30 hover:bg-slate-900/20 cursor-pointer transition-colors" 
+                                                className="border-border/60 hover:bg-muted/40 cursor-pointer transition-colors" 
                                                 onClick={() => router.push(`/admin/manage/leads/edit/${lead.id}`)}
                                             >
-                                                <TableCell className="font-semibold text-white text-xs">
+                                                <TableCell className="font-semibold text-foreground text-xs">
                                                     {lead.full_name}
                                                     {lead.assigned_to && (
                                                         <span className="block text-[10px] text-muted-foreground font-normal">
@@ -376,7 +376,7 @@ export default function LeadManagementPage() {
                                                 <TableCell>
                                                     <div className="text-xs space-y-0.5">
                                                         {lead.phone_number ? (
-                                                            <div className="flex items-center gap-1.5 text-slate-200">
+                                                            <div className="flex items-center gap-1.5 text-foreground">
                                                                 <Phone className="h-3 w-3 text-muted-foreground" />
                                                                 <span>{lead.phone_number}</span>
                                                             </div>
@@ -393,7 +393,7 @@ export default function LeadManagementPage() {
                                                 </TableCell>
                                                 <TableCell>{getSourceBadge(lead.source)}</TableCell>
                                                 <TableCell>{getStatusBadge(lead.status)}</TableCell>
-                                                <TableCell className="text-xs font-medium text-slate-300">
+                                                <TableCell className="text-xs font-medium text-foreground/80">
                                                     {matchedCourse ? matchedCourse.name : (lead.course_id && lead.course_id !== 'general' ? lead.course_id : "General Inquiry")}
                                                 </TableCell>
                                                 <TableCell className="text-xs text-muted-foreground">
@@ -407,7 +407,7 @@ export default function LeadManagementPage() {
                                                                 href={waUrl} 
                                                                 target="_blank" 
                                                                 rel="noopener noreferrer"
-                                                                className="p-1.5 rounded-md hover:bg-emerald-500/10 text-emerald-400 border border-border/40 hover:border-emerald-500/30 transition-colors"
+                                                                className="p-1.5 rounded-md hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-border hover:border-emerald-500/30 transition-colors"
                                                                 title="Chat on WhatsApp"
                                                             >
                                                                 <MessageCircle className="h-3.5 w-3.5" />
@@ -418,7 +418,7 @@ export default function LeadManagementPage() {
                                                         {lead.phone_number && (
                                                             <a 
                                                                 href={`tel:${lead.phone_number}`}
-                                                                className="p-1.5 rounded-md hover:bg-amber-500/10 text-amber-400 border border-border/40 hover:border-amber-500/30 transition-colors"
+                                                                className="p-1.5 rounded-md hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-border hover:border-amber-500/30 transition-colors"
                                                                 title="Call Student"
                                                             >
                                                                 <Phone className="h-3.5 w-3.5" />
@@ -427,7 +427,7 @@ export default function LeadManagementPage() {
 
                                                         {/* Manage / Edit Lead */}
                                                         <Link href={`/admin/manage/leads/edit/${lead.id}`} passHref>
-                                                            <Button size="sm" variant="ghost" className="hover:bg-slate-900 hover:text-white text-xs h-7 px-2">
+                                                            <Button size="sm" variant="ghost" className="hover:bg-accent hover:text-foreground text-foreground text-xs h-7 px-2">
                                                                 <Edit2 className="h-3 w-3 mr-1" /> Manage
                                                             </Button>
                                                         </Link>

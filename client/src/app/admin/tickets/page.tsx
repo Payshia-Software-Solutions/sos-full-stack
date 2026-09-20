@@ -46,7 +46,7 @@ function TicketsPageContent() {
             </div>
             <div className="min-w-0">
               <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">Total Tickets</p>
-              <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">{isLoading ? "..." : kpis.total}</h3>
+              <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">{isLoading ? "..." : kpis.total}</h3>
             </div>
           </CardContent>
         </Card>
@@ -58,7 +58,7 @@ function TicketsPageContent() {
             </div>
             <div className="min-w-0">
               <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">Active / In Prog</p>
-              <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">{isLoading ? "..." : kpis.openCount}</h3>
+              <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">{isLoading ? "..." : kpis.openCount}</h3>
             </div>
           </CardContent>
         </Card>
@@ -70,7 +70,7 @@ function TicketsPageContent() {
             </div>
             <div className="min-w-0">
               <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">Resolved</p>
-              <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">{isLoading ? "..." : kpis.resolvedCount}</h3>
+              <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">{isLoading ? "..." : kpis.resolvedCount}</h3>
             </div>
           </CardContent>
         </Card>
@@ -82,7 +82,7 @@ function TicketsPageContent() {
             </div>
             <div className="min-w-0">
               <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">Urgent / High</p>
-              <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">{isLoading ? "..." : kpis.urgentCount}</h3>
+              <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">{isLoading ? "..." : kpis.urgentCount}</h3>
             </div>
           </CardContent>
         </Card>
@@ -91,7 +91,7 @@ function TicketsPageContent() {
       {isLoading ? (
         <div className="space-y-3 pt-2">
           {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-xl bg-slate-900/40" />
+            <Skeleton key={i} className="h-16 w-full rounded-xl bg-muted" />
           ))}
         </div>
       ) : isError ? (

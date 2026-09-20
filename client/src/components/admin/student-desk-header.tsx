@@ -52,7 +52,7 @@ export function StudentDeskHeader({ activeTab, onTicketCreated }: StudentDeskHea
                         <div className="p-1 sm:p-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
                             <Users className="h-4 w-4 sm:h-5 sm:w-5" />
                         </div>
-                        <h1 className="text-lg sm:text-2xl md:text-3xl font-headline font-bold text-white tracking-tight leading-tight">
+                        <h1 className="text-lg sm:text-2xl md:text-3xl font-headline font-bold text-foreground tracking-tight leading-tight">
                             Student Support Desk
                         </h1>
                     </div>
@@ -66,7 +66,7 @@ export function StudentDeskHeader({ activeTab, onTicketCreated }: StudentDeskHea
                     <Link href="/admin/tickets/categories" passHref className="w-full sm:w-auto">
                         <Button
                             variant="outline"
-                            className="w-full sm:w-auto border-border/70 bg-slate-900/50 hover:bg-slate-900 text-[11px] sm:text-xs font-semibold text-slate-300 flex items-center justify-center gap-1 h-8 sm:h-9 cursor-pointer px-1.5 sm:px-2.5"
+                            className="w-full sm:w-auto border-border bg-card hover:bg-accent text-foreground text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1 h-8 sm:h-9 cursor-pointer px-1.5 sm:px-2.5"
                         >
                             <Settings className="h-3.5 w-3.5 text-primary shrink-0" />
                             <span className="truncate">Categories</span>
@@ -76,15 +76,15 @@ export function StudentDeskHeader({ activeTab, onTicketCreated }: StudentDeskHea
                     <Link href="/admin/tickets/create" passHref className="w-full sm:w-auto">
                         <Button
                             variant="outline"
-                            className="w-full sm:w-auto border-border bg-slate-900/50 hover:bg-slate-900 text-[11px] sm:text-xs font-semibold text-slate-200 flex items-center justify-center gap-1 h-8 sm:h-9 cursor-pointer px-1.5 sm:px-2.5"
+                            className="w-full sm:w-auto border-border bg-card hover:bg-accent text-foreground text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1 h-8 sm:h-9 cursor-pointer px-1.5 sm:px-2.5"
                         >
-                            <LifeBuoy className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                            <LifeBuoy className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                             <span className="truncate">Log Ticket</span>
                         </Button>
                     </Link>
 
                     <Link href="/admin/manage/leads/create" passHref className="w-full sm:w-auto">
-                        <Button className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1 h-8 sm:h-9 px-1.5 sm:px-3">
+                        <Button className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1 h-8 sm:h-9 px-1.5 sm:px-3">
                             <UserPlus className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate">New Lead</span>
                         </Button>
@@ -93,7 +93,7 @@ export function StudentDeskHeader({ activeTab, onTicketCreated }: StudentDeskHea
             </div>
 
             {/* Segmented Switcher / Navigation Tabs */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between bg-slate-950/60 p-1 sm:p-1.5 rounded-xl border border-border/60">
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between bg-muted/60 p-1 sm:p-1.5 rounded-xl border border-border">
                 <div className="flex items-center gap-1 p-0.5 w-full sm:w-auto overflow-x-auto no-scrollbar scrollbar-none">
                     {/* Support Tickets Tab */}
                     <Link href="/admin/tickets" className="flex-1 sm:flex-initial shrink-0">
@@ -101,8 +101,8 @@ export function StudentDeskHeader({ activeTab, onTicketCreated }: StudentDeskHea
                             className={cn(
                                 "flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap",
                                 activeTab === "tickets"
-                                    ? "bg-primary text-white shadow-md shadow-primary/20"
-                                    : "text-muted-foreground hover:text-white hover:bg-slate-900/60"
+                                    ? "bg-primary text-primary-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-card/80"
                             )}
                         >
                             <LifeBuoy className="h-3.5 w-3.5 shrink-0" />
@@ -112,8 +112,8 @@ export function StudentDeskHeader({ activeTab, onTicketCreated }: StudentDeskHea
                                     className={cn(
                                         "text-[9px] px-1.5 py-0.1 rounded-full font-bold",
                                         activeTab === "tickets"
-                                            ? "bg-white/20 text-white"
-                                            : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                            ? "bg-primary-foreground/20 text-primary-foreground"
+                                            : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
                                     )}
                                 >
                                     {openTicketsCount}
@@ -128,8 +128,8 @@ export function StudentDeskHeader({ activeTab, onTicketCreated }: StudentDeskHea
                             className={cn(
                                 "flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap",
                                 activeTab === "leads"
-                                    ? "bg-primary text-white shadow-md shadow-primary/20"
-                                    : "text-muted-foreground hover:text-white hover:bg-slate-900/60"
+                                    ? "bg-primary text-primary-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-card/80"
                             )}
                         >
                             <UserPlus className="h-3.5 w-3.5 shrink-0" />
@@ -139,8 +139,8 @@ export function StudentDeskHeader({ activeTab, onTicketCreated }: StudentDeskHea
                                     className={cn(
                                         "text-[9px] px-1.5 py-0.1 rounded-full font-bold",
                                         activeTab === "leads"
-                                            ? "bg-white/20 text-white"
-                                            : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                                            ? "bg-primary-foreground/20 text-primary-foreground"
+                                            : "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
                                     )}
                                 >
                                     {followUpLeadsCount}
@@ -155,11 +155,11 @@ export function StudentDeskHeader({ activeTab, onTicketCreated }: StudentDeskHea
                             className={cn(
                                 "flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap",
                                 activeTab === "performance"
-                                    ? "bg-primary text-white shadow-md shadow-primary/20"
-                                    : "text-muted-foreground hover:text-white hover:bg-slate-900/60"
+                                    ? "bg-primary text-primary-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-card/80"
                             )}
                         >
-                            <BarChart3 className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+                            <BarChart3 className="h-3.5 w-3.5 shrink-0 text-amber-500" />
                             <span>Staff Performance</span>
                         </div>
                     </Link>
