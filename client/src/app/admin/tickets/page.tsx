@@ -33,7 +33,7 @@ function TicketsPageContent() {
   }, [tickets]);
 
   return (
-    <div className="p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6 pb-28 sm:pb-16 w-full text-foreground bg-background min-h-screen">
+    <div className="p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6 pb-32 sm:pb-16 w-full text-foreground bg-background min-h-screen">
       {/* Unified Switcher Header */}
       <StudentDeskHeader activeTab="tickets" onTicketCreated={() => refetch()} />
 

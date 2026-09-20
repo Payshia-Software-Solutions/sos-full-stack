@@ -695,7 +695,7 @@ export function ModernAdminTicketDetail({
             {/* Notes Stream */}
             <div
                 ref={scrollAreaRef}
-                className="flex-1 p-5 space-y-4 overflow-y-auto max-h-[520px] lg:max-h-[640px] bg-slate-950/30"
+                className="flex-1 p-3.5 sm:p-5 space-y-3 sm:space-y-4 overflow-y-auto max-h-[300px] sm:max-h-[420px] lg:max-h-[560px] bg-slate-950/30"
             >
                 {isLoadingMessages && (
                     <div className="space-y-4 py-4">
@@ -808,9 +808,9 @@ export function ModernAdminTicketDetail({
             </div>
 
             {/* Note Composer */}
-            <div className="p-5 bg-slate-950/95 border-t border-border/70 space-y-4">
+            <div className="p-3.5 sm:p-5 bg-slate-950/95 border-t border-border/70 space-y-3 sm:space-y-4">
                 {/* Action Templates Pills */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                             <Sparkles className="h-3.5 w-3.5 text-amber-400" />
@@ -818,13 +818,13 @@ export function ModernAdminTicketDetail({
                         </span>
                         <span className="text-[11px] text-slate-400 hidden sm:inline">Click to pre-fill remark</span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none pb-1 sm:flex-wrap sm:overflow-visible">
                         {CANNED_RESPONSES.map((tpl, idx) => (
                             <button
                                 key={idx}
                                 type="button"
                                 onClick={() => setNewMessage((prev) => (prev ? prev + "\n" + tpl.text : tpl.text))}
-                                className="px-3.5 py-1.5 rounded-xl text-xs font-medium bg-slate-900/90 border border-border/70 text-slate-300 hover:text-white hover:border-amber-400/60 hover:bg-amber-500/10 active:scale-95 transition-all cursor-pointer shadow-xs"
+                                className="px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-900/90 border border-border/70 text-slate-300 hover:text-white hover:border-amber-400/60 hover:bg-amber-500/10 active:scale-95 transition-all cursor-pointer shadow-xs whitespace-nowrap shrink-0 sm:shrink"
                             >
                                 {tpl.label}
                             </button>
@@ -863,20 +863,20 @@ export function ModernAdminTicketDetail({
                             }
                         }}
                         placeholder="Add an internal staff note, action taken, or resolution remark... (Press Ctrl+Enter to save)"
-                        className="min-h-[140px] bg-slate-900/90 border-border/80 rounded-2xl text-sm sm:text-base text-white placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-amber-400/50 focus-visible:border-amber-400 pr-24 resize-y p-4 leading-relaxed"
+                        className="min-h-[120px] sm:min-h-[140px] bg-slate-900/90 border-border/80 rounded-2xl text-sm sm:text-base text-white placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-amber-400/50 focus-visible:border-amber-400 pr-20 sm:pr-24 resize-y p-3.5 sm:p-4 leading-relaxed"
                     />
 
-                    <div className="absolute right-3.5 bottom-3.5 flex items-center gap-1.5">
+                    <div className="absolute right-2.5 bottom-2.5 sm:right-3.5 sm:bottom-3.5 flex items-center gap-1 sm:gap-1.5">
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-9 w-9 rounded-xl text-muted-foreground hover:text-white hover:bg-slate-800 cursor-pointer"
+                                    className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl text-muted-foreground hover:text-white hover:bg-slate-800 cursor-pointer"
                                     title="Insert Emoji"
                                 >
-                                    <Smile className="h-5 w-5" />
+                                    <Smile className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent side="top" align="end" className="p-0 border-none bg-transparent shadow-none">
@@ -889,32 +889,32 @@ export function ModernAdminTicketDetail({
                             variant="ghost"
                             size="icon"
                             onClick={() => fileInputRef.current?.click()}
-                            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-white hover:bg-slate-800 cursor-pointer"
+                            className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl text-muted-foreground hover:text-white hover:bg-slate-800 cursor-pointer"
                             title="Attach screenshot or document"
                         >
-                            <Paperclip className="h-5 w-5" />
+                            <Paperclip className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                         </Button>
                     </div>
                 </div>
 
                 {/* Bottom Action Bar */}
-                <div className="flex items-center justify-between gap-3 pt-2 flex-wrap">
-                    <div className="flex items-center gap-2.5 text-xs text-slate-300 bg-slate-900/90 px-3.5 py-2 rounded-xl border border-border/70 shadow-xs">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1 sm:pt-2">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-slate-300 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-border/70 shadow-xs">
                         <div className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
                         <span>Logging as <strong className="text-white font-semibold">{currentUser.name || currentUser.username}</strong></span>
                         <span className="text-slate-600 hidden sm:inline">•</span>
                         <span className="text-slate-400 hidden sm:inline">Internal Only</span>
                     </div>
 
-                    <div className="flex items-center gap-3 ml-auto flex-wrap">
+                    <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
                         {ticket.status !== "Closed" && (
                             <Button
                                 type="button"
                                 disabled={isSending || (!newMessage.trim() && stagedAttachments.length === 0)}
                                 onClick={() => handleSendMessage(true)}
-                                className="h-11 px-5 rounded-xl text-sm font-bold text-emerald-300 border border-emerald-500/50 bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 shadow-sm transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="h-10 sm:h-11 px-4 rounded-xl text-xs sm:text-sm font-bold text-emerald-300 border border-emerald-500/50 bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 shadow-sm transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed justify-center"
                             >
-                                <CheckCircle2 className="h-4.5 w-4.5 mr-2 text-emerald-400" />
+                                <CheckCircle2 className="h-4 w-4 sm:h-4.5 sm:w-4.5 mr-1.5 sm:mr-2 text-emerald-400 shrink-0" />
                                 Save Note & Resolve
                             </Button>
                         )}
@@ -923,12 +923,12 @@ export function ModernAdminTicketDetail({
                             type="button"
                             disabled={isSending || (!newMessage.trim() && stagedAttachments.length === 0)}
                             onClick={() => handleSendMessage(false)}
-                            className="h-11 px-6 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="h-10 sm:h-11 px-5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed justify-center"
                         >
                             {isSending ? (
-                                <Loader2 className="h-4.5 w-4.5 animate-spin mr-2 text-slate-950" />
+                                <Loader2 className="h-4 w-4 sm:h-4.5 sm:w-4.5 animate-spin mr-1.5 sm:mr-2 text-slate-950 shrink-0" />
                             ) : (
-                                <PlusCircle className="h-4.5 w-4.5 mr-2 text-slate-950" />
+                                <PlusCircle className="h-4 w-4 sm:h-4.5 sm:w-4.5 mr-1.5 sm:mr-2 text-slate-950 shrink-0" />
                             )}
                             Add Internal Note
                         </Button>
@@ -1129,7 +1129,7 @@ export function ModernAdminTicketDetail({
     );
 
     return (
-        <div className="flex flex-col min-h-screen w-full bg-background text-foreground pb-24 sm:pb-12">
+        <div className="flex flex-col min-h-screen w-full bg-background text-foreground pb-36 sm:pb-16">
             {/* Attachment Lightbox Modal */}
             <ImageViewerModal imageUrl={viewingImage} onClose={() => setViewingImage(null)} />
 
