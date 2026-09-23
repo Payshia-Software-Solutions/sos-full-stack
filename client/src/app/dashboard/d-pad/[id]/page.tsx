@@ -560,53 +560,65 @@ export default function DPadDetailPage() {
         break;
       case "drug_qty":
         title = t.quantity;
-        options = selectionData?.drug_qty || ["5", "10", "15", "20", "30"];
+        options = selectionData?.drug_qty?.length ? selectionData.drug_qty : ["5", "10", "15", "20", "30"];
         onSelect = (val) => setFormState({ ...formState, drug_qty: val });
         break;
       case "morning_qty":
         title = t.morning;
-        options = OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
+        options = selectionData?.morning_qty?.length 
+          ? (selectionData.morning_qty.includes("-") ? selectionData.morning_qty : ["-", ...selectionData.morning_qty])
+          : OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
         fieldKey = "scheduleQty";
         onSelect = (val) => setFormState({ ...formState, morning_qty: val });
         break;
       case "afternoon_qty":
         title = t.afternoon;
-        options = OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
+        options = selectionData?.afternoon_qty?.length 
+          ? (selectionData.afternoon_qty.includes("-") ? selectionData.afternoon_qty : ["-", ...selectionData.afternoon_qty])
+          : OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
         fieldKey = "scheduleQty";
         onSelect = (val) => setFormState({ ...formState, afternoon_qty: val });
         break;
       case "evening_qty":
         title = t.evening;
-        options = OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
+        options = selectionData?.evening_qty?.length 
+          ? (selectionData.evening_qty.includes("-") ? selectionData.evening_qty : ["-", ...selectionData.evening_qty])
+          : OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
         fieldKey = "scheduleQty";
         onSelect = (val) => setFormState({ ...formState, evening_qty: val });
         break;
       case "night_qty":
         title = t.night;
-        options = OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
+        options = selectionData?.night_qty?.length 
+          ? (selectionData.night_qty.includes("-") ? selectionData.night_qty : ["-", ...selectionData.night_qty])
+          : OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
         fieldKey = "scheduleQty";
         onSelect = (val) => setFormState({ ...formState, night_qty: val });
         break;
       case "meal_type":
         title = t.mealType;
-        options = selectionData?.meal_type || OPTIONS_MAPPINGS.mealType.map((item) => item.value);
+        options = selectionData?.meal_type?.length ? selectionData.meal_type : OPTIONS_MAPPINGS.mealType.map((item) => item.value);
         fieldKey = "mealType";
         onSelect = (val) => setFormState({ ...formState, meal_type: val });
         break;
       case "using_type":
         title = t.frequency;
-        options = selectionData?.using_type || OPTIONS_MAPPINGS.usingFrequency.map((item) => item.value);
+        options = selectionData?.using_type?.length ? selectionData.using_type : OPTIONS_MAPPINGS.usingFrequency.map((item) => item.value);
         fieldKey = "usingFrequency";
         onSelect = (val) => setFormState({ ...formState, using_type: val });
         break;
       case "at_a_time":
         title = t.atATime;
-        options = selectionData?.at_a_time || ["-", "1", "2", "1/2"];
+        options = selectionData?.at_a_time?.length 
+          ? (selectionData.at_a_time.includes("-") ? selectionData.at_a_time : ["-", ...selectionData.at_a_time])
+          : ["-", "1", "2", "1/2"];
         onSelect = (val) => setFormState({ ...formState, at_a_time: val });
         break;
       case "hour_qty":
         title = t.hourQty;
-        options = selectionData?.hour_qty || ["-", "4", "6", "8", "12"];
+        options = selectionData?.hour_qty?.length 
+          ? (selectionData.hour_qty.includes("-") ? selectionData.hour_qty : ["-", ...selectionData.hour_qty])
+          : ["-", "4", "6", "8", "12"];
         onSelect = (val) => setFormState({ ...formState, hour_qty: val });
         break;
       case "additional_description":
