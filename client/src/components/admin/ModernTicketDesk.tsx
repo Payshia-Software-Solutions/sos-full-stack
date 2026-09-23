@@ -200,11 +200,11 @@ export function ModernTicketDesk({
     };
 
     return (
-        <div className="space-y-4 pb-16 sm:pb-8">
+        <div className="space-y-4 pb-28 sm:pb-8">
             {/* Control & Filter Bar */}
             <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
                 {/* Status Quick Filter Tabs */}
-                <div className="flex items-center gap-1 p-1 bg-slate-950/60 border border-border/60 rounded-xl overflow-x-auto">
+                <div className="flex items-center gap-1 p-1 bg-muted/60 border border-border rounded-xl overflow-x-auto scrollbar-none w-full lg:w-auto">
                     {[
                         { 
                             id: "Active", 
@@ -240,16 +240,16 @@ export function ModernTicketDesk({
                                 setCurrentPage(1);
                             }}
                             className={cn(
-                                "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer",
+                                "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0",
                                 statusFilter === tab.id
-                                    ? "bg-primary text-white shadow-sm"
-                                    : "text-muted-foreground hover:text-white hover:bg-slate-900/60"
+                                    ? "bg-primary text-primary-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-card/80"
                             )}
                         >
                             <span>{tab.label}</span>
                             <span className={cn(
                                 "text-[10px] px-1.5 py-0.2 rounded-full font-bold",
-                                statusFilter === tab.id ? "bg-white/20 text-white" : "bg-slate-900 text-slate-400"
+                                statusFilter === tab.id ? "bg-primary-foreground/20 text-primary-foreground" : "bg-card text-muted-foreground border border-border/50"
                             )}>
                                 {tab.count}
                             </span>
@@ -264,10 +264,10 @@ export function ModernTicketDesk({
                                 setCurrentPage(1);
                             }}
                             className={cn(
-                                "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ml-1 border",
+                                "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ml-1 border shrink-0",
                                 assignedToMe
                                     ? "bg-indigo-600 text-white border-indigo-500 shadow-sm"
-                                    : "border-border/40 text-muted-foreground hover:text-white hover:bg-slate-900/60"
+                                    : "border-border text-muted-foreground hover:text-foreground hover:bg-card/80"
                             )}
                         >
                             <User className="h-3 w-3" />
@@ -277,7 +277,7 @@ export function ModernTicketDesk({
                 </div>
 
                 {/* Search & Category Filter */}
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     {/* Search */}
                     <div className="relative flex-1 sm:w-64">
                         <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
@@ -288,60 +288,63 @@ export function ModernTicketDesk({
                                 setCurrentPage(1);
                             }}
                             placeholder="Search ticket #, subject, PA..."
-                            className="pl-8 bg-slate-950/60 border-input h-9 text-xs text-foreground placeholder:text-muted-foreground"
+                            className="pl-8 bg-background border-input h-9 text-xs text-foreground placeholder:text-muted-foreground w-full"
                         />
                     </div>
 
-                    {/* Category Filter */}
-                    <Select
-                        value={categoryFilter}
-                        onValueChange={(val) => {
-                            setCategoryFilter(val);
-                            setCurrentPage(1);
-                        }}
-                    >
-                        <SelectTrigger className="w-[140px] bg-slate-950/60 border-input h-9 text-xs text-foreground">
-                            <SelectValue placeholder="Category" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-950 border-border text-slate-100 text-xs">
-                            <SelectItem value="all">All Categories</SelectItem>
-                            {availableCategories.map((cat) => (
-                                <SelectItem key={cat} value={cat}>
-                                    {cat}
-                                </SelectItem>
-                            ))}
-                            {availableCategories.length === 0 && (
-                                <>
-                                    <SelectItem value="Academic">Academic Support</SelectItem>
-                                    <SelectItem value="LMS Access">LMS & App Access</SelectItem>
-                                    <SelectItem value="Payment">Payment & Slips</SelectItem>
-                                    <SelectItem value="Study Pack">Study Pack Courier</SelectItem>
-                                    <SelectItem value="Examination">Exams & Quizzes</SelectItem>
-                                    <SelectItem value="Certificate">Certificate & Conv.</SelectItem>
-                                    <SelectItem value="Other">General Support</SelectItem>
-                                </>
-                            )}
-                        </SelectContent>
-                    </Select>
+                    {/* Responsive Category & Priority Dropdowns */}
+                    <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
+                        {/* Category Filter */}
+                        <Select
+                            value={categoryFilter}
+                            onValueChange={(val) => {
+                                setCategoryFilter(val);
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <SelectTrigger className="w-full sm:w-[140px] bg-background border-input h-9 text-xs text-foreground">
+                                <SelectValue placeholder="Category" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover border-border text-popover-foreground text-xs">
+                                <SelectItem value="all">All Categories</SelectItem>
+                                {availableCategories.map((cat) => (
+                                    <SelectItem key={cat} value={cat}>
+                                        {cat}
+                                    </SelectItem>
+                                ))}
+                                {availableCategories.length === 0 && (
+                                    <>
+                                        <SelectItem value="Academic">Academic Support</SelectItem>
+                                        <SelectItem value="LMS Access">LMS & App Access</SelectItem>
+                                        <SelectItem value="Payment">Payment & Slips</SelectItem>
+                                        <SelectItem value="Study Pack">Study Pack Courier</SelectItem>
+                                        <SelectItem value="Examination">Exams & Quizzes</SelectItem>
+                                        <SelectItem value="Certificate">Certificate & Conv.</SelectItem>
+                                        <SelectItem value="Other">General Support</SelectItem>
+                                    </>
+                                )}
+                            </SelectContent>
+                        </Select>
 
-                    {/* Priority Filter */}
-                    <Select
-                        value={priorityFilter}
-                        onValueChange={(val) => {
-                            setPriorityFilter(val);
-                            setCurrentPage(1);
-                        }}
-                    >
-                        <SelectTrigger className="w-[125px] bg-slate-950/60 border-input h-9 text-xs text-foreground">
-                            <SelectValue placeholder="Priority" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-950 border-border text-slate-100 text-xs">
-                            <SelectItem value="all">All Priorities</SelectItem>
-                            <SelectItem value="High">Urgent (High)</SelectItem>
-                            <SelectItem value="Medium">Medium</SelectItem>
-                            <SelectItem value="Low">Low</SelectItem>
-                        </SelectContent>
-                    </Select>
+                        {/* Priority Filter */}
+                        <Select
+                            value={priorityFilter}
+                            onValueChange={(val) => {
+                                setPriorityFilter(val);
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <SelectTrigger className="w-full sm:w-[125px] bg-background border-input h-9 text-xs text-foreground">
+                                <SelectValue placeholder="Priority" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover border-border text-popover-foreground text-xs">
+                                <SelectItem value="all">All Priorities</SelectItem>
+                                <SelectItem value="High">Urgent (High)</SelectItem>
+                                <SelectItem value="Medium">Medium</SelectItem>
+                                <SelectItem value="Low">Low</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </div>
 
@@ -349,11 +352,11 @@ export function ModernTicketDesk({
             <Card className="bg-card border-border shadow-md overflow-hidden">
                 <CardContent className="p-0">
                     {paginatedTickets.length === 0 ? (
-                        <div className="p-12 text-center space-y-3">
-                            <div className="p-3 rounded-full bg-slate-900/60 w-fit mx-auto text-muted-foreground border border-border/40">
+                        <div className="p-8 sm:p-12 text-center space-y-3">
+                            <div className="p-3 rounded-full bg-muted w-fit mx-auto text-muted-foreground border border-border">
                                 <LifeBuoy className="h-6 w-6" />
                             </div>
-                            <h4 className="text-sm font-semibold text-white">No support tickets found</h4>
+                            <h4 className="text-sm font-semibold text-foreground">No support tickets found</h4>
                             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                                 No tickets match your current filters. Clear filters or log a new student support inquiry.
                             </p>
@@ -362,7 +365,7 @@ export function ModernTicketDesk({
                                     onClick={onLogTicketClick}
                                     variant="outline"
                                     size="sm"
-                                    className="text-xs border-border bg-slate-900/40 text-white mt-2"
+                                    className="text-xs border-border bg-card hover:bg-accent text-foreground mt-2"
                                 >
                                     + Log Support Ticket
                                 </Button>
@@ -380,94 +383,165 @@ export function ModernTicketDesk({
                                     <div
                                         key={ticket.id}
                                         onClick={() => router.push(`/admin/tickets/${ticket.id}`)}
-                                        className="group p-3.5 sm:px-5 sm:py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-slate-900/20 cursor-pointer transition-colors duration-150"
+                                        className="group p-3 sm:px-5 sm:py-3.5 hover:bg-muted/40 cursor-pointer transition-colors duration-150"
                                     >
-                                        {/* Left: Status, ID & Subject */}
-                                        <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
-                                            {/* Status Badge */}
-                                            <div className="shrink-0 pt-0.5 sm:pt-0">
-                                                {renderStatusBadge(ticket.status)}
+                                        {/* MOBILE CARD VIEW (< sm) */}
+                                        <div className="flex flex-col gap-2 sm:hidden">
+                                            {/* Top Row: Status, ID, Category & Time */}
+                                            <div className="flex items-center justify-between gap-1.5">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    {renderStatusBadge(ticket.status)}
+                                                    <span className="font-mono text-[11px] font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border shrink-0">
+                                                        #{ticket.id}
+                                                    </span>
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="text-[9px] font-normal bg-muted text-muted-foreground border-border truncate max-w-[100px]"
+                                                    >
+                                                        {ticket.category || "General"}
+                                                    </Badge>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                    {renderPriorityBadge(ticket.priority)}
+                                                    <span className="text-[10px] text-muted-foreground font-mono">
+                                                        {formatRelativeTime(ticket.createdAt)}
+                                                    </span>
+                                                </div>
                                             </div>
 
-                                            {/* Ticket ID */}
-                                            <span className="shrink-0 font-mono text-xs font-semibold text-slate-400 bg-slate-950/60 px-1.5 py-0.5 rounded border border-border/40">
-                                                #{ticket.id}
-                                            </span>
-
-                                            {/* Subject & Preview */}
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="text-xs sm:text-sm font-semibold text-white group-hover:text-primary transition-colors truncate">
+                                            {/* Subject & Description */}
+                                            <div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <h3 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                                                         {ticket.subject}
                                                     </h3>
                                                     {ticket.isLocked && (
-                                                        <span title="Locked by staff" className="shrink-0 text-amber-400">
+                                                        <span title="Locked by staff" className="shrink-0 text-amber-500">
                                                             <Lock className="h-3 w-3" />
                                                         </span>
                                                     )}
                                                 </div>
                                                 {ticket.description && (
-                                                    <p className="text-xs text-muted-foreground/80 truncate mt-0.5 max-w-xl">
+                                                    <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
                                                         {ticket.description}
                                                     </p>
                                                 )}
                                             </div>
+
+                                            {/* Bottom Row: Student & Assignee */}
+                                            <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40 text-xs">
+                                                <div className="flex items-center gap-1 text-foreground min-w-0">
+                                                    <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                                                    <span className="font-medium text-foreground truncate text-[11px]" title={ticket.studentName}>
+                                                        {ticket.studentName || paNumber}
+                                                    </span>
+                                                    {paNumber && (
+                                                        <span className="text-[9px] text-muted-foreground uppercase font-mono shrink-0">
+                                                            ({paNumber})
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <div className="shrink-0">
+                                                    {ticket.assignedTo ? (
+                                                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full border border-border">
+                                                            <Avatar className="h-3.5 w-3.5">
+                                                                <AvatarImage src={ticket.assigneeAvatar} />
+                                                                <AvatarFallback className="text-[7px] bg-primary/20 text-primary">
+                                                                    {staffInitials}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                            <span className="max-w-[80px] truncate">{ticket.assignedTo}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-[9px] text-muted-foreground/60 border border-dashed border-border px-1.5 py-0.2 rounded">
+                                                            Unassigned
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        {/* Right: Meta Badges, Student PA, Assignee & Time */}
-                                        <div className="flex items-center flex-wrap sm:flex-nowrap gap-2 sm:gap-4 shrink-0 w-full sm:w-auto justify-between sm:justify-end pt-1 sm:pt-0 border-t sm:border-t-0 border-border/20">
-                                            {/* Category Pill */}
-                                            <Badge
-                                                variant="secondary"
-                                                className="text-[10px] font-normal bg-slate-900/50 text-slate-300 border-border/60"
-                                            >
-                                                {ticket.category || "General"}
-                                            </Badge>
+                                        {/* DESKTOP ROW VIEW (>= sm) */}
+                                        <div className="hidden sm:flex sm:flex-row items-center justify-between gap-3 w-full">
+                                            {/* Left: Status, ID & Subject */}
+                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                <div className="shrink-0">
+                                                    {renderStatusBadge(ticket.status)}
+                                                </div>
 
-                                            {/* Priority Pill */}
-                                            <div>
-                                                {renderPriorityBadge(ticket.priority)}
-                                            </div>
-
-                                            {/* Student Identity */}
-                                            <div className="flex items-center gap-1.5 text-xs text-slate-300">
-                                                <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                                <span className="font-medium text-slate-200 truncate max-w-[110px]" title={ticket.studentName}>
-                                                    {ticket.studentName || paNumber}
+                                                <span className="shrink-0 font-mono text-xs font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border">
+                                                    #{ticket.id}
                                                 </span>
-                                                {paNumber && (
-                                                    <span className="text-[10px] text-muted-foreground uppercase font-mono">
-                                                        ({paNumber})
-                                                    </span>
-                                                )}
-                                            </div>
 
-                                            {/* Assigned Staff Avatar / Tag */}
-                                            <div className="shrink-0" title={ticket.assignedTo ? `Assigned to ${ticket.assignedTo}` : "Unassigned"}>
-                                                {ticket.assignedTo ? (
-                                                    <div className="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-900/40 px-2 py-0.5 rounded-full border border-border/40">
-                                                        <Avatar className="h-4 w-4">
-                                                            <AvatarImage src={ticket.assigneeAvatar} />
-                                                            <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
-                                                                {staffInitials}
-                                                            </AvatarFallback>
-                                                        </Avatar>
-                                                        <span className="max-w-[70px] truncate">{ticket.assignedTo}</span>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="text-xs sm:text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                                                            {ticket.subject}
+                                                        </h3>
+                                                        {ticket.isLocked && (
+                                                            <span title="Locked by staff" className="shrink-0 text-amber-500">
+                                                                <Lock className="h-3 w-3" />
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                ) : (
-                                                    <span className="text-[10px] text-muted-foreground/60 border border-dashed border-border/60 px-1.5 py-0.5 rounded">
-                                                        Unassigned
-                                                    </span>
-                                                )}
+                                                    {ticket.description && (
+                                                        <p className="text-xs text-muted-foreground truncate mt-0.5 max-w-xl">
+                                                            {ticket.description}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
 
-                                            {/* Created Time */}
-                                            <span className="text-[11px] text-muted-foreground shrink-0 min-w-[50px] text-right">
-                                                {formatRelativeTime(ticket.createdAt)}
-                                            </span>
+                                            {/* Right: Meta Badges, Student PA, Assignee & Time */}
+                                            <div className="flex items-center gap-3 shrink-0">
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="text-[10px] font-normal bg-muted text-muted-foreground border-border"
+                                                >
+                                                    {ticket.category || "General"}
+                                                </Badge>
 
-                                            {/* Chevron indicator */}
-                                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0 hidden sm:block" />
+                                                <div>
+                                                    {renderPriorityBadge(ticket.priority)}
+                                                </div>
+
+                                                <div className="flex items-center gap-1.5 text-xs text-foreground">
+                                                    <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                                    <span className="font-medium text-foreground truncate max-w-[110px]" title={ticket.studentName}>
+                                                        {ticket.studentName || paNumber}
+                                                    </span>
+                                                    {paNumber && (
+                                                        <span className="text-[10px] text-muted-foreground uppercase font-mono">
+                                                            ({paNumber})
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <div className="shrink-0" title={ticket.assignedTo ? `Assigned to ${ticket.assignedTo}` : "Unassigned"}>
+                                                    {ticket.assignedTo ? (
+                                                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border">
+                                                            <Avatar className="h-4 w-4">
+                                                                <AvatarImage src={ticket.assigneeAvatar} />
+                                                                <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
+                                                                    {staffInitials}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                            <span className="max-w-[70px] truncate">{ticket.assignedTo}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-[10px] text-muted-foreground/60 border border-dashed border-border px-1.5 py-0.5 rounded">
+                                                            Unassigned
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <span className="text-[11px] text-muted-foreground shrink-0 min-w-[50px] text-right">
+                                                    {formatRelativeTime(ticket.createdAt)}
+                                                </span>
+
+                                                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0" />
+                                            </div>
                                         </div>
                                     </div>
                                 );
@@ -479,18 +553,18 @@ export function ModernTicketDesk({
 
             {/* Pagination Controls */}
             {filteredTickets.length > 0 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground px-3 py-3 bg-slate-950/60 border border-border/60 rounded-xl">
-                    <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground p-3 bg-muted/40 border border-border rounded-xl">
+                    <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-start">
                         <span>
-                            Showing <strong className="text-white font-medium">{Math.min(filteredTickets.length, (currentPage - 1) * pageSize + 1)}</strong> -{" "}
-                            <strong className="text-white font-medium">{Math.min(filteredTickets.length, currentPage * pageSize)}</strong> of{" "}
-                            <strong className="text-white font-medium">{filteredTickets.length}</strong> tickets
+                            Showing <strong className="text-foreground font-medium">{Math.min(filteredTickets.length, (currentPage - 1) * pageSize + 1)}</strong> -{" "}
+                            <strong className="text-foreground font-medium">{Math.min(filteredTickets.length, currentPage * pageSize)}</strong> of{" "}
+                            <strong className="text-foreground font-medium">{filteredTickets.length}</strong> tickets
                         </span>
 
                         {/* Page Size Selector */}
                         <div className="flex items-center gap-1.5 ml-auto sm:ml-4">
                             <span className="text-[11px] text-muted-foreground hidden sm:inline">Per page:</span>
-                            <div className="flex items-center bg-slate-900/80 border border-border/50 rounded-lg p-0.5">
+                            <div className="flex items-center bg-background border border-border rounded-lg p-0.5">
                                 {[10, 20, 50].map((size) => (
                                     <button
                                         key={size}
@@ -502,8 +576,8 @@ export function ModernTicketDesk({
                                         className={cn(
                                             "px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer",
                                             pageSize === size
-                                                ? "bg-primary text-white shadow-xs"
-                                                : "text-muted-foreground hover:text-white"
+                                                ? "bg-primary text-primary-foreground shadow-xs"
+                                                : "text-muted-foreground hover:text-foreground"
                                         )}
                                     >
                                         {size}
@@ -514,7 +588,7 @@ export function ModernTicketDesk({
                     </div>
 
                     {/* Navigation Buttons */}
-                    <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                         <Button
                             variant="outline"
                             size="sm"
@@ -523,12 +597,12 @@ export function ModernTicketDesk({
                                 setCurrentPage((p) => Math.max(1, p - 1));
                                 window.scrollTo({ top: 320, behavior: 'smooth' });
                             }}
-                            className="h-8 px-2.5 text-xs border-border bg-slate-950/40 hover:bg-slate-900 cursor-pointer disabled:opacity-35"
+                            className="flex-1 sm:flex-initial h-8 px-3 text-xs border-border bg-background hover:bg-accent text-foreground cursor-pointer disabled:opacity-35 justify-center"
                         >
                             <ChevronLeft className="h-3.5 w-3.5 mr-1" />
                             Prev
                         </Button>
-                        <span className="px-2.5 py-1 bg-slate-900/80 border border-border/50 rounded-lg text-xs font-semibold text-white">
+                        <span className="px-3 py-1 bg-background border border-border rounded-lg text-xs font-semibold text-foreground">
                             {currentPage} / {totalPages}
                         </span>
                         <Button
@@ -539,7 +613,7 @@ export function ModernTicketDesk({
                                 setCurrentPage((p) => Math.min(totalPages, p + 1));
                                 window.scrollTo({ top: 320, behavior: 'smooth' });
                             }}
-                            className="h-8 px-2.5 text-xs border-border bg-slate-950/40 hover:bg-slate-900 cursor-pointer disabled:opacity-35"
+                            className="flex-1 sm:flex-initial h-8 px-3 text-xs border-border bg-background hover:bg-accent text-foreground cursor-pointer disabled:opacity-35 justify-center"
                         >
                             Next
                             <ChevronRight className="h-3.5 w-3.5 ml-1" />
