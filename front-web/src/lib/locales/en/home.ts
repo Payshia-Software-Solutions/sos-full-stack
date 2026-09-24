@@ -52,6 +52,6 @@ export const home = {
   gallerySubtitle: 'A glimpse into the vibrant life at Ceylon Pharma College.',
 
   // Accreditations
-  accreditationsTitle: 'Internationally Accredited by ISO 9001:2015, ACTD and IAF',
-  accreditationsSubtitle: 'At Ceylon Pharma College, we take pride in our strong collaborations with top-tier institutions and industry leaders, which enrich our academic programs and expand opportunities for our students. Our unwavering commitment to excellence in education has earned us numerous prestigious recognitions and esteemed accreditations, reinforcing our position as a leading institution in pharmaceutical education.',
+  accreditationsTitle: 'Internationally Accredited & ISO 9001:2015 Certified',
+  accreditationsSubtitle: 'Ceylon Pharma College is an ACTD-accredited institution with an ISO 9001:2015 certified Quality Management System.',
 };
