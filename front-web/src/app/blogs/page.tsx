@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Calendar, User, X } from "lucide-react";
+import { LMS_API_URL } from "@/lib/config";
 
 function BlogsListContent() {
     const [blogs, setBlogs] = useState<any[]>([]);
@@ -18,7 +19,7 @@ function BlogsListContent() {
     useEffect(() => {
         const fetchBlogs = async () => {
             try {
-                const res = await fetch("http://localhost/sos-full-stack/server/api/blogs");
+                const res = await fetch(`${LMS_API_URL}/api/blogs`);
                 const data = await res.json();
                 if (data.success && data.blogs) {
                     setBlogs(data.blogs.filter((b: any) => b.status === 'published'));

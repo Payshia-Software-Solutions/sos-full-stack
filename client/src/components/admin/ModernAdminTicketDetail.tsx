@@ -28,7 +28,8 @@ import { cn } from "@/lib/utils";
 import EmojiPicker, { type EmojiClickData } from "emoji-picker-react";
 import { StudentInline360Dossier } from "@/components/admin/StudentInline360Dossier";
 import { 
-    getTicketMessages, createTicketMessage, markTicketMessagesAsRead 
+    getTicketMessages, createTicketMessage, markTicketMessagesAsRead,
+    sendTicketResolvedSms
 } from "@/lib/actions/tickets";
 import { 
     getStudentDetailsByUsername, getStudentEnrollments, getStudentBalance 
@@ -436,6 +437,27 @@ export function ModernAdminTicketDetail({
             title: `Ticket ${newStatus}`,
             description: `Ticket status has been updated to ${newStatus}.`,
         });
+
+        // Trigger SMS notification when ticket is marked as Closed / Resolved
+        if (newStatus === "Closed") {
+            const targetPhone = (studentProfile?.telephone_1 || studentProfile?.telephone_2 || "").trim();
+            if (targetPhone) {
+                sendTicketResolvedSms({
+                    mobile: targetPhone,
+                    studentName: studentProfile?.full_name || studentProfile?.name_with_initials || ticket.studentName,
+                    studentNumber: studentNumber || ticket.studentNumber,
+                    ticketId: ticket.id,
+                    subject: ticket.subject,
+                }).then(() => {
+                    toast({
+                        title: "Resolved SMS Sent",
+                        description: `Notification delivered to student (${targetPhone}).`,
+                    });
+                }).catch((smsErr: any) => {
+                    console.warn("Resolution SMS warning:", smsErr);
+                });
+            }
+        }
     };
 
     // Quick Priority Update
@@ -593,7 +615,7 @@ export function ModernAdminTicketDetail({
     // SUB-COMPONENT: Original Inquiry Card
     const renderInquiryCard = () => (
         <Card className="bg-card/80 border-border/80 shadow-sm overflow-hidden">
-            <CardHeader className="p-4 sm:p-5 bg-slate-950/60 border-b border-border/50">
+            <CardHeader className="p-4 sm:p-5 bg-muted/40 border-b border-border">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3 min-w-0">
                         <Avatar className="h-10 w-10 border border-border/70 shrink-0">
@@ -603,21 +625,21 @@ export function ModernAdminTicketDetail({
                         </Avatar>
                         <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="text-sm sm:text-base font-bold text-white truncate">
+                                <h3 className="text-sm sm:text-base font-bold text-foreground truncate">
                                     {ticket.studentName || "Student"}
                                 </h3>
-                                <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-900 border border-border/60 text-slate-300 font-semibold">
+                                <span className="text-xs font-mono px-2 py-0.5 rounded bg-muted border border-border text-foreground font-semibold">
                                     {studentNumber}
                                 </span>
                             </div>
-                            <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1.5 mt-1">
+                            <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
                                 <Clock className="h-3.5 w-3.5" />
                                 <span>Logged on {ticket.createdAt ? new Date(ticket.createdAt).toLocaleString() : "Recently"}</span>
                             </p>
                         </div>
                     </div>
 
-                    <Badge variant="outline" className="text-xs font-semibold bg-slate-900 text-slate-300 border-border/60 py-1 px-2.5">
+                    <Badge variant="outline" className="text-xs font-semibold bg-muted text-muted-foreground border-border py-1 px-2.5">
                         Original Ticket #{ticket.id}
                     </Badge>
                 </div>
@@ -625,14 +647,14 @@ export function ModernAdminTicketDetail({
 
             <CardContent className="p-4 sm:p-5 space-y-4">
                 {/* Description text */}
-                <div className="text-sm sm:text-base text-slate-100 whitespace-pre-line leading-relaxed bg-slate-950/70 p-4 rounded-xl border border-border/50">
+                <div className="text-sm sm:text-base text-foreground whitespace-pre-line leading-relaxed bg-muted/40 p-4 rounded-xl border border-border">
                     {ticket.description || "No description provided."}
                 </div>
 
                 {/* Attachments Grid */}
                 {ticket.attachments && ticket.attachments.length > 0 && (
                     <div className="space-y-2 pt-1">
-                        <p className="text-xs sm:text-sm font-semibold text-slate-300 flex items-center gap-1.5">
+                        <p className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
                             <Paperclip className="h-4 w-4 text-primary" />
                             <span>Attachments ({ticket.attachments.length})</span>
                         </p>
@@ -666,17 +688,17 @@ export function ModernAdminTicketDetail({
     const renderDiscussionSection = () => (
         <div className="flex flex-col rounded-2xl border border-border/80 bg-card/80 overflow-hidden shadow-md">
             {/* Header */}
-            <div className="px-5 py-4 bg-slate-950/90 border-b border-border/70 flex items-center justify-between flex-wrap gap-3">
+            <div className="px-5 py-4 bg-muted/40 border-b border-border flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 shrink-0">
+                    <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-500 dark:text-amber-400 shrink-0">
                         <FileText className="h-5 w-5" />
                     </div>
                     <div>
                         <div className="flex items-center gap-2.5 flex-wrap">
-                            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                            <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
                                 Internal Staff Notes & Activity Log
                             </h2>
-                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-900 text-amber-300 font-mono font-bold border border-amber-500/30">
+                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 dark:text-amber-400 font-mono font-bold border border-amber-500/30">
                                 {messages.length}
                             </span>
                         </div>
@@ -686,8 +708,8 @@ export function ModernAdminTicketDetail({
                     </div>
                 </div>
 
-                <Badge variant="outline" className="text-xs font-semibold text-amber-300 bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs">
-                    <Lock className="h-3.5 w-3.5 text-amber-400" />
+                <Badge variant="outline" className="text-xs font-semibold text-amber-500 dark:text-amber-300 bg-amber-500/10 border-amber-500/30 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs">
+                    <Lock className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
                     Staff Confidential • Not visible to student
                 </Badge>
             </div>
@@ -695,23 +717,23 @@ export function ModernAdminTicketDetail({
             {/* Notes Stream */}
             <div
                 ref={scrollAreaRef}
-                className="flex-1 p-5 space-y-4 overflow-y-auto max-h-[520px] lg:max-h-[640px] bg-slate-950/30"
+                className="flex-1 p-3.5 sm:p-5 space-y-3 sm:space-y-4 overflow-y-auto max-h-[300px] sm:max-h-[420px] lg:max-h-[560px] bg-background/40"
             >
                 {isLoadingMessages && (
                     <div className="space-y-4 py-4">
-                        <Skeleton className="h-24 w-full rounded-2xl bg-slate-900/60" />
-                        <Skeleton className="h-24 w-full rounded-2xl bg-slate-900/60" />
+                        <Skeleton className="h-24 w-full rounded-2xl bg-muted" />
+                        <Skeleton className="h-24 w-full rounded-2xl bg-muted" />
                     </div>
                 )}
 
                 {!isLoadingMessages && messages.length === 0 && (
-                    <div className="py-14 px-4 text-center space-y-3.5 bg-slate-950/20 rounded-2xl border border-dashed border-border/50 my-2">
-                        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center mx-auto text-amber-400 shadow-sm">
+                    <div className="py-14 px-4 text-center space-y-3.5 bg-muted/20 rounded-2xl border border-dashed border-border/50 my-2">
+                        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center mx-auto text-amber-500 dark:text-amber-400 shadow-sm">
                             <FileText className="h-7 w-7" />
                         </div>
                         <div className="space-y-1">
-                            <h3 className="text-base font-bold text-white">No internal notes logged yet</h3>
-                            <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+                            <h3 className="text-base font-bold text-foreground">No internal notes logged yet</h3>
+                            <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
                                 Record private staff comments, phone call records, payment verification updates, or resolution remarks below. These notes are confidential and never shown to students.
                             </p>
                         </div>
@@ -734,7 +756,7 @@ export function ModernAdminTicketDetail({
                     return (
                         <div
                             key={message.id}
-                            className="flex flex-col gap-3 rounded-2xl p-4 sm:p-5 bg-slate-900/80 border border-border/75 hover:border-border transition-colors shadow-sm"
+                            className="flex flex-col gap-3 rounded-2xl p-4 sm:p-5 bg-card border border-border/80 hover:border-border transition-colors shadow-sm"
                         >
                             <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-3 flex-wrap">
                                 <div className="flex items-center gap-3 min-w-0">
@@ -743,21 +765,21 @@ export function ModernAdminTicketDetail({
                                         <AvatarFallback className={cn(
                                             "text-xs font-bold",
                                             isStaff 
-                                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30" 
-                                                : "bg-slate-800 text-slate-300"
+                                                ? "bg-amber-500/20 text-amber-500 dark:text-amber-300 border border-amber-500/30" 
+                                                : "bg-muted text-muted-foreground"
                                         )}>
                                             {authorName.charAt(0).toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
-                                        <span className="text-sm font-bold text-white truncate">
+                                        <span className="text-sm font-bold text-foreground truncate">
                                             {authorName}
                                         </span>
                                         <span className={cn(
                                             "text-xs px-2.5 py-0.5 rounded-lg font-semibold border",
                                             isStaff
-                                                ? "bg-amber-500/10 text-amber-300 border-amber-500/20"
-                                                : "bg-blue-500/10 text-blue-300 border-blue-500/20"
+                                                ? "bg-amber-500/10 text-amber-500 dark:text-amber-300 border-amber-500/20"
+                                                : "bg-blue-500/10 text-blue-500 dark:text-blue-300 border-blue-500/20"
                                         )}>
                                             {isStaff ? "Internal Note" : "Student Query"}
                                         </span>
@@ -765,12 +787,12 @@ export function ModernAdminTicketDetail({
                                 </div>
 
                                 <div className="text-xs text-muted-foreground flex items-center gap-1.5 shrink-0 font-mono">
-                                    <Clock className="h-3.5 w-3.5 text-slate-400" />
+                                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                                     <span>{formattedDate}</span>
                                 </div>
                             </div>
 
-                            <p className="text-sm sm:text-base text-slate-100 whitespace-pre-line break-words leading-relaxed pt-0.5">
+                            <p className="text-sm sm:text-base text-foreground whitespace-pre-line break-words leading-relaxed pt-0.5">
                                 {message.text}
                             </p>
 
@@ -800,31 +822,31 @@ export function ModernAdminTicketDetail({
                 })}
 
                 {isSending && (
-                    <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-2.5 text-sm font-semibold text-amber-300">
-                        <Loader2 className="h-4.5 w-4.5 animate-spin text-amber-400" />
+                    <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-2.5 text-sm font-semibold text-amber-500 dark:text-amber-300">
+                        <Loader2 className="h-4.5 w-4.5 animate-spin text-amber-500 dark:text-amber-400" />
                         <span>Saving internal note to activity log...</span>
                     </div>
                 )}
             </div>
 
             {/* Note Composer */}
-            <div className="p-5 bg-slate-950/95 border-t border-border/70 space-y-4">
+            <div className="p-3.5 sm:p-5 bg-card border-t border-border space-y-3 sm:space-y-4">
                 {/* Action Templates Pills */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                            <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <Sparkles className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
                             Quick Action Note Templates
                         </span>
-                        <span className="text-[11px] text-slate-400 hidden sm:inline">Click to pre-fill remark</span>
+                        <span className="text-[11px] text-muted-foreground hidden sm:inline">Click to pre-fill remark</span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none pb-1 sm:flex-wrap sm:overflow-visible">
                         {CANNED_RESPONSES.map((tpl, idx) => (
                             <button
                                 key={idx}
                                 type="button"
                                 onClick={() => setNewMessage((prev) => (prev ? prev + "\n" + tpl.text : tpl.text))}
-                                className="px-3.5 py-1.5 rounded-xl text-xs font-medium bg-slate-900/90 border border-border/70 text-slate-300 hover:text-white hover:border-amber-400/60 hover:bg-amber-500/10 active:scale-95 transition-all cursor-pointer shadow-xs"
+                                className="px-3 py-1.5 rounded-xl text-xs font-medium bg-muted/70 border border-border text-foreground hover:bg-accent hover:border-primary/50 active:scale-95 transition-all cursor-pointer shadow-xs whitespace-nowrap shrink-0 sm:shrink"
                             >
                                 {tpl.label}
                             </button>
@@ -834,7 +856,7 @@ export function ModernAdminTicketDetail({
 
                 {/* Staged attachments preview */}
                 {stagedAttachments.length > 0 && (
-                    <div className="flex flex-wrap gap-2.5 p-3 bg-slate-900/80 rounded-2xl border border-border/60">
+                    <div className="flex flex-wrap gap-2.5 p-3 bg-muted/60 rounded-2xl border border-border/60">
                         {stagedAttachments.map((att) => (
                             <div key={att.id} className="relative group w-18 h-18 rounded-xl overflow-hidden border border-border">
                                 <Image src={att.url} alt={att.name} fill style={{ objectFit: "cover" }} />
@@ -863,20 +885,20 @@ export function ModernAdminTicketDetail({
                             }
                         }}
                         placeholder="Add an internal staff note, action taken, or resolution remark... (Press Ctrl+Enter to save)"
-                        className="min-h-[140px] bg-slate-900/90 border-border/80 rounded-2xl text-sm sm:text-base text-white placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-amber-400/50 focus-visible:border-amber-400 pr-24 resize-y p-4 leading-relaxed"
+                        className="min-h-[120px] sm:min-h-[140px] bg-background border-border rounded-2xl text-sm sm:text-base text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-amber-400/50 focus-visible:border-amber-400 pr-20 sm:pr-24 resize-y p-3.5 sm:p-4 leading-relaxed"
                     />
 
-                    <div className="absolute right-3.5 bottom-3.5 flex items-center gap-1.5">
+                    <div className="absolute right-2.5 bottom-2.5 sm:right-3.5 sm:bottom-3.5 flex items-center gap-1 sm:gap-1.5">
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-9 w-9 rounded-xl text-muted-foreground hover:text-white hover:bg-slate-800 cursor-pointer"
+                                    className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
                                     title="Insert Emoji"
                                 >
-                                    <Smile className="h-5 w-5" />
+                                    <Smile className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent side="top" align="end" className="p-0 border-none bg-transparent shadow-none">
@@ -889,32 +911,32 @@ export function ModernAdminTicketDetail({
                             variant="ghost"
                             size="icon"
                             onClick={() => fileInputRef.current?.click()}
-                            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-white hover:bg-slate-800 cursor-pointer"
+                            className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
                             title="Attach screenshot or document"
                         >
-                            <Paperclip className="h-5 w-5" />
+                            <Paperclip className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                         </Button>
                     </div>
                 </div>
 
                 {/* Bottom Action Bar */}
-                <div className="flex items-center justify-between gap-3 pt-2 flex-wrap">
-                    <div className="flex items-center gap-2.5 text-xs text-slate-300 bg-slate-900/90 px-3.5 py-2 rounded-xl border border-border/70 shadow-xs">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1 sm:pt-2">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-muted-foreground bg-muted/60 px-3 py-1.5 rounded-xl border border-border shadow-xs">
                         <div className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
-                        <span>Logging as <strong className="text-white font-semibold">{currentUser.name || currentUser.username}</strong></span>
-                        <span className="text-slate-600 hidden sm:inline">•</span>
-                        <span className="text-slate-400 hidden sm:inline">Internal Only</span>
+                        <span>Logging as <strong className="text-foreground font-semibold">{currentUser.name || currentUser.username}</strong></span>
+                        <span className="text-muted-foreground hidden sm:inline">•</span>
+                        <span className="text-muted-foreground hidden sm:inline">Internal Only</span>
                     </div>
 
-                    <div className="flex items-center gap-3 ml-auto flex-wrap">
+                    <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
                         {ticket.status !== "Closed" && (
                             <Button
                                 type="button"
                                 disabled={isSending || (!newMessage.trim() && stagedAttachments.length === 0)}
                                 onClick={() => handleSendMessage(true)}
-                                className="h-11 px-5 rounded-xl text-sm font-bold text-emerald-300 border border-emerald-500/50 bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 shadow-sm transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="h-10 sm:h-11 px-4 rounded-xl text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-300 border border-emerald-500/50 bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 shadow-sm transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed justify-center"
                             >
-                                <CheckCircle2 className="h-4.5 w-4.5 mr-2 text-emerald-400" />
+                                <CheckCircle2 className="h-4 w-4 sm:h-4.5 sm:w-4.5 mr-1.5 sm:mr-2 text-emerald-500 dark:text-emerald-400 shrink-0" />
                                 Save Note & Resolve
                             </Button>
                         )}
@@ -923,12 +945,12 @@ export function ModernAdminTicketDetail({
                             type="button"
                             disabled={isSending || (!newMessage.trim() && stagedAttachments.length === 0)}
                             onClick={() => handleSendMessage(false)}
-                            className="h-11 px-6 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="h-10 sm:h-11 px-5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed justify-center"
                         >
                             {isSending ? (
-                                <Loader2 className="h-4.5 w-4.5 animate-spin mr-2 text-slate-950" />
+                                <Loader2 className="h-4 w-4 sm:h-4.5 sm:w-4.5 animate-spin mr-1.5 sm:mr-2 text-slate-950 shrink-0" />
                             ) : (
-                                <PlusCircle className="h-4.5 w-4.5 mr-2 text-slate-950" />
+                                <PlusCircle className="h-4 w-4 sm:h-4.5 sm:w-4.5 mr-1.5 sm:mr-2 text-slate-950 shrink-0" />
                             )}
                             Add Internal Note
                         </Button>
@@ -941,7 +963,7 @@ export function ModernAdminTicketDetail({
     // SUB-COMPONENT: Student Quick Contact Card
     const renderStudentContactCard = () => (
         <Card className="bg-card/80 border-border/80 shadow-sm overflow-hidden">
-            <CardHeader className="p-4 sm:p-5 bg-slate-950/60 border-b border-border/50">
+            <CardHeader className="p-4 sm:p-5 bg-muted/40 border-b border-border">
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3.5 min-w-0">
                         <Avatar className="h-12 w-12 border-2 border-primary/30 shrink-0">
@@ -950,7 +972,7 @@ export function ModernAdminTicketDetail({
                             </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                            <h3 className="text-base sm:text-lg font-bold text-white truncate">
+                            <h3 className="text-base sm:text-lg font-bold text-foreground truncate">
                                 {ticket.studentName || studentProfile?.full_name || "Student"}
                             </h3>
                             <div className="flex items-center gap-2 mt-1">
@@ -958,7 +980,7 @@ export function ModernAdminTicketDetail({
                                 <button
                                     type="button"
                                     onClick={handleCopyPA}
-                                    className="text-muted-foreground hover:text-white p-1 rounded hover:bg-slate-800 cursor-pointer transition-colors"
+                                    className="text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted cursor-pointer transition-colors"
                                     title="Copy PA Number"
                                 >
                                     {copiedPA ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
@@ -967,7 +989,7 @@ export function ModernAdminTicketDetail({
                         </div>
                     </div>
 
-                    <Badge variant="outline" className="text-xs font-semibold bg-emerald-500/10 text-emerald-400 border-emerald-500/30 py-1 px-2.5 shrink-0">
+                    <Badge variant="outline" className="text-xs font-semibold bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border-emerald-500/30 py-1 px-2.5 shrink-0">
                         Verified PA
                     </Badge>
                 </div>
@@ -981,7 +1003,7 @@ export function ModernAdminTicketDetail({
                             href={`https://wa.me/${cleanWaNumber}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/25 transition-all shadow-xs"
+                            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/25 transition-all shadow-xs"
                         >
                             <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
                                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.204-1.64a11.816 11.816 0 005.79 1.548h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
@@ -989,7 +1011,7 @@ export function ModernAdminTicketDetail({
                             <span>WhatsApp</span>
                         </a>
                     ) : (
-                        <div className="flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-semibold bg-slate-900/60 text-muted-foreground border border-border/50">
+                        <div className="flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-semibold bg-muted/60 text-muted-foreground border border-border">
                             No WhatsApp
                         </div>
                     )}
@@ -997,23 +1019,23 @@ export function ModernAdminTicketDetail({
                     {primaryPhone ? (
                         <a
                             href={`tel:${primaryPhone}`}
-                            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold bg-blue-500/15 text-blue-400 border border-blue-500/40 hover:bg-blue-500/25 transition-all shadow-xs"
+                            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold bg-blue-500/15 text-blue-500 dark:text-blue-400 border border-blue-500/40 hover:bg-blue-500/25 transition-all shadow-xs"
                         >
                             <Phone className="h-4 w-4" />
                             <span>Call Student</span>
                         </a>
                     ) : (
-                        <div className="flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-semibold bg-slate-900/60 text-muted-foreground border border-border/50">
+                        <div className="flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-semibold bg-muted/60 text-muted-foreground border border-border">
                             No Phone
                         </div>
                     )}
                 </div>
 
                 {/* Details list */}
-                <div className="space-y-2.5 text-xs sm:text-sm text-slate-200 pt-1 divide-y divide-border/40">
+                <div className="space-y-2.5 text-xs sm:text-sm text-foreground pt-1 divide-y divide-border/40">
                     {studentProfile?.e_mail && (
                         <div className="flex items-center justify-between py-1.5 gap-2">
-                            <span className="text-slate-400 font-medium flex items-center gap-1.5 shrink-0">
+                            <span className="text-muted-foreground font-medium flex items-center gap-1.5 shrink-0">
                                 <Mail className="h-3.5 w-3.5 text-primary" /> Email:
                             </span>
                             <a href={`mailto:${studentProfile.e_mail}`} className="text-primary hover:underline font-mono font-medium truncate">
@@ -1024,33 +1046,33 @@ export function ModernAdminTicketDetail({
 
                     {studentProfile?.telephone_1 && (
                         <div className="flex items-center justify-between py-1.5">
-                            <span className="text-slate-400 font-medium flex items-center gap-1.5 shrink-0">
-                                <Phone className="h-3.5 w-3.5 text-emerald-400" /> Phone 1:
+                            <span className="text-muted-foreground font-medium flex items-center gap-1.5 shrink-0">
+                                <Phone className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" /> Phone 1:
                             </span>
-                            <span className="font-mono font-semibold text-slate-100">{studentProfile.telephone_1}</span>
+                            <span className="font-mono font-semibold text-foreground">{studentProfile.telephone_1}</span>
                         </div>
                     )}
 
                     {studentProfile?.telephone_2 && (
                         <div className="flex items-center justify-between py-1.5">
-                            <span className="text-slate-400 font-medium flex items-center gap-1.5 shrink-0">
-                                <Phone className="h-3.5 w-3.5 text-blue-400" /> Phone 2:
+                            <span className="text-muted-foreground font-medium flex items-center gap-1.5 shrink-0">
+                                <Phone className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" /> Phone 2:
                             </span>
-                            <span className="font-mono font-semibold text-slate-100">{studentProfile.telephone_2}</span>
+                            <span className="font-mono font-semibold text-foreground">{studentProfile.telephone_2}</span>
                         </div>
                     )}
 
                     {studentProfile?.nic && (
                         <div className="flex items-center justify-between py-1.5">
-                            <span className="text-slate-400 font-medium shrink-0">NIC:</span>
-                            <span className="font-mono font-semibold text-slate-100">{studentProfile.nic}</span>
+                            <span className="text-muted-foreground font-medium shrink-0">NIC:</span>
+                            <span className="font-mono font-semibold text-foreground">{studentProfile.nic}</span>
                         </div>
                     )}
 
                     {studentProfile?.city && (
                         <div className="flex items-center justify-between py-1.5">
-                            <span className="text-slate-400 font-medium shrink-0">Location:</span>
-                            <span className="font-semibold text-slate-100 text-right">{studentProfile.city}{studentProfile.district ? `, ${studentProfile.district}` : ""}</span>
+                            <span className="text-muted-foreground font-medium shrink-0">Location:</span>
+                            <span className="font-semibold text-foreground text-right">{studentProfile.city}{studentProfile.district ? `, ${studentProfile.district}` : ""}</span>
                         </div>
                     )}
                 </div>
@@ -1061,64 +1083,64 @@ export function ModernAdminTicketDetail({
     // SUB-COMPONENT: Ticket Audit & Properties Card
     const renderTicketAuditCard = () => (
         <Card className="bg-card/80 border-border/80 shadow-sm">
-            <CardHeader className="p-4 bg-slate-950/50 border-b border-border/50">
-                <CardTitle className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+            <CardHeader className="p-4 bg-muted/40 border-b border-border">
+                <CardTitle className="text-xs sm:text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-primary" />
                     <span>Ticket Properties & Audit</span>
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-4 space-y-2.5 text-xs sm:text-sm divide-y divide-border/40">
                 <div className="flex items-center justify-between py-1.5">
-                    <span className="text-slate-400 font-medium">Ticket ID:</span>
-                    <span className="font-mono font-bold text-slate-100">#{ticket.id}</span>
+                    <span className="text-muted-foreground font-medium">Ticket ID:</span>
+                    <span className="font-mono font-bold text-foreground">#{ticket.id}</span>
                 </div>
                 <div className="flex items-center justify-between py-1.5">
-                    <span className="text-slate-400 font-medium">Current Status:</span>
+                    <span className="text-muted-foreground font-medium">Current Status:</span>
                     <Badge variant="outline" className={cn(
                         "font-semibold text-xs py-0.5 px-2.5",
-                        ticket.status === "Open" && "bg-amber-500/10 text-amber-400 border-amber-500/30",
-                        ticket.status === "In Progress" && "bg-blue-500/10 text-blue-400 border-blue-500/30",
-                        ticket.status === "Closed" && "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
-                        ticket.status === "Snooze" && "bg-purple-500/10 text-purple-400 border-purple-500/30"
+                        ticket.status === "Open" && "bg-amber-500/10 text-amber-500 dark:text-amber-400 border-amber-500/30",
+                        ticket.status === "In Progress" && "bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-500/30",
+                        ticket.status === "Closed" && "bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border-emerald-500/30",
+                        ticket.status === "Snooze" && "bg-purple-500/10 text-purple-500 dark:text-purple-400 border-purple-500/30"
                     )}>
                         {ticket.status}
                     </Badge>
                 </div>
                 <div className="flex items-center justify-between py-1.5">
-                    <span className="text-slate-400 font-medium">Priority Level:</span>
+                    <span className="text-muted-foreground font-medium">Priority Level:</span>
                     <Badge variant="outline" className={cn(
                         "font-semibold text-xs py-0.5 px-2.5",
-                        ticket.priority === "High" && "bg-rose-500/10 text-rose-400 border-rose-500/30",
-                        ticket.priority === "Medium" && "bg-amber-500/10 text-amber-400 border-amber-500/30",
-                        ticket.priority === "Low" && "bg-slate-800 text-slate-300 border-slate-700"
+                        ticket.priority === "High" && "bg-rose-500/10 text-rose-500 dark:text-rose-400 border-rose-500/30",
+                        ticket.priority === "Medium" && "bg-amber-500/10 text-amber-500 dark:text-amber-400 border-amber-500/30",
+                        ticket.priority === "Low" && "bg-muted text-muted-foreground border-border"
                     )}>
                         {ticket.priority} Priority
                     </Badge>
                 </div>
                 <div className="flex items-center justify-between py-1.5">
-                    <span className="text-slate-400 font-medium">Assigned Staff:</span>
-                    <span className="font-semibold text-slate-100">{assignedStaffName}</span>
+                    <span className="text-muted-foreground font-medium">Assigned Staff:</span>
+                    <span className="font-semibold text-foreground">{assignedStaffName}</span>
                 </div>
                 <div className="flex items-center justify-between py-1.5">
-                    <span className="text-slate-400 font-medium">Category:</span>
-                    <span className="font-semibold text-slate-100">{activeCategoryDisplayName}</span>
+                    <span className="text-muted-foreground font-medium">Category:</span>
+                    <span className="font-semibold text-foreground">{activeCategoryDisplayName}</span>
                 </div>
                 <div className="flex items-center justify-between py-1.5">
-                    <span className="text-slate-400 font-medium">Created:</span>
-                    <span className="text-slate-200 font-medium">
+                    <span className="text-muted-foreground font-medium">Created:</span>
+                    <span className="text-foreground font-medium">
                         {ticket.createdAt ? new Date(ticket.createdAt).toLocaleString() : "N/A"}
                     </span>
                 </div>
                 <div className="flex items-center justify-between py-1.5">
-                    <span className="text-slate-400 font-medium">Last Updated:</span>
-                    <span className="text-slate-200 font-medium">
+                    <span className="text-muted-foreground font-medium">Last Updated:</span>
+                    <span className="text-foreground font-medium">
                         {ticket.updatedAt ? new Date(ticket.updatedAt).toLocaleString() : "N/A"}
                     </span>
                 </div>
                 {ticket.rating && (
                     <div className="flex items-center justify-between py-1.5">
-                        <span className="text-slate-400 font-medium">Student Rating:</span>
-                        <div className="flex items-center gap-1 text-amber-400 font-bold">
+                        <span className="text-muted-foreground font-medium">Student Rating:</span>
+                        <div className="flex items-center gap-1 text-amber-500 dark:text-amber-400 font-bold">
                             <Star className="h-4 w-4 fill-current" />
                             <span>{ticket.rating} / 5</span>
                         </div>
@@ -1129,7 +1151,7 @@ export function ModernAdminTicketDetail({
     );
 
     return (
-        <div className="flex flex-col min-h-screen w-full bg-background text-foreground pb-24 sm:pb-12">
+        <div className="flex flex-col min-h-screen w-full bg-background text-foreground pb-36 sm:pb-16">
             {/* Attachment Lightbox Modal */}
             <ImageViewerModal imageUrl={viewingImage} onClose={() => setViewingImage(null)} />
 
@@ -1152,7 +1174,7 @@ export function ModernAdminTicketDetail({
                             variant="ghost"
                             size="sm"
                             onClick={() => router.push("/admin/tickets")}
-                            className="h-8 sm:h-9 px-2 sm:px-2.5 text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-900 cursor-pointer"
+                            className="h-8 sm:h-9 px-2 sm:px-2.5 text-xs sm:text-sm font-bold text-foreground hover:bg-muted cursor-pointer"
                         >
                             <ArrowLeft className="h-4 w-4 mr-1 sm:mr-1.5" />
                             <span>Ticket Desk</span>
@@ -1160,13 +1182,13 @@ export function ModernAdminTicketDetail({
 
                         <span className="text-muted-foreground/50 text-xs sm:text-sm">/</span>
 
-                        <div className="flex items-center gap-1 font-mono text-xs sm:text-sm font-bold text-white bg-slate-950/80 border border-border/70 px-2 py-0.5 rounded-lg">
+                        <div className="flex items-center gap-1 font-mono text-xs sm:text-sm font-bold text-foreground bg-muted border border-border px-2 py-0.5 rounded-lg">
                             <span>#{ticket.id}</span>
                         </div>
 
                         {/* Lock alert if handled by another staff */}
                         {isTicketLockedByOther && (
-                            <Badge variant="outline" className="text-xs font-semibold bg-rose-500/15 text-rose-400 border-rose-500/40 gap-1.5 hidden sm:inline-flex py-0.5 px-2">
+                            <Badge variant="outline" className="text-xs font-semibold bg-rose-500/15 text-rose-500 dark:text-rose-400 border-rose-500/40 gap-1.5 hidden sm:inline-flex py-0.5 px-2">
                                 <Lock className="h-3 w-3" />
                                 <span>Locked by {ticket.lockedByStaffId}</span>
                             </Badge>
@@ -1177,7 +1199,7 @@ export function ModernAdminTicketDetail({
                                 type="button"
                                 onClick={() => onUnlockTicket(ticket.id)}
                                 title="Click to unlock ticket"
-                                className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-lg cursor-pointer"
+                                className="text-xs font-semibold text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-lg cursor-pointer"
                             >
                                 <Unlock className="h-3 w-3" />
                                 <span className="hidden sm:inline">Unlocked by you</span>
@@ -1192,7 +1214,7 @@ export function ModernAdminTicketDetail({
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleStatusChange("In Progress")}
-                                className="h-8 sm:h-9 px-3 sm:px-3.5 text-xs sm:text-sm font-bold text-amber-400 border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 cursor-pointer"
+                                className="h-8 sm:h-9 px-3 sm:px-3.5 text-xs sm:text-sm font-bold text-amber-500 dark:text-amber-400 border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 cursor-pointer"
                             >
                                 <RotateCcw className="h-3.5 w-3.5 mr-1" />
                                 Reopen
@@ -1213,7 +1235,7 @@ export function ModernAdminTicketDetail({
                                 size="sm"
                                 variant="outline"
                                 onClick={handleAssignToMe}
-                                className="h-8 sm:h-9 px-2.5 text-xs sm:text-sm font-semibold text-indigo-300 border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 cursor-pointer hidden sm:flex items-center gap-1.5"
+                                className="h-8 sm:h-9 px-2.5 text-xs sm:text-sm font-semibold text-indigo-500 dark:text-indigo-300 border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 cursor-pointer hidden sm:flex items-center gap-1.5"
                             >
                                 <UserCheck className="h-3.5 w-3.5" />
                                 <span>Assign to Me</span>
@@ -1227,7 +1249,7 @@ export function ModernAdminTicketDetail({
             <div className="bg-card/50 border-b border-border/70 px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
                 <div className="w-full flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                        <h1 className="text-base sm:text-xl font-bold text-white tracking-tight">
+                        <h1 className="text-base sm:text-xl font-bold text-foreground tracking-tight">
                             {ticket.subject}
                         </h1>
                     </div>
@@ -1350,7 +1372,7 @@ export function ModernAdminTicketDetail({
 
             {/* MOBILE QUICK STUDENT CONNECT BAR (Shown only in "Chat" tab to avoid repetition) */}
             {activeMobileTab === "discussion" && (
-                <div className="lg:hidden bg-slate-950/95 border-b border-border/80 px-3.5 py-2.5 flex items-center justify-between gap-2.5">
+                <div className="lg:hidden bg-card border-b border-border px-3.5 py-2.5 flex items-center justify-between gap-2.5">
                     <div className="flex items-center gap-2.5 min-w-0">
                         <Avatar className="h-9 w-9 border border-border">
                             <AvatarFallback className="text-xs bg-primary/20 text-primary font-bold">
@@ -1358,8 +1380,8 @@ export function ModernAdminTicketDetail({
                             </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                            <p className="text-sm font-bold text-white truncate">{ticket.studentName || "Student"}</p>
-                            <p className="text-xs font-mono font-medium text-slate-400 truncate">{studentNumber}</p>
+                            <p className="text-sm font-bold text-foreground truncate">{ticket.studentName || "Student"}</p>
+                            <p className="text-xs font-mono font-medium text-muted-foreground truncate">{studentNumber}</p>
                         </div>
                     </div>
 
@@ -1369,7 +1391,7 @@ export function ModernAdminTicketDetail({
                                 href={`https://wa.me/${cleanWaNumber}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/25"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/25"
                             >
                                 <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
                                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.204-1.64a11.816 11.816 0 005.79 1.548h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
@@ -1380,7 +1402,7 @@ export function ModernAdminTicketDetail({
                         {primaryPhone && (
                             <a
                                 href={`tel:${primaryPhone}`}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-500/15 text-blue-400 border border-blue-500/40 hover:bg-blue-500/25"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-500/15 text-blue-500 dark:text-blue-400 border border-blue-500/40 hover:bg-blue-500/25"
                             >
                                 <Phone className="h-4 w-4" />
                                 <span>Call</span>
@@ -1389,7 +1411,7 @@ export function ModernAdminTicketDetail({
                         <button
                             type="button"
                             onClick={handleCopyPA}
-                            className="p-1.5 rounded-lg bg-slate-900 border border-border/70 text-slate-300 hover:text-white"
+                            className="p-1.5 rounded-lg bg-muted border border-border text-foreground hover:bg-accent"
                             title="Copy PA Number"
                         >
                             {copiedPA ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
@@ -1491,6 +1513,9 @@ export function ModernAdminTicketDetail({
                     )}
                 </div>
             </div>
+
+            {/* Bottom spacer to prevent touching window edge */}
+            <div className="h-8 sm:h-12 w-full shrink-0" aria-hidden="true" />
         </div>
     );
 }

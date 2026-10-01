@@ -123,9 +123,7 @@ class DpadModel
             'loggedUser' => $loggedUser
         ]);
 
-        if ($checkStmt->fetch()) {
-            return ['status' => 'error', 'message' => 'Already Saved Correct Attempt'];
-        }
+        $hasPriorCorrect = (bool)$checkStmt->fetch();
 
         // Fetch correct answer
         $ansSql = "SELECT * FROM `prescription_answer` WHERE `pres_id` = :prescriptionID AND `cover_id` = :coverID";
@@ -146,10 +144,10 @@ class DpadModel
         $incorrectFields = [];
 
         foreach ($fields as $field) {
-            $submittedVal = trim($data[$field] ?? '');
-            $correctVal = trim($correctAnswer[$field] ?? '');
+            $submittedVal = $data[$field] ?? '';
+            $correctVal = $correctAnswer[$field] ?? '';
 
-            if (strcasecmp($submittedVal, $correctVal) !== 0) {
+            if (!$this->isAnswerFieldMatch($field, $submittedVal, $correctVal)) {
                 $incorrectFields[] = $field;
             }
         }
@@ -157,6 +155,14 @@ class DpadModel
         if (empty($incorrectFields)) {
             $answer_status = "Correct";
             $score = 10;
+            if ($hasPriorCorrect) {
+                return [
+                    'status' => 'success',
+                    'message' => 'Answer is Correct!',
+                    'incorrect_values' => [],
+                    'answer_status' => 'Correct'
+                ];
+            }
         } else {
             $score = -1;
             $answer_status = "In-Correct";
@@ -276,6 +282,7 @@ class DpadModel
             ]);
             
             if ($exec) {
+                $this->autoAssignPrescriptionToActiveCourses($prescriptionID);
                 return ['status' => 'success', 'message' => 'Prescription updated successfully', 'prescriptionID' => $prescriptionID];
             } else {
                 return ['status' => 'error', 'message' => 'Failed to update prescription'];
@@ -308,6 +315,7 @@ class DpadModel
             ]);
 
             if ($exec) {
+                $this->autoAssignPrescriptionToActiveCourses($newPrescriptionId);
                 return ['status' => 'success', 'message' => 'Prescription saved successfully', 'prescriptionID' => $newPrescriptionId];
             } else {
                 return ['status' => 'error', 'message' => 'Failed to save prescription'];
@@ -522,7 +530,14 @@ class DpadModel
                   AND dcp.`course_code` = :course_code";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['course_code' => $courseCode]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Fallback: If no prescriptions are assigned to this course, return all active prescriptions
+        if (empty($rows)) {
+            return $this->getActivePrescriptions();
+        }
+
+        return $rows;
     }
 
     /**
@@ -533,6 +548,120 @@ class DpadModel
         $sql = "SELECT * FROM `dpad_course_prescriptions`";
         $stmt = $this->pdo->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Compare submitted value against answer key with realistic tolerance
+     */
+    public function isAnswerFieldMatch($field, $submitted, $correct)
+    {
+        $sub = trim((string)($submitted ?? ''));
+        $cor = trim((string)($correct ?? ''));
+
+        // Direct case-insensitive match
+        if (strcasecmp($sub, $cor) === 0) {
+            return true;
+        }
+
+        // Empty equivalents normalization for schedule, frequency, and additional fields
+        $emptyLike = ['', '-', '—', '–', '0', 'n/a', 'na', 'none', 'null', 'undefined'];
+        if (in_array(strtolower($sub), $emptyLike, true) && in_array(strtolower($cor), $emptyLike, true)) {
+            return true;
+        }
+
+        // Additional description: if both are empty/hyphen
+        if ($field === 'additional_description') {
+            if (in_array(strtolower($sub), $emptyLike, true) && in_array(strtolower($cor), $emptyLike, true)) {
+                return true;
+            }
+        }
+
+        // Meal type: "N/A" and "Non Related" are synonymous
+        if ($field === 'meal_type') {
+            $naTypes = ['n/a', 'na', 'non related', 'not related', '-', 'none', ''];
+            if (in_array(strtolower($sub), $naTypes, true) && in_array(strtolower($cor), $naTypes, true)) {
+                return true;
+            }
+        }
+
+        // Date comparison: handle formats like YYYY-MM-DD vs DD/MM/YYYY
+        if ($field === 'date') {
+            $tSub = strtotime($sub);
+            $tCor = strtotime($cor);
+            if ($tSub && $tCor && date('Y-m-d', $tSub) === date('Y-m-d', $tCor)) {
+                return true;
+            }
+        }
+
+        // Name comparison: strip common titles (Mr., Mrs., Miss, Master, Dr.)
+        if ($field === 'name') {
+            $cleanSub = preg_replace('/^(mr|mrs|miss|ms|master|dr)\.?\s+/i', '', $sub);
+            $cleanCor = preg_replace('/^(mr|mrs|miss|ms|master|dr)\.?\s+/i', '', $cor);
+            if (strcasecmp(trim($cleanSub), trim($cleanCor)) === 0) {
+                return true;
+            }
+        }
+
+        // Drug name comparison:
+        if ($field === 'drug_name') {
+            $cleanSub = preg_replace('/\s+/', ' ', $sub);
+            $cleanCor = preg_replace('/\s+/', ' ', $cor);
+
+            if (strcasecmp($cleanSub, $cleanCor) === 0) {
+                return true;
+            }
+
+            $stripPrefix = function ($str) {
+                return preg_replace('/^(tab|cap|sy|syr|syrup|inj|cream|gel|susp|capsule|tablet)\.?\s+/i', '', trim($str));
+            };
+
+            $strippedSub = $stripPrefix($cleanSub);
+            $strippedCor = $stripPrefix($cleanCor);
+
+            if (strcasecmp($strippedSub, $strippedCor) === 0) {
+                return true;
+            }
+
+            $stripSuffix = function ($str) {
+                return preg_replace('/\s+(tablet|capsule|syrup|suspension|inhaler|cream|gel|bd|tds|daily|mane|nocte|stat|8h|6h|12h|qds)$/i', '', trim($str));
+            };
+
+            $stemSub = $stripSuffix($strippedSub);
+            $stemCor = $stripSuffix($strippedCor);
+
+            if (strcasecmp($stemSub, $stemCor) === 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Auto-assign prescription to all active courses if not yet assigned
+     */
+    public function autoAssignPrescriptionToActiveCourses($prescriptionId)
+    {
+        if (empty($prescriptionId)) return;
+
+        try {
+            $chk = $this->pdo->prepare("SELECT COUNT(*) FROM `dpad_course_prescriptions` WHERE `prescription_id` = :id");
+            $chk->execute(['id' => $prescriptionId]);
+            if ((int)$chk->fetchColumn() === 0) {
+                $coursesStmt = $this->pdo->query("SELECT `course_code` FROM `course`");
+                if ($coursesStmt) {
+                    $allCourses = $coursesStmt->fetchAll(PDO::FETCH_COLUMN);
+                    $ins = $this->pdo->prepare("INSERT IGNORE INTO `dpad_course_prescriptions` (`prescription_id`, `course_code`, `assigned_by`) VALUES (:pid, :ccode, 'AutoAssign')");
+                    foreach ($allCourses as $cCode) {
+                        if (!empty($cCode)) {
+                            $ins->execute(['pid' => $prescriptionId, 'ccode' => $cCode]);
+                        }
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            // Log or ignore silently to not block prescription saving
+        }
     }
 }
 

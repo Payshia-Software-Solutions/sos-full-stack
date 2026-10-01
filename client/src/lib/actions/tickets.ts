@@ -236,6 +236,44 @@ export const sendTicketCreatedSms = async (payload: {
     return response.json();
 };
 
+export const sendTicketResolvedSms = async (payload: {
+    mobile: string;
+    studentName?: string;
+    studentNumber: string;
+    ticketId: string | number;
+    subject: string;
+}): Promise<any> => {
+    let { mobile, studentName, studentNumber, ticketId, subject } = payload;
+    let formattedMobile = mobile.replace(/[^0-9]/g, "");
+    if (formattedMobile.startsWith("94") && formattedMobile.length === 11) {
+        formattedMobile = "0" + formattedMobile.slice(2);
+    } else if (formattedMobile.length === 9 && !formattedMobile.startsWith("0")) {
+        formattedMobile = "0" + formattedMobile;
+    }
+
+    const namePart = studentName ? `Dear ${studentName},\n\n` : `Dear Student,\n\n`;
+    const message = `${namePart}Your support inquiry regarding "${subject}" has been marked as RESOLVED.\nTicket No: #${ticketId}\nIndex: ${studentNumber}\n\nThank you for reaching out to Ceylon Pharma College!\nwww.pharmacollege.lk`;
+
+    const response = await fetch(`${QA_API_BASE_URL}/send-sms`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            mobile: formattedMobile,
+            senderId: 'Pharma C.',
+            message
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: `SMS sending failed with status ${response.status}` }));
+        throw new Error(errorData.message || 'SMS sending failed');
+    }
+
+    return response.json();
+};
+
 export const createTicket = async (ticketFormData: FormData): Promise<Ticket> => {
     const response = await apiFetch<{ message: string, ticket: any }>('/tickets', {
         method: 'POST',

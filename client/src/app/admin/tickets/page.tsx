@@ -33,7 +33,7 @@ function TicketsPageContent() {
   }, [tickets]);
 
   return (
-    <div className="p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6 pb-28 sm:pb-16 w-full text-foreground bg-background min-h-screen">
+    <div className="p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6 pb-32 sm:pb-16 w-full text-foreground bg-background min-h-screen">
       {/* Unified Switcher Header */}
       <StudentDeskHeader activeTab="tickets" onTicketCreated={() => refetch()} />
 
@@ -46,7 +46,7 @@ function TicketsPageContent() {
             </div>
             <div className="min-w-0">
               <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">Total Tickets</p>
-              <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">{isLoading ? "..." : kpis.total}</h3>
+              <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">{isLoading ? "..." : kpis.total}</h3>
             </div>
           </CardContent>
         </Card>
@@ -58,7 +58,7 @@ function TicketsPageContent() {
             </div>
             <div className="min-w-0">
               <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">Active / In Prog</p>
-              <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">{isLoading ? "..." : kpis.openCount}</h3>
+              <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">{isLoading ? "..." : kpis.openCount}</h3>
             </div>
           </CardContent>
         </Card>
@@ -70,7 +70,7 @@ function TicketsPageContent() {
             </div>
             <div className="min-w-0">
               <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">Resolved</p>
-              <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">{isLoading ? "..." : kpis.resolvedCount}</h3>
+              <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">{isLoading ? "..." : kpis.resolvedCount}</h3>
             </div>
           </CardContent>
         </Card>
@@ -82,7 +82,7 @@ function TicketsPageContent() {
             </div>
             <div className="min-w-0">
               <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">Urgent / High</p>
-              <h3 className="text-base sm:text-xl font-bold text-white mt-0.5 leading-none">{isLoading ? "..." : kpis.urgentCount}</h3>
+              <h3 className="text-base sm:text-xl font-bold text-foreground mt-0.5 leading-none">{isLoading ? "..." : kpis.urgentCount}</h3>
             </div>
           </CardContent>
         </Card>
@@ -91,7 +91,7 @@ function TicketsPageContent() {
       {isLoading ? (
         <div className="space-y-3 pt-2">
           {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-xl bg-slate-900/40" />
+            <Skeleton key={i} className="h-16 w-full rounded-xl bg-muted" />
           ))}
         </div>
       ) : isError ? (
@@ -108,6 +108,9 @@ function TicketsPageContent() {
           />
         </div>
       )}
+
+      {/* Bottom spacer to prevent touching window edge */}
+      <div className="h-8 sm:h-12 w-full shrink-0" aria-hidden="true" />
     </div>
   );
 }

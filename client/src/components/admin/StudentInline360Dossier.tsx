@@ -86,16 +86,16 @@ export function StudentInline360Dossier({
     const activeBalance = balanceData || fullInfo?.studentBalance;
 
     return (
-        <div className="border border-emerald-500/25 bg-slate-950/80 rounded-xl overflow-hidden shadow-sm transition-all duration-200">
+        <div className="border border-emerald-500/25 bg-card rounded-xl overflow-hidden shadow-sm transition-all duration-200">
             {/* Dossier Bar Header with collapse toggle */}
-            <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-900/90 border-b border-slate-800/80 flex items-center justify-between gap-2">
+            <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-muted/40 border-b border-border flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                     <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                    <span className="text-xs sm:text-sm font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
+                    <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight flex items-center gap-1.5 truncate">
                         <Sparkles className="h-4 w-4 text-primary shrink-0" />
                         <span className="truncate">Student 360° Dossier</span>
                     </span>
-                    <Badge variant="outline" className="hidden sm:inline-flex text-[10px] border-emerald-500/30 text-emerald-400 bg-emerald-500/10 py-0.5 px-2">
+                    <Badge variant="outline" className="hidden sm:inline-flex text-[10px] border-emerald-500/30 text-emerald-500 dark:text-emerald-400 bg-emerald-500/10 py-0.5 px-2">
                         Live 360°
                     </Badge>
                 </div>
@@ -111,7 +111,7 @@ export function StudentInline360Dossier({
                                 if (isDeepTabActive) refetchFullInfo();
                             }}
                             disabled={isLoadingBalance || isRefetchingFullInfo}
-                            className="h-7 px-2 text-xs text-slate-300 hover:text-white"
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                         >
                             <RefreshCw className={cn("h-3.5 w-3.5 mr-1", (isLoadingBalance || isRefetchingFullInfo) && "animate-spin")} />
                             <span className="hidden xs:inline">Refresh</span>
@@ -123,7 +123,7 @@ export function StudentInline360Dossier({
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="h-7 px-2 text-xs text-slate-300 hover:text-white"
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                     >
                         {isExpanded ? (
                             <span className="flex items-center gap-1"><ChevronUp className="h-4 w-4" /> <span className="hidden xs:inline">Collapse</span></span>
@@ -139,20 +139,20 @@ export function StudentInline360Dossier({
                 <div className="p-2.5 sm:p-3.5 space-y-3 animate-in fade-in duration-150">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                         {/* Tab Headers */}
-                        <TabsList className="bg-slate-900/90 p-1 border border-slate-800/70 w-full justify-start overflow-x-auto no-scrollbar sm:custom-scrollbar h-auto gap-1">
-                            <TabsTrigger value="finance" className="text-xs font-semibold gap-1.5 py-1.5 px-2.5 sm:px-3 data-[state=active]:bg-primary data-[state=active]:text-white shrink-0">
+                        <TabsList className="bg-muted/60 p-1 border border-border w-full justify-start overflow-x-auto no-scrollbar sm:custom-scrollbar h-auto gap-1">
+                            <TabsTrigger value="finance" className="text-xs font-semibold gap-1.5 py-1.5 px-2.5 sm:px-3 data-[state=active]:bg-background data-[state=active]:text-foreground shrink-0">
                                 <CreditCard className="h-3.5 w-3.5" /> Finance & Slips
                             </TabsTrigger>
-                            <TabsTrigger value="courses" className="text-xs font-semibold gap-1.5 py-1.5 px-2.5 sm:px-3 data-[state=active]:bg-primary data-[state=active]:text-white shrink-0">
+                            <TabsTrigger value="courses" className="text-xs font-semibold gap-1.5 py-1.5 px-2.5 sm:px-3 data-[state=active]:bg-background data-[state=active]:text-foreground shrink-0">
                                 <BookOpen className="h-3.5 w-3.5" /> Courses ({enrollments.length})
                             </TabsTrigger>
-                            <TabsTrigger value="games" className="text-xs font-semibold gap-1.5 py-1.5 px-2.5 sm:px-3 data-[state=active]:bg-primary data-[state=active]:text-white shrink-0">
+                            <TabsTrigger value="games" className="text-xs font-semibold gap-1.5 py-1.5 px-2.5 sm:px-3 data-[state=active]:bg-background data-[state=active]:text-foreground shrink-0">
                                 <Gamepad2 className="h-3.5 w-3.5" /> Game Marks
                             </TabsTrigger>
-                            <TabsTrigger value="deliveries" className="text-xs font-semibold gap-1.5 py-1.5 px-2.5 sm:px-3 data-[state=active]:bg-primary data-[state=active]:text-white shrink-0">
+                            <TabsTrigger value="deliveries" className="text-xs font-semibold gap-1.5 py-1.5 px-2.5 sm:px-3 data-[state=active]:bg-background data-[state=active]:text-foreground shrink-0">
                                 <Truck className="h-3.5 w-3.5" /> Study Packs
                             </TabsTrigger>
-                            <TabsTrigger value="certs" className="text-xs font-semibold gap-1.5 py-1.5 px-2.5 sm:px-3 data-[state=active]:bg-primary data-[state=active]:text-white shrink-0">
+                            <TabsTrigger value="certs" className="text-xs font-semibold gap-1.5 py-1.5 px-2.5 sm:px-3 data-[state=active]:bg-background data-[state=active]:text-foreground shrink-0">
                                 <Award className="h-3.5 w-3.5" /> Certs & Conv.
                             </TabsTrigger>
                         </TabsList>
@@ -163,23 +163,23 @@ export function StudentInline360Dossier({
                                 <div className="space-y-3">
                                     {/* 3 Summary Cards */}
                                     <div className="grid grid-cols-3 gap-2 text-center">
-                                        <div className="p-2.5 sm:p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                                            <p className="text-xs font-semibold text-slate-400">Total Fee</p>
-                                            <p className="font-bold text-slate-100 mt-1 text-xs sm:text-base">
+                                        <div className="p-2.5 sm:p-3 rounded-xl bg-muted/40 border border-border">
+                                            <p className="text-xs font-semibold text-muted-foreground">Total Fee</p>
+                                            <p className="font-bold text-foreground mt-1 text-xs sm:text-base">
                                                 LKR {(activeBalance.totalPaymentAmount || 0).toLocaleString()}
                                             </p>
                                         </div>
-                                        <div className="p-2.5 sm:p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                                            <p className="text-xs font-semibold text-slate-400">Total Paid</p>
-                                            <p className="font-bold text-emerald-400 mt-1 text-xs sm:text-base">
+                                        <div className="p-2.5 sm:p-3 rounded-xl bg-muted/40 border border-border">
+                                            <p className="text-xs font-semibold text-muted-foreground">Total Paid</p>
+                                            <p className="font-bold text-emerald-500 dark:text-emerald-400 mt-1 text-xs sm:text-base">
                                                 LKR {(activeBalance.TotalStudentPaymentRecords || 0).toLocaleString()}
                                             </p>
                                         </div>
-                                        <div className="p-2.5 sm:p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                                            <p className="text-xs font-semibold text-slate-400">Due Balance</p>
+                                        <div className="p-2.5 sm:p-3 rounded-xl bg-muted/40 border border-border">
+                                            <p className="text-xs font-semibold text-muted-foreground">Due Balance</p>
                                             <p className={cn(
                                                 "font-bold mt-1 text-xs sm:text-base",
-                                                (activeBalance.studentBalance || 0) > 0 ? "text-rose-400" : "text-emerald-400"
+                                                (activeBalance.studentBalance || 0) > 0 ? "text-rose-500 dark:text-rose-400" : "text-emerald-500 dark:text-emerald-400"
                                             )}>
                                                 LKR {(activeBalance.studentBalance || 0).toLocaleString()}
                                             </p>
@@ -189,25 +189,25 @@ export function StudentInline360Dossier({
                                     {/* Pending Payment Slips */}
                                     {pendingSlips.length > 0 && (
                                         <div className="space-y-1.5 pt-1">
-                                            <h6 className="text-[11px] font-bold text-amber-400 flex items-center gap-1">
+                                            <h6 className="text-[11px] font-bold text-amber-500 dark:text-amber-400 flex items-center gap-1">
                                                 <Clock className="h-3 w-3" /> Pending Payment Slips ({pendingSlips.length})
                                             </h6>
                                             <div className="space-y-1.5 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
                                                 {pendingSlips.map((slip: any, idx: number) => (
                                                     <div key={slip.id || idx} className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-between text-[11px]">
                                                         <div>
-                                                            <p className="font-semibold text-amber-300">
+                                                            <p className="font-semibold text-amber-500 dark:text-amber-300">
                                                                 Ref: {slip.payment_reference || slip.unique_number || "Pending"}
                                                             </p>
-                                                            <p className="text-[10px] text-slate-400">
+                                                            <p className="text-[10px] text-muted-foreground">
                                                                 {slip.bank === "1" ? "BOC" : slip.bank || "Online"} • {new Date(slip.created_at).toLocaleDateString()}
                                                             </p>
                                                         </div>
                                                         <div className="text-right">
-                                                            <p className="font-bold text-amber-400">
+                                                            <p className="font-bold text-amber-500 dark:text-amber-400">
                                                                 LKR {parseFloat(slip.paid_amount || 0).toLocaleString()}
                                                             </p>
-                                                            <span className="text-[9px] text-amber-400">Awaiting Approval</span>
+                                                            <span className="text-[9px] text-amber-500 dark:text-amber-400">Awaiting Approval</span>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -218,21 +218,21 @@ export function StudentInline360Dossier({
                                     {/* Approved Official Receipts */}
                                     {activeBalance.paymentRecords && Object.values(activeBalance.paymentRecords).length > 0 && (
                                         <div className="space-y-1.5 pt-1">
-                                            <h6 className="text-[11px] font-bold text-slate-300 flex items-center gap-1">
-                                                <CheckCircle className="h-3 w-3 text-emerald-400" /> Official Receipts
+                                            <h6 className="text-[11px] font-bold text-foreground flex items-center gap-1">
+                                                <CheckCircle className="h-3 w-3 text-emerald-500 dark:text-emerald-400" /> Official Receipts
                                             </h6>
                                             <div className="space-y-1.5 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
                                                 {Object.values(activeBalance.paymentRecords).map((rec: any) => (
-                                                    <div key={rec.id} className="p-2 rounded-lg bg-slate-900/50 border border-slate-800 flex items-center justify-between text-[11px]">
+                                                    <div key={rec.id} className="p-2 rounded-lg bg-muted/40 border border-border flex items-center justify-between text-[11px]">
                                                         <div>
-                                                            <p className="font-semibold text-slate-200">{rec.receipt_number || "Official Receipt"}</p>
-                                                            <p className="text-[10px] text-slate-400">{rec.paid_date} • {rec.payment_type}</p>
+                                                            <p className="font-semibold text-foreground">{rec.receipt_number || "Official Receipt"}</p>
+                                                            <p className="text-[10px] text-muted-foreground">{rec.paid_date} • {rec.payment_type}</p>
                                                         </div>
                                                         <div className="text-right">
-                                                            <p className="font-bold text-emerald-400">
+                                                            <p className="font-bold text-emerald-500 dark:text-emerald-400">
                                                                 LKR {parseFloat(rec.paid_amount || 0).toLocaleString()}
                                                             </p>
-                                                            <span className="text-[9px] text-emerald-500">Paid & Verified</span>
+                                                            <span className="text-[9px] text-emerald-600 dark:text-emerald-500">Paid & Verified</span>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -250,7 +250,7 @@ export function StudentInline360Dossier({
                                             size="sm"
                                             onClick={onRefreshBalance}
                                             disabled={isLoadingBalance}
-                                            className="h-7 text-xs border-slate-800"
+                                            className="h-7 text-xs border-border"
                                         >
                                             {isLoadingBalance ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <CreditCard className="h-3 w-3 mr-1" />}
                                             Load Payment Ledger
@@ -273,8 +273,8 @@ export function StudentInline360Dossier({
                                                 className={cn(
                                                     "p-2.5 rounded-lg border text-xs flex items-center justify-between transition-all cursor-pointer",
                                                     isSelected
-                                                        ? "bg-primary/15 border-primary text-white"
-                                                        : "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300"
+                                                        ? "bg-primary/15 border-primary text-foreground"
+                                                        : "bg-muted/40 border-border hover:bg-muted text-foreground"
                                                 )}
                                             >
                                                 <div>
@@ -290,7 +290,7 @@ export function StudentInline360Dossier({
                                                 </div>
                                                 <Badge variant="outline" className={cn(
                                                     "text-[10px]",
-                                                    isSelected ? "border-primary text-primary bg-primary/10" : "border-slate-800 text-slate-400"
+                                                    isSelected ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground"
                                                 )}>
                                                     {isSelected ? "Tagged to Ticket" : "Tag to Ticket"}
                                                 </Badge>
@@ -313,35 +313,35 @@ export function StudentInline360Dossier({
                             ) : deepEnrollments.length > 0 ? (
                                 <div className="space-y-2.5 max-h-[240px] overflow-y-auto custom-scrollbar pr-1">
                                     {deepEnrollments.map((c: any) => (
-                                        <div key={c.course_code} className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 space-y-2 text-xs">
-                                            <div className="font-bold text-slate-200 border-b border-slate-800/80 pb-1 flex justify-between">
+                                        <div key={c.course_code} className="p-2.5 rounded-lg bg-muted/30 border border-border space-y-2 text-xs">
+                                            <div className="font-bold text-foreground border-b border-border pb-1 flex justify-between">
                                                 <span>[{c.course_code}] {c.batch_name || c.course_code}</span>
                                                 <span className="text-primary text-[11px]">Avg: {c.assignment_grades?.average_grade || "0"}%</span>
                                             </div>
                                             <div className="grid grid-cols-2 gap-2 text-[11px]">
-                                                <div className="p-1.5 rounded bg-slate-950 border border-slate-800/80 flex justify-between items-center">
+                                                <div className="p-1.5 rounded bg-card border border-border flex justify-between items-center">
                                                     <span className="text-muted-foreground flex items-center gap-1">
                                                         <Heart className="h-3 w-3 text-rose-500" /> Ceylon Pharm.
                                                     </span>
-                                                    <strong className="text-white">{c.ceylon_pharmacy?.recoveredCount || 0} pts</strong>
+                                                    <strong className="text-foreground">{c.ceylon_pharmacy?.recoveredCount || 0} pts</strong>
                                                 </div>
-                                                <div className="p-1.5 rounded bg-slate-950 border border-slate-800/80 flex justify-between items-center">
+                                                <div className="p-1.5 rounded bg-card border border-border flex justify-between items-center">
                                                     <span className="text-muted-foreground flex items-center gap-1">
                                                         <Target className="h-3 w-3 text-purple-400" /> Pharma Hunter
                                                     </span>
-                                                    <strong className="text-white">{c.pharma_hunter?.ProgressValue || 0}%</strong>
+                                                    <strong className="text-foreground">{c.pharma_hunter?.ProgressValue || 0}%</strong>
                                                 </div>
-                                                <div className="p-1.5 rounded bg-slate-950 border border-slate-800/80 flex justify-between items-center">
+                                                <div className="p-1.5 rounded bg-card border border-border flex justify-between items-center">
                                                     <span className="text-muted-foreground flex items-center gap-1">
                                                         <Target className="h-3 w-3 text-emerald-400" /> Hunter Pro
                                                     </span>
-                                                    <strong className="text-white">{c.pharma_hunter_pro?.progressValue || 0}%</strong>
+                                                    <strong className="text-foreground">{c.pharma_hunter_pro?.progressValue || 0}%</strong>
                                                 </div>
-                                                <div className="p-1.5 rounded bg-slate-950 border border-slate-800/80 flex justify-between items-center">
+                                                <div className="p-1.5 rounded bg-card border border-border flex justify-between items-center">
                                                     <span className="text-muted-foreground flex items-center gap-1">
                                                         <Gamepad2 className="h-3 w-3 text-blue-400" /> Medi Mind
                                                     </span>
-                                                    <strong className="text-white">{c.medi_mind?.progressPercentage || 0}%</strong>
+                                                    <strong className="text-foreground">{c.medi_mind?.progressPercentage || 0}%</strong>
                                                 </div>
                                             </div>
                                         </div>
@@ -362,18 +362,18 @@ export function StudentInline360Dossier({
                             ) : deepEnrollments.flatMap((c: any) => c.deliveryOrders || []).length > 0 ? (
                                 <div className="space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
                                     {deepEnrollments.flatMap((c: any) => c.deliveryOrders || []).map((order: any) => (
-                                        <div key={order.id} className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs">
+                                        <div key={order.id} className="p-2.5 rounded-lg bg-muted/40 border border-border flex items-center justify-between text-xs">
                                             <div>
-                                                <p className="font-bold text-slate-200">{order.delivery_title || "Study Pack"}</p>
+                                                <p className="font-bold text-foreground">{order.delivery_title || "Study Pack"}</p>
                                                 <p className="text-[10px] text-primary font-mono mt-0.5">
                                                     Tracking: {order.tracking_number || "Pending dispatch"}
                                                 </p>
                                             </div>
                                             <Badge className={cn(
                                                 "text-[10px] uppercase font-bold",
-                                                order.active_status === "Delivered" ? "bg-green-500/10 text-green-400 border-green-500/30" :
-                                                order.active_status === "Processing" ? "bg-blue-500/10 text-blue-400 border-blue-500/30" :
-                                                "bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
+                                                order.active_status === "Delivered" ? "bg-green-500/10 text-green-500 dark:text-green-400 border-green-500/30" :
+                                                order.active_status === "Processing" ? "bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-500/30" :
+                                                "bg-yellow-500/10 text-yellow-500 dark:text-yellow-400 border-yellow-500/30"
                                             )}>
                                                 {order.active_status || "Pending"}
                                             </Badge>
@@ -396,14 +396,14 @@ export function StudentInline360Dossier({
                                 <div className="space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
                                     {/* Convocation Bookings */}
                                     {convocationBookings.map((b: any) => (
-                                        <div key={b.id} className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs">
+                                        <div key={b.id} className="p-2.5 rounded-lg bg-muted/40 border border-border flex items-center justify-between text-xs">
                                             <div>
-                                                <p className="font-bold text-slate-200">{b.convocation_name || "Convocation Booking"}</p>
-                                                <p className="text-[10px] text-slate-400 mt-0.5">
+                                                <p className="font-bold text-foreground">{b.convocation_name || "Convocation Booking"}</p>
+                                                <p className="text-[10px] text-muted-foreground mt-0.5">
                                                     Ceremony #{b.ceremony_number || "-"} • Package: {b.package_name || "-"}
                                                 </p>
                                             </div>
-                                            <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px]">
+                                            <Badge className="bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border-emerald-500/30 text-[10px]">
                                                 {b.payment_status || "Booked"}
                                             </Badge>
                                         </div>
@@ -411,14 +411,14 @@ export function StudentInline360Dossier({
 
                                     {/* Certificate Orders */}
                                     {certificateOrders.map((o: any) => (
-                                        <div key={o.id} className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs">
+                                        <div key={o.id} className="p-2.5 rounded-lg bg-muted/40 border border-border flex items-center justify-between text-xs">
                                             <div>
-                                                <p className="font-bold text-slate-200">Cert Order #{o.order_number || o.id}</p>
-                                                <p className="text-[10px] text-slate-400 mt-0.5">
+                                                <p className="font-bold text-foreground">Cert Order #{o.order_number || o.id}</p>
+                                                <p className="text-[10px] text-muted-foreground mt-0.5">
                                                     Name: {o.name_on_certificate || "-"}
                                                 </p>
                                             </div>
-                                            <Badge className="bg-teal-500/10 text-teal-400 border-teal-500/30 text-[10px]">
+                                            <Badge className="bg-teal-500/10 text-teal-500 dark:text-teal-400 border-teal-500/30 text-[10px]">
                                                 {o.status || "Ordered"}
                                             </Badge>
                                         </div>

@@ -323,15 +323,15 @@ export default function DPadDetailPage() {
     drug_name: "",
     drug_type: "",
     drug_qty: "",
-    morning_qty: "",
-    afternoon_qty: "",
-    evening_qty: "",
-    night_qty: "",
+    morning_qty: "-",
+    afternoon_qty: "-",
+    evening_qty: "-",
+    night_qty: "-",
     meal_type: "",
     using_type: "",
-    at_a_time: "",
-    hour_qty: "",
-    additional_description: "",
+    at_a_time: "-",
+    hour_qty: "-",
+    additional_description: "-",
   });
 
   // Load Prescription details
@@ -476,22 +476,22 @@ export default function DPadDetailPage() {
         additional_description: correctSubmission.additional_description || "",
       });
     } else {
-      // Clear form except date
+      // Clear form except date and prefill patient name
       setFormState({
         date: rxDetails.pres_date || "",
-        name: "",
+        name: rxDetails.Pres_Name || "",
         drug_name: "",
         drug_type: "",
         drug_qty: "",
-        morning_qty: "",
-        afternoon_qty: "",
-        evening_qty: "",
-        night_qty: "",
+        morning_qty: "-",
+        afternoon_qty: "-",
+        evening_qty: "-",
+        night_qty: "-",
         meal_type: "",
         using_type: "",
-        at_a_time: "",
-        hour_qty: "",
-        additional_description: "",
+        at_a_time: "-",
+        hour_qty: "-",
+        additional_description: "-",
       });
     }
   };
@@ -544,12 +544,28 @@ export default function DPadDetailPage() {
     switch (activeDialogField) {
       case "name":
         title = t.patientName;
-        options = selectionData?.name || [rxDetails.Pres_Name];
+        const nameOptions = selectionData?.name ? [...selectionData.name] : [];
+        if (rxDetails?.Pres_Name && !nameOptions.some(n => n.toLowerCase() === rxDetails.Pres_Name.toLowerCase())) {
+          nameOptions.unshift(rxDetails.Pres_Name);
+        }
+        options = nameOptions;
         onSelect = (val) => setFormState({ ...formState, name: val });
         break;
       case "drug_name":
         title = t.drugName;
-        options = selectionData?.drug_name || drugs;
+        const drugOptions = selectionData?.drug_name ? [...selectionData.drug_name] : [];
+        drugs.forEach((d: string) => {
+          if (d) {
+            const clean = d.replace(/\s+(bd|tds|daily|mane|nocte|stat|8h|6h|12h|qds)$/i, '').trim();
+            if (clean && !drugOptions.some(item => item.toLowerCase() === clean.toLowerCase())) {
+              drugOptions.unshift(clean);
+            }
+            if (!drugOptions.some(item => item.toLowerCase() === d.toLowerCase())) {
+              drugOptions.unshift(d);
+            }
+          }
+        });
+        options = drugOptions;
         onSelect = (val) => setFormState({ ...formState, drug_name: val });
         break;
       case "drug_type":
@@ -560,58 +576,74 @@ export default function DPadDetailPage() {
         break;
       case "drug_qty":
         title = t.quantity;
-        options = selectionData?.drug_qty || ["5", "10", "15", "20", "30"];
+        options = selectionData?.drug_qty?.length ? selectionData.drug_qty : ["5", "10", "15", "20", "30"];
         onSelect = (val) => setFormState({ ...formState, drug_qty: val });
         break;
       case "morning_qty":
         title = t.morning;
-        options = OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
+        options = selectionData?.morning_qty?.length 
+          ? (selectionData.morning_qty.includes("-") ? selectionData.morning_qty : ["-", ...selectionData.morning_qty])
+          : OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
         fieldKey = "scheduleQty";
         onSelect = (val) => setFormState({ ...formState, morning_qty: val });
         break;
       case "afternoon_qty":
         title = t.afternoon;
-        options = OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
+        options = selectionData?.afternoon_qty?.length 
+          ? (selectionData.afternoon_qty.includes("-") ? selectionData.afternoon_qty : ["-", ...selectionData.afternoon_qty])
+          : OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
         fieldKey = "scheduleQty";
         onSelect = (val) => setFormState({ ...formState, afternoon_qty: val });
         break;
       case "evening_qty":
         title = t.evening;
-        options = OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
+        options = selectionData?.evening_qty?.length 
+          ? (selectionData.evening_qty.includes("-") ? selectionData.evening_qty : ["-", ...selectionData.evening_qty])
+          : OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
         fieldKey = "scheduleQty";
         onSelect = (val) => setFormState({ ...formState, evening_qty: val });
         break;
       case "night_qty":
         title = t.night;
-        options = OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
+        options = selectionData?.night_qty?.length 
+          ? (selectionData.night_qty.includes("-") ? selectionData.night_qty : ["-", ...selectionData.night_qty])
+          : OPTIONS_MAPPINGS.scheduleQty.map((item) => item.value);
         fieldKey = "scheduleQty";
         onSelect = (val) => setFormState({ ...formState, night_qty: val });
         break;
       case "meal_type":
         title = t.mealType;
-        options = selectionData?.meal_type || OPTIONS_MAPPINGS.mealType.map((item) => item.value);
+        options = selectionData?.meal_type?.length ? selectionData.meal_type : OPTIONS_MAPPINGS.mealType.map((item) => item.value);
         fieldKey = "mealType";
         onSelect = (val) => setFormState({ ...formState, meal_type: val });
         break;
       case "using_type":
         title = t.frequency;
-        options = selectionData?.using_type || OPTIONS_MAPPINGS.usingFrequency.map((item) => item.value);
+        options = selectionData?.using_type?.length ? selectionData.using_type : OPTIONS_MAPPINGS.usingFrequency.map((item) => item.value);
         fieldKey = "usingFrequency";
         onSelect = (val) => setFormState({ ...formState, using_type: val });
         break;
       case "at_a_time":
         title = t.atATime;
-        options = selectionData?.at_a_time || ["-", "1", "2", "1/2"];
+        options = selectionData?.at_a_time?.length 
+          ? (selectionData.at_a_time.includes("-") ? selectionData.at_a_time : ["-", ...selectionData.at_a_time])
+          : ["-", "1", "2", "1/2"];
         onSelect = (val) => setFormState({ ...formState, at_a_time: val });
         break;
       case "hour_qty":
         title = t.hourQty;
-        options = selectionData?.hour_qty || ["-", "4", "6", "8", "12"];
+        options = selectionData?.hour_qty?.length 
+          ? (selectionData.hour_qty.includes("-") ? selectionData.hour_qty : ["-", ...selectionData.hour_qty])
+          : ["-", "4", "6", "8", "12"];
         onSelect = (val) => setFormState({ ...formState, hour_qty: val });
         break;
       case "additional_description":
         title = t.additionalInstructions;
-        options = selectionData?.additional_description || ["Drink plenty of water", "Complete the full course"];
+        const addOptions = selectionData?.additional_description ? [...selectionData.additional_description] : ["Drink plenty of water", "Complete the full course"];
+        if (!addOptions.includes("-")) {
+          addOptions.unshift("-");
+        }
+        options = addOptions;
         onSelect = (val) => setFormState({ ...formState, additional_description: val });
         break;
     }
@@ -984,9 +1016,20 @@ export default function DPadDetailPage() {
                       variant="outline"
                       onClick={() => {
                         setFormState({
-                          date: rxDetails.pres_date || "", name: "", drug_name: "", drug_type: "", drug_qty: "",
-                          morning_qty: "", afternoon_qty: "", evening_qty: "", night_qty: "",
-                          meal_type: "", using_type: "", at_a_time: "", hour_qty: "", additional_description: ""
+                          date: rxDetails.pres_date || "",
+                          name: rxDetails.Pres_Name || "",
+                          drug_name: "",
+                          drug_type: "",
+                          drug_qty: "",
+                          morning_qty: "-",
+                          afternoon_qty: "-",
+                          evening_qty: "-",
+                          night_qty: "-",
+                          meal_type: "",
+                          using_type: "",
+                          at_a_time: "-",
+                          hour_qty: "-",
+                          additional_description: "-"
                         });
                         setValidationResults({ incorrectFields: [], isSubmitted: false, isCorrect: false });
                       }}

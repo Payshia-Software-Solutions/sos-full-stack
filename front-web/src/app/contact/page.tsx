@@ -15,7 +15,7 @@ const locations = [
   {
     name: 'contactHeadOffice',
     address: 'contactHeadOfficeAddress',
-    mapLink: 'https://www.google.com/maps/search/?api=1&query=World+Trade+Center+Colombo',
+    mapLink: 'https://share.google/Ro5raji5UUp5oK4nc',
   },
   {
     name: 'contactOperationsBranch',
