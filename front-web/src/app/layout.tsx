@@ -7,19 +7,20 @@ import Footer from '@/components/footer';
 import { LanguageProvider } from '@/context/language-context';
 import { ThemeProvider } from '@/components/theme-provider';
 import Preloader from '@/components/preloader';
+import MobileStickyCTA from '@/components/mobile-sticky-cta';
 
 const siteConfig = {
   name: 'Ceylon Pharma College',
-  description: 'At Ceylon Pharma College, we’re passionate about providing high-quality education in pharmacy practice. Our goal is to help you build a successful and meaningful career in healthcare. Whether you are working as or willing to become a pharmacist, pharmacy assistant, caregiver, or healthcare professional, our courses are designed just for you.',
+  description: 'Ceylon Pharma College offers ACTD-accredited and ISO 9001:2015 certified practical pharmacy education in Sri Lanka. Interactive classes, educational games, and printed study packs.',
   url: 'https://www.pharmacollege.lk',
   ogImage: 'https://content-provider.pharmacollege.lk/website/meta-seo-image.webp',
-  tagline: "Sri Lanka's Trusted Partner in Pharmaceutical Education",
+  tagline: "Practical Pharmacy Courses in Sri Lanka | Play. Learn. Grow.",
 };
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: `${siteConfig.name} - ${siteConfig.tagline}`,
+    default: `${siteConfig.name} | ${siteConfig.tagline}`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
@@ -111,6 +112,7 @@ export default function RootLayout({
             <Header />
             {children}
             <Footer />
+            <MobileStickyCTA />
             <Toaster />
           </LanguageProvider>
         </ThemeProvider>

@@ -30,12 +30,14 @@ import {
   Book,
   FileQuestion,
   Loader2,
+  MessageCircle,
 } from "lucide-react";
 
 import { useTranslation } from "@/context/language-context";
 import { useEffect, useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { translate } from "@/ai/flows/translate-flow";
+import { FALLBACK_COURSES } from "@/lib/courses-data";
 
 
 interface Course {
@@ -72,19 +74,33 @@ export default function CoursePage({ params }: { params: { slug: string } }) {
       try {
         setLoading(true);
         const response = await fetch(`${LMS_API_URL}/parent-main-course`);
-        const courses: Course[] = await response.json();
-        const currentCourse = courses.find(c => c.slug === params.slug);
-        if (currentCourse) {
-          setCourse(currentCourse);
-        } else {
-          notFound();
+        if (response.ok) {
+          const courses: Course[] = await response.json();
+          const currentCourse = courses.find(c => c.slug === params.slug);
+          if (currentCourse) {
+            setCourse(currentCourse);
+            return;
+          }
         }
       } catch (error) {
-        console.error("Failed to fetch course:", error);
-        notFound();
-      } finally {
-        setLoading(false);
+        console.warn("Could not fetch remote course, using fallback:", error);
       }
+
+      // Check fallback courses
+      const fallback = FALLBACK_COURSES.find(c => c.slug === params.slug);
+      if (fallback) {
+        setCourse({
+          ...fallback,
+          id: String(fallback.id),
+          course_fee: String(fallback.course_fee),
+          skill_level: fallback.skill_level || "Beginner",
+          assessments: fallback.assessments || "3 Online Exams",
+          quizzes: fallback.quizzes || "Interactive Games",
+        });
+      } else {
+        notFound();
+      }
+      setLoading(false);
     }
     fetchCourseData();
   }, [params.slug]);
@@ -233,6 +249,17 @@ export default function CoursePage({ params }: { params: { slug: string } }) {
                                 <Button asChild className="w-full mt-6 font-bold text-lg" size="lg">
                                   <a href="https://sos.pharmacollege.lk/register" target="_blank" rel="noopener noreferrer">{t('enrollNow')}</a>
                                 </Button>
+
+                                <a 
+                                  href={`https://wa.me/94715884884?text=${encodeURIComponent(`Hi Ceylon Pharma College, I'd like to get more details and batch schedules for: ${course.course_name}`)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="w-full mt-3 font-semibold text-sm flex items-center justify-center gap-2 py-2.5 px-4 rounded-md border border-emerald-600 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all text-center"
+                                >
+                                  <MessageCircle className="w-4 h-4 shrink-0" />
+                                  <span>Inquire via WhatsApp</span>
+                                </a>
+
                                 <p className="text-xs text-center text-muted-foreground mt-2">{t('enrollNowSubtext')}</p>
                             </CardContent>
                         </Card>

@@ -391,12 +391,9 @@ if (substr($uri, -1) !== '/') {
     $uri .= '/';
 }
 
-// Determine if the application is running on localhost
-if ($_SERVER['HTTP_HOST'] === 'localhost') {
-    // Adjust URI if needed (only on localhost)
-    $uri = str_replace('sos-full-stack/server', '', $uri);
-} else {
-    // Adjust URI if needed (if using a subdirectory)
+// Adjust URI for local subfolder if present (e.g. localhost, 127.0.0.1, or local IP)
+$uri = str_replace(['/sos-full-stack/server', 'sos-full-stack/server'], '', $uri);
+if (substr($uri, 0, 1) !== '/') {
     $uri = '/' . $uri;
 }
 
