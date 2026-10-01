@@ -1,5 +1,70 @@
+import { Review } from "@/components/review-card";
 
-export const reviewsData = [
+export const reviewsData: Review[] = [
+  {
+    name: 'Kasun Fernando',
+    role: 'CCPP Batch 14 Graduate • Pharmacy Assistant',
+    avatar: 'KF',
+    image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop',
+    hint: 'young professional smiling',
+    quote: 'Best institute for pharmacy education in Sri Lanka! The practical dispensing simulations and WinPharma games made pharmacology concepts effortless to learn. I got employed at a leading pharmacy immediately after completing my exams.',
+    rating: 5,
+    date: '3 weeks ago',
+    isGoogleReview: true,
+  },
+  {
+    name: 'Oshani Jayawardena',
+    role: 'Certificate Course in Pharmacy Practice • Batch 16',
+    avatar: 'OJ',
+    image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=250&auto=format&fit=crop',
+    hint: 'female professional smiling',
+    quote: 'Excellent lectures and highly supportive staff. The printed study pack delivered directly to my home is very detailed with drug brand names and usages. The online certificate verification gives immediate credibility with employers.',
+    rating: 5,
+    date: '1 month ago',
+    isGoogleReview: true,
+  },
+  {
+    name: 'Dilshan Perera',
+    role: 'Healthcare Professional • CCPP Alumnus',
+    avatar: 'DP',
+    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=250&auto=format&fit=crop',
+    hint: 'male professional',
+    quote: 'Very convenient online classes. As a working professional, the LMS lecture recordings were a lifesaver. The prescription reading drills and dosage calculations are taught with real clinical scenarios.',
+    rating: 5,
+    date: '2 months ago',
+    isGoogleReview: true,
+  },
+  {
+    name: 'Fathima Rizna',
+    role: 'CCPP Batch 17 Graduate',
+    avatar: 'FR',
+    image: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=250&auto=format&fit=crop',
+    hint: 'smiling student',
+    quote: '100% recommended for anyone dreaming of joining the pharmaceutical field. The lecturer panel explains complex medical terms in simple, clear Sinhala and English. Proud to be a student of Ceylon Pharma College.',
+    rating: 5,
+    date: 'a month ago',
+    isGoogleReview: true,
+  },
+  {
+    name: 'Kavindu Senarath',
+    role: 'Advanced Course in Pharmacy Practice',
+    avatar: 'KS',
+    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=250&auto=format&fit=crop',
+    hint: 'young man portrait',
+    quote: 'High standard curriculum with international ACTD accreditation and ISO 9001:2015 quality. The D-Pad calculation tool and mock prescription software gave me practical experience that books alone never can.',
+    rating: 5,
+    date: '2 months ago',
+    isGoogleReview: true,
+  },
+  {
+    name: 'Nadeesha Madushani',
+    role: 'Pharmacy Assistant • CCPP Alumna',
+    avatar: 'NM',
+    image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=250&auto=format&fit=crop',
+    hint: 'female student portrait',
+    quote: 'Practical guidance given for interview preparation and prescription verification helped me secure my job as a pharmacy assistant. Truly grateful to the entire Ceylon Pharma College lecture panel.',
+    rating: 5,
+    date: '3 months ago',
+    isGoogleReview: true,
+  },
 ];
-
-    

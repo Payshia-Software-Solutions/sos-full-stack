@@ -24,6 +24,10 @@ $senderId = $_ENV['SMS_SENDER_ID'];
 $templatePath = __DIR__ . '/../templates/welcome_sms_template.txt';
 $convocationTemplatePath = __DIR__ . '/../templates/convocation-payment-message.txt';
 
+$GLOBALS['authToken'] = $authToken;
+$GLOBALS['senderId'] = $senderId;
+$GLOBALS['templatePath'] = $templatePath;
+
 // Include route files
 $assignmentRoutes = require './routes/Assignment/AssignmentRoutes.php';
 $submissionRoutes = require './routes/Assignment/submissionRoutes.php';
@@ -33,6 +37,7 @@ $courseAssignmentSubmissionRoutes = require './routes/OtherRoutes/courseAssignme
 $reportRoutes = require './routes/OtherRoutes/reportRoutes.php';
 $studentCourseRoutes = require './routes/OtherRoutes/studentCourseRoutes.php';
 $userRoutes = require './routes/UserRoutes/userRoutes.php';
+$passwordResetRoutes = require './routes/UserRoutes/passwordResetRoutes.php';
 $userFullDetailsRoutes = require './routes/UserRoutes/userFullDetailsRoutes.php';
 $companyRoutes = require './routes/OtherRoutes/companyRoutes.php';
 $hpSaveAnswerRoutes = require './routes/HunterPro/hpSaveAnswerRoutes.php';
@@ -170,6 +175,7 @@ $studentDocumentVerificationRoutes = require './routes/Student/studentDocumentVe
 // Combine all routes
 $routes = array_merge(
     $userRoutes,
+    $passwordResetRoutes,
     $careInstructionPreRoutes,
     $transactionPaymentRoutes,
     $assignmentRoutes,
@@ -391,12 +397,9 @@ if (substr($uri, -1) !== '/') {
     $uri .= '/';
 }
 
-// Determine if the application is running on localhost
-if ($_SERVER['HTTP_HOST'] === 'localhost') {
-    // Adjust URI if needed (only on localhost)
-    $uri = str_replace('sos-full-stack/server', '', $uri);
-} else {
-    // Adjust URI if needed (if using a subdirectory)
+// Adjust URI for local subfolder if present (e.g. localhost, 127.0.0.1, or local IP)
+$uri = str_replace(['/sos-full-stack/server', 'sos-full-stack/server'], '', $uri);
+if (substr($uri, 0, 1) !== '/') {
     $uri = '/' . $uri;
 }
 

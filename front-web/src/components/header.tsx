@@ -24,12 +24,10 @@ const TopBar = () => {
     const { t } = useTranslation();
     const topNavLinks = [
       { key: 'alumni', href: '/alumni' },
-      { key: 'qualityAssurance', href: '#' },
-      { key: 'innovation', href: '#' },
-      { key: 'international', href: '#' },
-      { key: 'resources', href: '#' },
+      { key: 'qualityAssurance', href: '/#accreditations' },
       { key: 'csrProjects', href: '/csr' },
-      { key: 'library', href: '#' },
+      { key: 'reviews', href: '/reviews' },
+      { key: 'blogs', href: '/blogs' },
     ];
 
     return (

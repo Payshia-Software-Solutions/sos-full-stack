@@ -114,11 +114,9 @@ export default function DpadAnswerKeySetupPage() {
       setInstructionSearch(existingAnswerKey.additional_description || "");
     } else {
       // Set sensible defaults based on prescription details
-      // Attempt to extract drug name from prescription line (e.g. "Paracetamol 500mg tds" -> "Paracetamol")
       let suggestedDrugName = "";
       if (drugs[selectedCoverIndex]) {
-        const parts = drugs[selectedCoverIndex].split(" ");
-        suggestedDrugName = parts[0]; // First word is typically the drug name
+        suggestedDrugName = drugs[selectedCoverIndex].replace(/\s+(bd|tds|daily|mane|nocte|stat|8h|6h|12h|qds)$/i, '').trim();
       }
 
       setFormState({
@@ -135,7 +133,7 @@ export default function DpadAnswerKeySetupPage() {
         using_type: "Daily",
         at_a_time: "-",
         hour_qty: "-",
-        additional_description: "",
+        additional_description: "-",
       });
       setDrugSearch(suggestedDrugName);
       setInstructionSearch("");
@@ -171,7 +169,14 @@ export default function DpadAnswerKeySetupPage() {
     const payload = {
       prescriptionID: prescriptionId,
       coverID: currentCoverId,
-      ...formState
+      ...formState,
+      morning_qty: formState.morning_qty || "-",
+      afternoon_qty: formState.afternoon_qty || "-",
+      evening_qty: formState.evening_qty || "-",
+      night_qty: formState.night_qty || "-",
+      at_a_time: formState.at_a_time || "-",
+      hour_qty: formState.hour_qty || "-",
+      additional_description: formState.additional_description || "-",
     };
 
     saveMutation.mutate(payload);
