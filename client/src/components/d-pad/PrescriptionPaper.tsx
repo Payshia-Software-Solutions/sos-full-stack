@@ -19,6 +19,35 @@ interface PrescriptionPaperProps {
   className?: string;
 }
 
+export function getPrescriptionDisplayDrugs(prescription?: {
+  drugs_list?: string;
+  drugs_written_list?: string;
+} | null): string[] {
+  if (!prescription || !prescription.drugs_list) return [];
+
+  const drugs = prescription.drugs_list 
+    ? prescription.drugs_list.split(',').map(d => d.trim()).filter(Boolean)
+    : [];
+
+  const writtenDrugs = prescription.drugs_written_list
+    ? prescription.drugs_written_list.split(',').map(d => d.trim())
+    : [];
+
+  const usages = ["bd", "tds", "daily", "mane", "nocte"];
+
+  return drugs.map((drug, i) => {
+    const parts = drug.trim().split(" ");
+    const lastPart = parts[parts.length - 1]?.toLowerCase();
+    const hasUsage = usages.includes(lastPart);
+    const usage = hasUsage ? lastPart : "";
+    
+    const baseName = hasUsage ? parts.slice(0, -1).join(" ") : drug;
+    const writtenName = (writtenDrugs[i] && writtenDrugs[i].trim()) || baseName;
+    
+    return usage ? `${writtenName} ${usage}` : writtenName;
+  });
+}
+
 export function PrescriptionPaper({ 
   prescription, 
   labels = { patientName: "Patient Name", date: "Date", age: "Age" },
@@ -27,10 +56,6 @@ export function PrescriptionPaper({
   
   const drugs = prescription.drugs_list 
     ? prescription.drugs_list.split(',').map(d => d.trim()).filter(Boolean)
-    : [];
-
-  const writtenDrugs = prescription.drugs_written_list
-    ? prescription.drugs_written_list.split(',').map(d => d.trim())
     : [];
 
   const usages = ["bd", "tds", "daily", "mane", "nocte"];
@@ -44,18 +69,7 @@ export function PrescriptionPaper({
     return fullDrug;
   };
 
-  const displayDrugs = drugs.map((drug, i) => {
-    const parts = drug.trim().split(" ");
-    const lastPart = parts[parts.length - 1]?.toLowerCase();
-    const hasUsage = usages.includes(lastPart);
-    const usage = hasUsage ? lastPart : "";
-    
-    const baseName = hasUsage ? parts.slice(0, -1).join(" ") : drug;
-    const writtenName = writtenDrugs[i] || baseName;
-    
-    return usage ? `${writtenName} ${usage}` : writtenName;
-  });
-
+  const displayDrugs = getPrescriptionDisplayDrugs(prescription);
   const baseDrugNames = drugs.map(getBaseDrugName);
 
   return (

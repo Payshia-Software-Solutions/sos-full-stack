@@ -15,12 +15,14 @@ import {
   getDpadSubmittedAnswers 
 } from "@/lib/actions/games";
 import Link from "next/link";
+import { getPrescriptionDisplayDrugs } from "@/components/d-pad/PrescriptionPaper";
 import { ArrowRight, Pill, Trophy, CheckCircle, Activity, Award, BookOpen, Search } from "lucide-react";
 
 export default function DPadIndexPage() {
   const { user } = useAuth();
   const username = user?.username || "";
   const [courseCode, setCourseCode] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Read selected course from localStorage (set after login/course-select)
   useEffect(() => {
@@ -71,7 +73,7 @@ export default function DPadIndexPage() {
 
   // Calculate status for each prescription card
   const rxCards = prescriptions.map((rx: any) => {
-    const drugs = rx.drugs_list ? rx.drugs_list.split(", ") : [];
+    const drugs = getPrescriptionDisplayDrugs(rx);
     const totalEnvelopes = drugs.length;
     
     // Count how many correct submissions the user has for this prescription
@@ -98,8 +100,6 @@ export default function DPadIndexPage() {
     };
   });
 
-  const [searchQuery, setSearchQuery] = useState("");
-
   const filteredRxCards = rxCards.filter((rx: any, index: number) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
@@ -113,7 +113,9 @@ export default function DPadIndexPage() {
       (rx.prescription_name && rx.prescription_name.toLowerCase().includes(q)) ||
       (rx.Pres_Name && rx.Pres_Name.toLowerCase().includes(q)) ||
       (rx.doctor_name && rx.doctor_name.toLowerCase().includes(q)) ||
-      (rx.drugs_list && rx.drugs_list.toLowerCase().includes(q))
+      (rx.drugs_list && rx.drugs_list.toLowerCase().includes(q)) ||
+      (rx.drugs_written_list && rx.drugs_written_list.toLowerCase().includes(q)) ||
+      rx.drugs.some((d: string) => d.toLowerCase().includes(q))
     );
   });
 
