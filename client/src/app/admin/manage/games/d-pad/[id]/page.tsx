@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
+import { PrescriptionPaper } from "@/components/d-pad/PrescriptionPaper";
 import { 
   getDpadPrescriptionDetails, 
   getDpadAnswerKey, 
@@ -81,7 +82,9 @@ export default function DpadAnswerKeySetupPage() {
   });
 
   // Parse drugs in prescription
-  const drugs = rxDetails?.drugs_list ? rxDetails.drugs_list.split(", ") : [];
+  const drugs = rxDetails?.drugs_list 
+    ? rxDetails.drugs_list.split(',').map((d: string) => d.trim()).filter(Boolean) 
+    : [];
   const currentCoverId = `Cover${selectedCoverIndex + 1}`;
 
   // Fetch existing answer key for selected cover
@@ -281,50 +284,21 @@ export default function DpadAnswerKeySetupPage() {
             </CardContent>
           </Card>
 
-          {/* Rx Digital Preview */}
-          <Card className="shadow-lg border border-slate-800 overflow-hidden bg-slate-900/40">
-            <div className="bg-slate-950 text-slate-400 py-2.5 px-4 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 border-b border-slate-850">
-              <Clipboard className="w-3.5 h-3.5 text-emerald-400" />
-              Prescription Sheet Preview
-            </div>
-            <CardContent className="p-6 bg-slate-900/50">
-              <div className="space-y-4 font-sans text-slate-200">
-                <div className="text-center border-b border-slate-800 pb-3">
-                  <h3 className="text-lg font-bold text-slate-100">
-                    {rxDetails.doctor_name || "Dr. Sunil Rathnayaka"}
-                  </h3>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-wider">
-                    {rxDetails.Pres_Method || "Registered Medical Practitioner"}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs border-b border-slate-800 pb-3">
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase">Patient Name</span>
-                    <span className="font-bold text-slate-200">{rxDetails.Pres_Name}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-slate-500 block text-[10px] uppercase">Date</span>
-                    <span className="font-mono text-slate-200">{rxDetails.pres_date}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase">Age</span>
-                    <span className="font-bold text-slate-200">{rxDetails.Pres_Age} Years</span>
-                  </div>
-                </div>
-
-                <div className="relative pl-12 min-h-[120px] pt-1">
-                  <span className="absolute left-0 top-0 text-3xl font-serif text-slate-700/35 select-none font-bold italic">Rx</span>
-                  <div className="space-y-3 font-mono text-xs text-slate-200">
-                    {drugs.map((drug: string, i: number) => (
-                      <div key={i} className={`pb-1.5 ${selectedCoverIndex === i ? "text-emerald-400 font-bold border-l-2 border-emerald-500 pl-2" : "text-slate-300"}`}>
-                        <p>{drug}</p>
-                        <p className="text-[10px] text-slate-500 italic">Cover {i + 1}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+          {/* Digital Prescription View (Identical to Student View) */}
+          <Card className="shadow-lg border-2 border-slate-800 overflow-hidden bg-slate-900/40">
+            <div className="bg-slate-950 text-slate-300 py-3 px-4 text-xs font-semibold uppercase tracking-wider flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <Clipboard className="w-4 h-4 text-emerald-400" />
+                Prescription Form
               </div>
+              <span className="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-0.5 rounded shadow-sm">
+                {prescriptionId}
+              </span>
+            </div>
+            <CardContent className="p-0">
+              <PrescriptionPaper 
+                prescription={rxDetails} 
+              />
             </CardContent>
           </Card>
         </div>

@@ -126,7 +126,7 @@ export function PrescriptionPaper({
 
       {/* Availability Card */}
       {baseDrugNames.length > 0 && (
-        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-5 shadow-sm">
+        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-5 shadow-sm mx-4 mb-4">
           <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             Availability

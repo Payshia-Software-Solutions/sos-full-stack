@@ -66,7 +66,7 @@ export default function Hero() {
           </Button>
 
           <Button asChild size="lg" variant="outline" className="font-bold px-6 bg-transparent text-white border-white/60 hover:bg-white hover:text-black transition-all hover:scale-105">
-            <a href="https://lms.pharmacollege.lk" target="_blank" rel="noopener noreferrer">
+            <a href="https://sos.pharmacollege.lk/" target="_blank" rel="noopener noreferrer">
               {t('heroStudentLogin')}
             </a>
           </Button>

@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { PrescriptionPaper } from "@/components/d-pad/PrescriptionPaper";
 import { 
   ArrowLeft, Plus, Edit, Settings, FileText, 
-  PlusCircle, Calendar, User, Clock, BookOpen, Check, Loader2
+  PlusCircle, Calendar, User, Clock, BookOpen, Check, Loader2, Search
 } from "lucide-react";
 
 interface Prescription {
@@ -67,11 +67,31 @@ export default function DpadAdminManagementPage() {
   const [addedDrugs, setAddedDrugs] = useState<AddedDrug[]>([]);
   const [editingDrugIndex, setEditingDrugIndex] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch all prescriptions
   const { data: prescriptions = [], isLoading, refetch } = useQuery({
     queryKey: ["dpadAllPrescriptions"],
     queryFn: getDpadAllPrescriptions,
+  });
+
+  // Filtered prescriptions based on status tabs and search query
+  const filteredPrescriptions = prescriptions.filter((pres: Prescription) => {
+    const matchesStatus = filterStatus === "All" || pres.prescription_status === filterStatus;
+    if (!matchesStatus) return false;
+    if (!searchQuery.trim()) return true;
+
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      (pres.prescription_id && pres.prescription_id.toLowerCase().includes(q)) ||
+      (pres.id && String(pres.id).toLowerCase().includes(q)) ||
+      (pres.Pres_Name && pres.Pres_Name.toLowerCase().includes(q)) ||
+      (pres.prescription_name && pres.prescription_name.toLowerCase().includes(q)) ||
+      (pres.doctor_name && pres.doctor_name.toLowerCase().includes(q)) ||
+      (pres.drugs_list && pres.drugs_list.toLowerCase().includes(q)) ||
+      (pres.drugs_written_list && pres.drugs_written_list.toLowerCase().includes(q)) ||
+      (pres.notes && pres.notes.toLowerCase().includes(q))
+    );
   });
 
   // Fetch master POS products for the drug selector dropdown
@@ -295,73 +315,113 @@ export default function DpadAdminManagementPage() {
         </Card>
       ) : (
         <>
-          <Tabs defaultValue="All" className="w-full mb-6" onValueChange={setFilterStatus}>
-            <TabsList className="bg-slate-900 border border-slate-800">
-              <TabsTrigger value="All" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400">All</TabsTrigger>
-              <TabsTrigger value="Active" className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 text-slate-400">Active</TabsTrigger>
-              <TabsTrigger value="In-Active" className="data-[state=active]:bg-slate-800 data-[state=active]:text-slate-300 text-slate-400">In-Active</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">
+            <Tabs defaultValue="All" className="w-auto" onValueChange={setFilterStatus}>
+              <TabsList className="bg-slate-900 border border-slate-800">
+                <TabsTrigger value="All" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400">All</TabsTrigger>
+                <TabsTrigger value="Active" className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 text-slate-400">Active</TabsTrigger>
+                <TabsTrigger value="In-Active" className="data-[state=active]:bg-slate-800 data-[state=active]:text-slate-300 text-slate-400">In-Active</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {/* Search Bar */}
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Search by PRE ID, patient, doctor, drug..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-14 bg-slate-900/80 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-emerald-500"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery("")} 
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 hover:text-white"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Results summary if searching */}
+          {searchQuery && (
+            <div className="text-xs text-slate-400 mb-4 flex items-center justify-between">
+              <span>Showing {filteredPrescriptions.length} of {prescriptions.length} prescriptions for <strong className="text-emerald-400">"{searchQuery}"</strong></span>
+              <button onClick={() => setSearchQuery("")} className="text-emerald-400 hover:underline">Reset search</button>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {prescriptions.filter((pres: Prescription) => filterStatus === "All" || pres.prescription_status === filterStatus).length === 0 ? (
-              <div className="col-span-full text-center py-12 text-slate-500">
-                No prescriptions found for the selected filter.
+            {filteredPrescriptions.length === 0 ? (
+              <div className="col-span-full text-center py-16 bg-slate-900/20 rounded-xl border border-dashed border-slate-850">
+                <Search className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+                <p className="text-slate-400 font-medium">No prescriptions found matching your search.</p>
+                {searchQuery && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setSearchQuery("")} 
+                    className="mt-3 border-slate-800 text-slate-300 hover:text-white"
+                  >
+                    Clear Search
+                  </Button>
+                )}
               </div>
             ) : (
-              prescriptions
-                .filter((pres: Prescription) => filterStatus === "All" || pres.prescription_status === filterStatus)
-                .map((pres: Prescription) => {
-                  const drugCount = pres.drugs_list ? pres.drugs_list.split(", ").length : 0;
-                  return (
-                    <Card key={pres.prescription_id} className="border-slate-800 bg-slate-900/50 hover:border-slate-700 transition-all flex flex-col justify-between">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2">
-                      <Switch 
-                        checked={pres.prescription_status === "Active"}
-                        onCheckedChange={() => toggleStatusMutation.mutate(pres)}
-                        disabled={toggleStatusMutation.isPending && toggleStatusMutation.variables?.prescription_id === pres.prescription_id}
-                        className="data-[state=checked]:bg-emerald-500"
-                      />
-                      <span className={cn("text-xs font-semibold", pres.prescription_status === "Active" ? "text-emerald-400" : "text-slate-500")}>
-                        {pres.prescription_status}
-                      </span>
-                    </div>
-                    <span className="text-xs font-mono text-slate-500">{pres.prescription_id}</span>
-                  </div>
-                  <CardTitle className="text-lg font-bold text-slate-100 mt-2">{pres.Pres_Name}</CardTitle>
-                  <CardDescription className="text-slate-400 text-xs">
-                    Patient: {pres.Pres_Age} Years | Date: {pres.pres_date}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-xs text-slate-400 border-t border-b border-slate-800/55 py-2">
-                    <p><strong className="text-slate-300">Doctor:</strong> {pres.doctor_name}</p>
-                    <p className="mt-1"><strong className="text-slate-300">Covers:</strong> {drugCount} configured</p>
-                  </div>
+              filteredPrescriptions.map((pres: Prescription) => {
+                const drugCount = pres.drugs_list ? pres.drugs_list.split(", ").length : 0;
+                return (
+                  <Card key={pres.prescription_id} className="border-slate-800 bg-slate-900/50 hover:border-slate-700 transition-all flex flex-col justify-between">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2">
+                          <Switch 
+                            checked={pres.prescription_status === "Active"}
+                            onCheckedChange={() => toggleStatusMutation.mutate(pres)}
+                            disabled={toggleStatusMutation.isPending && toggleStatusMutation.variables?.prescription_id === pres.prescription_id}
+                            className="data-[state=checked]:bg-emerald-500"
+                          />
+                          <span className={cn("text-xs font-semibold", pres.prescription_status === "Active" ? "text-emerald-400" : "text-slate-500")}>
+                            {pres.prescription_status}
+                          </span>
+                        </div>
+                        <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-0.5 rounded shadow-sm">
+                          {pres.prescription_id}
+                        </span>
+                      </div>
+                      <CardTitle className="text-lg font-bold text-slate-100 mt-2">{pres.Pres_Name}</CardTitle>
+                      <CardDescription className="text-slate-400 text-xs">
+                        Patient: {pres.Pres_Age} Years | Date: {pres.pres_date}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="text-xs text-slate-400 border-t border-b border-slate-800/55 py-2">
+                        <p><strong className="text-slate-300">Doctor:</strong> {pres.doctor_name}</p>
+                        <p className="mt-1"><strong className="text-slate-300">Covers:</strong> {drugCount} configured</p>
+                      </div>
 
-                  <div className="flex gap-2 w-full">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => handleOpenForm(pres)}
-                      className="flex-1 border-slate-800 bg-slate-950/40 text-slate-300 hover:bg-slate-800 hover:text-white"
-                    >
-                      <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit
-                    </Button>
-                    <Button 
-                      onClick={() => router.push(`/admin/manage/games/d-pad/${pres.prescription_id}`)}
-                      className="flex-1 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-855 hover:border-emerald-700"
-                    >
-                      <Settings className="w-3.5 h-3.5 mr-1.5" /> Answers
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
-        </div>
+                      <div className="flex gap-2 w-full">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => handleOpenForm(pres)}
+                          className="flex-1 border-slate-800 bg-slate-950/40 text-slate-300 hover:bg-slate-800 hover:text-white"
+                        >
+                          <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit
+                        </Button>
+                        <Button 
+                          onClick={() => router.push(`/admin/manage/games/d-pad/${pres.prescription_id}`)}
+                          className="flex-1 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-855 hover:border-emerald-700"
+                        >
+                          <Settings className="w-3.5 h-3.5 mr-1.5" /> Answers
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
         </>
       )}
 
