@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
-import { PrescriptionPaper } from "@/components/d-pad/PrescriptionPaper";
+import { PrescriptionPaper, getPrescriptionDisplayDrugs } from "@/components/d-pad/PrescriptionPaper";
 import { 
   getDpadPrescriptionDetails, 
   getDpadAnswerKey, 
@@ -85,6 +85,7 @@ export default function DpadAnswerKeySetupPage() {
   const drugs = rxDetails?.drugs_list 
     ? rxDetails.drugs_list.split(',').map((d: string) => d.trim()).filter(Boolean) 
     : [];
+  const displayDrugs = getPrescriptionDisplayDrugs(rxDetails);
   const currentCoverId = `Cover${selectedCoverIndex + 1}`;
 
   // Fetch existing answer key for selected cover
@@ -118,8 +119,9 @@ export default function DpadAnswerKeySetupPage() {
     } else {
       // Set sensible defaults based on prescription details
       let suggestedDrugName = "";
-      if (drugs[selectedCoverIndex]) {
-        suggestedDrugName = drugs[selectedCoverIndex].replace(/\s+(bd|tds|daily|mane|nocte|stat|8h|6h|12h|qds)$/i, '').trim();
+      const currentTargetDrug = displayDrugs[selectedCoverIndex] || drugs[selectedCoverIndex];
+      if (currentTargetDrug) {
+        suggestedDrugName = currentTargetDrug.replace(/\s+(bd|tds|daily|mane|nocte|stat|8h|6h|12h|qds)$/i, '').trim();
       }
 
       setFormState({
@@ -255,7 +257,7 @@ export default function DpadAnswerKeySetupPage() {
               <CardDescription className="text-xs">Select a cover envelope to configure its answers key.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {drugs.map((drugName: string, index: number) => {
+              {displayDrugs.map((drugName: string, index: number) => {
                 const isSelected = selectedCoverIndex === index;
                 return (
                   <button
@@ -310,7 +312,7 @@ export default function DpadAnswerKeySetupPage() {
               <div>
                 <CardTitle className="text-lg text-slate-100 font-headline">Benchmark Config: Cover {selectedCoverIndex + 1}</CardTitle>
                 <CardDescription className="text-xs text-emerald-400 font-mono">
-                  Target Drug: {drugs[selectedCoverIndex]}
+                  Target Drug: {displayDrugs[selectedCoverIndex] || drugs[selectedCoverIndex]}
                 </CardDescription>
               </div>
               <Button 

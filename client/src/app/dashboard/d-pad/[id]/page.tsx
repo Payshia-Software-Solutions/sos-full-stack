@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
-import { PrescriptionPaper } from "@/components/d-pad/PrescriptionPaper";
+import { PrescriptionPaper, getPrescriptionDisplayDrugs } from "@/components/d-pad/PrescriptionPaper";
 import { 
   getDpadPrescriptionDetails, 
   getDpadSubmittedAnswers, 
@@ -367,7 +367,10 @@ export default function DPadDetailPage() {
     enabled: !!username,
   });
 
-  const drugs = rxDetails?.drugs_list ? rxDetails.drugs_list.split(", ") : [];
+  const drugs = rxDetails?.drugs_list 
+    ? rxDetails.drugs_list.split(',').map((d: string) => d.trim()).filter(Boolean)
+    : [];
+  const displayDrugs = getPrescriptionDisplayDrugs(rxDetails);
 
   // Helper to translate labels dynamically or fallback to database string value
   const getOptionLabel = (field: string, val: string) => {
@@ -393,7 +396,6 @@ export default function DPadDetailPage() {
 
       if (isCorrect) {
         toast({
-          title: "ðŸŽ‰ " + t.correctMsg,
           title: "🎉 " + t.correctMsg,
           className: "bg-emerald-600 text-white",
         });
@@ -567,7 +569,7 @@ export default function DPadDetailPage() {
       case "drug_name":
         title = t.drugName;
         const drugOptions = selectionData?.drug_name ? [...selectionData.drug_name] : [];
-        drugs.forEach((d: string) => {
+        [...drugs, ...displayDrugs].forEach((d: string) => {
           if (d) {
             const clean = d.replace(/\s+(bd|tds|daily|mane|nocte|stat|8h|6h|12h|qds)$/i, '').trim();
             if (clean && !drugOptions.some(item => item.toLowerCase() === clean.toLowerCase())) {
@@ -727,7 +729,7 @@ export default function DPadDetailPage() {
                 <CardDescription className="text-slate-400">{t.selectItemDescription}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {drugs.map((drugName: string, index: number) => {
+                {displayDrugs.map((drugName: string, index: number) => {
                   const status = getCoverStatus(index);
                   const isCompleted = status === "Correct";
                   return (
@@ -783,7 +785,7 @@ export default function DPadDetailPage() {
                   <div>
                     <CardTitle className="text-lg text-slate-100 font-headline">{t.fillingLabel} Cover {selectedDrugIndex + 1}</CardTitle>
                     <CardDescription className="text-xs font-semibold text-emerald-400 font-mono">
-                      {drugs[selectedDrugIndex]}
+                      {displayDrugs[selectedDrugIndex] || drugs[selectedDrugIndex]}
                     </CardDescription>
                   </div>
                 </CardHeader>
