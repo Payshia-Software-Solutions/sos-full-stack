@@ -591,7 +591,9 @@ export default function DPadDetailPage() {
         break;
       case "drug_qty":
         title = t.quantity;
-        options = selectionData?.drug_qty?.length ? selectionData.drug_qty : ["5", "10", "15", "20", "30"];
+        options = selectionData?.drug_qty?.length 
+          ? selectionData.drug_qty 
+          : ["5", "10", "14", "15", "20", "21", "28", "30", "50", "60", "90", "100", "120"];
         onSelect = (val) => setFormState({ ...formState, drug_qty: val });
         break;
       case "morning_qty":
