@@ -47,36 +47,41 @@ export const getBatches = async (): Promise<Batch[]> => {
     }));
 };
 
-export const createBatch = async (batchData: Omit<Batch, 'id'>): Promise<Batch> => {
+export const createBatch = async (batchData: Omit<Batch, 'id'> & { instructor_id?: string }): Promise<Batch> => {
      const payload = {
         course_name: batchData.name,
         parent_course_id: batchData.parent_course_id,
         course_code: batchData.courseCode,
-        course_description: batchData.description,
-        course_duration: batchData.duration,
-        course_fee: batchData.fee,
-        registration_fee: batchData.registration_fee,
-        enroll_key: batchData.enroll_key,
-        course_img: batchData.course_img,
-        certification: batchData.certification,
-        mini_description: batchData.mini_description,
-        criteria_list: batchData.criteria_list,
-        whatsapp_link: batchData.whatsapp_link,
+        instructor_id: (batchData as any).instructor_id || 'Dr. H.M.D.K. FONSEKA',
+        course_description: batchData.description || '',
+        course_duration: batchData.duration || '',
+        course_fee: batchData.fee ?? 0,
+        registration_fee: batchData.registration_fee ?? 0,
+        enroll_key: batchData.enroll_key || '',
+        course_img: batchData.course_img || '',
+        certification: batchData.certification || '',
+        mini_description: batchData.mini_description || '',
+        criteria_list: batchData.criteria_list || null,
+        whatsapp_link: batchData.whatsapp_link || null,
     };
     const response = await fetch(`${QA_API_BASE_URL}/course`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
     });
-    if (!response.ok) throw new Error('Failed to create batch');
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || errorData?.message || `Failed to create batch (Status ${response.status})`);
+    }
     return response.json();
 };
 
-export const updateBatch = async (id: string, batchData: Partial<Omit<Batch, 'id'>>): Promise<Batch> => {
+export const updateBatch = async (id: string, batchData: Partial<Omit<Batch, 'id'>> & { instructor_id?: string }): Promise<Batch> => {
     const payload = {
         course_name: batchData.name,
         parent_course_id: batchData.parent_course_id,
         course_code: batchData.courseCode,
+        instructor_id: (batchData as any).instructor_id || 'Dr. H.M.D.K. FONSEKA',
         course_description: batchData.description,
         course_duration: batchData.duration,
         course_fee: batchData.fee,
@@ -93,7 +98,10 @@ export const updateBatch = async (id: string, batchData: Partial<Omit<Batch, 'id
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
     });
-    if (!response.ok) throw new Error('Failed to update batch');
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || errorData?.message || 'Failed to update batch');
+    }
     return response.json();
 };
 
