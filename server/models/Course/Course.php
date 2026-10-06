@@ -62,6 +62,19 @@ class Course
             $data['criteria_list'] = null;
         }
 
+        // Auto-generate course_code if missing or empty
+        if (empty($data['course_code'])) {
+            $cStmt = $this->pdo->query("SELECT course_code FROM course WHERE course_code LIKE 'CPCC%'");
+            $maxNum = 0;
+            while ($row = $cStmt->fetch(PDO::FETCH_ASSOC)) {
+                if (preg_match('/CPCC(\d+)/i', $row['course_code'], $m)) {
+                    $num = (int)$m[1];
+                    if ($num > $maxNum) $maxNum = $num;
+                }
+            }
+            $data['course_code'] = 'CPCC' . ($maxNum + 1);
+        }
+
         // If instructor_id is missing, inherit from parent course or fallback to default
         if (empty($data['instructor_id'])) {
             if (!empty($data['parent_course_id'])) {
@@ -85,10 +98,10 @@ class Course
         $stmt = $this->pdo->prepare($sql);
         
         $params = [
-            ':course_name' => $data['course_name'] ?? null,
+            ':course_name' => $data['course_name'] ?? '',
             ':parent_course_id' => !empty($data['parent_course_id']) ? $data['parent_course_id'] : null,
-            ':course_code' => $data['course_code'] ?? null,
-            ':instructor_id' => $data['instructor_id'],
+            ':course_code' => $data['course_code'],
+            ':instructor_id' => !empty($data['instructor_id']) ? $data['instructor_id'] : 'Dr. H.M.D.K. FONSEKA',
             ':course_description' => $data['course_description'] ?? '',
             ':course_duration' => $data['course_duration'] ?? '',
             ':course_fee' => $data['course_fee'] ?? 0,
