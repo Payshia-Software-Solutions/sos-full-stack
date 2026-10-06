@@ -8,19 +8,42 @@ class Announcement
     public function __construct($pdo)
     {
         $this->pdo = $pdo;
+        $this->ensureTableExists();
+    }
+
+    private function ensureTableExists()
+    {
+        try {
+            $this->pdo->exec("CREATE TABLE IF NOT EXISTS `announcements` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `title` VARCHAR(255) NOT NULL,
+                `content` TEXT NOT NULL,
+                `author` VARCHAR(255) NULL,
+                `category` VARCHAR(100) DEFAULT 'General',
+                `is_new` TINYINT(1) DEFAULT 1,
+                `imageUrl` VARCHAR(500) NULL,
+                `createdAt` DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+        } catch (\PDOException $e) {
+            // Ignore if already created or permission issue
+        }
     }
 
     public function getAll()
     {
-        $stmt = $this->pdo->query("SELECT id, title, content, author, category, is_new, imageUrl, createdAt FROM announcements ORDER BY createdAt DESC");
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Ensure id is formatted as string to match frontend types if needed
-        return array_map(function ($item) {
-            $item['id'] = (string)$item['id'];
-            $item['is_new'] = (bool)$item['is_new'];
-            return $item;
-        }, $results);
+        try {
+            $stmt = $this->pdo->query("SELECT id, title, content, author, category, is_new, imageUrl, createdAt FROM announcements ORDER BY createdAt DESC");
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Ensure id is formatted as string to match frontend types if needed
+            return array_map(function ($item) {
+                $item['id'] = (string)$item['id'];
+                $item['is_new'] = (bool)$item['is_new'];
+                return $item;
+            }, $results);
+        } catch (\PDOException $e) {
+            return [];
+        }
     }
 
     public function getById($id)
