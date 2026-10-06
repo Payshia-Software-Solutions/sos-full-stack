@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,12 +15,14 @@ import {
   getDpadSubmittedAnswers 
 } from "@/lib/actions/games";
 import Link from "next/link";
-import { ArrowRight, Pill, Trophy, CheckCircle, Activity, Award, BookOpen } from "lucide-react";
+import { getPrescriptionDisplayDrugs } from "@/components/d-pad/PrescriptionPaper";
+import { ArrowRight, Pill, Trophy, CheckCircle, Activity, Award, BookOpen, Search } from "lucide-react";
 
 export default function DPadIndexPage() {
   const { user } = useAuth();
   const username = user?.username || "";
   const [courseCode, setCourseCode] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Read selected course from localStorage (set after login/course-select)
   useEffect(() => {
@@ -70,7 +73,7 @@ export default function DPadIndexPage() {
 
   // Calculate status for each prescription card
   const rxCards = prescriptions.map((rx: any) => {
-    const drugs = rx.drugs_list ? rx.drugs_list.split(", ") : [];
+    const drugs = getPrescriptionDisplayDrugs(rx);
     const totalEnvelopes = drugs.length;
     
     // Count how many correct submissions the user has for this prescription
@@ -95,6 +98,25 @@ export default function DPadIndexPage() {
       progressPercent,
       drugs
     };
+  });
+
+  const filteredRxCards = rxCards.filter((rx: any, index: number) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    const rxNumber = `prescription #${index + 1}`.toLowerCase();
+    const shortNumber = `#${index + 1}`;
+    
+    return (
+      rxNumber.includes(q) ||
+      shortNumber.includes(q) ||
+      (rx.prescription_id && rx.prescription_id.toLowerCase().includes(q)) ||
+      (rx.prescription_name && rx.prescription_name.toLowerCase().includes(q)) ||
+      (rx.Pres_Name && rx.Pres_Name.toLowerCase().includes(q)) ||
+      (rx.doctor_name && rx.doctor_name.toLowerCase().includes(q)) ||
+      (rx.drugs_list && rx.drugs_list.toLowerCase().includes(q)) ||
+      (rx.drugs_written_list && rx.drugs_written_list.toLowerCase().includes(q)) ||
+      rx.drugs.some((d: string) => d.toLowerCase().includes(q))
+    );
   });
 
   return (
@@ -141,15 +163,43 @@ export default function DPadIndexPage() {
 
       {/* Available Prescriptions List */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-          <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2 font-headline">
-            <Activity className="w-5 h-5 text-emerald-500" />
-            Available Challenges
-          </h2>
-          <Badge variant="outline" className="text-slate-300 border-slate-700 bg-slate-900/30">
-            {prescriptions.length} Total Prescriptions
-          </Badge>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2 font-headline">
+              <Activity className="w-5 h-5 text-emerald-500" />
+              Available Challenges
+            </h2>
+            <Badge variant="outline" className="text-slate-300 border-slate-700 bg-slate-900/30">
+              {prescriptions.length} Total
+            </Badge>
+          </div>
+
+          {/* Search Box */}
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="Search by PRE ID, #, patient, drug..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-14 bg-slate-900/80 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-emerald-500 text-xs h-9"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery("")} 
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-slate-400 hover:text-white"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
+
+        {searchQuery && (
+          <div className="text-xs text-slate-400 flex items-center justify-between">
+            <span>Showing {filteredRxCards.length} of {rxCards.length} challenges for <strong className="text-emerald-400">"{searchQuery}"</strong></span>
+            <button onClick={() => setSearchQuery("")} className="text-emerald-400 hover:underline">Reset search</button>
+          </div>
+        )}
 
         {isLoadingRx ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -166,15 +216,29 @@ export default function DPadIndexPage() {
               </Card>
             ))}
           </div>
-        ) : rxCards.length === 0 ? (
+        ) : filteredRxCards.length === 0 ? (
           <div className="text-center py-16 bg-slate-900/20 rounded-xl border border-dashed border-slate-850">
             <Pill className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-            <h3 className="text-lg font-semibold text-slate-300">No Active Prescriptions</h3>
-            <p className="text-slate-500 text-sm">Active prescriptions will be set up by the administrator.</p>
+            <h3 className="text-lg font-semibold text-slate-300">
+              {searchQuery ? "No Prescriptions Found" : "No Active Prescriptions"}
+            </h3>
+            <p className="text-slate-500 text-sm">
+              {searchQuery ? `No challenges matching "${searchQuery}" was found.` : "Active prescriptions will be set up by the administrator."}
+            </p>
+            {searchQuery && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setSearchQuery("")} 
+                className="mt-3 border-slate-800 text-slate-300 hover:text-white"
+              >
+                Clear Search
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {rxCards.map((rx: any, index: number) => (
+            {filteredRxCards.map((rx: any, index: number) => (
               <div
                 key={rx.prescription_id}
                 className="transition-all duration-200 hover:-translate-y-1"
@@ -184,12 +248,17 @@ export default function DPadIndexPage() {
                     rx.isCompleted ? "border-t-emerald-500 bg-emerald-950/10" : "border-t-teal-600"
                   }`}>
                     <CardHeader className="pb-3">
-                      <div className="flex justify-between items-start">
-                        <Badge className={rx.isCompleted ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-teal-600 text-white hover:bg-teal-700"}>
-                          Prescription #{index + 1}
-                        </Badge>
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge className={rx.isCompleted ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-teal-600 text-white hover:bg-teal-700"}>
+                            Prescription #{index + 1}
+                          </Badge>
+                          <Badge variant="outline" className="font-mono text-xs font-bold text-emerald-400 border-emerald-500/40 bg-slate-950/80 px-2 py-0.5">
+                            {rx.prescription_id}
+                          </Badge>
+                        </div>
                         {rx.isCompleted && (
-                          <Badge variant="outline" className="border-emerald-500 text-emerald-400 bg-slate-950/60 gap-1 flex items-center">
+                          <Badge variant="outline" className="border-emerald-500 text-emerald-400 bg-slate-950/60 gap-1 flex items-center shrink-0">
                             <CheckCircle className="w-3.5 h-3.5" /> Completed
                           </Badge>
                         )}

@@ -342,6 +342,7 @@ export interface StudentInfo {
     postal_code: string;
     nic: string;
     gender: string;
+    status?: string;
 }
 
 export interface ApiPaymentRecord {

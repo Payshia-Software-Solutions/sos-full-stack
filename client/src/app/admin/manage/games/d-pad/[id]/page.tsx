@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
+import { PrescriptionPaper, getPrescriptionDisplayDrugs } from "@/components/d-pad/PrescriptionPaper";
 import { 
   getDpadPrescriptionDetails, 
   getDpadAnswerKey, 
@@ -25,6 +26,7 @@ import {
 // Option mappings matching the student dispensing page options
 const OPTIONS_MAPPINGS = {
   dosageForm: ["Tablet", "Capsule", "Syrup", "Inhaler"],
+  drugQty: ["5", "10", "14", "15", "20", "21", "28", "30", "50", "60", "90", "100", "120"],
   mealType: ["Before Meal", "With Meal", "After Meal", "N/A"],
   usingFrequency: ["Daily", "Weekly", "As needed"],
   scheduleQty: ["-", "1", "2", "3", "1/2"],
@@ -81,7 +83,10 @@ export default function DpadAnswerKeySetupPage() {
   });
 
   // Parse drugs in prescription
-  const drugs = rxDetails?.drugs_list ? rxDetails.drugs_list.split(", ") : [];
+  const drugs = rxDetails?.drugs_list 
+    ? rxDetails.drugs_list.split(',').map((d: string) => d.trim()).filter(Boolean) 
+    : [];
+  const displayDrugs = getPrescriptionDisplayDrugs(rxDetails);
   const currentCoverId = `Cover${selectedCoverIndex + 1}`;
 
   // Fetch existing answer key for selected cover
@@ -115,8 +120,9 @@ export default function DpadAnswerKeySetupPage() {
     } else {
       // Set sensible defaults based on prescription details
       let suggestedDrugName = "";
-      if (drugs[selectedCoverIndex]) {
-        suggestedDrugName = drugs[selectedCoverIndex].replace(/\s+(bd|tds|daily|mane|nocte|stat|8h|6h|12h|qds)$/i, '').trim();
+      const currentTargetDrug = displayDrugs[selectedCoverIndex] || drugs[selectedCoverIndex];
+      if (currentTargetDrug) {
+        suggestedDrugName = currentTargetDrug.replace(/\s+(bd|tds|daily|mane|nocte|stat|8h|6h|12h|qds)$/i, '').trim();
       }
 
       setFormState({
@@ -216,6 +222,18 @@ export default function DpadAnswerKeySetupPage() {
     );
   }
 
+  const quantityOptions = Array.from(
+    new Set([
+      ...(selectionData?.drug_qty?.length ? selectionData.drug_qty : OPTIONS_MAPPINGS.drugQty),
+      ...(formState.drug_qty ? [formState.drug_qty] : [])
+    ])
+  ).sort((a, b) => {
+    const numA = parseFloat(a);
+    const numB = parseFloat(b);
+    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+    return a.localeCompare(b);
+  });
+
   return (
     <div className="p-4 md:p-8 space-y-6 pb-24">
       {/* Header bar */}
@@ -252,7 +270,7 @@ export default function DpadAnswerKeySetupPage() {
               <CardDescription className="text-xs">Select a cover envelope to configure its answers key.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {drugs.map((drugName: string, index: number) => {
+              {displayDrugs.map((drugName: string, index: number) => {
                 const isSelected = selectedCoverIndex === index;
                 return (
                   <button
@@ -281,50 +299,21 @@ export default function DpadAnswerKeySetupPage() {
             </CardContent>
           </Card>
 
-          {/* Rx Digital Preview */}
-          <Card className="shadow-lg border border-slate-800 overflow-hidden bg-slate-900/40">
-            <div className="bg-slate-950 text-slate-400 py-2.5 px-4 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 border-b border-slate-850">
-              <Clipboard className="w-3.5 h-3.5 text-emerald-400" />
-              Prescription Sheet Preview
-            </div>
-            <CardContent className="p-6 bg-slate-900/50">
-              <div className="space-y-4 font-sans text-slate-200">
-                <div className="text-center border-b border-slate-800 pb-3">
-                  <h3 className="text-lg font-bold text-slate-100">
-                    {rxDetails.doctor_name || "Dr. Sunil Rathnayaka"}
-                  </h3>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-wider">
-                    {rxDetails.Pres_Method || "Registered Medical Practitioner"}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs border-b border-slate-800 pb-3">
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase">Patient Name</span>
-                    <span className="font-bold text-slate-200">{rxDetails.Pres_Name}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-slate-500 block text-[10px] uppercase">Date</span>
-                    <span className="font-mono text-slate-200">{rxDetails.pres_date}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase">Age</span>
-                    <span className="font-bold text-slate-200">{rxDetails.Pres_Age} Years</span>
-                  </div>
-                </div>
-
-                <div className="relative pl-12 min-h-[120px] pt-1">
-                  <span className="absolute left-0 top-0 text-3xl font-serif text-slate-700/35 select-none font-bold italic">Rx</span>
-                  <div className="space-y-3 font-mono text-xs text-slate-200">
-                    {drugs.map((drug: string, i: number) => (
-                      <div key={i} className={`pb-1.5 ${selectedCoverIndex === i ? "text-emerald-400 font-bold border-l-2 border-emerald-500 pl-2" : "text-slate-300"}`}>
-                        <p>{drug}</p>
-                        <p className="text-[10px] text-slate-500 italic">Cover {i + 1}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+          {/* Digital Prescription View (Identical to Student View) */}
+          <Card className="shadow-lg border-2 border-slate-800 overflow-hidden bg-slate-900/40">
+            <div className="bg-slate-950 text-slate-300 py-3 px-4 text-xs font-semibold uppercase tracking-wider flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <Clipboard className="w-4 h-4 text-emerald-400" />
+                Prescription Form
               </div>
+              <span className="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-0.5 rounded shadow-sm">
+                {prescriptionId}
+              </span>
+            </div>
+            <CardContent className="p-0">
+              <PrescriptionPaper 
+                prescription={rxDetails} 
+              />
             </CardContent>
           </Card>
         </div>
@@ -336,7 +325,7 @@ export default function DpadAnswerKeySetupPage() {
               <div>
                 <CardTitle className="text-lg text-slate-100 font-headline">Benchmark Config: Cover {selectedCoverIndex + 1}</CardTitle>
                 <CardDescription className="text-xs text-emerald-400 font-mono">
-                  Target Drug: {drugs[selectedCoverIndex]}
+                  Target Drug: {displayDrugs[selectedCoverIndex] || drugs[selectedCoverIndex]}
                 </CardDescription>
               </div>
               <Button 
@@ -469,14 +458,18 @@ export default function DpadAnswerKeySetupPage() {
                       <Label htmlFor="drug_qty" className="text-xs font-bold text-slate-300 flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5 text-slate-400" /> Total Quantity *
                       </Label>
-                      <Input
+                      <select
                         id="drug_qty"
                         value={formState.drug_qty}
                         onChange={(e) => setFormState({ ...formState, drug_qty: e.target.value })}
-                        className="bg-slate-950 border-slate-800 text-slate-100"
-                        placeholder="e.g. 10 or 15"
+                        className="w-full h-10 px-3 rounded-md bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         required
-                      />
+                      >
+                        <option value="" disabled>Select quantity...</option>
+                        {quantityOptions.map((qty: string) => (
+                          <option key={qty} value={qty}>{qty}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <div className="space-y-1.5">

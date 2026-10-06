@@ -271,3 +271,30 @@ export const rejectProfileEditRequest = async (id: string | number): Promise<any
     }
     return response.json();
 };
+
+export const deactivateUserAccount = async (username: string, password?: string): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch(`${QA_API_BASE_URL}/users/deactivate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to deactivate account' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to deactivate account');
+    }
+    return response.json();
+};
+
+export const updateUserStatus = async (username: string, status: 'Active' | 'Inactive'): Promise<{ success: boolean; message: string; status: string }> => {
+    const response = await fetch(`${QA_API_BASE_URL}/users/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, status }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to update user status' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to update user status');
+    }
+    return response.json();
+};
+

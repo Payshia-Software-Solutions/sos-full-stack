@@ -12,12 +12,13 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
-import { PrescriptionPaper } from "@/components/d-pad/PrescriptionPaper";
+import { PrescriptionPaper, getPrescriptionDisplayDrugs } from "@/components/d-pad/PrescriptionPaper";
 import { 
   getDpadPrescriptionDetails, 
   getDpadSubmittedAnswers, 
   submitDpadAnswer,
-  getFormSelectionData
+  getFormSelectionData,
+  getDpadActivePrescriptionsByCourse
 } from "@/lib/actions/games";
 import { 
   ArrowLeft, Pill, CheckCircle, RotateCcw, 
@@ -341,6 +342,18 @@ export default function DPadDetailPage() {
     enabled: !!prescriptionId,
   });
 
+  // Load Course Prescriptions (to determine Prescription # sequence for reference)
+  const { data: coursePrescriptions = [] } = useQuery({
+    queryKey: ["dpadActivePrescriptions", courseCode],
+    queryFn: () => getDpadActivePrescriptionsByCourse(courseCode!),
+    enabled: !!courseCode,
+  });
+
+  const prescriptionIndex = coursePrescriptions.findIndex(
+    (p: any) => p.prescription_id === prescriptionId || p.id === prescriptionId
+  );
+  const prescriptionNumberDisplay = prescriptionIndex !== -1 ? `#${prescriptionIndex + 1}` : "";
+
   // Load selection datasets from backend
   const { data: selectionData } = useQuery({
     queryKey: ["dpadFormSelectionData"],
@@ -354,7 +367,10 @@ export default function DPadDetailPage() {
     enabled: !!username,
   });
 
-  const drugs = rxDetails?.drugs_list ? rxDetails.drugs_list.split(", ") : [];
+  const drugs = rxDetails?.drugs_list 
+    ? rxDetails.drugs_list.split(',').map((d: string) => d.trim()).filter(Boolean)
+    : [];
+  const displayDrugs = getPrescriptionDisplayDrugs(rxDetails);
 
   // Helper to translate labels dynamically or fallback to database string value
   const getOptionLabel = (field: string, val: string) => {
@@ -368,6 +384,15 @@ export default function DPadDetailPage() {
   const submitMutation = useMutation({
     mutationFn: (payload: any) => submitDpadAnswer(username, payload),
     onSuccess: (data) => {
+      if (data.status === "error") {
+        toast({
+          variant: "destructive",
+          title: "Setup Required",
+          description: data.message || "No answer key configured for this prescription cover.",
+        });
+        return;
+      }
+
       refetchSubmissions();
       queryClient.invalidateQueries({ queryKey: ["dpadOverallGrade", username] });
       
@@ -380,7 +405,6 @@ export default function DPadDetailPage() {
 
       if (isCorrect) {
         toast({
-          title: "ðŸŽ‰ " + t.correctMsg,
           title: "🎉 " + t.correctMsg,
           className: "bg-emerald-600 text-white",
         });
@@ -554,7 +578,7 @@ export default function DPadDetailPage() {
       case "drug_name":
         title = t.drugName;
         const drugOptions = selectionData?.drug_name ? [...selectionData.drug_name] : [];
-        drugs.forEach((d: string) => {
+        [...drugs, ...displayDrugs].forEach((d: string) => {
           if (d) {
             const clean = d.replace(/\s+(bd|tds|daily|mane|nocte|stat|8h|6h|12h|qds)$/i, '').trim();
             if (clean && !drugOptions.some(item => item.toLowerCase() === clean.toLowerCase())) {
@@ -576,7 +600,9 @@ export default function DPadDetailPage() {
         break;
       case "drug_qty":
         title = t.quantity;
-        options = selectionData?.drug_qty?.length ? selectionData.drug_qty : ["5", "10", "15", "20", "30"];
+        options = selectionData?.drug_qty?.length 
+          ? selectionData.drug_qty 
+          : ["5", "10", "14", "15", "20", "21", "28", "30", "50", "60", "90", "100", "120"];
         onSelect = (val) => setFormState({ ...formState, drug_qty: val });
         break;
       case "morning_qty":
@@ -658,7 +684,7 @@ export default function DPadDetailPage() {
       {/* Header bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
-          <div className="flex flex-wrap gap-2 mb-2">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             <Button variant="ghost" onClick={() => router.push("/dashboard/d-pad")} className="gap-2 pl-0 hover:pl-2 text-slate-350 hover:text-white transition-all h-8">
               <ArrowLeft className="w-4 h-4" /> {t.backToList}
             </Button>
@@ -667,6 +693,12 @@ export default function DPadDetailPage() {
                 Course: {courseCode}
               </Badge>
             )}
+            <Badge variant="outline" className="font-mono font-bold text-xs text-emerald-400 border-emerald-500/40 bg-slate-900/80 px-3 py-1 h-8 flex items-center gap-1.5 shadow-sm">
+              <span className="text-slate-400 font-normal">
+                {prescriptionNumberDisplay ? `Prescription ${prescriptionNumberDisplay}` : "Ref"}:
+              </span>
+              {prescriptionId}
+            </Badge>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold font-headline text-slate-100">{t.title}</h1>
           <p className="text-slate-400 text-sm">{t.subtitle}</p>
@@ -678,9 +710,14 @@ export default function DPadDetailPage() {
         {/* Left Column: Digital Prescription View */}
         <div className="lg:col-span-5 space-y-4">
           <Card className="shadow-lg border-2 border-slate-800 overflow-hidden bg-slate-900/40">
-            <div className="bg-slate-950 text-slate-300 py-3 px-4 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 border-b border-slate-800">
-              <Clipboard className="w-4 h-4 text-emerald-400" />
-              Prescription Form
+            <div className="bg-slate-950 text-slate-300 py-3 px-4 text-xs font-semibold uppercase tracking-wider flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <Clipboard className="w-4 h-4 text-emerald-400" />
+                Prescription Form
+              </div>
+              <span className="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-0.5 rounded shadow-sm">
+                {prescriptionNumberDisplay ? `${prescriptionNumberDisplay} • ${prescriptionId}` : prescriptionId}
+              </span>
             </div>
             <CardContent className="p-0">
               <PrescriptionPaper 
@@ -703,7 +740,7 @@ export default function DPadDetailPage() {
                 <CardDescription className="text-slate-400">{t.selectItemDescription}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {drugs.map((drugName: string, index: number) => {
+                {displayDrugs.map((drugName: string, index: number) => {
                   const status = getCoverStatus(index);
                   const isCompleted = status === "Correct";
                   return (
@@ -759,7 +796,7 @@ export default function DPadDetailPage() {
                   <div>
                     <CardTitle className="text-lg text-slate-100 font-headline">{t.fillingLabel} Cover {selectedDrugIndex + 1}</CardTitle>
                     <CardDescription className="text-xs font-semibold text-emerald-400 font-mono">
-                      {drugs[selectedDrugIndex]}
+                      {displayDrugs[selectedDrugIndex] || drugs[selectedDrugIndex]}
                     </CardDescription>
                   </div>
                 </CardHeader>
