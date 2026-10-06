@@ -76,11 +76,12 @@ export const createBatch = async (batchData: Omit<Batch, 'id'> & { instructor_id
     return response.json();
 };
 
-export const updateBatch = async (id: string, batchData: Partial<Omit<Batch, 'id'>>): Promise<Batch> => {
+export const updateBatch = async (id: string, batchData: Partial<Omit<Batch, 'id'>> & { instructor_id?: string }): Promise<Batch> => {
     const payload = {
         course_name: batchData.name,
         parent_course_id: batchData.parent_course_id,
         course_code: batchData.courseCode,
+        instructor_id: (batchData as any).instructor_id || 'Dr. H.M.D.K. FONSEKA',
         course_description: batchData.description,
         course_duration: batchData.duration,
         course_fee: batchData.fee,
@@ -97,7 +98,10 @@ export const updateBatch = async (id: string, batchData: Partial<Omit<Batch, 'id
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
     });
-    if (!response.ok) throw new Error('Failed to update batch');
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || errorData?.message || 'Failed to update batch');
+    }
     return response.json();
 };
 

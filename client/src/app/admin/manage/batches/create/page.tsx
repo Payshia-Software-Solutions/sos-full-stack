@@ -33,6 +33,7 @@ const batchFormSchema = z.object({
     course_img: z.string().optional(),
     criteria_list: z.string().optional(),
     whatsapp_link: z.string().optional(),
+    instructor_id: z.string().optional(),
 });
 
 type BatchFormValues = z.infer<typeof batchFormSchema>;
@@ -89,6 +90,7 @@ export default function CreateBatchPage() {
             course_img: '',
             criteria_list: '',
             whatsapp_link: '',
+            instructor_id: 'Dr. H.M.D.K. FONSEKA',
         }
     });
 
@@ -104,6 +106,13 @@ export default function CreateBatchPage() {
 
         const parent = parentCourses?.find(pc => String(pc.id) === selectedParentId);
         if (!parent) return;
+
+        // Auto-fill instructor from parent course if available
+        if (parent.instructor_id) {
+            form.setValue('instructor_id', parent.instructor_id, { shouldValidate: true });
+        } else {
+            form.setValue('instructor_id', 'Dr. H.M.D.K. FONSEKA', { shouldValidate: true });
+        }
 
         // Auto-calculate the next batch number for this parent course
         const batchesForParent = batches?.filter(b => String(b.parent_course_id) === selectedParentId) || [];
@@ -168,7 +177,7 @@ export default function CreateBatchPage() {
         const parent = parentCourses?.find(pc => String(pc.id) === data.parent_course_id);
         const payload = {
             ...data,
-            instructor_id: parent?.instructor_id || 'Dr. H.M.D.K. FONSEKA',
+            instructor_id: data.instructor_id || parent?.instructor_id || 'Dr. H.M.D.K. FONSEKA',
         };
         createMutation.mutate(payload as any);
     };
@@ -300,6 +309,12 @@ export default function CreateBatchPage() {
                             <div className="space-y-2">
                                 <Label htmlFor="whatsapp_link">WhatsApp Group Link</Label>
                                 <Input id="whatsapp_link" {...form.register('whatsapp_link')} placeholder="https://chat.whatsapp.com/..." />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="instructor_id">Instructor Name / ID*</Label>
+                                <Input id="instructor_id" {...form.register('instructor_id')} placeholder="e.g. Dr. H.M.D.K. FONSEKA" />
+                                <p className="text-xs text-muted-foreground">Auto-assigned from parent course (can be changed if needed).</p>
                             </div>
                         </div>
 
