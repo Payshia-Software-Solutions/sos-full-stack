@@ -42,10 +42,20 @@ class CourseController
 
     public function createRecord()
     {
-        $data = json_decode(file_get_contents("php://input"), true);
-        $this->model->createRecord($data);
-        http_response_code(201);
-        echo json_encode(['message' => 'Record created successfully']);
+        try {
+            $data = json_decode(file_get_contents("php://input"), true);
+            if (!is_array($data)) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Invalid JSON input']);
+                return;
+            }
+            $this->model->createRecord($data);
+            http_response_code(201);
+            echo json_encode(['message' => 'Record created successfully']);
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
     }
 
     public function updateRecord($id)
