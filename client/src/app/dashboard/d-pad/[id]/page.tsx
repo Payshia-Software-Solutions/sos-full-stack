@@ -384,6 +384,15 @@ export default function DPadDetailPage() {
   const submitMutation = useMutation({
     mutationFn: (payload: any) => submitDpadAnswer(username, payload),
     onSuccess: (data) => {
+      if (data.status === "error") {
+        toast({
+          variant: "destructive",
+          title: "Setup Required",
+          description: data.message || "No answer key configured for this prescription cover.",
+        });
+        return;
+      }
+
       refetchSubmissions();
       queryClient.invalidateQueries({ queryKey: ["dpadOverallGrade", username] });
       

@@ -54,6 +54,18 @@ class User
         return $stmt->execute([$id]);
     }
 
+    public function deactivateUserByUsername($username)
+    {
+        $stmt = $this->pdo->prepare("UPDATE users SET status = 'Inactive' WHERE username = ?");
+        return $stmt->execute([$username]);
+    }
+
+    public function updateUserStatus($username, $status)
+    {
+        $stmt = $this->pdo->prepare("UPDATE users SET status = ? WHERE username = ? OR userid = ?");
+        return $stmt->execute([$status, $username, $username]);
+    }
+
     public function getUserCount()
     {
         $stmt = $this->pdo->query("SELECT COUNT(*) AS user_count FROM users WHERE status = 'Active'");

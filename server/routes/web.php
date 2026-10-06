@@ -172,6 +172,7 @@ $transcriptTemplateRoutes = require './routes/TranscriptTemplateRoutes.php';
 $certificateTemplateRoutes = require './routes/CertificateTemplateRoutes.php';
 $leadRoutes = require './routes/Lead/LeadRoutes.php';
 $studentDocumentVerificationRoutes = require './routes/Student/studentDocumentVerificationRoutes.php';
+$announcementRoutes = require './routes/AnnouncementRoutes.php';
 // Combine all routes
 $routes = array_merge(
     $userRoutes,
@@ -318,9 +319,29 @@ $routes = array_merge(
     $transcriptTemplateRoutes,
     $certificateTemplateRoutes,
     $leadRoutes,
-    $studentDocumentVerificationRoutes
+    $studentDocumentVerificationRoutes,
+    $announcementRoutes
 );
 
+
+$routes['GET /run-announcements-migration/'] = function () use ($pdo) {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `announcements` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `title` VARCHAR(255) NOT NULL,
+            `content` LONGTEXT NOT NULL,
+            `author` VARCHAR(255) DEFAULT 'Admin',
+            `category` VARCHAR(50) DEFAULT 'General',
+            `is_new` TINYINT(1) DEFAULT 1,
+            `imageUrl` TEXT DEFAULT NULL,
+            `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+        echo json_encode(['success' => true, 'message' => 'Announcements table created successfully.']);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+};
 
 // Define the home route with trailing slash
 $routes['GET /run-medimind-migration-v2/'] = function () use ($pdo) {

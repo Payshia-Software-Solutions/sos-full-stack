@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, AlertTriangle, User, Wallet, BookOpen, CheckCircle, XCircle, Mail, Phone, Heart, Swords, Gem, Brain } from 'lucide-react';
+import { Search, Loader2, AlertTriangle, User, Wallet, BookOpen, CheckCircle, XCircle, Mail, Phone, Heart, Swords, Gem, Brain, UserCheck, UserX } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,8 +14,18 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { searchStudents, getStudentFullInfo } from '@/lib/actions/users';
+import { searchStudents, getStudentFullInfo, updateUserStatus } from '@/lib/actions/users';
 import type { StudentSearchResult, FullStudentData, StudentBalance, StudentEnrollment, DeliveryOrder, CertificateRecord, ApiPaymentRecord } from '@/lib/types';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 // --- End Type Definitions ---
@@ -311,6 +321,47 @@ export default function AdminQuickLinksPage() {
         performSearch(suggestion.student_id);
     };
 
+    const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
+    const [targetStatus, setTargetStatus] = useState<'Active' | 'Inactive' | null>(null);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+    const handleToggleStatus = (newStatus: 'Active' | 'Inactive') => {
+        setTargetStatus(newStatus);
+        setStatusConfirmOpen(true);
+    };
+
+    const handleConfirmStatusChange = async () => {
+        if (!studentData?.studentInfo || !targetStatus) return;
+        const targetUsername = studentData.studentInfo.username || studentData.studentInfo.student_id;
+        setIsUpdatingStatus(true);
+        try {
+            await updateUserStatus(targetUsername, targetStatus);
+            toast({
+                title: "Status Updated",
+                description: `Student account has been marked as ${targetStatus}.`,
+            });
+            setStudentData(prev => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    studentInfo: {
+                        ...prev.studentInfo,
+                        status: targetStatus,
+                    }
+                };
+            });
+            setStatusConfirmOpen(false);
+        } catch (err: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Update Failed',
+                description: err.message || 'Failed to update user status.',
+            });
+        } finally {
+            setIsUpdatingStatus(false);
+        }
+    };
+
     return (
         <div className="p-4 md:p-8 space-y-8 pb-20">
             <header>
@@ -397,8 +448,38 @@ export default function AdminQuickLinksPage() {
                                     <AvatarFallback>{studentData.studentInfo.full_name.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 text-center sm:text-left">
-                                    <h2 className="text-2xl font-bold font-headline">{studentData.studentInfo.full_name}</h2>
-                                    <p className="text-muted-foreground">{studentData.studentInfo.student_id}</p>
+                                    <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                                        <h2 className="text-2xl font-bold font-headline">{studentData.studentInfo.full_name}</h2>
+                                        {studentData.studentInfo.status === 'Inactive' ? (
+                                            <Badge variant="destructive" className="text-xs">Inactive / Blocked</Badge>
+                                        ) : (
+                                            <Badge className="bg-emerald-600 hover:bg-emerald-700 text-xs">Active</Badge>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-3 justify-center sm:justify-start mt-1.5">
+                                        <p className="text-muted-foreground">{studentData.studentInfo.student_id}</p>
+                                        {studentData.studentInfo.status === 'Inactive' ? (
+                                            <Button 
+                                                size="sm" 
+                                                variant="outline"
+                                                className="h-7 text-xs border-emerald-600 text-emerald-500 hover:bg-emerald-950/30"
+                                                onClick={() => handleToggleStatus('Active')}
+                                                disabled={isUpdatingStatus}
+                                            >
+                                                <UserCheck className="w-3.5 h-3.5 mr-1" /> Activate Account
+                                            </Button>
+                                        ) : (
+                                            <Button 
+                                                size="sm" 
+                                                variant="outline"
+                                                className="h-7 text-xs border-rose-600 text-rose-500 hover:bg-rose-950/30"
+                                                onClick={() => handleToggleStatus('Inactive')}
+                                                disabled={isUpdatingStatus}
+                                            >
+                                                <UserX className="w-3.5 h-3.5 mr-1" /> Deactivate Account
+                                            </Button>
+                                        )}
+                                    </div>
                                     <div className="mt-2 text-sm text-muted-foreground space-y-1 break-all">
                                         <p className="flex items-center justify-center sm:justify-start gap-2"><User className="h-4 w-4 shrink-0" /> {studentData.studentInfo.nic}</p>
                                         <p className="flex items-center justify-center sm:justify-start gap-2"><Mail className="h-4 w-4 shrink-0" /> {studentData.studentInfo.e_mail}</p>
@@ -442,6 +523,42 @@ export default function AdminQuickLinksPage() {
                     </Tabs>
                 </div>
             )}
+
+            {/* Status Change Confirmation Dialog */}
+            <AlertDialog open={statusConfirmOpen} onOpenChange={setStatusConfirmOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className={targetStatus === 'Inactive' ? 'text-rose-500' : 'text-emerald-500'}>
+                            {targetStatus === 'Inactive' ? 'Deactivate Student Account' : 'Activate Student Account'}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2">
+                            <span>
+                                Are you sure you want to mark <strong>{studentData?.studentInfo?.full_name}</strong> ({studentData?.studentInfo?.student_id}) as <strong>{targetStatus}</strong>?
+                            </span>
+                            {targetStatus === 'Inactive' ? (
+                                <span className="block text-xs text-rose-400 mt-2">
+                                    The student will be blocked from logging into the portal immediately.
+                                </span>
+                            ) : (
+                                <span className="block text-xs text-emerald-400 mt-2">
+                                    The student will regain access and be allowed to log into the portal.
+                                </span>
+                            )}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isUpdatingStatus}>Cancel</AlertDialogCancel>
+                        <Button
+                            variant={targetStatus === 'Inactive' ? 'destructive' : 'default'}
+                            onClick={handleConfirmStatusChange}
+                            disabled={isUpdatingStatus}
+                        >
+                            {isUpdatingStatus && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            Confirm {targetStatus}
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
