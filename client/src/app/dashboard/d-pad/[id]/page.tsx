@@ -384,6 +384,15 @@ export default function DPadDetailPage() {
   const submitMutation = useMutation({
     mutationFn: (payload: any) => submitDpadAnswer(username, payload),
     onSuccess: (data) => {
+      if (data.status === "error") {
+        toast({
+          variant: "destructive",
+          title: "Setup Required",
+          description: data.message || "No answer key configured for this prescription cover.",
+        });
+        return;
+      }
+
       refetchSubmissions();
       queryClient.invalidateQueries({ queryKey: ["dpadOverallGrade", username] });
       
@@ -591,7 +600,9 @@ export default function DPadDetailPage() {
         break;
       case "drug_qty":
         title = t.quantity;
-        options = selectionData?.drug_qty?.length ? selectionData.drug_qty : ["5", "10", "15", "20", "30"];
+        options = selectionData?.drug_qty?.length 
+          ? selectionData.drug_qty 
+          : ["5", "10", "14", "15", "20", "21", "28", "30", "50", "60", "90", "100", "120"];
         onSelect = (val) => setFormState({ ...formState, drug_qty: val });
         break;
       case "morning_qty":

@@ -1,12 +1,14 @@
 
 import type { Announcement } from '../types';
+import { LMS_API_URL } from '@/lib/config';
 
-// In a real app, you would move this to a .env file
-const API_BASE_URL = (process.env.NEXT_PUBLIC_CHAT_SERVER_URL || 'https://chat-server.pharmacollege.lk') + '/api';
+const API_BASE_URL = LMS_API_URL;
 
 async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   try {
-    const headers: HeadersInit = options.headers || {};
+    const headers: Record<string, string> = {
+      ...(options.headers as Record<string, string>),
+    };
     
     if (!(options.body instanceof FormData)) {
       headers['Content-Type'] = 'application/json';

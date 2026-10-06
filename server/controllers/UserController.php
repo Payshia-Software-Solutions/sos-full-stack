@@ -117,12 +117,88 @@ class UserController
             return;
         }
 
+        // Check if account is inactive/deactivated
+        if (isset($user['status']) && strtolower(trim($user['status'])) === 'inactive') {
+            http_response_code(403);
+            echo json_encode(['error' => 'Your account has been deactivated. Please contact administration to reactivate.']);
+            return;
+        }
+
         // Login success - remove password from response
         unset($user['password']);
 
         echo json_encode([
             'message' => 'Login successful',
             'user' => $user
+        ]);
+    }
+
+    public function deactivateMyAccount()
+    {
+        $data = json_decode(file_get_contents("php://input"), true);
+        if (!$data || empty($data['username'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Username is required']);
+            return;
+        }
+
+        $username = $data['username'];
+        $user = $this->model->getByUsername($username);
+        if (!$user) {
+            http_response_code(404);
+            echo json_encode(['error' => 'User not found']);
+            return;
+        }
+
+        // Verify password if provided
+        if (!empty($data['password'])) {
+            if (!password_verify($data['password'], $user['password'])) {
+                http_response_code(401);
+                echo json_encode(['error' => 'Incorrect password. Deactivation failed.']);
+                return;
+            }
+        }
+
+        $this->model->deactivateUserByUsername($username);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Your account has been deactivated successfully.'
+        ]);
+    }
+
+    public function updateStatus()
+    {
+        $data = json_decode(file_get_contents("php://input"), true);
+        if (!$data || empty($data['username']) || empty($data['status'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Username and status are required']);
+            return;
+        }
+
+        $username = $data['username'];
+        $status = ucfirst(strtolower($data['status']));
+
+        if (!in_array($status, ['Active', 'Inactive'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid status. Must be Active or Inactive']);
+            return;
+        }
+
+        $user = $this->model->getByUsername($username);
+        if (!$user) {
+            http_response_code(404);
+            echo json_encode(['error' => 'User not found']);
+            return;
+        }
+
+        $this->model->updateUserStatus($username, $status);
+
+        echo json_encode([
+            'success' => true,
+            'message' => "User account set to $status successfully",
+            'username' => $username,
+            'status' => $status
         ]);
     }
 

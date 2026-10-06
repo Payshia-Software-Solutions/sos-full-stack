@@ -26,6 +26,7 @@ import {
 // Option mappings matching the student dispensing page options
 const OPTIONS_MAPPINGS = {
   dosageForm: ["Tablet", "Capsule", "Syrup", "Inhaler"],
+  drugQty: ["5", "10", "14", "15", "20", "21", "28", "30", "50", "60", "90", "100", "120"],
   mealType: ["Before Meal", "With Meal", "After Meal", "N/A"],
   usingFrequency: ["Daily", "Weekly", "As needed"],
   scheduleQty: ["-", "1", "2", "3", "1/2"],
@@ -220,6 +221,18 @@ export default function DpadAnswerKeySetupPage() {
       </div>
     );
   }
+
+  const quantityOptions = Array.from(
+    new Set([
+      ...(selectionData?.drug_qty?.length ? selectionData.drug_qty : OPTIONS_MAPPINGS.drugQty),
+      ...(formState.drug_qty ? [formState.drug_qty] : [])
+    ])
+  ).sort((a, b) => {
+    const numA = parseFloat(a);
+    const numB = parseFloat(b);
+    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+    return a.localeCompare(b);
+  });
 
   return (
     <div className="p-4 md:p-8 space-y-6 pb-24">
@@ -445,14 +458,18 @@ export default function DpadAnswerKeySetupPage() {
                       <Label htmlFor="drug_qty" className="text-xs font-bold text-slate-300 flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5 text-slate-400" /> Total Quantity *
                       </Label>
-                      <Input
+                      <select
                         id="drug_qty"
                         value={formState.drug_qty}
                         onChange={(e) => setFormState({ ...formState, drug_qty: e.target.value })}
-                        className="bg-slate-950 border-slate-800 text-slate-100"
-                        placeholder="e.g. 10 or 15"
+                        className="w-full h-10 px-3 rounded-md bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         required
-                      />
+                      >
+                        <option value="" disabled>Select quantity...</option>
+                        {quantityOptions.map((qty: string) => (
+                          <option key={qty} value={qty}>{qty}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <div className="space-y-1.5">

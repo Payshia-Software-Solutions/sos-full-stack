@@ -634,6 +634,54 @@ class DpadModel
             }
         }
 
+        // Quantity comparison: handle numeric equality or units (e.g. "10" vs "10 Tablets" or "10" vs "10.0")
+        if ($field === 'drug_qty') {
+            if (is_numeric($sub) && is_numeric($cor) && (float)$sub === (float)$cor) {
+                return true;
+            }
+            preg_match('/^\d+(\.\d+)?/', $sub, $mSub);
+            preg_match('/^\d+(\.\d+)?/', $cor, $mCor);
+            if (!empty($mSub[0]) && !empty($mCor[0]) && (float)$mSub[0] === (float)$mCor[0]) {
+                return true;
+            }
+        }
+
+        // Frequency (using_type) aliases
+        if ($field === 'using_type') {
+            $asNeededAliases = ['as needed', 'as needed / sos', 'sos', 'prn', 'when needed'];
+            if (in_array(strtolower($sub), $asNeededAliases, true) && in_array(strtolower($cor), $asNeededAliases, true)) {
+                return true;
+            }
+        }
+
+        // Schedule / at-a-time fraction equivalents
+        if (in_array($field, ['morning_qty', 'afternoon_qty', 'evening_qty', 'night_qty', 'at_a_time'])) {
+            $normalizeFraction = function($val) {
+                if ($val === '1/2' || $val === '0.5' || $val === '.5') return '0.5';
+                if ($val === '1/4' || $val === '0.25' || $val === '.25') return '0.25';
+                if ($val === '3/4' || $val === '0.75' || $val === '.75') return '0.75';
+                return $val;
+            };
+            if ($normalizeFraction($sub) === $normalizeFraction($cor)) {
+                return true;
+            }
+        }
+
+        // Dosage form aliases
+        if ($field === 'drug_type') {
+            $cleanType = function($t) {
+                $t = strtolower(trim($t));
+                if (in_array($t, ['tab', 'tablet', 'tablets'])) return 'tablet';
+                if (in_array($t, ['cap', 'capsule', 'capsules'])) return 'capsule';
+                if (in_array($t, ['syr', 'syrup', 'syrups'])) return 'syrup';
+                if (in_array($t, ['inh', 'inhaler', 'inhalers'])) return 'inhaler';
+                return $t;
+            };
+            if ($cleanType($sub) === $cleanType($cor)) {
+                return true;
+            }
+        }
+
         return false;
     }
 

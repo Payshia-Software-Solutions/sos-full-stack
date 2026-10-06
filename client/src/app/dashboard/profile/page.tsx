@@ -1,18 +1,31 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { getStudentDetailsByUsername, getProfileEditRequestStatus, submitProfileEditRequest, getStudentFullInfo } from "@/lib/actions/users";
+import { getStudentDetailsByUsername, getProfileEditRequestStatus, submitProfileEditRequest, getStudentFullInfo, deactivateUserAccount } from "@/lib/actions/users";
 import type { UserFullDetails } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, User, Phone, MapPin, Mail, Calendar, AlertCircle, Edit, BookOpen, Gamepad2, CreditCard, Award, Target, Heart, Truck, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, User, Phone, MapPin, Mail, Calendar, AlertCircle, Edit, BookOpen, Gamepad2, CreditCard, Award, Target, Heart, Truck, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const [profile, setProfile] = useState<UserFullDetails | null>(null);
   const [pendingRequest, setPendingRequest] = useState<any | null>(null);
   const [enrollments, setEnrollments] = useState<any[]>([]);
@@ -21,6 +34,9 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
+  const [deactivatePassword, setDeactivatePassword] = useState("");
+  const [deactivating, setDeactivating] = useState(false);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -123,6 +139,29 @@ export default function ProfilePage() {
       toast({ description: error.message || "Failed to submit request", variant: "destructive" });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeactivateAccount = async () => {
+    if (!user?.username) return;
+    setDeactivating(true);
+    try {
+      await deactivateUserAccount(user.username, deactivatePassword || undefined);
+      toast({
+        title: "Account Deactivated",
+        description: "Your account has been deactivated. You have been logged out.",
+      });
+      setDeactivateDialogOpen(false);
+      logout();
+      router.push("/login");
+    } catch (error: any) {
+      toast({
+        title: "Deactivation Failed",
+        description: error.message || "Failed to deactivate account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeactivating(false);
     }
   };
 
@@ -565,6 +604,74 @@ export default function ProfilePage() {
           ))}
         </div>
       )}
+
+      {/* Danger Zone: Account Deactivation */}
+      <Card className="border-rose-950/60 bg-rose-950/10 shadow-lg">
+        <CardHeader className="border-b border-rose-950/40 pb-4">
+          <div className="flex items-center gap-2 text-rose-500">
+            <AlertTriangle className="w-5 h-5" />
+            <CardTitle className="text-lg text-rose-500">Danger Zone / ගිණුම අක්‍රිය කිරීම</CardTitle>
+          </div>
+          <CardDescription className="text-rose-300/70 text-xs">
+            ඔබේ ගිණුම අක්‍රිය කළ පසු ඔබට නැවත මෙම පද්ධතියට log විය නොහැක. නැවත සක්‍රිය කර ගැනීමට College Administration සම්බන්ධ කරගත යුතුය.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h4 className="font-semibold text-sm text-foreground">Deactivate this account</h4>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Disable your access to this student portal immediately. Future login attempts will be rejected.
+            </p>
+          </div>
+          <AlertDialog open={deactivateDialogOpen} onOpenChange={setDeactivateDialogOpen}>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="whitespace-nowrap">
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                Deactivate Account
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-rose-500 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5" />
+                  Deactivate Account Confirmation
+                </AlertDialogTitle>
+                <AlertDialogDescription className="space-y-3 pt-2 text-left">
+                  <span>
+                    Are you sure you want to deactivate your account (<strong>{user?.username}</strong>)?
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    You will be immediately logged out, and future logins will be blocked. To regain access, you will need to contact the institute administration.
+                  </span>
+                  <div className="pt-2 space-y-1.5 text-left">
+                    <Label htmlFor="deactivate-password" className="text-xs font-medium text-foreground">
+                      Enter your password to confirm (Optional):
+                    </Label>
+                    <Input
+                      id="deactivate-password"
+                      type="password"
+                      placeholder="Your current password"
+                      value={deactivatePassword}
+                      onChange={(e) => setDeactivatePassword(e.target.value)}
+                    />
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="mt-4">
+                <AlertDialogCancel disabled={deactivating}>Cancel</AlertDialogCancel>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeactivateAccount}
+                  disabled={deactivating}
+                >
+                  {deactivating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Yes, Deactivate My Account
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
     </div>
   );
 }

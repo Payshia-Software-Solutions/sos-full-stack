@@ -532,7 +532,7 @@ ORDER BY
         $ArrayResult = [];
         try {
             global $link;
-            $sql = "SELECT `id`, `student_id`, `username`, `civil_status`, `first_name`, `last_name`, `gender`, `address_line_1`, `address_line_2`, `city`, `district`, `postal_code`, `telephone_1`, `telephone_2`, `nic`, `e_mail`, `birth_day`, `updated_by`, `updated_at`, `full_name`, `name_with_initials`, `name_on_certificate` FROM `user_full_details` WHERE `username` = ? OR `student_id` = ? ORDER BY `id` DESC";
+            $sql = "SELECT ufd.`id`, ufd.`student_id`, ufd.`username`, ufd.`civil_status`, ufd.`first_name`, ufd.`last_name`, ufd.`gender`, ufd.`address_line_1`, ufd.`address_line_2`, ufd.`city`, ufd.`district`, ufd.`postal_code`, ufd.`telephone_1`, ufd.`telephone_2`, ufd.`nic`, ufd.`e_mail`, ufd.`birth_day`, ufd.`updated_by`, ufd.`updated_at`, ufd.`full_name`, ufd.`name_with_initials`, ufd.`name_on_certificate`, COALESCE(u.status, 'Active') as `status` FROM `user_full_details` ufd LEFT JOIN `users` u ON (u.username = ufd.username OR u.userid = ufd.student_id) WHERE ufd.`username` = ? OR ufd.`student_id` = ? ORDER BY ufd.`id` DESC";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$userName, $userName]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -541,7 +541,7 @@ ORDER BY
                 return $row;
             } else {
                 // Fallback for admin or system users not in user_full_details
-                $sqlFallback = "SELECT `id`, `userid` as student_id, `username`, '' as civil_status, `fname` as first_name, `lname` as last_name, '' as gender, '' as address_line_1, '' as address_line_2, '' as city, '' as district, '' as postal_code, `phone` as telephone_1, '' as telephone_2, '' as nic, `email` as e_mail, '' as birth_day, '' as updated_by, `created_at` as updated_at, CONCAT(`fname`, ' ', `lname`) as full_name, '' as name_with_initials, '' as name_on_certificate FROM `users` WHERE `username` = ? OR `userid` = ? ORDER BY `id` DESC";
+                $sqlFallback = "SELECT `id`, `userid` as student_id, `username`, `status`, '' as civil_status, `fname` as first_name, `lname` as last_name, '' as gender, '' as address_line_1, '' as address_line_2, '' as city, '' as district, '' as postal_code, `phone` as telephone_1, '' as telephone_2, '' as nic, `email` as e_mail, '' as birth_day, '' as updated_by, `created_at` as updated_at, CONCAT(`fname`, ' ', `lname`) as full_name, '' as name_with_initials, '' as name_on_certificate FROM `users` WHERE `username` = ? OR `userid` = ? ORDER BY `id` DESC";
                 $stmtFallback = $this->pdo->prepare($sqlFallback);
                 $stmtFallback->execute([$userName, $userName]);
                 $fallbackRow = $stmtFallback->fetch(PDO::FETCH_ASSOC);

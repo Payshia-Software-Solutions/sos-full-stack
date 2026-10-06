@@ -19,5 +19,7 @@ return [
     'PUT /users/{id}' => [$userController, 'updateUser'],
     'DELETE /users/{id}' => [$userController, 'deleteUser'],
     'POST /users/login' => [$userController, 'login'],
+    'POST /users/deactivate' => [$userController, 'deactivateMyAccount'],
+    'POST /users/status' => [$userController, 'updateStatus'],
     'GET /users/staff/' => [$userController, 'getStaffUsers'],
 ];
