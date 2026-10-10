@@ -100,6 +100,7 @@ class CcEvaluationController
             'studentBalance' => $studentBalance,
             'studentEnrollments' => $studentEnrollments,
             'pendingPaymentRequests' => $pendingPaymentRequests,
+            'paymentGateSettings' => $this->model->getPaymentGateSettings(),
         ]);
     }
 }

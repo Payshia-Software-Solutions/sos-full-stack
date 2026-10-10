@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { GradePaymentGate } from "@/components/GradePaymentGate";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -513,24 +514,35 @@ export default function ProfilePage() {
                       <Award className="w-4 h-4 text-primary" /> Exam & Assignment Grades
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-6 space-y-4">
-                    <div className="flex justify-between items-center bg-slate-950/20 p-3 rounded-lg border border-slate-800">
-                      <span className="text-sm text-muted-foreground font-medium">Average Grade:</span>
-                      <strong className="text-lg text-primary">{course.assignment_grades?.average_grade || "0.00"}%</strong>
-                    </div>
+                  <CardContent className="p-6">
+                    <GradePaymentGate
+                      isLocked={course.is_grade_locked}
+                      balance={course.studentBalance ?? course.studentBalanceDetails?.studentBalance}
+                      gateSettings={course.payment_gate?.settings || (studentFullInfo as any)?.paymentGateSettings}
+                      courseCode={course.course_code}
+                      payUrl={`/dashboard/payments`}
+                      title="Grades Locked - Pending Payment"
+                    >
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center bg-slate-950/20 p-3 rounded-lg border border-slate-800">
+                          <span className="text-sm text-muted-foreground font-medium">Average Grade:</span>
+                          <strong className="text-lg text-primary">{course.assignment_grades?.average_grade || "0.00"}%</strong>
+                        </div>
 
-                    {course.assignment_grades?.assignments?.length > 0 ? (
-                      <div className="space-y-2 max-h-[150px] overflow-y-auto custom-scrollbar pr-2">
-                        {course.assignment_grades.assignments.map((assign: any, idx: number) => (
-                          <div key={idx} className="flex justify-between text-xs py-1 border-b border-slate-800/40">
-                            <span className="text-slate-300">{assign.assignment_name}</span>
-                            <span className="font-bold text-slate-200">{assign.grade}</span>
+                        {course.assignment_grades?.assignments?.length > 0 ? (
+                          <div className="space-y-2 max-h-[150px] overflow-y-auto custom-scrollbar pr-2">
+                            {course.assignment_grades.assignments.map((assign: any, idx: number) => (
+                              <div key={idx} className="flex justify-between text-xs py-1 border-b border-slate-800/40">
+                                <span className="text-slate-300">{assign.assignment_name}</span>
+                                <span className="font-bold text-slate-200">{assign.grade}</span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic text-center py-4">No assignments recorded.</p>
+                        )}
                       </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic text-center py-4">No assignments recorded.</p>
-                    )}
+                    </GradePaymentGate>
                   </CardContent>
                 </Card>
 

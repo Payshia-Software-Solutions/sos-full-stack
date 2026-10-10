@@ -113,6 +113,7 @@ class DashboardScreen extends ConsumerWidget {
                   final courseData = selectedCourseCode != null ? enrollments[selectedCourseCode] as Map<String, dynamic>? : null;
 
                   final assignmentAvg = courseData?['assignment_grades']?['average_grade'] ?? '0.00';
+                  final bool isGradeLocked = courseData?['is_grade_locked'] == true;
                   
                   final dynamic rawRecovered = courseData?['ceylon_pharmacy']?['recoveredCount'];
                   final int recoveredPatients = rawRecovered is int 
@@ -162,10 +163,10 @@ class DashboardScreen extends ConsumerWidget {
                             _buildKpiCard(
                               context,
                               title: 'Avg Assignment Grade',
-                              value: '$assignmentAvg%',
-                              subtitle: 'Across assignments',
-                              icon: Icons.analytics_rounded,
-                              color: Colors.indigoAccent,
+                              value: isGradeLocked ? '🔒 Locked' : '$assignmentAvg%',
+                              subtitle: isGradeLocked ? 'Complete payment' : 'Across assignments',
+                              icon: isGradeLocked ? Icons.lock_outline_rounded : Icons.analytics_rounded,
+                              color: isGradeLocked ? Colors.amber[800]! : Colors.indigoAccent,
                             ),
                             const SizedBox(width: 12),
                             _buildKpiCard(

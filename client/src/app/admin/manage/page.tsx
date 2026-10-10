@@ -145,6 +145,13 @@ const managementTasks: ManagementTask[] = [
     category: "Financial"
   },
   {
+    title: "Grade Payment Gate",
+    description: "Configure payment restrictions for viewing student assignment grades, marks, and certificates.",
+    icon: <Settings className="w-8 h-8 text-white" />,
+    href: "/admin/manage/payment-gate-settings",
+    category: "Financial"
+  },
+  {
     title: "Assignment Info",
     description: "View and manage assignment submissions.",
     icon: <ClipboardList className="w-8 h-8 text-white" />,
