@@ -1,12 +1,13 @@
-
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowRight, UserPlus, CreditCard, ClipboardList, Truck, GraduationCap, Award, Settings, KeyRound, FileSignature, Banknote, Video, Search, UserCheck, Megaphone, UserCog, BookOpen, BarChart, Cake, Library, Percent, Briefcase, BookText, BrainCircuit, ClipboardCheck, FileCheck, Users } from "lucide-react";
+import { ArrowRight, UserPlus, CreditCard, ClipboardList, Truck, GraduationCap, Award, Settings, KeyRound, FileSignature, Banknote, Video, Search, UserCheck, Megaphone, UserCog, BookOpen, BarChart, Cake, Library, Percent, Briefcase, BookText, BrainCircuit, ClipboardCheck, FileCheck, Users, MessageSquare, ShieldCheck, Star, RotateCcw } from "lucide-react";
 import Link from "next/link";
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { cn } from "@/lib/utils";
 import { CeylonPharmacyIcon, DPadIcon, HunterProIcon, LuckyWheelIcon, MediMindIcon, PharmaHunterIcon, PharmaReaderIcon, WinPharmaIcon, WordPalletIcon } from "@/components/icons/module-icons";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 type ManagementTask = {
     title: string;
@@ -18,10 +19,52 @@ type ManagementTask = {
 
 const managementTasks: ManagementTask[] = [
   {
+    title: "Lead Management",
+    description: "Track student inquiries, manage conversion stages, and view CRM statistics.",
+    icon: <UserPlus className="w-8 h-8 text-white" />,
+    href: "/admin/manage/leads",
+    category: "Student Management"
+  },
+  {
+    title: "Account Activation",
+    description: "Review pending registrations and activate student accounts.",
+    icon: <ShieldCheck className="w-8 h-8 text-white" />,
+    href: "/admin/account-activation",
+    category: "Student Management"
+  },
+  {
+    title: "Document Verification (KYC)",
+    description: "Review and verify student ID cards, birth certificates, and O/L & A/L qualifications.",
+    icon: <FileCheck className="w-8 h-8 text-white" />,
+    href: "/admin/manage/document-verification",
+    category: "Student Management"
+  },
+  {
+    title: "Profile Edit Requests",
+    description: "Review and approve/reject student profile update requests.",
+    icon: <UserCog className="w-8 h-8 text-white" />,
+    href: "/admin/manage/profile-edits",
+    category: "Student Management"
+  },
+  {
+    title: "SMS Templates",
+    description: "Manage and edit automated SMS message content.",
+    icon: <MessageSquare className="w-8 h-8 text-white" />,
+    href: "/admin/sms-templates",
+    category: "Content & System"
+  },
+  {
     title: "Announcements",
     description: "Create, edit, and publish announcements.",
     icon: <Megaphone className="w-8 h-8 text-white" />,
     href: "/admin/announcements",
+    category: "Content & System"
+  },
+  {
+    title: "Ticket Categories",
+    description: "Manage departments, icons, and issue categories for support tickets.",
+    icon: <Settings className="w-8 h-8 text-white" />,
+    href: "/admin/tickets/categories",
     category: "Content & System"
   },
   {
@@ -102,6 +145,13 @@ const managementTasks: ManagementTask[] = [
     category: "Financial"
   },
   {
+    title: "Grade Payment Gate",
+    description: "Configure payment restrictions for viewing student assignment grades, marks, and certificates.",
+    icon: <Settings className="w-8 h-8 text-white" />,
+    href: "/admin/manage/payment-gate-settings",
+    category: "Financial"
+  },
+  {
     title: "Assignment Info",
     description: "View and manage assignment submissions.",
     icon: <ClipboardList className="w-8 h-8 text-white" />,
@@ -109,8 +159,8 @@ const managementTasks: ManagementTask[] = [
     category: "Student Management"
   },
   {
-    title: "Delivery Orders",
-    description: "Create and track study material deliveries.",
+    title: "Delivery Management",
+    description: "Manage delivery orders and configure delivery packages.",
     icon: <Truck className="w-8 h-8 text-white" />,
     href: "/admin/manage/delivery-orders",
     category: "Content & System"
@@ -192,9 +242,23 @@ const managementTasks: ManagementTask[] = [
     href: "/admin/manage/generate-certificate",
     category: "Certificates & Convocation"
   },
+  {
+    title: "Certificate Designer",
+    description: "Design and manage certificate printing layouts for courses.",
+    icon: <Award className="w-8 h-8 text-white" />,
+    href: "/admin/manage/certificate-design",
+    category: "Certificates & Convocation"
+  },
+  {
+    title: "Transcript Designer",
+    description: "Design and manage transcript templates for courses.",
+    icon: <FileSignature className="w-8 h-8 text-white" />,
+    href: "/admin/manage/transcript-design",
+    category: "Certificates & Convocation"
+  },
    {
-    title: "Manage Recordings",
-    description: "Add, edit, or delete course video recordings.",
+    title: "Manage Course Content",
+    description: "Add, edit, or delete course videos, pdfs and links.",
     icon: <Video className="w-8 h-8 text-white" />,
     href: "/admin/recordings",
     category: "Content & System"
@@ -306,6 +370,13 @@ const managementTasks: ManagementTask[] = [
     href: "/admin/manage/games/medimind",
     category: "Games Management"
   },
+  {
+    title: "D-Pad",
+    description: "Manage D-Pad game prescriptions and answer keys.",
+    icon: <DPadIcon className="w-8 h-8 text-white"/>,
+    href: "/admin/manage/games/d-pad",
+    category: "Games Management"
+  },
 ];
 
 const categoryColors: Record<ManagementTask['category'], string> = {
@@ -316,8 +387,8 @@ const categoryColors: Record<ManagementTask['category'], string> = {
     'Games Management': 'from-yellow-400 to-amber-500',
 }
 
-const TaskCard = ({ task }: { task: ManagementTask }) => (
-    <Link href={task.href} className="group block h-full">
+const TaskCard = ({ task, onClick }: { task: ManagementTask; onClick?: () => void }) => (
+    <Link href={task.href} onClick={onClick} className="group block h-full">
         <Card className="shadow-lg hover:shadow-xl transition-all duration-200 h-full border-0">
             <CardContent className="p-4 flex items-center gap-4">
                 <div className={cn("p-3 rounded-lg bg-gradient-to-br", categoryColors[task.category])}>
@@ -335,17 +406,61 @@ const TaskCard = ({ task }: { task: ManagementTask }) => (
 
 
 export default function AdminManagePage() {
+    const [searchQuery, setSearchQuery] = useState("");
+    const [frequencies, setFrequencies] = useState<Record<string, number>>({});
+
+    useEffect(() => {
+        const stored = localStorage.getItem('admin_task_clicks');
+        if (stored) {
+            try {
+                setFrequencies(JSON.parse(stored));
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    }, []);
+
+    const handleTaskClick = (href: string) => {
+        const updated = {
+            ...frequencies,
+            [href]: (frequencies[href] || 0) + 1
+        };
+        setFrequencies(updated);
+        localStorage.setItem('admin_task_clicks', JSON.stringify(updated));
+    };
+
+    const handleResetFrequencies = () => {
+        localStorage.removeItem('admin_task_clicks');
+        setFrequencies({});
+    };
+
+    const frequentlyUsedTasks = useMemo(() => {
+        return managementTasks
+            .filter(task => (frequencies[task.href] || 0) > 0)
+            .sort((a, b) => (frequencies[b.href] || 0) - (frequencies[a.href] || 0))
+            .slice(0, 6); // Show top 6 frequently used tasks
+    }, [frequencies]);
+
+    const filteredTasks = useMemo(() => {
+        if (!searchQuery) return managementTasks;
+        const lower = searchQuery.toLowerCase();
+        return managementTasks.filter(task => 
+            task.title.toLowerCase().includes(lower) || 
+            task.description.toLowerCase().includes(lower)
+        );
+    }, [searchQuery]);
+
     const groupedTasks = useMemo(() => {
-        return managementTasks.reduce((acc, task) => {
+        return filteredTasks.reduce((acc, task) => {
             if (!acc[task.category]) {
                 acc[task.category] = [];
             }
             acc[task.category].push(task);
             return acc;
         }, {} as Record<string, ManagementTask[]>);
-    }, []);
+    }, [filteredTasks]);
 
-    const categoryOrder: (keyof typeof groupedTasks)[] = [
+    const categoryOrder: (ManagementTask['category'])[] = [
         'Student Management',
         'Games Management',
         'Certificates & Convocation',
@@ -356,14 +471,49 @@ export default function AdminManagePage() {
 
   return (
     <div className="p-4 md:p-8 space-y-8 pb-20">
-      <header>
-        <h1 className="text-3xl font-headline font-semibold">Management Tasks</h1>
-        <p className="text-muted-foreground">Access various administrative tools and actions.</p>
+      <header className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-headline font-semibold">Management Tasks</h1>
+          <p className="text-muted-foreground">Access various administrative tools and actions.</p>
+        </div>
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search tasks..." 
+            className="pl-9 bg-slate-950 border-slate-800 text-slate-100" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </header>
+
+      {searchQuery === "" && frequentlyUsedTasks.length > 0 && (
+        <section className="bg-slate-950/40 border border-slate-900 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-primary font-semibold">
+              <Star className="h-5 w-5 fill-current text-yellow-500" />
+              <h2 className="text-xl font-bold font-headline">Frequently Used</h2>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleResetFrequencies}
+              className="text-muted-foreground hover:text-white"
+            >
+              <RotateCcw className="h-4 w-4 mr-1.5" /> Reset
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {frequentlyUsedTasks.map(task => (
+              <TaskCard key={`freq-${task.href}`} task={task} onClick={() => handleTaskClick(task.href)} />
+            ))}
+          </div>
+        </section>
+      )}
       
       <div className="space-y-10">
         {categoryOrder.map(category => (
-            groupedTasks[category] && (
+            groupedTasks[category] && groupedTasks[category].length > 0 && (
                 <section key={category}>
                     <div className="flex items-center gap-3 mb-4">
                         <UserCog className="h-6 w-6 text-primary" />
@@ -371,12 +521,17 @@ export default function AdminManagePage() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {groupedTasks[category].sort((a,b) => a.title.localeCompare(b.title)).map(task => (
-                            <TaskCard key={task.href} task={task} />
+                            <TaskCard key={task.href} task={task} onClick={() => handleTaskClick(task.href)} />
                         ))}
                     </div>
                 </section>
             )
         ))}
+        {filteredTasks.length === 0 && (
+            <div className="text-center py-10 text-muted-foreground">
+                No tasks matching "{searchQuery}"
+            </div>
+        )}
       </div>
     </div>
   );

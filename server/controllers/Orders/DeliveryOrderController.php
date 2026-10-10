@@ -1,13 +1,16 @@
 <?php
 require_once './models/Orders/DeliveryOrder.php';
+require_once './helpers/SmsHelper.php';
 
 class DeliveryOrderController
 {
     private $model;
+    private $pdo;
 
     public function __construct($pdo)
     {
         $this->model = new DeliveryOrder($pdo);
+        $this->pdo = $pdo;
     }
 
     // Get all delivery orders
@@ -15,6 +18,17 @@ class DeliveryOrderController
     {
         $records = $this->model->getAllRecords();
         echo json_encode($records);
+    }
+
+    public function getRecordByCourseCode($courseCode)
+    {
+        $records = $this->model->getRecordByCourseCode($courseCode);
+        if ($records !== false) {
+            echo json_encode($records);
+        } else {
+            http_response_code(404);
+            echo json_encode(['error' => 'No delivery orders found for the given course code']);
+        }
     }
 
     // Get a delivery order by ID
@@ -83,6 +97,26 @@ class DeliveryOrderController
         if ($this->validateData($data)) {
             $success = $this->model->createRecord($data);
             if ($success) {
+                // Send SMS on order placement
+                $phone_1 = $data['phone_1'] ?? null;
+                $index_number = $data['index_number'] ?? 'Student';
+                $deliveryItem = $data['delivery_title'] ?? 'Package';
+
+                if ($phone_1) {
+                    $stmt = $this->pdo->prepare("SELECT template_content FROM sms_templates WHERE template_name = 'delivery-order-placed'");
+                    $stmt->execute();
+                    $template = $stmt->fetchColumn();
+                    
+                    if ($template) {
+                        $messageText = str_replace(
+                            ['{index_number}', '{delivery_item}'],
+                            [$index_number, $deliveryItem],
+                            $template
+                        );
+                        SentSMS($phone_1, 'Pharma C.', $messageText);
+                    }
+                }
+
                 http_response_code(201);
                 echo json_encode(['message' => 'Delivery order created successfully']);
             } else {
@@ -101,12 +135,62 @@ class DeliveryOrderController
         $data = json_decode(file_get_contents("php://input"), true);
 
         if ($this->validateData($data)) {
+            // Get current record to check for status changes
+            $currentRecord = $this->model->getRecordById($id);
+            $oldStatus = $currentRecord ? $currentRecord['current_status'] : null;
+
+            // Automatically set dates if status changed
+            if ($oldStatus !== null && $oldStatus != $data['current_status']) {
+                $newStatus = $data['current_status'];
+                if ($newStatus == 2 && empty($data['packed_date'])) {
+                    $data['packed_date'] = date('Y-m-d H:i:s');
+                } else if ($newStatus == 3 && empty($data['send_date'])) {
+                    $data['send_date'] = date('Y-m-d H:i:s');
+                } else if ($newStatus == 4 && empty($data['removed_date'])) {
+                    $data['removed_date'] = date('Y-m-d H:i:s');
+                }
+            }
+
             $success = $this->model->updateRecord($id, $data);
             if ($success) {
+                // Send SMS if status changed
+                $newStatus = $data['current_status'];
+                if ($oldStatus !== null && $oldStatus != $newStatus) {
+                    $phone_1 = $data['phone_1'];
+                    $index_number = $data['index_number'];
+                    $trackingNumber = $data['tracking_number'] ?? 'Not Set';
+                    $codAmount = $data['cod_amount'] ?? '0.00';
+                    $deliveryItem = $data['delivery_title'] ?? 'Package';
+
+                    $templateName = '';
+                    if ($newStatus == 2) {
+                        $templateName = 'delivery-order-packed';
+                    } else if ($newStatus == 3) {
+                        $templateName = 'delivery-order-dispatched';
+                    } else if ($newStatus == 4) {
+                        $templateName = 'delivery-order-received';
+                    }
+
+                    if ($templateName !== '') {
+                        $stmt = $this->pdo->prepare("SELECT template_content FROM sms_templates WHERE template_name = ?");
+                        $stmt->execute([$templateName]);
+                        $template = $stmt->fetchColumn();
+
+                        if ($template) {
+                            $messageText = str_replace(
+                                ['{index_number}', '{delivery_item}', '{tracking_number}', '{cod_amount}'],
+                                [$index_number, $deliveryItem, $trackingNumber, $codAmount],
+                                $template
+                            );
+                            SentSMS($phone_1, 'Pharma C.', $messageText);
+                        }
+                    }
+                }
+
                 echo json_encode(['status'=> 'success', 'message' => 'Delivery order updated successfully']);
             } else {
                 http_response_code(500);
-                echo json_encode(['status'=> 'success', 'message' => 'Failed to update delivery order']);
+                echo json_encode(['status'=> 'error', 'message' => 'Failed to update delivery order']);
             }
         } else {
             http_response_code(400);

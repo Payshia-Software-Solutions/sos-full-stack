@@ -7,7 +7,7 @@ class UserController
 
     public function __construct($pdo)
     {
-        $this->model = new User($pdo);
+        $this->model = new SysUser($pdo);
     }
 
     public function getAllRecords()

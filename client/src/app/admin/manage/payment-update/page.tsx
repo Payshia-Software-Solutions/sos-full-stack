@@ -1,25 +1,18 @@
-
-
 "use client";
 
-import { useState, useMemo } from 'react';
+import { LMS_API_URL } from "@/lib/config";
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, AlertTriangle, User, Mail, Phone, PlusCircle, CalendarIcon } from 'lucide-react';
+import { Search, Loader2, Mail, Phone, User as UserIcon, CreditCard, Clock, CheckCircle2, History, Trash2, ZoomIn, ZoomOut, AlertTriangle, ChevronLeft } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { useIsMobile } from '@/hooks/use-mobile';
-import { useController } from 'react-hook-form';
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 // --- Types for this page ---
 interface StudentInfo {
@@ -39,46 +32,312 @@ interface ApiPaymentRecord {
     payment_status: string;
     payment_type: string;
     paid_date: string;
+    discount_amount?: string;
 }
 
-interface StudentBalance {
-    totalPaymentAmount: number;
-    studentBalance: number;
-    paymentRecords: Record<string, ApiPaymentRecord>;
-}
-
-// Simplified Enrollment, as we only need course code and name for the dropdown
-interface SimpleEnrollment {
+interface StudentEnrollment {
     id: string;
     course_code: string;
+    batch_name: string;
     parent_course_name: string;
+    course_fee: string;
+    registration_fee: string;
+    course_duration: string;
+    studentBalanceDetails: {
+        totalPaymentAmount: number;
+        TotalStudentPaymentRecords: number;
+        studentBalance: number;
+        TotalRegistrationFee: number;
+        paymentRecords: Record<string, ApiPaymentRecord> | ApiPaymentRecord[];
+    };
+}
+
+interface PendingPaymentRequest {
+    id: string;
+    unique_number: string;
+    number_type: string;
+    payment_reson: string;
+    paid_amount: string;
+    payment_reference: string;
+    bank: string;
+    branch: string;
+    slip_path: string;
+    paid_date: string;
+    created_at: string;
+    is_active: string;
+    hash_value: string;
+    payment_status: string;
 }
 
 interface FullStudentData {
     studentInfo: StudentInfo;
-    studentBalance: StudentBalance;
-    studentEnrollments: Record<string, SimpleEnrollment>; // Added enrollments
+    studentEnrollments: StudentEnrollment[];
+    pendingPaymentRequests: PendingPaymentRequest[];
 }
 
+// --- Constants ---
+const CONTENT_PROVIDER_URL = process.env.NEXT_PUBLIC_CONTENT_PROVIDER_URL || 'https://content-provider.pharmacollege.lk';
+
+const ZoomableImage = ({ src, alt, className }: { src: string; alt: string; className?: string }) => {
+    const [scale, setScale] = useState(1);
+
+    return (
+        <div className="flex flex-col items-center w-full">
+            <div className="flex gap-2 mb-4">
+                <Button type="button" variant="outline" size="sm" onClick={() => setScale(s => s + 0.25)}>
+                    <ZoomIn className="w-4 h-4 mr-1" /> Zoom In
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setScale(s => Math.max(0.25, s - 0.25))}>
+                    <ZoomOut className="w-4 h-4 mr-1" /> Zoom Out
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setScale(1)}>
+                    Reset
+                </Button>
+            </div>
+            <div className="overflow-auto border border-slate-800 shadow-sm rounded-md w-full max-h-[65vh] bg-slate-950 flex justify-center p-2 relative custom-scrollbar">
+                <img 
+                    src={src} 
+                    alt={alt} 
+                    className={className}
+                    style={{ transform: `scale(${scale})`, transformOrigin: 'top center', transition: 'transform 0.2s ease-in-out' }}
+                />
+            </div>
+        </div>
+    );
+};
+
 export default function PaymentUpdatePage() {
-    const [studentId, setStudentId] = useState('');
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const initialStudentId = searchParams?.get('student_id') || '';
+    
+    const [studentId, setStudentId] = useState(initialStudentId);
     const [studentData, setStudentData] = useState<FullStudentData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-    const isMobile = useIsMobile();
     
-    // Form state for new payment
-    const [newPaymentAmount, setNewPaymentAmount] = useState('');
-    const [newPaymentCourseCode, setNewPaymentCourseCode] = useState('');
-    const [newPaymentDate, setNewPaymentDate] = useState<Date | undefined>(new Date());
-    const [newReceiptNumber, setNewReceiptNumber] = useState('');
-    const [newPaymentMethod, setNewPaymentMethod] = useState('');
-    const [newDiscountAmount, setNewDiscountAmount] = useState('');
+    const [selectedCourseIndex, setSelectedCourseIndex] = useState<number>(0);
 
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!studentId.trim()) {
+    // Form state for new payment
+    const [discountPercentage, setDiscountPercentage] = useState<number>(0);
+    const [paymentType, setPaymentType] = useState('Bank Transfer');
+    const [paymentReference, setPaymentReference] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    const [customPayingAmount, setCustomPayingAmount] = useState<string>('');
+    const [selectedPaymentRequestId, setSelectedPaymentRequestId] = useState<string>('');
+
+    useEffect(() => {
+        if (initialStudentId) {
+            handleSearch(undefined, initialStudentId);
+        }
+    }, []);
+
+    const [allPendingRequests, setAllPendingRequests] = useState<PendingPaymentRequest[]>([]);
+    const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+
+    const [startDate, setStartDate] = useState<string>(() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 2);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    });
+    const [endDate, setEndDate] = useState<string>(() => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    });
+    const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
+
+    const filteredPendingRequests = useMemo(() => {
+        return allPendingRequests.filter((req) => {
+            // ONLY student_number requests
+            if (req.number_type !== 'student_number') return false;
+            
+            // Check created_at date range
+            const reqDateStr = req.created_at.split(' ')[0]; // E.g. "2025-07-20"
+            if (startDate && reqDateStr < startDate) return false;
+            if (endDate && reqDateStr > endDate) return false;
+            
+            return true;
+        });
+    }, [allPendingRequests, startDate, endDate]);
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedRequestIds(filteredPendingRequests.map(r => r.id));
+        } else {
+            setSelectedRequestIds([]);
+        }
+    };
+
+    const handleSelectRow = (id: string, checked: boolean) => {
+        if (checked) {
+            setSelectedRequestIds(prev => [...prev, id]);
+        } else {
+            setSelectedRequestIds(prev => prev.filter(x => x !== id));
+        }
+    };
+
+    const handleBulkApprove = async () => {
+        if (selectedRequestIds.length === 0) return;
+        if (!confirm(`Are you sure you want to approve the ${selectedRequestIds.length} selected payment requests? This will mark their status as 'Approved' in the payment portal requests table.`)) {
+            return;
+        }
+
+        setIsLoadingRequests(true);
+        try {
+            const promises = selectedRequestIds.map(id => 
+                fetch(`${LMS_API_URL}/payment-portal-requests/update-status/${id}/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ payment_status: 'Approved' })
+                })
+            );
+
+            await Promise.all(promises);
+
+            toast({
+                title: "Bulk Approval Successful",
+                description: `Successfully approved ${selectedRequestIds.length} payment requests.`,
+            });
+            
+            setSelectedRequestIds([]);
+            fetchAllPendingRequests();
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Bulk Approval Failed', description: err.message });
+        } finally {
+            setIsLoadingRequests(false);
+        }
+    };
+
+    const handleDeleteRequest = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this payment request slip? This action cannot be undone.")) return;
+
+        setIsLoadingRequests(true);
+        try {
+            const res = await fetch(`${LMS_API_URL}/payment-portal-requests/${id}/`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) throw new Error('Failed to delete payment request');
+
+            toast({
+                title: "Slip Deleted",
+                description: "The pending payment slip has been deleted successfully.",
+            });
+            
+            setSelectedRequestIds(prev => prev.filter(x => x !== id));
+            fetchAllPendingRequests();
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Error', description: err.message });
+        } finally {
+            setIsLoadingRequests(false);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedRequestIds.length === 0) return;
+        if (!confirm(`Are you sure you want to delete the ${selectedRequestIds.length} selected payment request slips? This action cannot be undone.`)) {
+            return;
+        }
+
+        setIsLoadingRequests(true);
+        try {
+            const promises = selectedRequestIds.map(id => 
+                fetch(`${LMS_API_URL}/payment-portal-requests/${id}/`, {
+                    method: 'DELETE',
+                })
+            );
+
+            await Promise.all(promises);
+
+            toast({
+                title: "Bulk Delete Successful",
+                description: `Successfully deleted ${selectedRequestIds.length} payment request slips.`,
+            });
+            
+            setSelectedRequestIds([]);
+            fetchAllPendingRequests();
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Bulk Delete Failed', description: err.message });
+        } finally {
+            setIsLoadingRequests(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!studentData) {
+            fetchAllPendingRequests();
+        }
+    }, [studentData]);
+
+    const fetchAllPendingRequests = async () => {
+        setIsLoadingRequests(true);
+        try {
+            const response = await fetch(`${LMS_API_URL}/payment-portal-requests?t=${Date.now()}`);
+            if (response.ok) {
+                const data = await response.json();
+                const pending = Array.isArray(data) ? data.filter((r: any) => r.payment_status === 'Pending') : [];
+                setAllPendingRequests(pending);
+            }
+        } catch (error) {
+            console.error("Failed to fetch pending requests:", error);
+        } finally {
+            setIsLoadingRequests(false);
+        }
+    };
+
+    const handleDeleteRequestInProfile = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this payment request slip? This action cannot be undone.")) return;
+
+        setIsSubmitting(true);
+        try {
+            const res = await fetch(`${LMS_API_URL}/payment-portal-requests/${id}/`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) throw new Error('Failed to delete payment request');
+
+            toast({
+                title: "Slip Deleted",
+                description: "The pending payment slip has been deleted successfully.",
+            });
+            
+            // Refresh student profile data to update list
+            handleSearch(undefined, studentData!.studentInfo.student_id);
+            setSelectedPaymentRequestId('');
+            setPaymentReference('');
+            setCustomPayingAmount('');
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Error', description: err.message });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleProcessPendingRequest = async (req: PendingPaymentRequest) => {
+        setSelectedPaymentRequestId('');
+        setPaymentReference('');
+        setCustomPayingAmount('');
+        
+        await handleSearch(undefined, req.unique_number);
+        
+        setSelectedPaymentRequestId(req.id);
+        setPaymentReference(req.payment_reference || '');
+        setCustomPayingAmount(req.paid_amount || '');
+        setPaymentType('Bank Transfer');
+    };
+
+    const handleSearch = async (e?: React.FormEvent, searchId?: string) => {
+        if (e) e.preventDefault();
+        const idToSearch = searchId || studentId;
+        if (!idToSearch.trim()) {
             toast({ variant: 'destructive', title: 'Error', description: 'Please enter a student ID.' });
             return;
         }
@@ -86,16 +345,26 @@ export default function PaymentUpdatePage() {
         setIsLoading(true);
         setError(null);
         setStudentData(null);
+        setSelectedCourseIndex(0);
 
         try {
-            const response = await fetch(`https://qa-api.pharmacollege.lk/get-student-full-info?loggedUser=${studentId.trim().toUpperCase()}`);
+            const baseUrl = LMS_API_URL;
+            const response = await fetch(`${baseUrl}/get-student-full-info?loggedUser=${idToSearch.trim().toUpperCase()}`);
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: `Student not found or server error. Status: ${response.status}` }));
                 throw new Error(errorData.message || 'Student not found or API response is invalid.');
             }
             const data = await response.json();
-            if (data && data.studentInfo && data.studentBalance && data.studentEnrollments) {
-                setStudentData(data);
+            if (data && data.studentInfo && data.studentEnrollments) {
+                const enrollments = Array.isArray(data.studentEnrollments) 
+                    ? data.studentEnrollments 
+                    : Object.values(data.studentEnrollments);
+                
+                setStudentData({
+                    studentInfo: data.studentInfo,
+                    studentEnrollments: enrollments as StudentEnrollment[],
+                    pendingPaymentRequests: Array.isArray(data.pendingPaymentRequests) ? data.pendingPaymentRequests : []
+                });
             } else {
                  throw new Error('Student data is incomplete or invalid in the API response.');
             }
@@ -107,288 +376,686 @@ export default function PaymentUpdatePage() {
         }
     };
 
-    const handleAddPayment = () => {
-        if (!studentData || !newPaymentAmount || !newPaymentCourseCode || !newReceiptNumber || !newPaymentMethod) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please fill all required fields.' });
+    const selectedCourse = studentData?.studentEnrollments[selectedCourseIndex];
+    const dueAmount = selectedCourse ? selectedCourse.studentBalanceDetails.studentBalance : 0;
+    
+    const discountAmount = useMemo(() => {
+        if (!discountPercentage) return 0;
+        return (dueAmount * (discountPercentage / 100));
+    }, [dueAmount, discountPercentage]);
+
+    const finalPayAmount = useMemo(() => {
+        if (customPayingAmount !== '') {
+            return parseFloat(customPayingAmount) || 0;
+        }
+        return dueAmount - discountAmount;
+    }, [dueAmount, discountAmount, customPayingAmount]);
+
+    const handleAddPayment = async () => {
+        if (!selectedCourse) return;
+        
+        if (finalPayAmount <= 0) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Final Pay Amount must be greater than 0.' });
             return;
         }
 
-        const course = Object.values(studentData.studentEnrollments).find(c => c.course_code === newPaymentCourseCode);
-        if (!course) return;
-
-        // Mock addition
-        const newRecord: ApiPaymentRecord = {
-            id: `new-${Date.now()}`,
-            receipt_number: newReceiptNumber,
-            course_code: newPaymentCourseCode,
-            paid_amount: newPaymentAmount,
-            payment_status: 'Paid', // Assuming new payments are always paid
-            payment_type: newPaymentMethod,
-            paid_date: newPaymentDate ? format(newPaymentDate, "yyyy-MM-dd") : new Date().toISOString(),
-        };
-
-        const paymentValue = parseFloat(newPaymentAmount) - parseFloat(newDiscountAmount || '0');
-        const updatedBalance = studentData.studentBalance.studentBalance - paymentValue;
-        const updatedTotalPaid = studentData.studentBalance.totalPaymentAmount + paymentValue;
-        
-        setStudentData({
-            ...studentData,
-            studentBalance: {
-                ...studentData.studentBalance,
-                studentBalance: updatedBalance,
-                totalPaymentAmount: updatedTotalPaid,
-                paymentRecords: {
-                    ...studentData.studentBalance.paymentRecords,
-                    [newRecord.id]: newRecord,
-                },
-            }
-        });
-
-        toast({
-            title: "Payment Added",
-            description: `Payment of LKR ${newPaymentAmount} has been recorded for ${studentData.studentInfo.full_name}.`,
-        });
-
-        // Reset form and close dialog
-        setNewPaymentAmount('');
-        setNewPaymentCourseCode('');
-        setNewReceiptNumber('');
-        setNewPaymentDate(new Date());
-        setNewPaymentMethod('');
-        setNewDiscountAmount('');
-        setIsAddDialogOpen(false);
-    };
-
-    const paymentRecordsArray = studentData ? Object.values(studentData.studentBalance.paymentRecords).sort((a, b) => new Date(b.paid_date).getTime() - new Date(a.paid_date).getTime()) : [];
-    const enrollmentsArray = studentData ? Object.values(studentData.studentEnrollments) : [];
-
-    const DatePickerField = () => {
-        if (isMobile) {
-            return (
-                 <Input
-                    type="date"
-                    className="w-full h-10"
-                    value={newPaymentDate ? format(newPaymentDate, 'yyyy-MM-dd') : ''}
-                    onChange={(e) => setNewPaymentDate(e.target.value ? new Date(e.target.value) : undefined)}
-                />
-            )
+        if (!paymentReference.trim()) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Transaction Reference No. is required.' });
+            return;
         }
 
-        return (
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !newPaymentDate && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {newPaymentDate ? format(newPaymentDate, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                    <Calendar mode="single" selected={newPaymentDate} onSelect={setNewPaymentDate} initialFocus />
-                </PopoverContent>
-            </Popover>
-        );
-    }
+        if (studentData?.pendingPaymentRequests && studentData.pendingPaymentRequests.length > 0 && !selectedPaymentRequestId) {
+            if (!confirm("This student has pending payment slips that you haven't selected. Are you sure you want to process this payment manually without approving any of the uploaded slips?")) {
+                return;
+            }
+        }
+
+        setIsSubmitting(true);
+        try {
+            const payload = {
+                student_id: studentData!.studentInfo.student_id,
+                course_code: selectedCourse.course_code,
+                paid_amount: finalPayAmount,
+                discount_amount: discountAmount,
+                payment_reference: paymentReference.trim(),
+                payment_type: paymentType,
+                paid_date: new Date().toISOString().split('T')[0],
+                created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                created_by: 'Admin',
+                reason: 'Course Fee',
+                payment_status: 'Approved',
+                payment_request_id: selectedPaymentRequestId || null
+            };
+
+            const response = await fetch(`${LMS_API_URL}/student-payment-with-status-update/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Failed to record payment' }));
+                throw new Error(errorData.error || errorData.message || 'Failed to record payment');
+            }
+
+            toast({
+                title: "Payment Successful",
+                description: `Payment of LKR ${finalPayAmount.toLocaleString()} has been recorded.`,
+            });
+
+            handleSearch(undefined, studentData!.studentInfo.student_id);
+            setDiscountPercentage(0);
+            setPaymentReference('');
+            setCustomPayingAmount('');
+            setSelectedPaymentRequestId('');
+            
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Error', description: err.message });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleDeletePayment = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this payment record? This action cannot be undone.')) return;
+
+        try {
+            const res = await fetch(`${LMS_API_URL}/student-payments-new/${id}/`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) throw new Error('Failed to delete payment');
+
+            toast({
+                title: "Payment Deleted",
+                description: "The payment record has been deleted successfully.",
+            });
+
+            // Refresh student data
+            handleSearch(undefined, studentData!.studentInfo.student_id);
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Error', description: err.message });
+        }
+    };
 
     return (
-        <div className="p-4 md:p-8 space-y-6 pb-20">
-            <header>
-                <h1 className="text-3xl font-headline font-semibold">Payment Updates</h1>
-                <p className="text-muted-foreground">Find a student to view their balance and add new payments.</p>
-            </header>
-
-            <Card className="shadow-lg">
-                <CardContent className="p-6">
-                    <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
-                        <Input 
-                            placeholder="Enter Student ID (e.g., PA16642)" 
+        <div className="p-4 md:p-8 w-full max-w-full space-y-8 animate-in fade-in duration-500 bg-background text-foreground min-h-screen">
+            
+            {/* Header Area */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card/50 backdrop-blur-xl p-6 rounded-2xl border shadow-sm">
+                <div>
+                    <h1 className="text-3xl font-bold font-headline tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">Payment Gateway</h1>
+                    <p className="text-muted-foreground mt-1 font-medium">Manage student course fees and transactions professionally.</p>
+                </div>
+                <form onSubmit={handleSearch} className="flex gap-3 w-full md:w-auto">
+                    <div className="relative w-full md:w-72">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            type="text"
+                            placeholder="Student ID (e.g. PA34001)"
                             value={studentId}
                             onChange={(e) => setStudentId(e.target.value)}
-                            className="flex-grow"
+                            className="pl-9 h-11 bg-background border-input shadow-sm transition-all focus:ring-2 focus:ring-blue-500 rounded-xl"
+                            autoFocus
                         />
-                        <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                            Search
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
+                    </div>
+                    <Button type="submit" disabled={isLoading} className="h-11 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all">
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                        Search
+                    </Button>
+                </form>
+            </div>
 
-            {isLoading && (
-                <div className="space-y-6">
-                    <Skeleton className="h-[150px] w-full" />
-                    <Skeleton className="h-[250px] w-full" />
+            {error && (
+                <div className="p-4 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl flex items-center gap-3">
+                    <div className="bg-destructive/20 p-2 rounded-full"><Search className="h-4 w-4" /></div>
+                    <p className="font-medium">{error}</p>
                 </div>
             )}
 
-            {error && !isLoading && (
-                <Card className="border-destructive">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-destructive"><AlertTriangle /> An Error Occurred</CardTitle>
+            {!studentData && !isLoading && (
+                <Card className="shadow-lg border-border bg-card">
+                    <CardHeader className="bg-muted/15 border-b border-border pb-4">
+                        <CardTitle className="text-xl flex items-center gap-2 text-foreground">
+                            <Clock className="h-5 w-5 text-yellow-500" />
+                            Pending Payment Slips Awaiting Processing
+                        </CardTitle>
+                        <CardDescription className="text-muted-foreground">
+                            List of all bank slips uploaded by active students for course fee installments.
+                        </CardDescription>
                     </CardHeader>
-                    <CardContent><p>{error}</p></CardContent>
-                </Card>
-            )}
-
-            {studentData && (
-                <div className="space-y-6">
-                    {/* Profile Header Card */}
-                    <Card className="shadow-lg">
-                        <CardContent className="p-4 md:p-6">
-                            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 md:gap-6">
-                                <Avatar className="w-24 h-24 text-4xl border-2 border-primary" data-ai-hint="student avatar">
-                                    <AvatarImage src={`https://placehold.co/150x150.png`} alt={studentData.studentInfo.full_name} />
-                                    <AvatarFallback>{studentData.studentInfo.full_name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 text-center sm:text-left">
-                                    <h2 className="text-2xl font-bold font-headline">{studentData.studentInfo.full_name}</h2>
-                                    <p className="text-muted-foreground">{studentData.studentInfo.student_id}</p>
-                                    <div className="mt-2 text-sm text-muted-foreground space-y-1">
-                                        <p className="flex items-center justify-center sm:justify-start gap-2 break-all"><Mail className="h-4 w-4 shrink-0" /> {studentData.studentInfo.e_mail}</p>
-                                        <p className="flex items-center justify-center sm:justify-start gap-2"><Phone className="h-4 w-4 shrink-0" /> {studentData.studentInfo.telephone_1}</p>
-                                    </div>
+                    <CardContent className="p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-border">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-muted-foreground">Start Date</label>
+                                    <Input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="h-10 text-sm bg-background border-input w-40"
+                                    />
                                 </div>
-                                <div className="w-full sm:w-auto grid grid-cols-2 gap-2 text-center pt-4 sm:pt-0 border-t sm:border-t-0 sm:pl-6 sm:border-l mt-4 sm:mt-0">
-                                    <div className="p-2">
-                                        <p className="text-sm text-muted-foreground">Total Paid</p>
-                                        <p className="text-lg font-bold">LKR {studentData.studentBalance.totalPaymentAmount.toLocaleString()}</p>
-                                    </div>
-                                    <div className="p-2">
-                                        <p className="text-sm text-muted-foreground">Outstanding</p>
-                                        <p className="text-lg font-bold text-destructive">LKR {studentData.studentBalance.studentBalance.toLocaleString()}</p>
-                                    </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-muted-foreground">End Date</label>
+                                    <Input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="h-10 text-sm bg-background border-input w-40"
+                                    />
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
+                            
+                            {selectedRequestIds.length > 0 && (
+                                <div className="flex items-center gap-2 self-end">
+                                    <Button 
+                                        onClick={handleBulkDelete}
+                                        variant="destructive"
+                                        className="font-bold h-10 px-6 rounded-xl shadow-md flex items-center gap-2"
+                                        disabled={isLoadingRequests}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                        Bulk Delete Selected ({selectedRequestIds.length})
+                                    </Button>
+                                    <Button 
+                                        onClick={handleBulkApprove}
+                                        className="bg-green-600 hover:bg-green-700 text-white font-bold h-10 px-6 rounded-xl shadow-md flex items-center gap-2"
+                                        disabled={isLoadingRequests}
+                                    >
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        Bulk Approve Selected ({selectedRequestIds.length})
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
 
-                    {/* Payment History Card */}
-                    <Card className="shadow-lg">
-                        <CardHeader className="flex flex-row justify-between items-center">
-                            <div className="space-y-1">
-                                <CardTitle>Payment History</CardTitle>
-                                <CardDescription>All recorded transactions for this student.</CardDescription>
+                        {isLoadingRequests ? (
+                            <div className="flex justify-center items-center py-12">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             </div>
-                            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button><PlusCircle className="mr-2 h-4 w-4" /> Add Payment</Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Add New Payment</DialogTitle>
-                                        <DialogDescription>Record a new payment for {studentData.studentInfo.full_name}.</DialogDescription>
-                                    </DialogHeader>
-                                    <div className="py-4 grid gap-4">
-                                        <div className="space-y-2">
-                                            <label htmlFor="receipt-number">Receipt Number</label>
-                                            <Input id="receipt-number" value={newReceiptNumber} onChange={(e) => setNewReceiptNumber(e.target.value)} placeholder="e.g. 123456" />
-                                        </div>
-                                         <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label htmlFor="payment-amount">Amount (LKR)</label>
-                                                <Input id="payment-amount" type="number" value={newPaymentAmount} onChange={(e) => setNewPaymentAmount(e.target.value)} placeholder="e.g. 5000" />
-                                            </div>
-                                             <div className="space-y-2">
-                                                <label htmlFor="discount-amount">Discount (LKR)</label>
-                                                <Input id="discount-amount" type="number" value={newDiscountAmount} onChange={(e) => setNewDiscountAmount(e.target.value)} placeholder="e.g. 500" />
-                                            </div>
-                                        </div>
-                                         <div className="space-y-2">
-                                            <label htmlFor="payment-method">Payment Method</label>
-                                            <Select value={newPaymentMethod} onValueChange={setNewPaymentMethod}>
-                                                <SelectTrigger id="payment-method"><SelectValue placeholder="Select a method..." /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="Cash">Cash</SelectItem>
-                                                    <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                                                    <SelectItem value="Card Payment">Card Payment</SelectItem>
-                                                    <SelectItem value="Online Gateway">Online Gateway</SelectItem>
-                                                    <SelectItem value="Other">Other</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                         <div className="space-y-2">
-                                            <label htmlFor="course-select">Associated Batch</label>
-                                            <Select value={newPaymentCourseCode} onValueChange={setNewPaymentCourseCode}>
-                                                <SelectTrigger id="course-select"><SelectValue placeholder="Select an enrolled batch..." /></SelectTrigger>
-                                                <SelectContent>
-                                                    {enrollmentsArray.map(enrollment => (
-                                                        <SelectItem key={enrollment.id} value={enrollment.course_code}>
-                                                            {enrollment.parent_course_name} ({enrollment.course_code})
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                         <div className="space-y-2">
-                                            <label htmlFor="payment-date">Payment Date</label>
-                                            <DatePickerField />
-                                        </div>
-                                    </div>
-                                    <DialogFooter>
-                                        <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-                                        <Button onClick={handleAddPayment}>Save Payment</Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                        </CardHeader>
-                        <CardContent>
-                             {/* Mobile View: List of Cards */}
-                            <div className="md:hidden space-y-4">
-                                {paymentRecordsArray.length > 0 ? paymentRecordsArray.map(rec => (
-                                    <div key={rec.id} className="p-4 border rounded-lg space-y-2 text-sm bg-muted/30">
-                                        <div className="flex justify-between items-center font-medium">
-                                            <span className="break-all font-semibold">{rec.receipt_number}</span>
-                                            <Badge variant={rec.payment_status === 'Paid' ? 'default' : 'secondary'}>{rec.payment_status}</Badge>
-                                        </div>
-                                        <div className="text-muted-foreground space-y-1">
-                                            <p><strong className="text-card-foreground">Course:</strong> {rec.course_code}</p>
-                                            <p><strong className="text-card-foreground">Amount:</strong> LKR {parseFloat(rec.paid_amount).toLocaleString()}</p>
-                                            <p><strong className="text-card-foreground">Date:</strong> {rec.paid_date}</p>
-                                            <p><strong className="text-card-foreground">Type:</strong> {rec.payment_type}</p>
-                                        </div>
-                                    </div>
-                                )) : (
-                                    <p className="text-center text-muted-foreground py-10">No payment records found.</p>
-                                )}
-                            </div>
-                            {/* Desktop View: Table */}
-                            <div className="hidden md:block">
-                                {paymentRecordsArray.length > 0 ? (
-                                <div className="relative w-full overflow-auto">
+                        ) : filteredPendingRequests.length > 0 ? (
+                            <div className="border border-border rounded-xl overflow-hidden bg-muted/5">
                                 <Table>
-                                    <TableHeader>
+                                    <TableHeader className="bg-muted/20">
                                         <TableRow>
-                                            <TableHead>Receipt #</TableHead>
-                                            <TableHead>Course</TableHead>
-                                            <TableHead>Type</TableHead>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead className="text-right">Amount (LKR)</TableHead>
+                                            <TableHead className="w-12 text-center">
+                                                <input 
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                    checked={filteredPendingRequests.length > 0 && selectedRequestIds.length === filteredPendingRequests.length}
+                                                    onChange={(e) => handleSelectAll(e.target.checked)}
+                                                />
+                                            </TableHead>
+                                            <TableHead className="font-bold text-foreground">Student ID</TableHead>
+                                            <TableHead className="font-bold text-foreground">Bank & Branch</TableHead>
+                                            <TableHead className="font-bold text-foreground">Submitted Date</TableHead>
+                                            <TableHead className="font-bold text-foreground">Ref Number</TableHead>
+                                            <TableHead className="font-bold text-foreground text-right">Amount</TableHead>
+                                            <TableHead className="font-bold text-foreground text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {paymentRecordsArray.map(rec => (
-                                            <TableRow key={rec.id}>
-                                                <TableCell className="font-medium whitespace-nowrap">{rec.receipt_number}</TableCell>
-                                                <TableCell>{rec.course_code}</TableCell>
-                                                <TableCell>{rec.payment_type}</TableCell>
-                                                <TableCell className="whitespace-nowrap">{rec.paid_date}</TableCell>
-                                                <TableCell><Badge variant={rec.payment_status === 'Paid' ? 'default' : 'secondary'}>{rec.payment_status}</Badge></TableCell>
-                                                <TableCell className="text-right font-semibold whitespace-nowrap">{parseFloat(rec.paid_amount).toLocaleString()}</TableCell>
+                                        {filteredPendingRequests.map((req) => (
+                                            <TableRow key={req.id} className={`hover:bg-muted/10 transition-colors ${selectedRequestIds.includes(req.id) ? 'bg-blue-500/5' : ''}`}>
+                                                <TableCell className="text-center">
+                                                    <input 
+                                                        type="checkbox"
+                                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                        checked={selectedRequestIds.includes(req.id)}
+                                                        onChange={(e) => handleSelectRow(req.id, e.target.checked)}
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="font-semibold text-foreground">{req.unique_number}</TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">
+                                                    {req.bank === "1" ? "BOC" : req.bank || "-"} {req.branch ? `(${req.branch})` : ""}
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">
+                                                    {new Date(req.created_at).toLocaleDateString()}
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-sm font-mono">{req.payment_reference || "-"}</TableCell>
+                                                <TableCell className="font-bold text-foreground text-right text-sm">
+                                                    LKR {parseFloat(req.paid_amount).toLocaleString()}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        {req.slip_path && (
+                                                            <Dialog>
+                                                                <DialogTrigger asChild>
+                                                                    <Button variant="outline" size="sm" className="text-xs">
+                                                                        View Slip
+                                                                    </Button>
+                                                                </DialogTrigger>
+                                                                <DialogContent className="max-w-3xl bg-slate-900 border-slate-800 text-slate-100">
+                                                                    <DialogHeader>
+                                                                        <DialogTitle className="text-slate-100">Payment Slip Preview</DialogTitle>
+                                                                    </DialogHeader>
+                                                                    <div className="flex justify-center items-center p-4 bg-slate-950 rounded-xl border border-slate-850">
+                                                                        {req.slip_path.toLowerCase().endsWith('.pdf') ? (
+                                                                            <iframe 
+                                                                                src={`${CONTENT_PROVIDER_URL}${req.slip_path}`} 
+                                                                                className="w-full h-[70vh] rounded-md border-0"
+                                                                                title="Payment Slip PDF"
+                                                                            />
+                                                                        ) : (
+                                                                            <img 
+                                                                                src={`${CONTENT_PROVIDER_URL}${req.slip_path}`} 
+                                                                                alt="Payment Slip" 
+                                                                                className="max-h-[65vh] object-contain rounded-md"
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                </DialogContent>
+                                                            </Dialog>
+                                                        )}
+                                                        <Button 
+                                                            onClick={() => handleProcessPendingRequest(req)} 
+                                                            size="sm" 
+                                                            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs"
+                                                        >
+                                                            Process Payment
+                                                        </Button>
+                                                        <Button 
+                                                            onClick={() => handleDeleteRequest(req.id)} 
+                                                            size="sm" 
+                                                            variant="destructive"
+                                                            className="text-xs"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
-                                </div>
-                                ) : (
-                                     <p className="text-center text-muted-foreground py-10">No payment records found.</p>
-                                )}
                             </div>
-                        </CardContent>
-                    </Card>
+                        ) : (
+                            <div className="text-center py-12 text-muted-foreground text-sm flex flex-col items-center justify-center space-y-2">
+                                <CheckCircle2 className="w-12 h-12 text-slate-650" />
+                                <p className="font-semibold text-slate-700">All caught up!</p>
+                                <p className="text-xs text-muted-foreground">No pending payment requests found within the selected range.</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
+            {studentData && (
+                <div className="flex justify-start">
+                    <Button 
+                        variant="outline" 
+                        onClick={() => {
+                            setStudentData(null);
+                            setStudentId('');
+                            setSelectedPaymentRequestId('');
+                            setPaymentReference('');
+                            setCustomPayingAmount('');
+                        }}
+                        className="flex items-center gap-2 hover:bg-muted text-sm font-semibold border-border bg-card rounded-xl px-4 h-10 shadow-sm"
+                    >
+                        <ChevronLeft className="h-4 w-4" /> Back to Pending List
+                    </Button>
+                </div>
+            )}
+
+            {studentData && selectedCourse && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    {/* Left Column: Profile & Payment Form */}
+                    <div className="lg:col-span-2 space-y-6">
+                        
+                        {/* Student Profile Card */}
+                        <Card className="border shadow-sm bg-card overflow-hidden">
+                            <CardContent className="p-6">
+                                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                                    <Avatar className="w-20 h-20 border-4 border-background shadow-md">
+                                        <AvatarImage src={`https://ui-avatars.com/api/?name=${encodeURIComponent(studentData.studentInfo.full_name)}&background=random`} />
+                                        <AvatarFallback><UserIcon className="h-8 w-8 text-muted-foreground"/></AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 text-center sm:text-left space-y-1">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
+                                            <h2 className="text-2xl font-bold text-foreground">{studentData.studentInfo.full_name}</h2>
+                                            <Badge variant="secondary" className="w-fit mx-auto sm:mx-0 font-mono bg-blue-500/10 text-blue-600 dark:text-blue-400">{studentData.studentInfo.student_id}</Badge>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row gap-4 text-sm text-muted-foreground pt-2">
+                                            <span className="flex items-center justify-center sm:justify-start gap-1.5"><Mail className="h-4 w-4" /> {studentData.studentInfo.e_mail}</span>
+                                            <span className="flex items-center justify-center sm:justify-start gap-1.5"><Phone className="h-4 w-4" /> {studentData.studentInfo.telephone_1}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Course Selector (If multiple) */}
+                        {studentData.studentEnrollments.length > 1 && (
+                            <Card className="border shadow-sm bg-card">
+                                <CardContent className="p-6 border-l-4 border-indigo-500 rounded-xl">
+                                    <label className="text-sm font-semibold text-muted-foreground mb-2 block uppercase tracking-wider">Select Enrolled Course</label>
+                                        <Select 
+                                        value={selectedCourseIndex.toString()} 
+                                        onValueChange={(val) => {
+                                            setSelectedCourseIndex(parseInt(val));
+                                            setDiscountPercentage(0);
+                                            setCustomPayingAmount('');
+                                        }}
+                                    >
+                                        <SelectTrigger className="w-full h-12 text-md font-medium bg-background border-input">
+                                            <SelectValue placeholder="Select a course" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {studentData.studentEnrollments.map((course, idx) => (
+                                                <SelectItem key={idx} value={idx.toString()} className="font-medium">
+                                                    {course.batch_name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Payment Processing Form */}
+                        {dueAmount > 0 ? (
+                            <Card className="border shadow-xl bg-card rounded-2xl overflow-hidden relative">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+                                <CardHeader className="pb-4 pt-8 px-8">
+                                    <CardTitle className="flex items-center gap-2 text-2xl text-foreground">
+                                        <CreditCard className="h-6 w-6 text-blue-500" />
+                                        Process Payment
+                                    </CardTitle>
+                                    <CardDescription className="text-base">Enter payment details to settle the outstanding balance.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="px-8 pb-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-foreground">Payment Type</label>
+                                            <Select value={paymentType} onValueChange={setPaymentType}>
+                                                <SelectTrigger className="h-11 bg-muted/50 border-input">
+                                                    <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                                                    <SelectItem value="Cash">Cash</SelectItem>
+                                                    <SelectItem value="Card">Card</SelectItem>
+                                                    <SelectItem value="Online">Online Checkout</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-foreground">Transaction Reference No. *</label>
+                                            <Input 
+                                                value={paymentReference} 
+                                                onChange={(e) => setPaymentReference(e.target.value)} 
+                                                placeholder="e.g. TXN98765432"
+                                                className="h-11 bg-muted/50 border-input"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="col-span-1 md:col-span-2 pt-4">
+                                            <Separator />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-foreground">Discount Applied (%)</label>
+                                            <div className="relative">
+                                                <Input 
+                                                    type="number" 
+                                                    min="0" 
+                                                    max="100" 
+                                                    value={discountPercentage || ''} 
+                                                    onChange={(e) => setDiscountPercentage(parseFloat(e.target.value) || 0)}
+                                                    className="h-12 pl-4 pr-10 text-lg bg-muted/50 border-input" 
+                                                    placeholder="0"
+                                                />
+                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">%</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-foreground">Discount Amount</label>
+                                            <div className="relative">
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">LKR</span>
+                                                <Input 
+                                                    readOnly 
+                                                    value={discountAmount.toLocaleString(undefined, {minimumFractionDigits: 2})} 
+                                                    className="h-12 pl-14 text-lg bg-muted text-muted-foreground font-medium border-transparent" 
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-foreground">Paying Amount</label>
+                                            <div className="relative">
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">LKR</span>
+                                                <Input 
+                                                    type="number"
+                                                    value={customPayingAmount !== '' ? customPayingAmount : (dueAmount - discountAmount)}
+                                                    onChange={(e) => setCustomPayingAmount(e.target.value)}
+                                                    placeholder={(dueAmount - discountAmount).toString()}
+                                                    className="h-12 pl-14 text-lg bg-background border-input font-bold" 
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {studentData.pendingPaymentRequests && studentData.pendingPaymentRequests.length > 0 && !selectedPaymentRequestId && (
+                                            <div className="col-span-1 md:col-span-2 bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-start gap-3 mt-2">
+                                                <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-amber-500">Pending Slips Warning</p>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        This student has pending uploaded slips. If this payment is to settle one of those slips, please select the slip from the <strong>"Pending Uploaded Slips"</strong> list to automatically mark it as approved.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="col-span-1 md:col-span-2 bg-indigo-500/10 p-6 rounded-xl border border-indigo-500/20 mt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                            <div>
+                                                <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">Final Payment Amount</p>
+                                                <h3 className="text-4xl font-black text-indigo-700 dark:text-indigo-300 tracking-tight">
+                                                    LKR {finalPayAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                                </h3>
+                                            </div>
+                                            <Button 
+                                                size="lg" 
+                                                onClick={handleAddPayment} 
+                                                disabled={isSubmitting || finalPayAmount <= 0}
+                                                className="w-full sm:w-auto px-10 h-14 bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold shadow-lg hover:shadow-xl transition-all rounded-xl"
+                                            >
+                                                {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
+                                                Confirm Payment
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <Card className="border shadow-sm bg-green-500/10 border-green-500/20">
+                                <CardContent className="p-10 text-center flex flex-col items-center justify-center space-y-4">
+                                    <div className="h-20 w-20 bg-green-500/20 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mb-2">
+                                        <CheckCircle2 className="h-10 w-10" />
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-green-700 dark:text-green-400">Course Fully Paid</h3>
+                                    <p className="text-green-600 dark:text-green-500 max-w-md mx-auto">There are no outstanding balances for this course. The student has successfully settled all fees.</p>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                    </div>
+
+                    {/* Right Column: Financial Overview & History */}
+                    <div className="space-y-6">
+                        
+                        {/* Financial Overview Card */}
+                        <Card className="border shadow-md bg-card overflow-hidden">
+                            <div className="bg-muted/50 p-6 border-b border-border">
+                                <h3 className="font-bold text-foreground mb-1 leading-tight">{selectedCourse.batch_name}</h3>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 font-medium">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    <span>{selectedCourse.course_duration || 'Duration Not Specified'}</span>
+                                </div>
+                            </div>
+                            <CardContent className="p-0">
+                                <div className="divide-y divide-border">
+                                    <div className="p-5 flex justify-between items-center">
+                                        <span className="text-muted-foreground font-medium">Course Fee</span>
+                                        <span className="font-bold text-foreground">LKR {parseFloat(selectedCourse.course_fee || '0').toLocaleString()}</span>
+                                    </div>
+                                    <div className="p-5 flex justify-between items-center">
+                                        <span className="text-muted-foreground font-medium">Reg. Fee</span>
+                                        <span className="font-bold text-foreground">LKR {parseFloat(selectedCourse.registration_fee || '0').toLocaleString()}</span>
+                                    </div>
+                                    <div className="p-5 flex justify-between items-center bg-muted/20">
+                                        <span className="text-muted-foreground font-medium">Total Paid</span>
+                                        <span className="font-bold text-green-600 dark:text-green-500">LKR {selectedCourse.studentBalanceDetails.TotalStudentPaymentRecords.toLocaleString()}</span>
+                                    </div>
+                                    <div className="p-6 bg-card flex flex-col items-center justify-center border-t-2 border-border">
+                                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Total Outstanding</span>
+                                        <span className={`text-3xl font-black tracking-tight ${dueAmount > 0 ? 'text-red-500 dark:text-red-400' : 'text-green-500 dark:text-green-400'}`}>
+                                            LKR {dueAmount.toLocaleString()}
+                                        </span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Pending Uploaded Slips */}
+                        {studentData.pendingPaymentRequests && studentData.pendingPaymentRequests.length > 0 && (
+                            <Card className="border shadow-md bg-card overflow-hidden border-indigo-500/20">
+                                <CardHeader className="p-5 border-b border-border pb-4 bg-indigo-500/5">
+                                    <CardTitle className="text-base flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+                                        <CreditCard className="h-4 w-4" />
+                                        Pending Uploaded Slips
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    <div className="divide-y divide-border max-h-[300px] overflow-y-auto">
+                                        {studentData.pendingPaymentRequests.map((req, idx) => (
+                                            <div key={idx} className={`p-4 flex flex-col gap-3 transition-colors ${selectedPaymentRequestId === req.id ? 'bg-indigo-500/10' : 'hover:bg-muted/30'}`}>
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <p className="text-sm font-bold text-foreground">LKR {parseFloat(req.paid_amount || '0').toLocaleString()}</p>
+                                                        <p className="text-xs text-muted-foreground mt-1">Ref: {req.payment_reference || 'N/A'}</p>
+                                                        <p className="text-xs text-muted-foreground">{req.bank} - {req.branch}</p>
+                                                        <p className="text-xs text-muted-foreground mt-1">{req.paid_date}</p>
+                                                    </div>
+                                                    <div className="flex flex-col gap-2 items-end">
+                                                        {req.slip_path && (
+                                                            <Dialog>
+                                                                <DialogTrigger asChild>
+                                                                    <button className="text-xs text-blue-600 hover:underline bg-blue-500/10 px-2 py-1 rounded">
+                                                                        View Slip
+                                                                    </button>
+                                                                </DialogTrigger>
+                                                                <DialogContent className="max-w-3xl">
+                                                                    <DialogHeader>
+                                                                        <DialogTitle>Payment Slip Preview</DialogTitle>
+                                                                    </DialogHeader>
+                                                                    <div className="flex justify-center items-center p-4">
+                                                                        {req.slip_path.toLowerCase().endsWith('.pdf') ? (
+                                                                            <iframe 
+                                                                                src={`${CONTENT_PROVIDER_URL}${req.slip_path}`} 
+                                                                                className="w-full h-[70vh] rounded-md border shadow-sm"
+                                                                                title="Payment Slip PDF"
+                                                                            />
+                                                                        ) : (
+                                                                            <ZoomableImage 
+                                                                                src={`${CONTENT_PROVIDER_URL}${req.slip_path}`} 
+                                                                                alt="Payment Slip" 
+                                                                                className="max-h-[65vh] object-contain transition-transform"
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                </DialogContent>
+                                                            </Dialog>
+                                                        )}
+                                                        <button 
+                                                            onClick={() => handleDeleteRequestInProfile(req.id)}
+                                                            className="text-xs text-red-600 hover:underline bg-red-500/10 px-2 py-1 rounded flex items-center gap-1 font-semibold"
+                                                        >
+                                                            <Trash2 className="h-3 w-3" /> Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <Button 
+                                                    size="sm" 
+                                                    variant={selectedPaymentRequestId === req.id ? "default" : "outline"}
+                                                    className={selectedPaymentRequestId === req.id ? "bg-indigo-600 hover:bg-indigo-700 w-full" : "w-full"}
+                                                    onClick={() => {
+                                                        if (selectedPaymentRequestId === req.id) {
+                                                            setSelectedPaymentRequestId('');
+                                                            setPaymentReference('');
+                                                            setCustomPayingAmount('');
+                                                        } else {
+                                                            setSelectedPaymentRequestId(req.id);
+                                                            setPaymentReference(req.payment_reference || '');
+                                                            setCustomPayingAmount(req.paid_amount || '');
+                                                            setPaymentType('Bank Transfer');
+                                                        }
+                                                    }}
+                                                >
+                                                    {selectedPaymentRequestId === req.id ? 'Selected for Processing' : 'Process this slip'}
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Recent History Mini-Table */}
+                        <Card className="border shadow-md bg-card">
+                            <CardHeader className="p-5 border-b border-border pb-4">
+                                <CardTitle className="text-base flex items-center gap-2 text-foreground">
+                                    <History className="h-4 w-4 text-muted-foreground" />
+                                    Recent Transactions
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {Object.values(selectedCourse.studentBalanceDetails.paymentRecords || {}).length === 0 ? (
+                                    <div className="p-8 text-center text-sm text-muted-foreground">
+                                        No payment history for this course.
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-border max-h-[300px] overflow-y-auto">
+                                        {Object.values(selectedCourse.studentBalanceDetails.paymentRecords)
+                                            .sort((a: any, b: any) => new Date(b.paid_date).getTime() - new Date(a.paid_date).getTime())
+                                            .map((record: ApiPaymentRecord, idx: number) => (
+                                            <div key={idx} className="p-4 flex justify-between items-center hover:bg-muted/30 transition-colors">
+                                                <div>
+                                                    <p className="text-sm font-bold text-foreground">{record.receipt_number || 'N/A'}</p>
+                                                    <p className="text-xs text-muted-foreground">{record.paid_date} &bull; {record.payment_type}</p>
+                                                </div>
+                                                    <div className="text-right flex flex-col justify-between items-end gap-2">
+                                                        <div>
+                                                            <p className="text-sm font-bold text-green-600 dark:text-green-500">+{parseFloat(record.paid_amount || '0').toLocaleString()}</p>
+                                                            {parseFloat(record.discount_amount || '0') > 0 && (
+                                                                <p className="text-[10px] text-muted-foreground">Disc: {parseFloat(record.discount_amount!).toLocaleString()}</p>
+                                                            )}
+                                                        </div>
+                                                        <button 
+                                                            title="Delete Payment"
+                                                            onClick={() => handleDeletePayment(record.id)}
+                                                            className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-500/10 p-1 rounded transition-colors"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                    </div>
                 </div>
             )}
         </div>
     );
 }
-
-    

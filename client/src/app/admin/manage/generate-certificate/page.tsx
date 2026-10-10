@@ -79,7 +79,7 @@ const CertificateGenerationRow = ({ student, course }: { student: StudentInBatch
             return (
                 <div className="flex gap-2 justify-end">
                     <Button asChild size="sm" variant="outline">
-                        <Link href={`/print/certificate/${generatedCertificate.certificate_id}`} target="_blank">
+                        <Link href={`/print/certificate/${generatedCertificate.certificate_id}?doc_type=Certificate&student_number=${encodeURIComponent(student.username)}&course_code=${encodeURIComponent(course.courseCode)}`} target="_blank">
                             <Eye className="mr-2 h-4 w-4" /> View
                         </Link>
                     </Button>

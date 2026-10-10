@@ -1,6 +1,6 @@
-
 'use client';
 
+import { LMS_API_URL } from "@/lib/config";
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from "@/components/ui/calendar";
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { parseNIC } from '@/lib/nic-parser';
@@ -84,11 +85,14 @@ export default function RegisterPage() {
   const [selectedCourse, setSelectedCourse] = useState('');
 
   const [isRegistering, setIsRegistering] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   
     useEffect(() => {
         async function fetchCities() {
             try {
-                const response = await fetch('https://qa-api.pharmacollege.lk/cities');
+                const baseUrl = LMS_API_URL;
+                const response = await fetch(`${baseUrl}/cities`);
                 if (!response.ok) throw new Error('Failed to fetch cities');
                 const data = await response.json();
                 setCities(Object.values(data));
@@ -101,7 +105,8 @@ export default function RegisterPage() {
         }
         async function fetchCourses() {
             try {
-                const response = await fetch('https://qa-api.pharmacollege.lk/parent-main-course');
+                const baseUrl = LMS_API_URL;
+                const response = await fetch(`${baseUrl}/parent-main-course`);
                 if (!response.ok) throw new Error('Failed to fetch courses');
                 const data = await response.json();
                 setCourses(data);
@@ -148,6 +153,16 @@ export default function RegisterPage() {
             // Basic email validation
             if (!/\S+@\S+\.\S+/.test(email)) {
                 showValidationError("Please enter a valid email address.");
+                return false;
+            }
+            // Phone number validation: must be 10 digits
+            if (!/^\d{10}$/.test(phone1)) {
+                showValidationError("Please enter a valid 10-digit phone number (e.g., 0711234567).");
+                return false;
+            }
+            // WhatsApp number validation (if provided)
+            if (whatsapp && !/^\d{10}$/.test(whatsapp)) {
+                showValidationError("Please enter a valid 10-digit WhatsApp number (e.g., 0711234567).");
                 return false;
             }
             break;
@@ -232,7 +247,8 @@ export default function RegisterPage() {
     };
 
     try {
-      const response = await fetch('https://qa-api.pharmacollege.lk/temp-users', {
+      const baseUrl = LMS_API_URL;
+      const response = await fetch(`${baseUrl}/temp-users`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -243,7 +259,7 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.details || data.error || data.message || `Request failed with status ${response.status}`);
+        throw new Error(data.error || data.details || data.message || `Request failed with status ${response.status}`);
       }
 
       toast({
@@ -255,11 +271,8 @@ export default function RegisterPage() {
       setCurrentStep(STEPS.length + 1); // Move to success step
 
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Registration Failed",
-        description: error instanceof Error ? error.message : "Could not submit your registration.",
-      });
+      setErrorMessage(error instanceof Error ? error.message : "Could not submit your registration.");
+      setShowErrorModal(true);
     } finally {
       setIsRegistering(false);
     }
@@ -360,7 +373,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-2xl shadow-2xl">
         <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-                <Image src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="Ceylon Pharma College Logo" width={64} height={64} className="w-16 h-16" />
+                <Image unoptimized src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="Ceylon Pharma College Logo" width={64} height={64} className="w-16 h-16" />
             </div>
           <CardTitle className="text-2xl font-headline">Student Registration</CardTitle>
           {currentStep <= STEPS.length && (
@@ -474,16 +487,31 @@ export default function RegisterPage() {
                          <div className="space-y-4 animate-in fade-in-50">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Phone Number</Label>
-                                    <Input type="tel" value={phone1} onChange={(e) => setPhone1(e.target.value)} required />
+                                    <Label htmlFor="phone">Phone Number</Label>
+                                    <Input 
+                                        id="phone"
+                                        type="tel" 
+                                        placeholder="e.g., 0711234567" 
+                                        value={phone1} 
+                                        onChange={(e) => setPhone1(e.target.value.replace(/\D/g, '').slice(0, 10))} 
+                                        required 
+                                    />
+                                    <p className="text-[11px] text-muted-foreground">Must be a 10-digit number (e.g., 0711234567)</p>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Email Address</Label>
-                                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                                    <Label htmlFor="email">Email Address</Label>
+                                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                                 </div>
                                  <div className="space-y-2">
-                                    <Label>WhatsApp Number</Label>
-                                    <Input type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
+                                    <Label htmlFor="whatsapp">WhatsApp Number</Label>
+                                    <Input 
+                                        id="whatsapp"
+                                        type="tel" 
+                                        placeholder="e.g., 0711234567" 
+                                        value={whatsapp} 
+                                        onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, '').slice(0, 10))} 
+                                    />
+                                    <p className="text-[11px] text-muted-foreground">Optional, must be a 10-digit number</p>
                                 </div>
                             </div>
                          </div>
@@ -572,6 +600,22 @@ export default function RegisterPage() {
         </CardFooter>
       </Card>
       <BankInfoDialog variant="floating" />
+
+      <AlertDialog open={showErrorModal} onOpenChange={setShowErrorModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive flex items-center gap-2">
+               Registration Failed
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base text-foreground mt-2">
+              {errorMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowErrorModal(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

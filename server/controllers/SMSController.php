@@ -12,13 +12,26 @@ class SMSController
         $this->smsModel = new SMSModel($authToken, $senderId, $templatePath);
     }
 
+    private function formatMobileNumber($mobile)
+    {
+        $mobile = preg_replace('/[^0-9]/', '', (string)$mobile);
+        if (strpos($mobile, '94') === 0 && strlen($mobile) === 11) {
+            $mobile = '0' . substr($mobile, 2);
+        } elseif (strlen($mobile) === 9 && strpos($mobile, '0') !== 0) {
+            $mobile = '0' . $mobile;
+        }
+        return $mobile;
+    }
+
     public function sendSMS($mobile, $senderId = 'Pharma C.', $message = "Waiting..!")
     {
         try {
-            // Validate mobile number
-            if (empty($mobile) || !preg_match('/^\d{10}$/', $mobile)) {
+            $mobile = $this->formatMobileNumber($mobile);
+
+            // Validate mobile number (must be 10 digits starting with 0)
+            if (empty($mobile) || !preg_match('/^0\d{9}$/', $mobile)) {
                 http_response_code(400); // Bad Request
-                echo json_encode(['status' => 'error', 'message' => 'Invalid mobile number']);
+                echo json_encode(['status' => 'error', 'message' => 'Invalid mobile number. Sri Lankan numbers must be 10 digits starting with 0.']);
                 return;
             }
 
@@ -43,6 +56,7 @@ class SMSController
     public function sendWelcomeSMS($mobile, $studentName, $referenceNumber)
     {
         try {
+            $mobile = $this->formatMobileNumber($mobile);
             $response = $this->smsModel->sendWelcomeSMS($mobile, $studentName, $referenceNumber);
             echo json_encode($response);
         } catch (Exception $e) {
@@ -54,6 +68,7 @@ class SMSController
     public function sendOrderSMS($mobile, $studentName)
     {
         try {
+            $mobile = $this->formatMobileNumber($mobile);
             $response = $this->smsModel->sendOrderSMS($mobile, $studentName);
             echo json_encode($response);
         } catch (Exception $e) {
@@ -65,6 +80,7 @@ class SMSController
     public function sendNameOnCertificateSMS($mobile, $studentName, $studenNumber)
     {
         try {
+            $mobile = $this->formatMobileNumber($mobile);
             // Validate inputs
             if (empty($mobile) || empty($studentName) || empty($studenNumber)) {
                 throw new Exception("Mobile number, student name, and student number are required.");

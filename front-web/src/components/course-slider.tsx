@@ -1,34 +1,23 @@
-
 "use client";
 
-import { useState, useEffect } from 'react';
+import { LMS_API_URL } from "@/lib/config";
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { ArrowRight, Clock, BookOpen, ClipboardList } from 'lucide-react';
+import { ArrowRight, Clock, MonitorPlay, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from '@/context/language-context';
 import { Skeleton } from './ui/skeleton';
 import { Badge } from "@/components/ui/badge";
-
-interface Course {
-  id: string;
-  course_name: string;
-  course_code: string;
-  course_fee: string;
-  course_img: string;
-  slug: string;
-  course_duration: string;
-  skill_level: string;
-  assessments: string;
-  display: string;
-}
+import { Button } from "@/components/ui/button";
+import { Course, FALLBACK_COURSES, getCourseCategory } from "@/lib/courses-data";
 
 const CourseCardSkeleton = () => (
     <div className="p-1 h-full">
         <Card className="overflow-hidden h-full flex flex-col">
             <CardContent className="p-0 flex flex-col flex-grow">
-                <Skeleton className="aspect-square w-full" />
+                <Skeleton className="aspect-video w-full" />
                 <div className="p-4 bg-card border-t flex flex-col flex-grow">
                     <Skeleton className="h-6 w-3/4 mb-2" />
                     <Skeleton className="h-4 w-1/2" />
@@ -42,22 +31,39 @@ const CourseCardSkeleton = () => (
     </div>
 );
 
-export default function CourseSlider() {
+interface CourseSliderProps {
+  initialCourses?: Course[];
+}
+
+export default function CourseSlider({ initialCourses }: CourseSliderProps) {
   const { t } = useTranslation();
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  const baseCourses = useMemo(() => {
+    return (initialCourses && initialCourses.length > 0) ? initialCourses : FALLBACK_COURSES;
+  }, [initialCourses]);
+
+  const [courses, setCourses] = useState<Course[]>(baseCourses);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function fetchCourses() {
       try {
-        const response = await fetch('https://qa-api.pharmacollege.lk/parent-main-course');
+        const response = await fetch(`${LMS_API_URL}/parent-main-course`);
+        if (!response.ok) return;
         const data = await response.json();
-        const visibleCourses = data.filter((course: Course) => course.display !== '0');
-        setCourses(visibleCourses);
+        if (Array.isArray(data) && data.length > 0) {
+          const visibleCourses = data
+            .filter((course: any) => String(course.display) !== '0' && course.display !== 0)
+            .map((c: any) => ({
+              ...c,
+              price: parseFloat(String(c.course_fee)) || 0,
+              category: getCourseCategory(c.course_name),
+              mode: "Online • Live Zoom + Recordings",
+            }));
+          setCourses(visibleCourses);
+        }
       } catch (error) {
-        console.error("Failed to fetch courses:", error);
-      } finally {
-        setLoading(false);
+        console.warn("Using SSR fallback for course slider:", error);
       }
     }
     fetchCourses();
@@ -67,73 +73,114 @@ export default function CourseSlider() {
     <section id="courses" className="w-full py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-12">
+          <Badge variant="outline" className="mb-2 px-3 py-1 font-semibold text-primary border-primary/30">
+            Featured Programs
+          </Badge>
           <h2 className="text-3xl md:text-4xl font-headline font-bold text-foreground">
             {t('courseSliderTitle')}
           </h2>
-          <div className="w-24 h-1 bg-primary mx-auto mt-2" />
+          <div className="w-24 h-1 bg-primary mx-auto mt-3 rounded-full" />
+          <p className="mt-3 text-muted-foreground max-w-xl mx-auto text-sm md:text-base">
+            Choose from Sri Lanka's leading practical pharmacy courses designed for career success.
+          </p>
         </div>
+
         <Carousel
           opts={{
             align: "start",
-            loop: courses.length > 4,
+            loop: courses.length > 3,
           }}
           className="w-full"
         >
           <CarouselContent className="-ml-2">
             {loading ? (
-              Array.from({ length: 5 }).map((_, index) => (
-                <CarouselItem key={index} className="pl-2 basis-3/4 md:basis-[43.5%] lg:basis-[30.3%] xl:basis-[23.25%]">
+              Array.from({ length: 4 }).map((_, index) => (
+                <CarouselItem key={index} className="pl-2 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4">
                   <CourseCardSkeleton />
                 </CarouselItem>
               ))
             ) : (
-              courses.map((course) => (
-                <CarouselItem key={course.id} className="pl-2 basis-3/4 md:basis-[43.5%] lg:basis-[30.3%] xl:basis-[23.25%]">
-                  <Link href={`/courses/${course.slug}`} className="block h-full group">
+              courses.map((course) => {
+                const imgUrl = course.course_img?.startsWith('http') 
+                  ? course.course_img 
+                  : `https://content-provider.pharmacollege.lk/courses/${course.course_code}/${course.course_img}`;
+                
+                const feeNumber = typeof course.course_fee === 'number' 
+                  ? course.course_fee 
+                  : (parseFloat(String(course.course_fee)) || 0);
+
+                return (
+                  <CarouselItem key={course.id} className="pl-2 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4">
                     <div className="p-1 h-full">
-                      <Card className="overflow-hidden h-full flex flex-col transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-1">
+                      <Card className="overflow-hidden h-full flex flex-col rounded-xl border border-border/80 bg-card hover:shadow-xl transition-all duration-300 group hover:-translate-y-1">
                         <CardContent className="p-0 flex flex-col flex-grow">
-                          <div className="relative aspect-square">
-                             {(course.id === "1" || course.id === "2") && (
-                                <Badge className="absolute top-3 right-3 z-10 bg-blue-600 text-white border-blue-600 text-sm py-1 px-3">Trending</Badge>
-                             )}
+                          <Link href={`/courses/${course.slug}`} className="relative aspect-video w-full overflow-hidden block bg-muted">
+                            {course.badge && (
+                              <Badge className="absolute top-3 left-3 z-10 bg-primary text-primary-foreground font-semibold text-xs shadow-md">
+                                <Sparkles className="w-3 h-3 mr-1" /> {course.badge}
+                              </Badge>
+                            )}
                             <Image
-                              src={`https://content-provider.pharmacollege.lk/courses/${course.course_code}/${course.course_img}`}
+                              src={imgUrl}
                               alt={course.course_name}
                               fill
-                              className="object-cover transition-transform duration-300 group-hover:scale-105"
-                              data-ai-hint="pharmacist student"
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                              className="object-cover transition-transform duration-500 group-hover:scale-105"
                             />
-                          </div>
-                          <div className="p-4 bg-card border-t flex flex-col flex-grow">
-                            <h3 className="font-headline font-bold text-base h-12 leading-tight">{course.course_name}</h3>
-                             <div className="mt-4 flex items-start justify-around text-center">
-                                <div className="flex flex-col items-center gap-1.5 w-1/2">
-                                    <Clock className="w-5 h-5 text-primary" />
-                                    <span className="text-xs text-muted-foreground">{course.course_duration}</span>
-                                </div>
-                                 <div className="flex flex-col items-center gap-1.5 w-1/2">
-                                    <BookOpen className="w-5 h-5 text-primary" />
-                                    <span className="text-xs text-muted-foreground">{course.skill_level}</span>
-                                </div>
+                          </Link>
+
+                          <div className="p-5 flex flex-col flex-grow">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 text-primary" /> {course.course_duration}
+                              </span>
+                              <span>•</span>
+                              <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                                Live Zoom + Recorded
+                              </span>
                             </div>
+
+                            <h3 className="font-headline font-bold text-base leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                              <Link href={`/courses/${course.slug}`}>
+                                {course.course_name}
+                              </Link>
+                            </h3>
+
                             <div className="flex-grow" />
-                            <div className="flex justify-between items-center mt-4 pt-4 border-t">
-                              <p className="font-bold text-lg font-body text-primary">LKR {parseFloat(course.course_fee).toLocaleString()}</p>
-                              <ArrowRight className="h-5 w-5 text-primary opacity-0 transform -translate-x-2 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300" />
+
+                            <div className="mt-5 pt-4 border-t border-border/70 flex items-center justify-between">
+                              <div>
+                                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block font-medium">Fee</span>
+                                <span className="font-bold text-base font-body text-foreground">
+                                  LKR {feeNumber.toLocaleString()}
+                                </span>
+                              </div>
+                              <Button asChild size="sm" className="font-semibold gap-1 text-xs">
+                                <Link href={`/courses/${course.slug}`}>
+                                  Details <ArrowRight className="w-3 h-3" />
+                                </Link>
+                              </Button>
                             </div>
                           </div>
                         </CardContent>
                       </Card>
                     </div>
-                  </Link>
-                </CarouselItem>
-              ))
+                  </CarouselItem>
+                );
+              })
             )}
           </CarouselContent>
-          <CarouselPrevious className="hidden sm:flex" />
-          <CarouselNext className="hidden sm:flex" />
+          <CarouselPrevious className="hidden sm:flex -left-4 bg-background shadow-md border-border" />
+          <CarouselNext className="hidden sm:flex -right-4 bg-background shadow-md border-border" />
         </Carousel>
+
+        <div className="mt-10 text-center">
+          <Button asChild variant="outline" size="lg" className="font-semibold">
+            <Link href="/courses">
+              View All Programs <ArrowRight className="ml-2 w-4 h-4" />
+            </Link>
+          </Button>
+        </div>
       </div>
     </section>
   );

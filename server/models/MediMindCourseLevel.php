@@ -65,8 +65,8 @@ class MediMindCourseLevel
         // We calculate this level-by-level to handle varying question counts correctly.
         $stmtTotal = $this->pdo->prepare("
             SELECT 
-                SUM(medicine_count) as total_tasks,
-                SUM(medicine_count * question_count) as total_questions_in_batch
+                COALESCE(SUM(medicine_count), 0) as total_tasks,
+                COALESCE(SUM(medicine_count * question_count), 0) as total_questions_in_batch
             FROM (
                 SELECT 
                     cl.level_id,
@@ -87,48 +87,73 @@ class MediMindCourseLevel
             $totalQuestionsInBatch = (int)$totalResult['total_questions_in_batch'];
         }
 
-        // 2. Get student progress (Counting unique Level+Medicine pairs mastered)
-        $stmt = $this->pdo->prepare("
+        // 2. Get all enrolled students for this course
+        $stmtStudents = $this->pdo->prepare("
             SELECT 
                 u.fname, 
                 u.lname, 
                 u.username,
-                sc.course_code,
-                COUNT(sa.id) as total_attempts,
-                SUM(CASE WHEN sa.correct_status = 'Correct' THEN 1 ELSE 0 END) as correct_answers,
-                SUM(CASE WHEN sa.correct_status = 'Wrong' THEN 1 ELSE 0 END) as wrong_answers,
-                COUNT(DISTINCT CASE 
-                    WHEN sa.correct_status = 'Correct' 
-                    AND EXISTS (
-                        SELECT 1 
-                        FROM medi_mind_course_levels cl2 
-                        JOIN medi_mind_level_mediciens lm2 ON cl2.level_id = lm2.level_id 
-                        WHERE cl2.course_code = ? 
-                        AND lm2.level_id = sa.level_id 
-                        AND lm2.medicine_id = sa.medicine_id
-                    )
-                    THEN CONCAT(sa.level_id, '-', sa.medicine_id)
-                    ELSE NULL 
-                END) as unique_correct_tasks
+                sc.course_code
             FROM student_course sc
             JOIN users u ON sc.student_id = u.userid
-            LEFT JOIN medi_mind_student_answers sa ON u.username = sa.created_by
             WHERE sc.course_code = ?
-            GROUP BY u.userid
             ORDER BY u.fname ASC
         ");
-        $stmt->execute([$course_code, $course_code]);
-        $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmtStudents->execute([$course_code]);
+        $students = $stmtStudents->fetchAll(PDO::FETCH_ASSOC);
 
-        // 3. Add completion data to each student record
+        // 3. Get level IDs assigned to this course
+        $stmtLevels = $this->pdo->prepare("SELECT level_id FROM medi_mind_course_levels WHERE course_code = ?");
+        $stmtLevels->execute([$course_code]);
+        $levelIds = $stmtLevels->fetchAll(PDO::FETCH_COLUMN);
+
+        $progressByUser = [];
+
+        if (!empty($levelIds)) {
+            $placeholders = implode(',', array_fill(0, count($levelIds), '?'));
+            
+            // Fast aggregate query using indexes, avoiding correlated subqueries and table scans
+            $stmtProg = $this->pdo->prepare("
+                SELECT 
+                    sa.created_by,
+                    COUNT(sa.id) as total_attempts,
+                    SUM(CASE WHEN sa.correct_status = 'Correct' THEN 1 ELSE 0 END) as correct_answers,
+                    SUM(CASE WHEN sa.correct_status = 'Wrong' THEN 1 ELSE 0 END) as wrong_answers,
+                    COUNT(DISTINCT CASE 
+                        WHEN sa.correct_status = 'Correct' THEN CONCAT(sa.level_id, '-', sa.medicine_id) 
+                        ELSE NULL 
+                    END) as unique_correct_tasks
+                FROM medi_mind_student_answers sa
+                JOIN medi_mind_level_mediciens lm ON sa.level_id = lm.level_id AND sa.medicine_id = lm.medicine_id
+                WHERE sa.level_id IN ($placeholders)
+                GROUP BY sa.created_by
+            ");
+            $stmtProg->execute($levelIds);
+            $progRows = $stmtProg->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($progRows as $row) {
+                $progressByUser[$row['created_by']] = $row;
+            }
+        }
+
+        // 4. Merge progress into each student record
         foreach ($students as &$student) {
+            $uname = $student['username'];
+            $prog = isset($progressByUser[$uname]) ? $progressByUser[$uname] : null;
+
+            $uniqueTasks = $prog ? (int)$prog['unique_correct_tasks'] : 0;
+
+            $student['total_attempts'] = $prog ? (int)$prog['total_attempts'] : 0;
+            $student['correct_answers'] = $prog ? (int)$prog['correct_answers'] : 0;
+            $student['wrong_answers'] = $prog ? (int)$prog['wrong_answers'] : 0;
+            $student['unique_correct_tasks'] = $uniqueTasks;
+            // Map key for frontend compatibility
+            $student['unique_correct_medicines'] = $uniqueTasks;
             $student['total_medicines_in_batch'] = $totalTasks;
             $student['total_questions_in_batch'] = $totalQuestionsInBatch;
             $student['completion_rate'] = $totalTasks > 0 
-                ? round(($student['unique_correct_tasks'] / $totalTasks) * 100, 2) 
+                ? round(($uniqueTasks / $totalTasks) * 100, 2) 
                 : 0;
-            // Map key for frontend compatibility
-            $student['unique_correct_medicines'] = $student['unique_correct_tasks'];
         }
 
         return $students;

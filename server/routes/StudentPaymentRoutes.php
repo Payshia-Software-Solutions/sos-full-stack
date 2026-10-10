@@ -6,9 +6,19 @@ $pdo = $GLOBALS['pdo'];
 $studentPaymentController = new StudentPaymentControllerNew($pdo);
 
 return [
+    // Get stats
+    'GET /student-payments-new/stats/$' => function () use ($studentPaymentController) {
+        $studentPaymentController->getStats();
+    },
+
     // Get all student payments
     'GET /student-payments-new/$' => function () use ($studentPaymentController) {
         $studentPaymentController->getAll();
+    },
+
+    // Check payment by student_id and course_code
+    'GET /student-payments-new/check-payment/$' => function () use ($studentPaymentController) {
+        $studentPaymentController->checkPayment();
     },
 
     // Get student payment by ID

@@ -26,7 +26,37 @@ class UserFullDetails
     {
         $stmt = $this->pdo->prepare("SELECT * FROM user_full_details WHERE username = :username");
         $stmt->execute(['username' => $username]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$user) {
+            $stmtFallback = $this->pdo->prepare("SELECT id, username, fname as first_name, lname as last_name, email as e_mail, phone as telephone_1, CONCAT(fname, ' ', lname) as full_name FROM users WHERE username = :username");
+            $stmtFallback->execute(['username' => $username]);
+            $fallback = $stmtFallback->fetch(PDO::FETCH_ASSOC);
+            if ($fallback) {
+                return [
+                    'id' => $fallback['id'],
+                    'student_id' => $fallback['username'],
+                    'username' => $fallback['username'],
+                    'first_name' => $fallback['first_name'],
+                    'last_name' => $fallback['last_name'],
+                    'full_name' => $fallback['full_name'],
+                    'name_with_initials' => $fallback['full_name'],
+                    'name_on_certificate' => $fallback['full_name'],
+                    'e_mail' => $fallback['e_mail'],
+                    'telephone_1' => $fallback['telephone_1'],
+                    'gender' => '-',
+                    'civil_status' => '-',
+                    'nic' => '-',
+                    'birth_day' => null,
+                    'address_line_1' => '-',
+                    'address_line_2' => '-',
+                    'city' => '-',
+                    'district' => 0,
+                    'postal_code' => '-'
+                ];
+            }
+        }
+        return $user;
     }
 
     public function updateCertificateNameByUserName($username, $name_on_certificate)

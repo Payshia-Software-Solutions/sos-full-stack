@@ -1,5 +1,6 @@
-
 "use client";
+
+import { LMS_API_URL } from "@/lib/config";
 
 import { useSearchParams, notFound, useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -11,6 +12,7 @@ import StarRating from '@/components/star-rating';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
+import GradePaymentGate from '@/components/GradePaymentGate';
 
 // --- New Interfaces for the API response ---
 
@@ -40,6 +42,9 @@ interface Enrollment {
     parent_course_name: string;
     assignment_grades: AssignmentGrades;
     certificate_eligibility: boolean;
+    studentBalance?: number;
+    is_grade_locked?: boolean;
+    payment_gate?: any;
 }
 
 interface ApiResponse {
@@ -48,6 +53,7 @@ interface ApiResponse {
     studentEnrollments: {
         [key: string]: Enrollment;
     };
+    paymentGateSettings?: any;
 }
 
 // --- Component to display the results ---
@@ -72,7 +78,7 @@ function ResultsViewComponent() {
         async function fetchStudentDetails() {
             try {
                 setLoading(true);
-                const response = await fetch(`https://qa-api.pharmacollege.lk/get-student-full-info?loggedUser=${loggedUser}`);
+                const response = await fetch(`${LMS_API_URL}/get-student-full-info?loggedUser=${loggedUser}`);
                 if (!response.ok) {
                     // This will trigger notFound() if the user itself doesn't exist
                     throw new Error('Student not found');
@@ -277,17 +283,29 @@ function ResultsViewComponent() {
                             <span className="text-muted-foreground">{t('certCourseCode')}</span>
                             <span className="font-semibold">{enrollment.course_code}</span>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">{t('certFinalGrade')}</span>
-                            <span className="font-semibold">{finalGrade}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">{t('certRating')}</span>
-                            {rating > 0 ? (
-                                <StarRating rating={rating} />
-                            ) : (
-                                <span className="font-semibold">{t('certNoGrade')}</span>
-                            )}
+                        <div className="border-t pt-4">
+                            <GradePaymentGate
+                                isLocked={enrollment.is_grade_locked}
+                                balance={enrollment.studentBalance}
+                                gateSettings={enrollment.payment_gate?.settings || (studentData as any)?.paymentGateSettings}
+                                courseCode={enrollment.course_code}
+                                title="Official Grade Withheld - Payment Pending"
+                            >
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground">{t('certFinalGrade')}</span>
+                                        <span className="font-semibold text-lg text-primary">{finalGrade}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground">{t('certRating')}</span>
+                                        {rating > 0 ? (
+                                            <StarRating rating={rating} />
+                                        ) : (
+                                            <span className="font-semibold">{t('certNoGrade')}</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </GradePaymentGate>
                         </div>
                     </CardContent>
                 </Card>

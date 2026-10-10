@@ -1,10 +1,10 @@
-
-
 "use server";
+
+import { LMS_API_URL } from "@/lib/config";
 
 import type { GameLevel, Sentence, StudentAnswerPayload, StudentAnswer } from '../types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_LMS_SERVER_URL || 'https://qa-api.pharmacollege.lk';
+const API_BASE_URL = LMS_API_URL;
 
 async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   try {

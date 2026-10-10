@@ -24,6 +24,10 @@ $senderId = $_ENV['SMS_SENDER_ID'];
 $templatePath = __DIR__ . '/../templates/welcome_sms_template.txt';
 $convocationTemplatePath = __DIR__ . '/../templates/convocation-payment-message.txt';
 
+$GLOBALS['authToken'] = $authToken;
+$GLOBALS['senderId'] = $senderId;
+$GLOBALS['templatePath'] = $templatePath;
+
 // Include route files
 $assignmentRoutes = require './routes/Assignment/AssignmentRoutes.php';
 $submissionRoutes = require './routes/Assignment/submissionRoutes.php';
@@ -33,6 +37,7 @@ $courseAssignmentSubmissionRoutes = require './routes/OtherRoutes/courseAssignme
 $reportRoutes = require './routes/OtherRoutes/reportRoutes.php';
 $studentCourseRoutes = require './routes/OtherRoutes/studentCourseRoutes.php';
 $userRoutes = require './routes/UserRoutes/userRoutes.php';
+$passwordResetRoutes = require './routes/UserRoutes/passwordResetRoutes.php';
 $userFullDetailsRoutes = require './routes/UserRoutes/userFullDetailsRoutes.php';
 $companyRoutes = require './routes/OtherRoutes/companyRoutes.php';
 $hpSaveAnswerRoutes = require './routes/HunterPro/hpSaveAnswerRoutes.php';
@@ -68,6 +73,8 @@ $paymentRequestRoutesOld = require './routes/Payment/paymentRequestRoutes.php';
 $courseRoutes = require './routes/Course/courseRoutes.php';
 $studentPaymentRoutes = require './routes/Student/studentPaymentRoutes.php';
 $supportTicketRoutes = require './routes/TicketRoutes/supportTicketRoutes.php';
+$ticketRoutes = require './routes/TicketRoutes/ticketRoutes.php';
+$ticketCategoryRoutes = require './routes/TicketRoutes/ticketCategoryRoutes.php';
 $activityLogRoutes = require './routes/OtherRoutes/activitylogsRoutes.php';
 $levelRoutes = require './routes/OtherRoutes/levelRoutes.php';
 $prescriptionRoutes = require './routes/Prescription/prescriptionRoutes.php';
@@ -94,6 +101,7 @@ $courseModuleRoutes = require './routes/Course/CourseModuleRoutes.php';
 $courseOutcomeRoutes = require './routes/Course/CourseOutcomeRoutes.php';
 $courseOverviewRoutes = require './routes/Course/courseOverviewRoutes.php';
 $tempLmsUserRoutes = require './routes/UserRoutes/tempLmsUserRoutes.php';
+$editProfileTempRoutes = require './routes/UserRoutes/editProfileTempRoutes.php';
 $CityRoutes = require './routes/CityRoutes.php';
 $StudentValuesRoutes = require './routes/Student/StudentValuesRoutes.php';
 $CertificateVerificationRoutes = require './routes/CertificationCenter/CertificateVerificationRoutes.php';
@@ -126,6 +134,7 @@ $studentEnrollmentRoutes = require './routes/studentEnrollmentRoutes.php';
 $StudentPaymentRoutes = require './routes/StudentPaymentRoutes.php';
 $CommisionSetupRoutes = require './routes/CommisionSetupRoutes.php';
 $CourseContentTitleRoutes = require './routes/CourseContentTitleRoutes.php';
+$CourseContentRoutes = require './routes/CourseContentRoutes.php';
 $carePatientRoutes = require './routes/ceylonPharmacy/CarePatientRoutes.php';
 $careAnswerRoutes = require './routes/ceylonPharmacy/CareAnswerRoutes.php';
 $careAnswerSubmitRoutes = require './routes/ceylonPharmacy/CareAnswerSubmitRoutes.php';
@@ -157,10 +166,18 @@ $mediMindLevelMedicineRoutes = require './routes/MediMind/MediMindLevelMedicineR
 $mediMindCourseLevelRoutes = require './routes/MediMind/MediMindCourseLevelRoutes.php';
 $birthdaySettingsRoutes = require './routes/BirthdaySettingsRoutes.php';
 $blogRoutes = require './routes/BlogRoutes.php';
-
+$pharmaReaderRoutes = require './routes/pharmaReaderRoutes.php';
+$smsTemplateRoutes = require './routes/smsTemplateRoutes.php';
+$transcriptTemplateRoutes = require './routes/TranscriptTemplateRoutes.php';
+$certificateTemplateRoutes = require './routes/CertificateTemplateRoutes.php';
+$leadRoutes = require './routes/Lead/LeadRoutes.php';
+$studentDocumentVerificationRoutes = require './routes/Student/studentDocumentVerificationRoutes.php';
+$announcementRoutes = require './routes/AnnouncementRoutes.php';
+$paymentGateSettingsRoutes = require './routes/Settings/paymentGateSettingsRoutes.php';
 // Combine all routes
 $routes = array_merge(
     $userRoutes,
+    $passwordResetRoutes,
     $careInstructionPreRoutes,
     $transactionPaymentRoutes,
     $assignmentRoutes,
@@ -207,6 +224,8 @@ $routes = array_merge(
     $courseRoutes,
     $studentPaymentRoutes,
     $supportTicketRoutes,
+    $ticketRoutes,
+    $ticketCategoryRoutes,
     $activityLogRoutes,
     $levelRoutes,
     $prescriptionRoutes,
@@ -234,6 +253,7 @@ $routes = array_merge(
     $courseOutcomeRoutes,
     $courseOverviewRoutes,
     $tempLmsUserRoutes,
+    $editProfileTempRoutes,
     $CityRoutes,
     $StudentValuesRoutes,
     $CertificateVerificationRoutes,
@@ -264,6 +284,7 @@ $routes = array_merge(
     $StudentPaymentRoutes,
     $CommisionSetupRoutes,
     $CourseContentTitleRoutes,
+    $CourseContentRoutes,
     $carePatientRoutes,
     $careAnswerRoutes,
     $careAnswerSubmitRoutes,
@@ -293,9 +314,36 @@ $routes = array_merge(
     $mediMindCourseLevelRoutes,
     $birthdaySettingsRoutes,
     $convocationStudentInfoRoutes,
-    $blogRoutes
+    $blogRoutes,
+    $pharmaReaderRoutes,
+    $smsTemplateRoutes,
+    $transcriptTemplateRoutes,
+    $certificateTemplateRoutes,
+    $leadRoutes,
+    $studentDocumentVerificationRoutes,
+    $announcementRoutes,
+    $paymentGateSettingsRoutes
 );
 
+
+$routes['GET /run-announcements-migration/'] = function () use ($pdo) {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `announcements` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `title` VARCHAR(255) NOT NULL,
+            `content` LONGTEXT NOT NULL,
+            `author` VARCHAR(255) DEFAULT 'Admin',
+            `category` VARCHAR(50) DEFAULT 'General',
+            `is_new` TINYINT(1) DEFAULT 1,
+            `imageUrl` TEXT DEFAULT NULL,
+            `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+        echo json_encode(['success' => true, 'message' => 'Announcements table created successfully.']);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+};
 
 // Define the home route with trailing slash
 $routes['GET /run-medimind-migration-v2/'] = function () use ($pdo) {
@@ -322,6 +370,41 @@ $routes['GET /run-medimind-migration-v2/'] = function () use ($pdo) {
     }
 };
 
+$routes['GET /run-sms-migration/'] = function () use ($pdo) {
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `sms_templates` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `template_name` VARCHAR(255) NOT NULL UNIQUE,
+                `template_content` TEXT NOT NULL,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        ");
+
+        // Insert default templates and update existing ones if they differ
+        $pdo->exec("
+            INSERT INTO `sms_templates` (`template_name`, `template_content`) VALUES 
+            ('account-activation-message', 'Dear {{FIRST_NAME}},\n\nYou have been successfully enrolled in {{COURSE_NAME}}.\nIndex No: {{GENERATED_USER_NAME}}\nTemporary Password: {{TEMP_PASSWORD}}\n\nLogin here: https://lms.pharmacollege.lk/login?UserName={{GENERATED_USER_NAME}}&TempPassword={{TEMP_PASSWORD}}\n\nHow to Order Study Pack - https://www.youtube.com/shorts/1xd3TAjbtYw\n\nCeylon Pharma College\nwww.pharmacollege.lk'),
+            ('payment-update-message', 'Dear [STUDENT_NAME], we have received your payment of LKR [PAYMENT_AMOUNT] for [COURSE_NAME]. Receipt No: [RECEIPT_NUMBER]. Thank you! - Pharma College'),
+            ('convocation-payment-approved', 'Dear student, your convocation payment has been approved.'),
+            ('study-pack-not-order', 'Dear student, please order your study pack.'),
+            ('ceremony-number-message', 'Dear {{FIRST_NAME}},\nYour ceremony registration was successfully completed.\nCeremony No: {{CEREMONY_NUMBER}}\n\n-Ceylon Pharma College'),
+            ('name-on-certificate-message', 'Dear Student ({{STUDENT_NUMBER}}),\nYour certificate is ready to print. Name on certificate: {{NAME_ON_CERTIFICATE}}.\nThank You!'),
+            ('ceremony-due-breakdown-message', 'Dear {{FIRST_NAME}},\nYour Ceremony Number is not processed due to unpaid balances:\nCourse: Rs. {{COURSE_BALANCE}}\nConvocation: Rs. {{CONVOCATION_BALANCE}}\nTotal: Rs. {{TOTAL_DUE}}\n\nPlease complete payment.\n-Ceylon Pharma College'),
+            ('delivery-order-placed', 'Dear {index_number},\n\nWe have successfully received your delivery order for {delivery_item}.\nWe will process it shortly!\n\nThank you!\nCeylon Pharma College\nwww.pharmacollege.lk'),
+            ('delivery-order-packed', 'Dear {index_number},\n\nYour order is ready for delivery!\n\nProduct - {delivery_item} \nTracking Number - {tracking_number} \n\nThank you!\nCeylon Pharma College\nwww.pharmacollege.lk'),
+            ('delivery-order-dispatched', 'Dear {index_number},\n\nYour order has been handed over to the delivery partner!\n\nProduct - {delivery_item} \nTracking Number - {tracking_number} \nCOD Amount - {cod_amount} \nDelivery Partner - Royal Express Courier \n    \nThank you!\nCeylon Pharma College\nwww.pharmacollege.lk'),
+            ('delivery-order-received', 'Dear {index_number},\n\nYour delivery order for {delivery_item} has been marked as successfully received.\n\nThank you!\nCeylon Pharma College\nwww.pharmacollege.lk')
+            ON DUPLICATE KEY UPDATE `template_content` = VALUES(`template_content`)
+        ");
+
+        echo json_encode(['success' => true, 'message' => 'sms_templates table created and seeded successfully.']);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+};
+
 $routes['GET /'] = function () {
     // Serve the index.html file
     readfile('./views/index.html');
@@ -337,12 +420,9 @@ if (substr($uri, -1) !== '/') {
     $uri .= '/';
 }
 
-// Determine if the application is running on localhost
-if ($_SERVER['HTTP_HOST'] === 'localhost') {
-    // Adjust URI if needed (only on localhost)
-    $uri = str_replace('sos-full-stack/server', '', $uri);
-} else {
-    // Adjust URI if needed (if using a subdirectory)
+// Adjust URI for local subfolder if present (e.g. localhost, 127.0.0.1, or local IP)
+$uri = str_replace(['/sos-full-stack/server', 'sos-full-stack/server'], '', $uri);
+if (substr($uri, 0, 1) !== '/') {
     $uri = '/' . $uri;
 }
 
@@ -362,8 +442,8 @@ foreach ($routes as $route => $handler) {
 
     // Convert route URI to regex (without query parameters){trackingNumber} student_number
     $routeRegex = str_replace(
-        ['{id}', '{reply_id}', '{post_id}', '{created_by}', '{username}', '{role}', '{assignment_id}', '{course_code}', '{offset}', '{limit}', '{setting_name}', '{loggedUser}', '{title_id}', '{slug}', '{module_code}', '{value}', '{studentId}', '{tracking_number}', '{index_number}', '{provinceId}', '{student_number}', '{questionId}', '{levelId}', '{medicineId}', '{batch_id}'],
-        ['(\d+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '(\d+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)'],
+        ['{id}', '{reply_id}', '{post_id}', '{created_by}', '{username}', '{role}', '{assignment_id}', '{course_code}', '{offset}', '{limit}', '{setting_name}', '{loggedUser}', '{title_id}', '{slug}', '{module_code}', '{value}', '{studentId}', '{tracking_number}', '{index_number}', '{provinceId}', '{student_number}', '{questionId}', '{levelId}', '{medicineId}', '{batch_id}', '{status}', '{course_id}'],
+        ['(\d+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '([a-zA-Z0-9_\-\/]+)', '(\d+)', '(\d+)', '(\d+)', '([a-zA-Z0-9_\-]+)', '([a-zA-Z0-9_\-\%\s]+)', '(\d+)'],
         $routeUri
     );
 

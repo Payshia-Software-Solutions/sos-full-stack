@@ -269,7 +269,7 @@ export default function MedicineAnswersPage() {
                                                     <SelectContent>
                                                         <SelectItem value="none" className="text-muted-foreground italic">No correct answer selected</SelectItem>
                                                         {availableAnswers.map(answer => (
-                                                            <SelectItem key={answer.id} value={answer.id}>
+                                                            <SelectItem key={answer.id} value={String(answer.id)}>
                                                                 {answer.answer}
                                                             </SelectItem>
                                                         ))}

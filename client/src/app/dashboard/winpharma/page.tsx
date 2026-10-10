@@ -70,7 +70,7 @@ export default function WinPharmaPage() {
     }, [selectedCourseCode, enrolledCourseDetails]);
 
     useEffect(() => {
-        const storedCourseCode = localStorage.getItem('selected_course');
+        const storedCourseCode = sessionStorage.getItem('selected_course');
         setSelectedCourseCode(storedCourseCode);
     }, []);
 
@@ -104,7 +104,7 @@ export default function WinPharmaPage() {
 
     const handleCourseChange = (newCourseCode: string) => {
         setSelectedCourseCode(newCourseCode);
-        localStorage.setItem('selected_course', newCourseCode);
+        sessionStorage.setItem('selected_course', newCourseCode);
         setIsCourseModalOpen(false);
         toast({ title: "Course Switched", description: `Loading data for ${newCourseCode}.` });
     };

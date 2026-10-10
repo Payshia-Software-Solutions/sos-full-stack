@@ -11,6 +11,14 @@ class StudentPaymentControllerNew
         $this->model = new StudentPaymentNew($pdo);
     }
 
+    // Get payment statistics
+    public function getStats()
+    {
+        $courseCode = isset($_GET['course_code']) ? $_GET['course_code'] : null;
+        if ($courseCode === 'all') $courseCode = null;
+        echo json_encode($this->model->getPaymentStats($courseCode));
+    }
+
     // Get all student payments
     public function getAll()
     {
@@ -27,6 +35,22 @@ class StudentPaymentControllerNew
             http_response_code(404);
             echo json_encode(['error' => 'Payment record not found']);
         }
+    }
+
+    // Check student payment by student ID and course code
+    public function checkPayment()
+    {
+        $studentId = isset($_GET['student_id']) ? $_GET['student_id'] : null;
+        $courseCode = isset($_GET['course_code']) ? $_GET['course_code'] : null;
+
+        if (!$studentId || !$courseCode) {
+            http_response_code(400);
+            echo json_encode(['error' => 'student_id and course_code are required']);
+            return;
+        }
+
+        $payments = $this->model->getByStudentIdAndCourse($studentId, $courseCode);
+        echo json_encode($payments);
     }
 
     // Create new student payment

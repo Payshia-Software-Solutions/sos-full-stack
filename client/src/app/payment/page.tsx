@@ -1,5 +1,8 @@
-
 'use client';
+
+import { LMS_API_URL } from "@/lib/config";
+
+
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
@@ -56,9 +59,10 @@ const maskEmail = (email: string) => {
     return `${user.substring(0, 2)}***${user.substring(user.length - 1)}@${domain}`;
 };
 
-const maskPhone = (phone: string) => {
-    if (!phone || phone.length <= 4) return '****';
-    return `******${phone.substring(phone.length - 4)}`;
+const maskPhone = (phone: string | number) => {
+    const p = String(phone || '');
+    if (!p || p.length <= 4) return '****';
+    return `******${p.substring(p.length - 4)}`;
 };
 
 const maskNic = (nic: string) => {
@@ -114,7 +118,8 @@ export default function PaymentPage() {
     const { data: banks, isLoading: isLoadingBanks } = useQuery<Bank[]>({
         queryKey: ['banks'],
         queryFn: async () => {
-            const response = await fetch('https://qa-api.pharmacollege.lk/banks');
+            const baseUrl = LMS_API_URL;
+            const response = await fetch(`${baseUrl}/banks`);
             if (!response.ok) {
                 throw new Error('Failed to fetch banks');
             }
@@ -132,7 +137,8 @@ export default function PaymentPage() {
                 setTempUser(null);
                 setPreviousPayments([]);
 
-                const fetchUserData = fetch(`https://qa-api.pharmacollege.lk/temp-users/${registrationId.trim()}`)
+                const baseUrl = LMS_API_URL;
+                const fetchUserData = fetch(`${baseUrl}/temp-users/${registrationId.trim()}`)
                     .then(res => {
                         if (!res.ok) {
                             throw new Error('Student not found for this reference number.');
@@ -214,8 +220,9 @@ export default function PaymentPage() {
             formDataToSend.append("branch", branch);
             formDataToSend.append("slip", paymentSlip); // File upload
 
+            const baseUrl = LMS_API_URL;
             const response = await fetch(
-                "https://qa-api.pharmacollege.lk/payment-portal-requests",
+                `${baseUrl}/payment-portal-requests`,
                 {
                     method: "POST",
                     body: formDataToSend,
@@ -224,7 +231,7 @@ export default function PaymentPage() {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: `Request failed with status ${response.status}`}));
-                throw new Error(errorData.message || 'Submission failed');
+                throw new Error(errorData.error || errorData.message || 'Submission failed');
             }
 
             toast({ title: "Payment Slip Submitted!", description: "Your payment is being verified." });
@@ -423,7 +430,7 @@ export default function PaymentPage() {
         <div className="flex min-h-screen items-center justify-center p-4 bg-gray-100/50 dark:bg-gray-900/50 auth-background">
             <Card className="w-full max-w-lg shadow-2xl">
                 <CardHeader className="text-center">
-                     <Image src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="Ceylon Pharma College Logo" width={64} height={64} className="w-16 h-16 mx-auto mb-4" />
+                     <Image unoptimized src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="Ceylon Pharma College Logo" width={64} height={64} className="w-16 h-16 mx-auto mb-4" />
                     <CardTitle className="text-2xl font-headline">External Student Payment Portal</CardTitle>
                     {currentStep <= STEPS.length && (
                         <div className="flex items-start justify-center pt-8 pb-4">

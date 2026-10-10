@@ -1,4 +1,6 @@
-const QA_API_BASE_URL = process.env.NEXT_PUBLIC_LMS_SERVER_URL || 'https://qa-api.pharmacollege.lk';
+import { LMS_API_URL } from "@/lib/config";
+
+const QA_API_BASE_URL = LMS_API_URL;
 
 export interface StudentContactReport {
     user_id: string;

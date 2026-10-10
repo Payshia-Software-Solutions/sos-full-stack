@@ -32,7 +32,7 @@ class StudentCourseControllerNew
     public function getByCourseCodeId($courseCode)
     {
         $record = $this->model->getByCourseCodeId($courseCode);
-        if ($record) {
+        if ($record !== false) {
             echo json_encode($record);
         } else {
             http_response_code(404);
@@ -44,7 +44,7 @@ class StudentCourseControllerNew
     public function getByStudentNumber($userName)
     {
         $record = $this->model->getByStudentNumber($userName);
-        if ($record) {
+        if ($record !== false) {
             echo json_encode($record);
         } else {
             http_response_code(404);

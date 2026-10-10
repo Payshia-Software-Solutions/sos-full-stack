@@ -1,8 +1,9 @@
 // This file is being refactored.
 // All API functions are being moved to the src/lib/actions/ directory.
+import { LMS_API_URL } from "@/lib/config";
 import type { PaymentRequest, ConvocationRegistration, UpdateCertificateNamePayload, SendSmsPayload } from "./types";
 
-const QA_API_BASE_URL = process.env.NEXT_PUBLIC_LMS_SERVER_URL || 'https://qa-api.pharmacollege.lk';
+const QA_API_BASE_URL = LMS_API_URL;
 
 export const getPaymentRequestsByReference = async (reference: string): Promise<PaymentRequest[]> => {
     const response = await fetch(`${QA_API_BASE_URL}/payment-portal-requests/by-reference/${reference}`);

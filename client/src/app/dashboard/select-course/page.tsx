@@ -6,8 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getStudentEnrollments } from '@/lib/actions/users';
-import { getCourses } from '@/lib/actions/courses';
-import type { StudentEnrollmentInfo, Course } from '@/lib/types';
+import type { StudentEnrollmentInfo } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, BookOpen, ArrowRight } from 'lucide-react';
@@ -19,36 +18,28 @@ const SELECTED_COURSE_STORAGE_KEY = 'selected_course';
 
 export default function SelectCoursePage() {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
 
     const { data: enrollments, isLoading: isLoadingEnrollments } = useQuery<StudentEnrollmentInfo[]>({
         queryKey: ['studentEnrollments', user?.username],
         queryFn: () => getStudentEnrollments(user!.username!),
         enabled: !!user?.username,
     });
-
-    const { data: allCourses, isLoading: isLoadingCourses } = useQuery<Course[]>({
-        queryKey: ['allCourses'],
-        queryFn: getCourses,
-        staleTime: Infinity,
-    });
     
     // Redirect if not needed
     useEffect(() => {
-        if (!isLoadingEnrollments && enrollments && enrollments.length <= 1) {
-            if (enrollments.length === 1) {
-                localStorage.setItem(SELECTED_COURSE_STORAGE_KEY, enrollments[0].course_code);
-            }
+        if (!isLoadingEnrollments && enrollments && enrollments.length === 1) {
+            sessionStorage.setItem(SELECTED_COURSE_STORAGE_KEY, enrollments[0].course_code);
             router.replace('/dashboard');
         }
     }, [enrollments, isLoadingEnrollments, router]);
 
     const handleCourseSelect = (courseCode: string) => {
-        localStorage.setItem(SELECTED_COURSE_STORAGE_KEY, courseCode);
+        sessionStorage.setItem(SELECTED_COURSE_STORAGE_KEY, courseCode);
         router.push('/dashboard');
     };
 
-    const isLoading = isLoadingEnrollments || isLoadingCourses;
+    const isLoading = isLoadingEnrollments;
 
     return (
         <div className="flex min-h-screen items-center justify-center p-4 bg-background">
@@ -56,7 +47,7 @@ export default function SelectCoursePage() {
                 <DialogContent className="max-w-4xl shadow-2xl" onInteractOutside={(e) => e.preventDefault()} hideCloseButton={true}>
                     <DialogHeader className="text-center">
                         <div className="flex justify-center mb-4">
-                            <Image src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={64} height={64} className="w-16 h-16" />
+                            <Image unoptimized src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={64} height={64} className="w-16 h-16" />
                         </div>
                         <DialogTitle className="text-2xl font-headline">Select Your Course</DialogTitle>
                         <DialogDescription>You are enrolled in multiple courses. Please choose one to view its dashboard.</DialogDescription>
@@ -70,7 +61,6 @@ export default function SelectCoursePage() {
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
                                 {enrollments?.map(enrollment => {
-                                    const courseInfo = allCourses?.find(c => c.courseCode === enrollment.course_code);
                                     return (
                                         <button
                                             key={enrollment.student_course_id}
@@ -84,7 +74,7 @@ export default function SelectCoursePage() {
                                                             <BookOpen className="w-6 h-6 text-primary" />
                                                         </div>
                                                         <div>
-                                                            <p className="font-semibold text-card-foreground group-hover:text-primary transition-colors">{courseInfo?.name || enrollment.course_code}</p>
+                                                            <p className="font-semibold text-card-foreground group-hover:text-primary transition-colors">{enrollment.course_name || enrollment.course_code}</p>
                                                             <p className="text-sm text-muted-foreground">{enrollment.course_code}</p>
                                                         </div>
                                                     </div>
@@ -97,7 +87,13 @@ export default function SelectCoursePage() {
                             </div>
                         )}
                          {!isLoading && (!enrollments || enrollments.length === 0) && (
-                            <p className="text-center text-muted-foreground py-8">You are not enrolled in any courses.</p>
+                            <div className="text-center py-8">
+                                <p className="text-muted-foreground mb-4">You are not enrolled in any courses.</p>
+                                <Button onClick={() => {
+                                    sessionStorage.removeItem(SELECTED_COURSE_STORAGE_KEY);
+                                    logout();
+                                }} variant="outline">Logout</Button>
+                            </div>
                          )}
                     </div>
                 </DialogContent>

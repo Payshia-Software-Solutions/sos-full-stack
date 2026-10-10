@@ -1,8 +1,9 @@
 "use client";
 
-import type { GamePatient, PrescriptionDetail, DispensingAnswer, FormSelectionData, TreatmentStartRecord, ValidateAnswerPayload, ValidateAnswerResponse, Instruction, SaveCounselingAnswerPayload, DispensingSubmissionStatus, MasterProduct, POSCorrectAnswer, POSSubmissionPayload, POSSubmissionStatus, RecoveryRecord, PrescriptionSubmissionPayload, MediMindItem, MediMindLevel, MediMindQuestion, MediMindAnswer, MediMindLevelQuestion, MediMindMedicineAnswer, MediMindLevelMedicine, MediMindStudentAnswer, MediMindStudentStats, WinPharmaLevel, WinPharmaTask, WinPharmaSubmission, WinPharmaSubmissionResults } from '../types';
+import { LMS_API_URL } from "@/lib/config";
+import type { GamePatient, PrescriptionDetail, DispensingAnswer, CareSavedAnswer, FormSelectionData, TreatmentStartRecord, Instruction, ValidateAnswerPayload, ValidateAnswerResponse, SaveCounselingAnswerPayload, DispensingSubmissionStatus, MasterProduct, POSCorrectAnswer, POSSubmissionPayload, POSSubmissionStatus, RecoveryRecord, PrescriptionSubmissionPayload, MediMindItem, MediMindLevel, MediMindQuestion, MediMindAnswer, MediMindLevelQuestion, MediMindMedicineAnswer, MediMindLevelMedicine, MediMindStudentAnswer, MediMindStudentStats, WinPharmaLevel, WinPharmaTask, WinPharmaSubmission, WinPharmaSubmissionResults } from '../types';
 
-export const QA_API_BASE_URL = process.env.NEXT_PUBLIC_LMS_SERVER_URL || 'https://qa-api.pharmacollege.lk';
+export const QA_API_BASE_URL = LMS_API_URL;
 const POS_IMAGE_BASE_URL = 'https://pos.payshia.com/uploads/product_images/';
 
 export const getMasterProducts = async (): Promise<MasterProduct[]> => {
@@ -1344,3 +1345,202 @@ export async function getMediMindBatchReport(courseCode: string): Promise<any[]>
     }
     return response.json();
 }
+
+export async function getDpadActivePrescriptions(): Promise<any[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/get-active-prescriptions/`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch active prescriptions');
+    }
+    return response.json();
+}
+
+export async function getDpadSubmittedAnswers(loggedUser: string): Promise<any[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/get-submitted-answers/?loggedUser=${loggedUser}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch submitted answers');
+    }
+    return response.json();
+}
+
+export async function getDpadPrescriptionCovers(prescriptionId: string): Promise<string[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/get-prescription-covers/?prescriptionId=${prescriptionId}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch prescription covers');
+    }
+    return response.json();
+}
+
+export async function getDpadPrescriptionDetails(prescriptionId: string): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/prescription-details/?prescriptionId=${prescriptionId}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch prescription details');
+    }
+    return response.json();
+}
+
+export async function submitDpadAnswer(loggedUser: string, data: any): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/submit-answer/?loggedUser=${loggedUser}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to submit dispensing label');
+    }
+    return response.json();
+}
+
+export async function getDpadOverallGrade(loggedUser: string, courseCode?: string | null): Promise<any> {
+    let url = `${QA_API_BASE_URL}/d-pad/get-overall-grade/?loggedUser=${loggedUser}`;
+    if (courseCode) {
+        url += `&courseCode=${encodeURIComponent(courseCode)}`;
+    }
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error('Failed to fetch overall grade');
+    }
+    return response.json();
+}
+
+export async function getDpadAllPrescriptions(): Promise<any[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/admin/get-all-prescriptions/`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch all prescriptions');
+    }
+    return response.json();
+}
+
+export async function updateDpadPrescriptionStatus(prescriptionId: string, status: string): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/admin/update-status/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prescriptionId, status }),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to update status');
+    }
+    return response.json();
+}
+
+export async function saveDpadPrescription(data: any): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/admin/save-prescription/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to save prescription');
+    }
+    return response.json();
+}
+
+export async function saveDpadAnswerKey(loggedUser: string, data: any): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/admin/save-answer-key/?loggedUser=${loggedUser}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to save answer key');
+    }
+    return response.json();
+}
+
+export async function getDpadAnswerKey(prescriptionId: string, coverId: string): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/admin/get-answer-key/?prescriptionId=${prescriptionId}&coverId=${coverId}`);
+    if (response.status === 404) {
+        return null;
+    }
+    if (!response.ok) {
+        throw new Error('Failed to fetch answer key');
+    }
+    return response.json();
+}
+
+/** Admin: get active prescriptions assigned to a specific course */
+export async function getDpadActivePrescriptionsByCourse(courseCode: string): Promise<any[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/get-active-by-course/?courseCode=${courseCode}`);
+    if (!response.ok) throw new Error('Failed to fetch prescriptions for course');
+    return response.json();
+}
+
+/** Admin: assign a prescription to a course */
+export async function assignDpadPrescriptionToCourse(
+    prescriptionId: string,
+    courseCode: string,
+    assignedBy?: string
+): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/admin/assign-to-course/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prescription_id: prescriptionId, course_code: courseCode, assigned_by: assignedBy }),
+    });
+    if (!response.ok) throw new Error('Failed to assign prescription to course');
+    return response.json();
+}
+
+/** Admin: remove a prescription from a course */
+export async function unassignDpadPrescriptionFromCourse(
+    prescriptionId: string,
+    courseCode: string
+): Promise<any> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/admin/unassign-from-course/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prescription_id: prescriptionId, course_code: courseCode }),
+    });
+    if (!response.ok) throw new Error('Failed to unassign prescription from course');
+    return response.json();
+}
+
+/** Admin: get all course_codes currently assigned to a prescription */
+export async function getDpadPrescriptionCourses(prescriptionId: string): Promise<string[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/admin/prescription-courses/?prescriptionId=${prescriptionId}`);
+    if (!response.ok) throw new Error('Failed to fetch prescription courses');
+    return response.json();
+}
+
+/** Admin: get all course assignments for all prescriptions (bulk) */
+export async function getDpadAllCourseAssignments(): Promise<any[]> {
+    const response = await fetch(`${QA_API_BASE_URL}/d-pad/admin/all-course-assignments/`);
+    if (!response.ok) throw new Error('Failed to fetch all course assignments');
+    return response.json();
+}
+
+/** Care Saved Answers (Dropdown Options) CRUD */
+
+export const getCareSavedAnswers = async (): Promise<CareSavedAnswer[]> => {
+    const response = await fetch(`${QA_API_BASE_URL}/care-saved-answers`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch care saved answers');
+    }
+    return response.json();
+};
+
+export const createCareSavedAnswer = async (data: Partial<CareSavedAnswer>): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/care-saved-answers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create care saved answer');
+    return response.json();
+};
+
+export const updateCareSavedAnswer = async (id: string, data: Partial<CareSavedAnswer>): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/care-saved-answers/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update care saved answer');
+    return response.json();
+};
+
+export const deleteCareSavedAnswer = async (id: string): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/care-saved-answers/${id}`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete care saved answer');
+    return response.json();
+};

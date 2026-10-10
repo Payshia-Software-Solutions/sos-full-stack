@@ -48,6 +48,10 @@ return [
         return $certificateOrderController->updateCourses($orderId);
     },
 
+    'PUT /certificate-orders/update-status/(\d+)/$' => function ($orderId) use ($certificateOrderController) {
+        return $certificateOrderController->updateStatus($orderId);
+    },
+
     // DELETE a certificate order
     'DELETE /certificate-orders/(\d+)/$' => function ($order_id) use ($certificateOrderController) {
         return $certificateOrderController->deleteOrder($order_id);

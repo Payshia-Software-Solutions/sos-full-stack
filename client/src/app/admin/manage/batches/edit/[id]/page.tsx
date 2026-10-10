@@ -32,6 +32,7 @@ const batchFormSchema = z.object({
     certification: z.string().optional(),
     course_img: z.string().optional(),
     criteria_list: z.string().optional(),
+    whatsapp_link: z.string().optional(),
 });
 
 type BatchFormValues = z.infer<typeof batchFormSchema>;
@@ -74,6 +75,7 @@ export default function EditBatchPage() {
             certification: '',
             course_img: '',
             criteria_list: '',
+            whatsapp_link: '',
         }
     });
 
@@ -90,6 +92,7 @@ export default function EditBatchPage() {
                 course_img: batch.course_img || '',
                 criteria_list: batch.criteria_list ? String(batch.criteria_list) : '',
                 enroll_key: batch.enroll_key || '',
+                whatsapp_link: batch.whatsapp_link || '',
             });
         }
     }, [batch, form]);
@@ -187,6 +190,10 @@ export default function EditBatchPage() {
                             <div className="space-y-2">
                                 <Label htmlFor="course_img">Course Image Filename</Label>
                                 <Input id="course_img" {...form.register('course_img')} placeholder="e.g., image.jpg" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="whatsapp_link">WhatsApp Group Link</Label>
+                                <Input id="whatsapp_link" {...form.register('whatsapp_link')} placeholder="https://chat.whatsapp.com/..." />
                             </div>
                         </div>
 

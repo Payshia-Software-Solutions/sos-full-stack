@@ -29,6 +29,12 @@ export default function CeylonPharmacySetupPage() {
             description: "Configure the general items available for purchase in the POS system.",
             href: "/admin/manage/games/ceylon-pharmacy/store-items",
             icon: ShoppingBasket,
+        },
+        {
+            title: "Manage Dropdown Options",
+            description: "Manage the shared list of options for D-Pad and Ceylon Pharmacy dropdowns.",
+            href: "/admin/manage/games/ceylon-pharmacy/saved-answers",
+            icon: List,
         }
     ];
 

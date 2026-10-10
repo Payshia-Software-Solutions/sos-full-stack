@@ -1,8 +1,9 @@
+import { LMS_API_URL } from "@/lib/config";
 
 
 import type { StudentSearchResult, UserFullDetails, ApiStaffMember, StaffMember, StudentEnrollmentInfo, TempUser, StudentBalanceData, GamePatient, Course } from '../types';
 
-const QA_API_BASE_URL = process.env.NEXT_PUBLIC_LMS_SERVER_URL || 'https://qa-api.pharmacollege.lk';
+const QA_API_BASE_URL = LMS_API_URL;
 
 // Student Search
 export const searchStudents = async (query: string): Promise<StudentSearchResult[]> => {
@@ -93,15 +94,68 @@ export const getStudentFullInfo = async (studentNumber: string): Promise<any> =>
 };
 
 export const getStudentEnrollments = async (studentNumber: string): Promise<StudentEnrollmentInfo[]> => {
-    const response = await fetch(`${QA_API_BASE_URL}/student-courses-new/student-number/${studentNumber}`);
-    if (response.status === 404) {
+    try {
+        const response = await fetch(`${QA_API_BASE_URL}/student-courses-new/student-number/${encodeURIComponent(studentNumber)}`);
+        let enrollments: StudentEnrollmentInfo[] = [];
+        if (response.ok) {
+            enrollments = await response.json();
+        }
+        
+        if (Array.isArray(enrollments) && enrollments.length > 0) {
+            return enrollments.filter(e => e && typeof e.course_code === 'string' && e.course_code.trim() !== '');
+        }
+
+        // Fallback: If student-courses-new returned empty or 404, check getStudentFullInfo
+        try {
+            const fullInfo = await getStudentFullInfo(studentNumber);
+            if (fullInfo && fullInfo.studentEnrollments && typeof fullInfo.studentEnrollments === 'object') {
+                const fallbackList: StudentEnrollmentInfo[] = Object.values(fullInfo.studentEnrollments)
+                    .filter((e: any) => e && typeof e.course_code === 'string' && e.course_code.trim() !== '')
+                    .map((e: any) => ({
+                    student_course_id: e.id,
+                    course_code: e.course_code,
+                    student_id: e.student_id,
+                    enrollment_key: e.enrollment_key,
+                    created_at: e.created_at,
+                    parent_course_id: e.parent_course_id,
+                    course_name: e.parent_course_name || e.batch_name || e.course_code,
+                    course_img: e.course_img || '',
+                    whatsapp_link: e.whatsapp_link || '',
+                    user_id: fullInfo.studentInfo?.id,
+                    username: fullInfo.studentInfo?.username,
+                    civil_status: fullInfo.studentInfo?.civil_status,
+                    first_name: fullInfo.studentInfo?.first_name,
+                    last_name: fullInfo.studentInfo?.last_name,
+                    gender: fullInfo.studentInfo?.gender,
+                    address_line_1: fullInfo.studentInfo?.address_line_1,
+                    address_line_2: fullInfo.studentInfo?.address_line_2,
+                    city: fullInfo.studentInfo?.city,
+                    district: fullInfo.studentInfo?.district,
+                    postal_code: fullInfo.studentInfo?.postal_code,
+                    telephone_1: fullInfo.studentInfo?.telephone_1,
+                    telephone_2: fullInfo.studentInfo?.telephone_2,
+                    nic: fullInfo.studentInfo?.nic,
+                    e_mail: fullInfo.studentInfo?.e_mail,
+                    birth_day: fullInfo.studentInfo?.birth_day,
+                    updated_by: fullInfo.studentInfo?.updated_by,
+                    updated_at: fullInfo.studentInfo?.updated_at,
+                    full_name: fullInfo.studentInfo?.full_name,
+                    name_with_initials: fullInfo.studentInfo?.name_with_initials,
+                    name_on_certificate: fullInfo.studentInfo?.name_on_certificate,
+                }));
+                if (fallbackList.length > 0) {
+                    return fallbackList;
+                }
+            }
+        } catch {
+            // ignore fallback fetch error
+        }
+
+        return Array.isArray(enrollments) ? enrollments : [];
+    } catch (error) {
+        console.error(`Error fetching enrollments for ${studentNumber}:`, error);
         return [];
     }
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: `Failed to fetch enrollments for ${studentNumber}`}));
-        throw new Error(errorData.message || 'Failed to fetch enrollments');
-    }
-    return response.json();
 };
 
 export const addStudentEnrollment = async (data: { student_id: string; course_code: string }): Promise<any> => {
@@ -137,7 +191,7 @@ export const removeStudentEnrollment = async (studentCourseId: string): Promise<
 };
 
 export const getStudentDetailsByUsername = async (username: string): Promise<UserFullDetails> => {
-    const response = await fetch(`${QA_API_BASE_URL}/userFullDetails/username/${username}`);
+    const response = await fetch(`${QA_API_BASE_URL}/userFullDetails/username/${username}/`);
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: `Failed to fetch student details for ${username}` }));
         throw new Error(errorData.message || 'Failed to fetch student details');
@@ -161,4 +215,86 @@ export const getStudentBalance = async (studentNumber: string): Promise<StudentB
         throw new Error(errorData.message || 'Failed to fetch student balance');
     }
     return response.json();
-}
+};
+
+export const submitProfileEditRequest = async (data: any): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/profile-edits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to submit profile edit request' }));
+        throw new Error(errorData.message || 'Failed to submit profile edit request');
+    }
+    return response.json();
+};
+
+export const getPendingProfileEditRequests = async (): Promise<any[]> => {
+    const response = await fetch(`${QA_API_BASE_URL}/profile-edits/pending`);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch pending profile edit requests' }));
+        throw new Error(errorData.message || 'Failed to fetch pending profile edit requests');
+    }
+    return response.json();
+};
+
+export const getProfileEditRequestStatus = async (username: string): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/profile-edits/status/${username}`);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch profile edit request status' }));
+        throw new Error(errorData.message || 'Failed to fetch profile edit request status');
+    }
+    return response.json();
+};
+
+export const approveProfileEditRequest = async (id: string | number, adminUsername: string): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/profile-edits/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_username: adminUsername }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to approve request' }));
+        throw new Error(errorData.message || 'Failed to approve request');
+    }
+    return response.json();
+};
+
+export const rejectProfileEditRequest = async (id: string | number): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/profile-edits/${id}/reject`, {
+        method: 'POST',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to reject request' }));
+        throw new Error(errorData.message || 'Failed to reject request');
+    }
+    return response.json();
+};
+
+export const deactivateUserAccount = async (username: string, password?: string): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch(`${QA_API_BASE_URL}/users/deactivate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to deactivate account' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to deactivate account');
+    }
+    return response.json();
+};
+
+export const updateUserStatus = async (username: string, status: 'Active' | 'Inactive'): Promise<{ success: boolean; message: string; status: string }> => {
+    const response = await fetch(`${QA_API_BASE_URL}/users/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, status }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to update user status' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to update user status');
+    }
+    return response.json();
+};
+

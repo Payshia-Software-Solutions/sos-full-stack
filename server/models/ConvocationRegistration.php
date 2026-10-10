@@ -309,7 +309,12 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
     }
     public function getRegistrationsByConvocationId($convocationId)
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM convocation_registrations WHERE convocation_id = ?");
+        $stmt = $this->pdo->prepare("
+            SELECT cr.*, u.name_on_certificate, u.telephone_1 
+            FROM convocation_registrations cr
+            LEFT JOIN user_full_details u ON cr.student_number = u.username 
+            WHERE cr.convocation_id = ?
+        ");
         $stmt->execute([$convocationId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Shield, LogOut, Home } from "lucide-react";
+import { MoreHorizontal, Shield, LogOut, Home, User } from "lucide-react";
 
 export function MobileHeader() {
   const { isMobileDetailActive } = useMobileDetailActive();
@@ -36,7 +36,7 @@ export function MobileHeader() {
       <div className="flex items-center gap-2">
         <Link href={isAdminSection ? "/admin/dashboard" : "/dashboard"} legacyBehavior passHref>
           <a className="flex items-center gap-2">
-            <Image src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={28} height={28} className="w-7 h-7" />
+            <Image unoptimized src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={28} height={28} className="w-7 h-7" />
             <span className="text-lg font-headline font-semibold text-card-foreground">SOS App</span>
           </a>
         </Link>
@@ -55,6 +55,12 @@ export function MobileHeader() {
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
+           <DropdownMenuItem asChild>
+            <Link href="/dashboard/profile">
+              <User className="mr-2 h-4 w-4" />
+              <span>My Profile</span>
+            </Link>
+          </DropdownMenuItem>
            <DropdownMenuItem asChild>
             <Link href={isAdminSection ? "/admin/more" : "/dashboard/more"}>
               <MoreHorizontal className="mr-2 h-4 w-4" />

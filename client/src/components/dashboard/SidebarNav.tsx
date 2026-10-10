@@ -19,7 +19,10 @@ import {
   MoreHorizontal,
   BookOpen,
   Gamepad2,
-  BookText
+  BookText,
+  Package,
+  User,
+  ShieldCheck
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,7 +41,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ThemeSwitcher } from "../ui/ThemeSwitcher";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Image from "next/image";
-import { MediMindIcon } from "../icons/module-icons";
+import { PharmaHunterIcon, PharmaReaderIcon } from "../icons/module-icons";
 import { useQuery } from "@tanstack/react-query";
 import { getStudentEnrollments } from "@/lib/actions/users";
 import { getCourses } from "@/lib/actions/courses";
@@ -57,12 +60,16 @@ import {
 
 const baseNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/profile", label: "My Profile", icon: User },
+  { href: "/dashboard/kyc", label: "KYC Verification", icon: ShieldCheck },
   { href: "/dashboard/tickets", label: "Tickets", icon: Ticket },
   { href: "/dashboard/announcements", label: "Announcements", icon: Megaphone },
   { href: "/dashboard/bnf", label: "BNF", icon: BookOpen },
   { href: "/dashboard/d-pad", label: "D-Pad", icon: Gamepad2 },
   { href: "/dashboard/ceylon-pharmacy", label: "Ceylon Pharmacy", icon: Gamepad2 },
-  { href: "/dashboard/medimind", label: "MediMind", icon: MediMindIcon },
+  { href: "/dashboard/medimind", label: "Pharma Hunter", icon: PharmaHunterIcon },
+  { href: "/dashboard/pharma-reader", label: "Pharma Reader", icon: PharmaReaderIcon },
+  { href: "/dashboard/delivery", label: "Delivery Orders", icon: Package },
   { href: "/dashboard/more", label: "More", icon: MoreHorizontal },
 ];
 
@@ -79,7 +86,7 @@ export function SidebarNav() {
   const [dialogContent, setDialogContent] = useState<{ title: string; description: string } | null>(null);
 
   useEffect(() => {
-    const storedCourseCode = localStorage.getItem('selected_course');
+    const storedCourseCode = sessionStorage.getItem('selected_course');
     if (storedCourseCode) {
         setSelectedCourseCode(storedCourseCode);
     }
@@ -143,7 +150,7 @@ export function SidebarNav() {
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="p-4 flex items-center gap-2 justify-between">
         <div className="flex items-center gap-2">
-          <Image src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={32} height={32} className="w-8 h-8 hidden md:block" />
+          <Image unoptimized src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={32} height={32} className="w-8 h-8 hidden md:block" />
            <h1 className="text-xl font-headline font-semibold group-data-[collapsible=icon]:hidden hidden md:block">SOS App</h1>
         </div>
          <Button variant="ghost" size="icon" className="hidden md:flex" asChild>
@@ -188,18 +195,18 @@ export function SidebarNav() {
              </SidebarMenuItem>
            </div>
            {user && (
-            <SidebarMenuItem>
-                <div className="flex items-center gap-3 p-2 group-data-[collapsible=icon]:justify-center">
-                <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatar} alt={user.name} data-ai-hint="person avatar" />
-                    <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div className="group-data-[collapsible=icon]:hidden">
-                    <p className="text-sm font-medium">{user.name}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                </div>
-                </div>
-            </SidebarMenuItem>
+             <SidebarMenuItem>
+               <Link href="/dashboard/profile" className="flex items-center gap-3 p-2 group-data-[collapsible=icon]:justify-center hover:bg-sidebar-accent rounded-lg transition-all">
+                 <Avatar className="h-8 w-8">
+                     <AvatarImage src={user.avatar} alt={user.name} data-ai-hint="person avatar" />
+                     <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                 </Avatar>
+                 <div className="group-data-[collapsible=icon]:hidden">
+                     <p className="text-sm font-medium">{user.name}</p>
+                     <p className="text-xs text-muted-foreground">{user.email}</p>
+                 </div>
+               </Link>
+             </SidebarMenuItem>
            )}
         </SidebarMenu>
       </SidebarFooter>

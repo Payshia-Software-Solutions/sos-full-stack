@@ -1,5 +1,6 @@
-
 "use client";
+
+import { LMS_API_URL } from "@/lib/config";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -59,7 +60,8 @@ interface District {
 
 const getCityName = async (cityId: string): Promise<City> => {
     if (!cityId) return { id: '', district_id: '', name_en: 'N/A' };
-    const response = await fetch(`https://qa-api.pharmacollege.lk/cities/${cityId}`);
+    const baseUrl = LMS_API_URL;
+    const response = await fetch(`${baseUrl}/cities/${cityId}`);
     if (!response.ok) {
         throw new Error('Failed to fetch city data');
     }
@@ -68,7 +70,8 @@ const getCityName = async (cityId: string): Promise<City> => {
 
 const getDistrictName = async (districtId: string): Promise<District> => {
     if (!districtId) return { id: '', name_en: 'N/A' };
-    const response = await fetch(`https://qa-api.pharmacollege.lk/districts/${districtId}`);
+    const baseUrl = LMS_API_URL;
+    const response = await fetch(`${baseUrl}/districts/${districtId}`);
     if (!response.ok) {
         throw new Error('Failed to fetch district data');
     }
@@ -109,7 +112,7 @@ export default function CreateConvocationBookingPage() {
   });
 
   const activeCeremonies = useMemo(() => {
-    return allCeremonies?.filter(c => c.accept_booking === '1') || [];
+    return allCeremonies?.filter(c => String(c.accept_booking) === '1') || [];
   }, [allCeremonies]);
   
   const { data: packages, isLoading: isLoadingPackages } = useQuery<ConvocationPackage[]>({
@@ -212,7 +215,8 @@ export default function CreateConvocationBookingPage() {
       
       const availableForBooking = eligibleEnrollments.filter(e => 
         !activeBookedCourseIds.has(e.parent_course_id) &&
-        !activeOrderedCourseIds.has(e.parent_course_id)
+        !activeOrderedCourseIds.has(e.parent_course_id) &&
+        !activeOrderedCourseIds.has(e.course_code)
       );
 
       if (availableForBooking.length === 0) {
@@ -296,7 +300,8 @@ export default function CreateConvocationBookingPage() {
     const availableForBooking = allEnrollments.filter(e => 
         e.certificate_eligibility && 
         !activeBookedCourseIds.has(e.parent_course_id) &&
-        !activeOrderedCourseIds.has(e.parent_course_id)
+        !activeOrderedCourseIds.has(e.parent_course_id) &&
+        !activeOrderedCourseIds.has(e.course_code)
     );
     setSelectedEnrollments(availableForBooking);
     setDeselectedEligible([]);
@@ -475,7 +480,7 @@ export default function CreateConvocationBookingPage() {
                 )}
                 {allEnrollments.map(enrollment => {
                     const isEligible = enrollment.certificate_eligibility;
-                    const hasActiveOrder = activeOrderedCourseIds.has(enrollment.parent_course_id);
+                    const hasActiveOrder = activeOrderedCourseIds.has(enrollment.parent_course_id) || activeOrderedCourseIds.has(enrollment.course_code);
                     const isBookedForConvocation = activeBookedCourseIds.has(enrollment.parent_course_id);
                     const isDisabled = !isEligible || hasActiveOrder || isBookedForConvocation;
 
@@ -814,7 +819,7 @@ export default function CreateConvocationBookingPage() {
                                     {errorDetails.enrollments.map(enrollment => {
                                         const isEligible = enrollment.certificate_eligibility;
                                         const isBooked = activeBookedCourseIds.has(enrollment.parent_course_id);
-                                        const isOrdered = activeOrderedCourseIds.has(enrollment.parent_course_id);
+                                        const isOrdered = activeOrderedCourseIds.has(enrollment.parent_course_id) || activeOrderedCourseIds.has(enrollment.course_code);
 
                                         let statusBadge: React.ReactNode;
                                         if (isBooked) {

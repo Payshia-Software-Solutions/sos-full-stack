@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { FileDown, Printer } from 'lucide-react';
 import { useTranslation } from '@/context/language-context';
 import { Suspense, useEffect, useState } from 'react';
+import GradePaymentGate from '@/components/GradePaymentGate';
 
 // Placeholder types, should be defined based on actual API response
 interface Result {
@@ -27,6 +28,8 @@ interface StudentDetails {
     overallGrade: string;
     issueDate: string;
     results: Result[];
+    studentBalance?: number;
+    is_grade_locked?: boolean;
 }
 
 function TranscriptComponent() {
@@ -121,32 +124,38 @@ function TranscriptComponent() {
                         </div>
                         
                         <div className="border-t pt-6">
-                            <h3 className="font-headline font-bold text-xl mb-4">{t('resultsSummaryTitle')}</h3>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>{t('resultsModule')}</TableHead>
-                                        <TableHead className="text-center">{t('resultsAttempt')}</TableHead>
-                                        <TableHead className="text-right">{t('resultsGrade')}</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {studentData.results.map((result, index) => (
-                                        <TableRow key={index}>
-                                            <TableCell className="font-medium">{result.module}</TableCell>
-                                            <TableCell className="text-center">{result.attempt}</TableCell>
-                                            <TableCell className="text-right font-semibold">{result.grade}</TableCell>
+                            <GradePaymentGate
+                                isLocked={studentData.is_grade_locked}
+                                balance={studentData.studentBalance}
+                                title="Transcript Grades Withheld - Payment Pending"
+                            >
+                                <h3 className="font-headline font-bold text-xl mb-4">{t('resultsSummaryTitle')}</h3>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>{t('resultsModule')}</TableHead>
+                                            <TableHead className="text-center">{t('resultsAttempt')}</TableHead>
+                                            <TableHead className="text-right">{t('resultsGrade')}</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {studentData.results.map((result, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell className="font-medium">{result.module}</TableCell>
+                                                <TableCell className="text-center">{result.attempt}</TableCell>
+                                                <TableCell className="text-right font-semibold">{result.grade}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
 
-                        <div className="flex justify-end items-center gap-4 pt-4">
-                            <p className="font-body text-muted-foreground">{t('resultsOverallGrade')}</p>
-                             <Badge className={`text-lg px-4 py-1 ${overallStatus ? 'bg-green-600' : 'bg-red-600'}`}>
-                                {studentData.overallGrade}
-                            </Badge>
+                                <div className="flex justify-end items-center gap-4 pt-4">
+                                    <p className="font-body text-muted-foreground">{t('resultsOverallGrade')}</p>
+                                    <Badge className={`text-lg px-4 py-1 ${overallStatus ? 'bg-green-600' : 'bg-red-600'}`}>
+                                        {studentData.overallGrade}
+                                    </Badge>
+                                </div>
+                            </GradePaymentGate>
                         </div>
 
                     </CardContent>

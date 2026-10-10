@@ -3,9 +3,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { getCertificateOrders } from '@/lib/actions/certificates';
-import { getParentCourses } from '@/lib/actions/courses';
+import { getParentCourses, getBatches } from '@/lib/actions/courses';
 import { getAllCities } from '@/lib/actions/locations';
-import type { CertificateOrder, ParentCourse } from '@/lib/types';
+import type { CertificateOrder, ParentCourse, Batch } from '@/lib/types';
 import { useMemo, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,11 @@ export default function CertificateAddressListPage() {
         queryFn: getParentCourses,
     });
 
+    const { data: batches } = useQuery<Batch[]>({
+        queryKey: ['allBatches'],
+        queryFn: getBatches,
+    });
+
     const { data: cities } = useQuery<City[]>({
         queryKey: ['cities'],
         queryFn: getAllCities,
@@ -47,9 +52,29 @@ export default function CertificateAddressListPage() {
 
     const courseNameMap = useMemo(() => {
         const map = new Map<string, string>();
-        parentCourses?.forEach(course => map.set(course.id, course.course_name));
+        const parentNameById = new Map<string, string>();
+
+        parentCourses?.forEach(course => {
+            parentNameById.set(String(course.id), course.course_name);
+            map.set(String(course.id), course.course_name);
+            if (course.course_code) {
+                map.set(course.course_code.trim(), course.course_name);
+            }
+        });
+
+        batches?.forEach(batch => {
+            if (batch.courseCode) {
+                const parentName = batch.parent_course_id ? parentNameById.get(String(batch.parent_course_id)) : null;
+                map.set(batch.courseCode.trim(), parentName || batch.name);
+            }
+        });
+
+        parentCourses?.forEach(course => {
+            map.set(String(course.id), course.course_name);
+        });
+
         return map;
-    }, [parentCourses]);
+    }, [parentCourses, batches]);
 
     const cityMap = useMemo(() => {
         const map = new Map<string, string>();

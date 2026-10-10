@@ -41,7 +41,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-                <Image src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={64} height={64} className="w-16 h-16" />
+                <Image unoptimized src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={64} height={64} className="w-16 h-16" />
             </div>
           <CardTitle className="text-2xl font-headline">Welcome to SOS App</CardTitle>
           <CardDescription>Enter your credentials to access your dashboard.</CardDescription>
@@ -60,7 +60,15 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-primary hover:underline font-medium"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -76,11 +84,17 @@ export default function LoginPage() {
           </form>
         </CardContent>
          <CardFooter className="flex-col gap-4">
-            <div className="text-center text-sm text-muted-foreground w-full">
+            <div className="text-center text-sm text-muted-foreground w-full space-y-1.5">
                 <p>
                     Don&apos;t have an account?{' '}
                     <Link href="/register" className="text-primary font-semibold hover:underline">
                         Sign Up
+                    </Link>
+                </p>
+                <p>
+                    Trouble logging in?{' '}
+                    <Link href="/forgot-password" className="text-primary font-semibold hover:underline">
+                        Reset Password
                     </Link>
                 </p>
             </div>

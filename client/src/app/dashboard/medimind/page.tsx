@@ -1,21 +1,24 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronRight, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ChevronRight, Loader2, AlertTriangle, GraduationCap } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
-import { getMediMindLevels, getMediMindLevelMedicines, getMediMindStudentAnswersByStudent, getMediMindStudentLevels, getMediMindLevelQuestions, getMediMindItems } from '@/lib/actions/games';
+import { getMediMindLevelsByCourse, getMediMindLevelMedicines, getMediMindStudentAnswersByStudent, getMediMindLevelQuestions, getMediMindItems } from '@/lib/actions/games';
 import { getStudentEnrollments } from '@/lib/actions/users';
 import { MediMindLevel, MediMindLevelMedicine, MediMindStudentAnswer, StudentEnrollmentInfo, MediMindLevelQuestion, MediMindItem } from '@/lib/types';
-import { Target, Trophy, TrendingUp } from 'lucide-react';
+import { Target, Trophy } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Coins, History as HistoryIcon } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from "@/components/ui/badge";
 
 export default function MediMindLevelsPage() {
     const router = useRouter();
     const { user } = useAuth();
+    const [selectedCourseCode, setSelectedCourseCode] = useState<string | null>(null);
 
     const { data: studentEnrollments = [], isLoading: isLoadingEnrollments } = useQuery<StudentEnrollmentInfo[]>({
         queryKey: ['studentEnrollments', user?.username],
@@ -23,12 +26,33 @@ export default function MediMindLevelsPage() {
         enabled: !!user?.username,
     });
 
-    const courseCodes = useMemo(() => studentEnrollments.map(e => e.course_code), [studentEnrollments]);
+    const validEnrollments = useMemo(() => {
+        const seen = new Set<string>();
+        return studentEnrollments.filter((enrollment) => {
+            const code = enrollment?.course_code ? String(enrollment.course_code).trim() : '';
+            if (!code || seen.has(code)) return false;
+            seen.add(code);
+            return true;
+        });
+    }, [studentEnrollments]);
 
+    // Initialize or restore selected course
+    useEffect(() => {
+        const stored = sessionStorage.getItem('selected_course');
+        if (stored && validEnrollments.some(e => String(e.course_code).trim() === stored)) {
+            setSelectedCourseCode(stored);
+        } else if (validEnrollments.length > 0) {
+            const firstCode = String(validEnrollments[0].course_code).trim();
+            setSelectedCourseCode(firstCode);
+            sessionStorage.setItem('selected_course', firstCode);
+        }
+    }, [validEnrollments]);
+
+    // Fetch levels ONLY assigned to the active course/batch
     const { data: levels = [], isLoading: isLoadingLevels } = useQuery<MediMindLevel[]>({
-        queryKey: ['mediMindLevels', courseCodes],
-        queryFn: () => getMediMindStudentLevels(courseCodes),
-        enabled: courseCodes.length > 0,
+        queryKey: ['mediMindLevels', selectedCourseCode],
+        queryFn: () => getMediMindLevelsByCourse(selectedCourseCode!),
+        enabled: !!selectedCourseCode,
     });
 
     const { data: levelMedicines = [], isLoading: isLoadingLevelMedicines } = useQuery<MediMindLevelMedicine[]>({
@@ -52,17 +76,24 @@ export default function MediMindLevelsPage() {
         enabled: !!user?.username,
     });
 
+    const activeLevelIds = useMemo(() => new Set(levels.map(l => String(l.id))), [levels]);
+
+    // Filter student answers to only those that belong to the active course's levels
+    const batchStudentAnswers = useMemo(() => {
+        return studentAnswers.filter(a => activeLevelIds.has(String(a.level_id)));
+    }, [studentAnswers, activeLevelIds]);
+
     const totalCoins = useMemo(() => {
-        const correct = studentAnswers.filter(a => a.correct_status === 'Correct').length;
-        const wrong = studentAnswers.filter(a => a.correct_status === 'Wrong').length;
+        const correct = batchStudentAnswers.filter(a => a.correct_status === 'Correct').length;
+        const wrong = batchStudentAnswers.filter(a => a.correct_status === 'Wrong').length;
         return (correct * 10) - (wrong * 2);
-    }, [studentAnswers]);
+    }, [batchStudentAnswers]);
 
     const overallStats = useMemo(() => {
         if (levels.length === 0) return { accuracy: 0, completion: 0, mastered: 0, total: 0 };
 
-        const totalAttempts = studentAnswers.length;
-        const totalCorrect = studentAnswers.filter(a => a.correct_status === 'Correct').length;
+        const totalAttempts = batchStudentAnswers.length;
+        const totalCorrect = batchStudentAnswers.filter(a => a.correct_status === 'Correct').length;
         const accuracy = totalAttempts > 0 ? (totalCorrect / totalAttempts) * 100 : 0;
 
         let totalMedicinesAcrossLevels = 0;
@@ -74,7 +105,7 @@ export default function MediMindLevelsPage() {
             if (questionsInLevelCount === 0) return;
 
             const levelMedicinesForThisLevel = levelMedicines.filter(lm => String(lm.level_id) === String(level.id));
-            const levelSpecificAnswers = studentAnswers.filter(ans => String(ans.level_id) === String(level.id));
+            const levelSpecificAnswers = batchStudentAnswers.filter(ans => String(ans.level_id) === String(level.id));
 
             totalMedicinesAcrossLevels += levelMedicinesForThisLevel.length;
 
@@ -102,7 +133,7 @@ export default function MediMindLevelsPage() {
             mastered: totalMasteredAcrossLevels, 
             total: totalMedicinesAcrossLevels 
         };
-    }, [levels, studentAnswers, levelMedicines, levelQuestions]);
+    }, [levels, batchStudentAnswers, levelMedicines, levelQuestions]);
 
     const isLoading = isLoadingLevels || isLoadingLevelMedicines || isLoadingAllMedicines || (!!user?.username && isLoadingHistory) || isLoadingEnrollments || isLoadingLevelQuestions;
 
@@ -122,8 +153,47 @@ export default function MediMindLevelsPage() {
                     <Button onClick={() => router.push('/dashboard')} variant="ghost" className="-ml-4 hover:bg-primary/10 transition-colors">
                         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Games
                     </Button>
-                    <h1 className="text-4xl font-headline font-bold mt-2 text-primary">MediMind Challenge</h1>
+                    <h1 className="text-4xl font-headline font-bold mt-2 text-primary">Pharma Hunter</h1>
                     <p className="text-muted-foreground text-lg">Pick a challenge level to test your medical knowledge.</p>
+
+                    {validEnrollments.length > 1 && (
+                        <div className="flex items-center gap-2 mt-3">
+                            <GraduationCap className="h-4 w-4 text-primary shrink-0" />
+                            <span className="text-xs font-semibold text-muted-foreground">Select Batch:</span>
+                            <Select 
+                                value={selectedCourseCode || undefined} 
+                                onValueChange={(val) => {
+                                    if (val) {
+                                        setSelectedCourseCode(val);
+                                        sessionStorage.setItem('selected_course', val);
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="w-full max-w-[340px] h-9 text-xs font-semibold bg-background border-primary/20">
+                                    <SelectValue placeholder="Select Course / Batch" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {validEnrollments.map((enrollment) => {
+                                        const code = String(enrollment.course_code).trim();
+                                        return (
+                                            <SelectItem key={code} value={code} className="text-xs font-medium">
+                                                {enrollment.course_name ? `${code} - ${enrollment.course_name}` : (enrollment.batch_name || code)}
+                                            </SelectItem>
+                                        );
+                                    })}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
+                    {validEnrollments.length === 1 && (
+                        <div className="mt-2">
+                            <Badge variant="outline" className="text-xs font-medium text-muted-foreground bg-primary/5 border-primary/20">
+                                <GraduationCap className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                                {validEnrollments[0].course_name ? `${validEnrollments[0].course_code} - ${validEnrollments[0].course_name}` : (validEnrollments[0].batch_name || validEnrollments[0].course_code)}
+                            </Badge>
+                        </div>
+                    )}
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-3">

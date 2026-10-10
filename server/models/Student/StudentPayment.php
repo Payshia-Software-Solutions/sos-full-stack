@@ -38,11 +38,17 @@ class StudentPayment
         if (!isset($data['created_at'])) {
             $data['created_at'] = date('Y-m-d H:i:s');
         }
+        if (!isset($data['payment_reference'])) {
+            $data['payment_reference'] = null;
+        }
+        if (!isset($data['reason'])) {
+            $data['reason'] = 'Course Fee';
+        }
 
         $sql = "INSERT INTO student_payment 
-                (receipt_number, course_code, student_id, paid_amount, discount_amount, payment_status, payment_type, paid_date, created_at, created_by, reason) 
+                (receipt_number, course_code, student_id, paid_amount, discount_amount, payment_status, payment_type, paid_date, created_at, created_by, reason, payment_reference) 
                 VALUES 
-                (:receipt_number, :course_code, :student_id, :paid_amount, :discount_amount, :payment_status, :payment_type, :paid_date, :created_at, :created_by, :reason)";
+                (:receipt_number, :course_code, :student_id, :paid_amount, :discount_amount, :payment_status, :payment_type, :paid_date, :created_at, :created_by, :reason, :payment_reference)";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($data);
@@ -52,6 +58,9 @@ class StudentPayment
     {
         if (!isset($data['update_at'])) {
             $data['update_at'] = date('Y-m-d H:i:s');
+        }
+        if (!isset($data['payment_reference'])) {
+            $data['payment_reference'] = null;
         }
 
         $data['id'] = $id;
@@ -66,7 +75,8 @@ class StudentPayment
                     payment_type = :payment_type,
                     paid_date = :paid_date,
                     update_at = :update_at,
-                    reason = :reason
+                    reason = :reason,
+                    payment_reference = :payment_reference
                 WHERE id = :id";
 
         $stmt = $this->pdo->prepare($sql);
@@ -109,22 +119,20 @@ class StudentPayment
             // Set 'Bank Transfer' as default if payment_type is not provided
             $paymentType = isset($data['payment_type']) ? $data['payment_type'] : 'Bank Transfer';
 
-            // Retrieve student_id and user information using studentName
-            $user = $this->userModel->getByUsername($data['student_name']);
-            if (!$user) {
-                throw new Exception("User not found with username: " . $data['created_by']);
+            // We already receive student_id in the payload
+            if (!isset($data['student_id'])) {
+                throw new Exception("student_id is required");
             }
-
-            $studentId = $user['userid']; // Assuming the user ID corresponds to the student_id
+            $studentId = $data['student_id'];
 
             // Generate the next receipt number
             $newReceiptNumber = $this->generateNextReceiptNumber();
 
             // Insert into student_payment table
             $sql = "INSERT INTO student_payment 
-                    (receipt_number, course_code, student_id, paid_amount, discount_amount, payment_status, payment_type, paid_date, created_at, created_by, reason) 
+                    (receipt_number, course_code, student_id, paid_amount, discount_amount, payment_status, payment_type, paid_date, created_at, created_by, payment_reference) 
                     VALUES 
-                    (:receipt_number, :course_code, :student_id, :paid_amount, :discount_amount, :payment_status, :payment_type, :paid_date, :created_at, :created_by, :reason)";
+                    (:receipt_number, :course_code, :student_id, :paid_amount, :discount_amount, :payment_status, :payment_type, :paid_date, :created_at, :created_by, :payment_reference)";
 
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([
@@ -132,24 +140,56 @@ class StudentPayment
                 'course_code' => $data['course_code'],
                 'student_id' => $studentId, // Use the retrieved student ID
                 'paid_amount' => $data['paid_amount'],
-                'discount_amount' => 00.00,
+                'discount_amount' => $data['discount_amount'] ?? 0.00,
                 'payment_status' => $data['payment_status'],
                 'payment_type' => $paymentType, // Use client provided or default 'Bank Transfer'
                 'paid_date' => $data['paid_date'],
-                'created_at' => $data['created_at'], // provided by the client
+                'created_at' => $data['created_at'] ?? date('Y-m-d H:i:s'),
                 'created_by' => $data['created_by'], // Now it's based on the username (client provided)
-                'reason' => $data['reason']
+                'payment_reference' => $data['payment_reference'] ?? null,
             ]);
 
-            // Update the status column in the payment_request table
-            $updateSql = "UPDATE payment_request SET status = 1 WHERE id = :payment_request_id";
-            $stmt = $this->pdo->prepare($updateSql);
-            $stmt->execute([
-                'payment_request_id' => $data['payment_request_id'] // client must pass the payment request ID
-            ]);
+            // Update the status column in the payment_requests table if a request was selected
+            if (!empty($data['payment_request_id'])) {
+                $updateSql = "UPDATE payment_requests SET payment_status = 'Approved' WHERE id = :payment_request_id";
+                $stmt = $this->pdo->prepare($updateSql);
+                $stmt->execute([
+                    'payment_request_id' => $data['payment_request_id']
+                ]);
+            }
 
             // Commit the transaction if both operations are successful
             $this->pdo->commit();
+
+            // -------------------------------------------------------------
+            // SEND SMS NOTIFICATION TO STUDENT
+            // -------------------------------------------------------------
+            try {
+                // Fetch student info for SMS
+                $stmtUser = $this->pdo->prepare("SELECT first_name, telephone_1 FROM user_full_details WHERE student_id = ? OR username = ?");
+                $stmtUser->execute([$studentId, $studentId]);
+                $userInfo = $stmtUser->fetch(PDO::FETCH_ASSOC);
+
+                // Fetch course info for SMS
+                $stmtCourse = $this->pdo->prepare("SELECT course_name FROM course WHERE course_code = ?");
+                $stmtCourse->execute([$data['course_code']]);
+                $courseName = $stmtCourse->fetchColumn();
+
+                if ($userInfo && !empty($userInfo['telephone_1'])) {
+                    require_once __DIR__ . '/../SMSModel.php';
+                    $smsModel = new SMSModel($_ENV['SMS_AUTH_TOKEN'] ?? '', $_ENV['SMS_SENDER_ID'] ?? 'Pharma C.', '');
+                    $smsModel->sendPaymentUpdateSMS(
+                        $userInfo['telephone_1'],
+                        $userInfo['first_name'] ?: 'Student',
+                        $courseName ?: $data['course_code'],
+                        $data['paid_amount'],
+                        $newReceiptNumber
+                    );
+                }
+            } catch (Exception $smsEx) {
+                // Ignore SMS errors so it doesn't break the payment flow
+            }
+            // -------------------------------------------------------------
 
             return ['message' => 'Record created and status updated successfully with receipt number: ' . $newReceiptNumber];
         } catch (Exception $e) {

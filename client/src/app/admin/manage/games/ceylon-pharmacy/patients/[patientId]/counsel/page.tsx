@@ -53,7 +53,7 @@ const InstructionSelectionDialog = ({
             }
             seen.add(lowercased);
             return true;
-        }).sort((a,b) => parseInt(a.id, 10) - parseInt(b.id, 10)); // Sort by ID numerically
+        }).sort((a,b) => parseInt(String(a.id), 10) - parseInt(String(b.id), 10)); // Sort by ID numerically
     }, [allInstructions]);
 
     const filteredInstructions = useMemo(() => {
@@ -92,8 +92,8 @@ const InstructionSelectionDialog = ({
                                 <div key={inst.id} className="flex items-start gap-2 p-2 rounded-md hover:bg-muted/50">
                                     <Checkbox
                                         id={`dialog-inst-${inst.id}`}
-                                        checked={currentSelectedIds.includes(inst.id)}
-                                        onCheckedChange={() => handleToggle(inst.id)}
+                                        checked={currentSelectedIds.includes(String(inst.id))}
+                                        onCheckedChange={() => handleToggle(String(inst.id))}
                                         className="mt-1"
                                     />
                                     <Label htmlFor={`dialog-inst-${inst.id}`} className="text-sm font-normal w-full cursor-pointer">
@@ -127,7 +127,7 @@ const DrugCounselingCard = ({ drug, patientId }: { drug: PrescriptionDetail, pat
     useEffect(() => {
         if (correctInstructions) {
             // The content property from this endpoint is the actual instruction ID from the master list
-            setSelectedInstructionIds(correctInstructions.map(i => i.content));
+            setSelectedInstructionIds(correctInstructions.map(i => String(i.content)));
         }
     }, [correctInstructions]);
 
@@ -138,7 +138,7 @@ const DrugCounselingCard = ({ drug, patientId }: { drug: PrescriptionDetail, pat
     
     const instructionMap = useMemo(() => {
         return allInstructions.reduce((map, inst) => {
-            map.set(inst.id, inst.instruction);
+            map.set(String(inst.id), inst.instruction);
             return map;
         }, new Map<string, string>());
     }, [allInstructions]);

@@ -1,8 +1,10 @@
 
 import type { Ticket, Chat, Message, Attachment, CreateTicketMessageClientPayload, UpdateTicketPayload, CreateChatMessageClientPayload, TicketStatus } from '../types';
+import { LMS_API_URL } from "@/lib/config";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_CHAT_SERVER_URL || 'https://chat-server.pharmacollege.lk') + '/api';
+const API_BASE_URL = LMS_API_URL;
 const CONTENT_PROVIDER_URL = 'https://content-provider.pharmacollege.lk';
+const QA_API_BASE_URL = LMS_API_URL;
 
 async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   try {
@@ -51,6 +53,7 @@ interface ApiMessage {
   attachments?: Attachment[];
   img_url?: string;
   read_status?: 'Read' | 'Unread';
+  created_by?: string;
 }
 
 function mapApiMessageToMessage(apiMsg: ApiMessage): Message {
@@ -76,6 +79,7 @@ function mapApiMessageToMessage(apiMsg: ApiMessage): Message {
         avatar: apiMsg.avatar,
         attachments: attachments,
         readStatus: apiMsg.read_status,
+        createdBy: apiMsg.created_by,
     };
 }
 
@@ -194,6 +198,82 @@ export const getTicketMessages = async (ticketId: string): Promise<Message[]> =>
     return apiMessages.map(mapApiMessageToMessage);
 };
 
+export const sendTicketCreatedSms = async (payload: {
+    mobile: string;
+    studentName?: string;
+    studentNumber: string;
+    ticketId: string | number;
+    subject: string;
+}): Promise<any> => {
+    let { mobile, studentName, studentNumber, ticketId, subject } = payload;
+    let formattedMobile = mobile.replace(/[^0-9]/g, "");
+    if (formattedMobile.startsWith("94") && formattedMobile.length === 11) {
+        formattedMobile = "0" + formattedMobile.slice(2);
+    } else if (formattedMobile.length === 9 && !formattedMobile.startsWith("0")) {
+        formattedMobile = "0" + formattedMobile;
+    }
+
+    const namePart = studentName ? `Dear ${studentName},\n\n` : `Dear Student,\n\n`;
+    const message = `${namePart}A support ticket has been created for your inquiry regarding "${subject}".\nTicket No: #${ticketId}\nIndex: ${studentNumber}\n\nOur team is reviewing it and will update you shortly.\n\nCeylon Pharma College`;
+
+    const response = await fetch(`${QA_API_BASE_URL}/send-sms`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            mobile: formattedMobile,
+            senderId: 'Pharma C.',
+            message
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: `SMS sending failed with status ${response.status}` }));
+        throw new Error(errorData.message || 'SMS sending failed');
+    }
+
+    return response.json();
+};
+
+export const sendTicketResolvedSms = async (payload: {
+    mobile: string;
+    studentName?: string;
+    studentNumber: string;
+    ticketId: string | number;
+    subject: string;
+}): Promise<any> => {
+    let { mobile, studentName, studentNumber, ticketId, subject } = payload;
+    let formattedMobile = mobile.replace(/[^0-9]/g, "");
+    if (formattedMobile.startsWith("94") && formattedMobile.length === 11) {
+        formattedMobile = "0" + formattedMobile.slice(2);
+    } else if (formattedMobile.length === 9 && !formattedMobile.startsWith("0")) {
+        formattedMobile = "0" + formattedMobile;
+    }
+
+    const namePart = studentName ? `Dear ${studentName},\n\n` : `Dear Student,\n\n`;
+    const message = `${namePart}Your support inquiry regarding "${subject}" has been marked as RESOLVED.\nTicket No: #${ticketId}\nIndex: ${studentNumber}\n\nThank you for reaching out to Ceylon Pharma College!\nwww.pharmacollege.lk`;
+
+    const response = await fetch(`${QA_API_BASE_URL}/send-sms`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            mobile: formattedMobile,
+            senderId: 'Pharma C.',
+            message
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: `SMS sending failed with status ${response.status}` }));
+        throw new Error(errorData.message || 'SMS sending failed');
+    }
+
+    return response.json();
+};
+
 export const createTicket = async (ticketFormData: FormData): Promise<Ticket> => {
     const response = await apiFetch<{ message: string, ticket: any }>('/tickets', {
         method: 'POST',
@@ -263,13 +343,29 @@ export const getUnreadMessageCount = async (ticketId: string, fromRole: 'student
     return response.length;
 };
 
-export const createTicketMessage = async (messageData: CreateTicketMessageClientPayload, ticketId: string): Promise<Message> => {
+export const createTicketMessage = async (
+  arg1: CreateTicketMessageClientPayload | string | number,
+  arg2: CreateTicketMessageClientPayload | string | number
+): Promise<Message> => {
+  let messageData: CreateTicketMessageClientPayload;
+  let ticketId: string;
+
+  if (typeof arg1 === 'object' && arg1 !== null) {
+    messageData = arg1 as CreateTicketMessageClientPayload;
+    ticketId = String(arg2);
+  } else {
+    ticketId = String(arg1);
+    messageData = arg2 as CreateTicketMessageClientPayload;
+  }
+
   const formData = new FormData();
   formData.append('ticket_id', ticketId);
-  formData.append('from_role', messageData.from);
-  formData.append('text', messageData.text);
+  formData.append('from_role', messageData.from || 'staff');
+  formData.append('text', messageData.text || '');
   formData.append('time', new Date().toISOString());
-  formData.append('created_by', messageData.createdBy);
+  if (messageData.createdBy) {
+    formData.append('created_by', messageData.createdBy);
+  }
 
   if (messageData.attachments && messageData.attachments.length > 0) {
     const attachmentMetadata = messageData.attachments.map(att => ({

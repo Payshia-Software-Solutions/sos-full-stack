@@ -1,5 +1,6 @@
-
 "use client";
+
+import { LMS_API_URL } from "@/lib/config";
 
 import { useState, useEffect, useCallback } from "react";
 import Image from 'next/image';
@@ -12,6 +13,7 @@ import debounce from 'lodash.debounce';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import StarRating from "./star-rating";
+import GradePaymentGate from "./GradePaymentGate";
 
 // --- API Response Interfaces ---
 
@@ -47,6 +49,9 @@ interface Enrollment {
     parent_course_name: string;
     assignment_grades: AssignmentGrades;
     certificate_eligibility: boolean;
+    studentBalance?: number;
+    is_grade_locked?: boolean;
+    payment_gate?: any;
 }
 
 interface StudentFullData {
@@ -190,20 +195,30 @@ const CertificateDetails = ({ studentData, enrollment }: { studentData: StudentF
                         <span className="font-semibold">{enrollment.course_code}</span>
                     </div>
                 </div>
-                <div className="border-t pt-4 space-y-4">
-                    <h3 className="font-headline text-lg font-semibold flex items-center gap-2"><Award className="h-5 w-5 text-primary" />{t('resultsTitle')}</h3>
-                    <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">{t('certFinalGrade')}</span>
-                        <span className="font-semibold">{finalGrade}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">{t('certRating')}</span>
-                        {rating > 0 ? (
-                            <StarRating rating={rating} />
-                        ) : (
-                            <span className="font-semibold">{t('certNoGrade')}</span>
-                        )}
-                    </div>
+                <div className="border-t pt-4">
+                    <GradePaymentGate
+                        isLocked={enrollment.is_grade_locked}
+                        balance={enrollment.studentBalance}
+                        gateSettings={enrollment.payment_gate?.settings || (studentData as any)?.paymentGateSettings}
+                        courseCode={enrollment.course_code}
+                        title="Result Withheld - Payment Pending"
+                    >
+                        <div className="space-y-4">
+                            <h3 className="font-headline text-lg font-semibold flex items-center gap-2"><Award className="h-5 w-5 text-primary" />{t('resultsTitle')}</h3>
+                            <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">{t('certFinalGrade')}</span>
+                                <span className="font-semibold">{finalGrade}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">{t('certRating')}</span>
+                                {rating > 0 ? (
+                                    <StarRating rating={rating} />
+                                ) : (
+                                    <span className="font-semibold">{t('certNoGrade')}</span>
+                                )}
+                            </div>
+                        </div>
+                    </GradePaymentGate>
                 </div>
             </CardContent>
         </Card>
@@ -227,7 +242,7 @@ export default function CertificateVerifier() {
   useEffect(() => {
     async function fetchAllStudents() {
         try {
-            const response = await fetch('https://qa-api.pharmacollege.lk/userFullDetails');
+            const response = await fetch(`${LMS_API_URL}/userFullDetails`);
             const data: StudentSearchResult[] = await response.json();
             setAllStudents(data);
         } catch (error) {
@@ -275,7 +290,7 @@ export default function CertificateVerifier() {
   const handleStudentSelect = async (student: StudentSearchResult) => {
     try {
         setDetailsLoading(true);
-        const response = await fetch(`https://qa-api.pharmacollege.lk/get-student-full-info?loggedUser=${student.username}`);
+        const response = await fetch(`${LMS_API_URL}/get-student-full-info?loggedUser=${student.username}`);
         if (!response.ok) {
             throw new Error('Student not found');
         }

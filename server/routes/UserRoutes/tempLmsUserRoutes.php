@@ -18,5 +18,9 @@ return [
     'GET /temp-users/count' => [$tempLmsUserController, 'countUsers'],
     'GET /temp-users/status/{status}' => [$tempLmsUserController, 'getUsersByApprovalStatus'],
     'GET /temp-users/course/{course}' => [$tempLmsUserController, 'getUsersByCourse'],
+    'POST /temp-users/{id}/activate' => [$tempLmsUserController, 'activateUser'],
+    'POST /temp-users/{id}/reject' => [$tempLmsUserController, 'rejectUser'],
+    'POST /temp-users/{id}/resend-sms' => [$tempLmsUserController, 'resendActivationSMS'],
+    'POST /temp-users/{id}/reverse' => [$tempLmsUserController, 'reverseActivation'],
 
 ];

@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare, Ticket, LayoutDashboard, LogOut, Search, Wrench, Megaphone, Video, Home, MoreHorizontal, Award, ClipboardCheck, ChevronRight, Cake } from "lucide-react";
+import { MessageSquare, Ticket, LayoutDashboard, LogOut, Search, Wrench, Megaphone, Video, Home, MoreHorizontal, Award, ClipboardCheck, ChevronRight, Cake, CreditCard, ShieldCheck } from "lucide-react";
 import {
   Sidebar,
   SidebarHeader,
@@ -38,6 +38,7 @@ const navItems: NavItem[] = [
   { href: "/admin/chat", label: "Chats", icon: MessageSquare },
   { href: "/admin/blogs", label: "Blogs", icon: Megaphone },
   { href: "/admin/manage/convocation-generate", label: "Issue Certificates", icon: Award },
+  { href: "/admin/manage/document-verification", label: "Verify KYC", icon: ShieldCheck },
   { 
     label: "WinPharma", 
     icon: ClipboardCheck,
@@ -46,6 +47,7 @@ const navItems: NavItem[] = [
         { href: "/admin/manage/winpharma-common-reasons", label: "Common Reasons" }
     ]
   },
+  { href: "/admin/manage/payment-history", label: "Payment History", icon: CreditCard },
   { href: "/admin/manage", label: "Manage", icon: Wrench },
   { href: "/admin/birthday-wishes", label: "Birthday Wishes", icon: Cake },
   { href: "/admin/more", label: "More", icon: MoreHorizontal },
@@ -66,7 +68,7 @@ export function AdminSidebarNav() {
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="p-4 flex items-center gap-2 justify-between">
         <div className="flex items-center gap-2">
-           <Image src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={32} height={32} className="w-8 h-8 hidden md:block" />
+           <Image unoptimized src="https://content-provider.pharmacollege.lk/app-icon/android-chrome-192x192.png" alt="SOS App Logo" width={32} height={32} className="w-8 h-8 hidden md:block" />
            <h1 className="text-xl font-headline font-semibold group-data-[collapsible=icon]:hidden hidden md:block">Admin Panel</h1>
         </div>
          <Button variant="ghost" size="icon" className="hidden md:flex" asChild>

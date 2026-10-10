@@ -13,6 +13,7 @@ return [
         $receivedStatus = $_GET['receivedStatus'] ?? null;
         $trackingNumber = $_GET['trackingNumber'] ?? null;
         $currentStatus = $_GET['currentStatus'] ?? null;
+        $courseCode = $_GET['courseCode'] ?? null;
 
         if ($indexNumber && $receivedStatus) {
             $status = ($receivedStatus == 'true' ? 'Received' : 'Not Received');
@@ -23,6 +24,8 @@ return [
             return $deliveryOrderController->getRecordByTrackingNumber($trackingNumber);
         } elseif ($currentStatus) {
             return $deliveryOrderController->getRecordByCurrentStatus($currentStatus);
+        } elseif ($courseCode) {
+            return $deliveryOrderController->getRecordByCourseCode($courseCode);
         }
 
         return $deliveryOrderController->getAllRecords();

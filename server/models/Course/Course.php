@@ -62,31 +62,60 @@ class Course
             $data['criteria_list'] = null;
         }
 
+        // Auto-generate course_code if missing or empty
+        if (empty($data['course_code'])) {
+            $cStmt = $this->pdo->query("SELECT course_code FROM course WHERE course_code LIKE 'CPCC%'");
+            $maxNum = 0;
+            while ($row = $cStmt->fetch(PDO::FETCH_ASSOC)) {
+                if (preg_match('/CPCC(\d+)/i', $row['course_code'], $m)) {
+                    $num = (int)$m[1];
+                    if ($num > $maxNum) $maxNum = $num;
+                }
+            }
+            $data['course_code'] = 'CPCC' . ($maxNum + 1);
+        }
+
+        // If instructor_id is missing, inherit from parent course or fallback to default
+        if (empty($data['instructor_id'])) {
+            if (!empty($data['parent_course_id'])) {
+                $pStmt = $this->pdo->prepare("SELECT instructor_id FROM parent_main_course WHERE id = :pid");
+                $pStmt->execute(['pid' => $data['parent_course_id']]);
+                $parent = $pStmt->fetch(PDO::FETCH_ASSOC);
+                if ($parent && !empty($parent['instructor_id'])) {
+                    $data['instructor_id'] = $parent['instructor_id'];
+                }
+            }
+            if (empty($data['instructor_id'])) {
+                $data['instructor_id'] = 'Dr. H.M.D.K. FONSEKA';
+            }
+        }
+
         $sql = "INSERT INTO course 
-                (course_name, parent_course_id, course_code, instructor_id, course_description, course_duration, course_fee, registration_fee, other, created_at, created_by, enroll_key, certification, mini_description, course_img, CertificateImagePath, criteria_list) 
+                (course_name, parent_course_id, course_code, instructor_id, course_description, course_duration, course_fee, registration_fee, other, created_at, created_by, enroll_key, certification, mini_description, course_img, CertificateImagePath, criteria_list, whatsapp_link) 
                 VALUES 
-                (:course_name, :parent_course_id, :course_code, :instructor_id, :course_description, :course_duration, :course_fee, :registration_fee, :other, :created_at, :created_by, :enroll_key, :certification, :mini_description, :course_img, :CertificateImagePath, :criteria_list)";
+                (:course_name, :parent_course_id, :course_code, :instructor_id, :course_description, :course_duration, :course_fee, :registration_fee, :other, :created_at, :created_by, :enroll_key, :certification, :mini_description, :course_img, :CertificateImagePath, :criteria_list, :whatsapp_link)";
 
         $stmt = $this->pdo->prepare($sql);
         
         $params = [
-            ':course_name' => $data['course_name'] ?? null,
-            ':parent_course_id' => $data['parent_course_id'] ?? null,
-            ':course_code' => $data['course_code'] ?? null,
-            ':instructor_id' => $data['instructor_id'] ?? null,
-            ':course_description' => $data['course_description'] ?? null,
-            ':course_duration' => $data['course_duration'] ?? null,
-            ':course_fee' => $data['course_fee'] ?? null,
-            ':registration_fee' => $data['registration_fee'] ?? null,
-            ':other' => $data['other'] ?? null,
-            ':created_at' => $data['created_at'] ?? null,
-            ':created_by' => $data['created_by'] ?? null,
-            ':enroll_key' => $data['enroll_key'] ?? null,
-            ':certification' => $data['certification'] ?? null,
-            ':mini_description' => $data['mini_description'] ?? null,
-            ':course_img' => $data['course_img'] ?? null,
+            ':course_name' => $data['course_name'] ?? '',
+            ':parent_course_id' => !empty($data['parent_course_id']) ? $data['parent_course_id'] : null,
+            ':course_code' => $data['course_code'],
+            ':instructor_id' => !empty($data['instructor_id']) ? $data['instructor_id'] : 'Dr. H.M.D.K. FONSEKA',
+            ':course_description' => $data['course_description'] ?? '',
+            ':course_duration' => $data['course_duration'] ?? '',
+            ':course_fee' => $data['course_fee'] ?? 0,
+            ':registration_fee' => $data['registration_fee'] ?? 0,
+            ':other' => $data['other'] ?? '',
+            ':created_at' => $data['created_at'],
+            ':created_by' => $data['created_by'] ?? 'Admin',
+            ':enroll_key' => $data['enroll_key'] ?? '',
+            ':certification' => $data['certification'] ?? '',
+            ':mini_description' => $data['mini_description'] ?? '',
+            ':course_img' => $data['course_img'] ?? '',
             ':CertificateImagePath' => $data['CertificateImagePath'] ?? null,
-            ':criteria_list' => $data['criteria_list'] ?? null
+            ':criteria_list' => $data['criteria_list'] ?? null,
+            ':whatsapp_link' => $data['whatsapp_link'] ?? null
         ];
         
         $stmt->execute($params);
@@ -96,11 +125,25 @@ class Course
     {
         if (!isset($data['update_at'])) $data['update_at'] = date('Y-m-d H:i:s');
         if (!array_key_exists('criteria_list', $data)) $data['criteria_list'] = null;
-        if (!array_key_exists('instructor_id', $data)) $data['instructor_id'] = null;
-        if (!array_key_exists('other', $data)) $data['other'] = null;
-        if (!array_key_exists('update_by', $data)) $data['update_by'] = null;
+        if (!array_key_exists('other', $data)) $data['other'] = '';
+        if (!array_key_exists('update_by', $data)) $data['update_by'] = 'Admin';
         if (!array_key_exists('CertificateImagePath', $data)) $data['CertificateImagePath'] = null;
         if (!array_key_exists('parent_course_id', $data)) $data['parent_course_id'] = null;
+        if (!array_key_exists('whatsapp_link', $data)) $data['whatsapp_link'] = null;
+
+        if (empty($data['instructor_id'])) {
+            $existing = $this->getRecordById($id);
+            if ($existing && !empty($existing['instructor_id'])) {
+                $data['instructor_id'] = $existing['instructor_id'];
+            } elseif (!empty($data['parent_course_id'])) {
+                $pStmt = $this->pdo->prepare("SELECT instructor_id FROM parent_main_course WHERE id = :pid");
+                $pStmt->execute(['pid' => $data['parent_course_id']]);
+                $parent = $pStmt->fetch(PDO::FETCH_ASSOC);
+                $data['instructor_id'] = $parent['instructor_id'] ?? 'Dr. H.M.D.K. FONSEKA';
+            } else {
+                $data['instructor_id'] = 'Dr. H.M.D.K. FONSEKA';
+            }
+        }
 
         $sql = "UPDATE course SET 
                     course_name = :course_name, 
@@ -119,7 +162,8 @@ class Course
                     mini_description = :mini_description,
                     course_img = :course_img,
                     CertificateImagePath = :CertificateImagePath,
-                    criteria_list = :criteria_list
+                    criteria_list = :criteria_list,
+                    whatsapp_link = :whatsapp_link
                 WHERE id = :id";
 
         $stmt = $this->pdo->prepare($sql);
@@ -143,6 +187,7 @@ class Course
             ':course_img' => $data['course_img'] ?? null,
             ':CertificateImagePath' => $data['CertificateImagePath'] ?? null,
             ':criteria_list' => $data['criteria_list'] ?? null,
+            ':whatsapp_link' => $data['whatsapp_link'] ?? null,
             ':id' => $id
         ];
         $stmt->execute($params);

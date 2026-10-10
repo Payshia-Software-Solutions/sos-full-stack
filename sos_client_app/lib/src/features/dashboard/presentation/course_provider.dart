@@ -31,31 +31,16 @@ final courseRecordingsProvider = FutureProvider.family<List<RecordingModel>, Str
 
 // Manages the globally selected course_code
 class SelectedCourseNotifier extends Notifier<String?> {
-  static const _key = 'selected_course';
-
   @override
   String? build() {
-    _loadSelectedCourse();
-    return null;
-  }
-
-  Future<void> _loadSelectedCourse() async {
-    final prefs = await SharedPreferences.getInstance();
-    final course = prefs.getString(_key);
-    if (course != null) {
-      state = course;
-    }
+    return null; // Always null on app startup to force selection
   }
 
   Future<void> setSelectedCourse(String courseCode) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, courseCode);
     state = courseCode;
   }
 
   Future<void> clearSelectedCourse() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_key);
     state = null;
   }
 }

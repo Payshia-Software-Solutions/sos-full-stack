@@ -1,5 +1,8 @@
-
 "use client";
+
+import { LMS_API_URL } from "@/lib/config";
+
+
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -52,7 +55,8 @@ export default function PasswordResetPage() {
         setError(null);
         setStudentData(null);
         try {
-            const response = await fetch(`https://qa-api.pharmacollege.lk/get-student-full-info?loggedUser=${studentId.trim().toUpperCase()}`);
+            const baseUrl = LMS_API_URL;
+            const response = await fetch(`${baseUrl}/get-student-full-info?loggedUser=${studentId.trim().toUpperCase()}`);
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: `Student not found or server error. Status: ${response.status}` }));
                 throw new Error(errorData.message || 'Student data is invalid or not found.');
@@ -71,30 +75,67 @@ export default function PasswordResetPage() {
         }
     };
 
-    const handleResetPassword = () => {
-        if (!newPassword) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please enter a new password.' });
+    const handleResetPassword = async () => {
+        if (!newPassword || newPassword.length < 6) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please enter a password with at least 6 characters.' });
             return;
         }
-        // Mock API call
-        console.log(`Resetting password for ${studentData?.studentInfo.student_id} to ${newPassword}`);
         
-        toast({
-            title: 'Password Reset Successful',
-            description: `The password for ${studentData?.studentInfo.full_name} has been updated.`,
-        });
-        setNewPassword('');
+        try {
+            const response = await fetch(`${LMS_API_URL}/password-reset/admin-reset`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    student_number: studentData?.studentInfo.student_id,
+                    new_password: newPassword,
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to reset password.');
+            }
+
+            toast({
+                title: 'Password Reset Successful',
+                description: `The password for ${studentData?.studentInfo.full_name} has been updated.`,
+            });
+            setNewPassword('');
+        } catch (err: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Reset Failed',
+                description: err.message || 'Could not update password.',
+            });
+        }
     };
 
-    const handleSendResetLink = () => {
+    const handleSendResetLink = async () => {
         if (!studentData) return;
-        // Mock API call to send link
-        console.log(`Sending password reset link to ${studentData.studentInfo.e_mail}`);
         
-        toast({
-            title: 'Reset Link Sent',
-            description: `A password reset link has been sent to ${studentData.studentInfo.full_name}.`,
-        });
+        try {
+            const response = await fetch(`${LMS_API_URL}/password-reset/request-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    identifier: studentData.studentInfo.student_id,
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to send OTP.');
+            }
+
+            toast({
+                title: 'Reset OTP Sent',
+                description: `A password reset OTP has been sent to ${studentData.studentInfo.full_name} (${data.masked_phone || 'registered phone'}).`,
+            });
+        } catch (err: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Failed to Send',
+                description: err.message || 'Could not send reset OTP.',
+            });
+        }
     };
     
     return (

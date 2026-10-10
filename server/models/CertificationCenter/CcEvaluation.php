@@ -2,6 +2,7 @@
 // models/CertificationCenter/CcEvaluation.php
 require './models/Orders/DeliveryOrder.php';
 require_once './models/StudentCertificates/UserCertificatePrintStatus.php';
+require_once __DIR__ . '/../Settings/PaymentGateSettings.php';
 
 
 class CcEvaluation extends DeliveryOrder
@@ -9,12 +10,19 @@ class CcEvaluation extends DeliveryOrder
     private $pdo;
     protected $lastError;
     private $certificatePrintStatus;
+    private $paymentGateSettings;
 
     public function __construct($pdo)
     {
         parent::__construct($pdo);
         $this->pdo = $pdo; // Initialize UserCertificatePrintStatus
         $this->certificatePrintStatus = new UserCertificatePrintStatus($pdo);
+        $this->paymentGateSettings = new PaymentGateSettings($pdo);
+    }
+
+    public function getPaymentGateSettings()
+    {
+        return $this->paymentGateSettings->getSettings();
     }
 
     public function GetRecoveredPatientsByCourse($CourseCode, $loggedUser)
@@ -532,18 +540,28 @@ ORDER BY
         $ArrayResult = [];
         try {
             global $link;
-            $sql = "SELECT `id`, `student_id`, `username`, `civil_status`, `first_name`, `last_name`, `gender`, `address_line_1`, `address_line_2`, `city`, `district`, `postal_code`, `telephone_1`, `telephone_2`, `nic`, `e_mail`, `birth_day`, `updated_by`, `updated_at`, `full_name`, `name_with_initials`, `name_on_certificate` FROM `user_full_details` WHERE `username` LIKE ? ORDER BY `id` DESC";
+            $sql = "SELECT ufd.`id`, ufd.`student_id`, ufd.`username`, ufd.`civil_status`, ufd.`first_name`, ufd.`last_name`, ufd.`gender`, ufd.`address_line_1`, ufd.`address_line_2`, ufd.`city`, ufd.`district`, ufd.`postal_code`, ufd.`telephone_1`, ufd.`telephone_2`, ufd.`nic`, ufd.`e_mail`, ufd.`birth_day`, ufd.`updated_by`, ufd.`updated_at`, ufd.`full_name`, ufd.`name_with_initials`, ufd.`name_on_certificate`, COALESCE(u.status, 'Active') as `status` FROM `user_full_details` ufd LEFT JOIN `users` u ON (u.username = ufd.username OR u.userid = ufd.student_id) WHERE ufd.`username` = ? OR ufd.`student_id` = ? ORDER BY ufd.`id` DESC";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([$userName]);
+            $stmt->execute([$userName, $userName]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($row) {
-                $ArrayResult[$row['username']] = $row;
+                // Return immediately if found
+                return $row;
+            } else {
+                // Fallback for admin or system users not in user_full_details
+                $sqlFallback = "SELECT `id`, `userid` as student_id, `username`, `status`, '' as civil_status, `fname` as first_name, `lname` as last_name, '' as gender, '' as address_line_1, '' as address_line_2, '' as city, '' as district, '' as postal_code, `phone` as telephone_1, '' as telephone_2, '' as nic, `email` as e_mail, '' as birth_day, '' as updated_by, `created_at` as updated_at, CONCAT(`fname`, ' ', `lname`) as full_name, '' as name_with_initials, '' as name_on_certificate FROM `users` WHERE `username` = ? OR `userid` = ? ORDER BY `id` DESC";
+                $stmtFallback = $this->pdo->prepare($sqlFallback);
+                $stmtFallback->execute([$userName, $userName]);
+                $fallbackRow = $stmtFallback->fetch(PDO::FETCH_ASSOC);
+                if ($fallbackRow) {
+                    return $fallbackRow;
+                }
             }
         } catch (PDOException $e) {
             return ["error" => $e->getMessage()];
         }
 
-        return $ArrayResult[$userName] ?? null;
+        return null;
     }
 
     public function GetMediMindProgress($courseCode, $userName) {
@@ -629,6 +647,9 @@ ORDER BY
                     c.`course_name` AS `batch_name`,
                     c.`parent_course_id` AS `parent_course_id`,
                     c.`criteria_list` AS `criteria_list`,
+                    c.`course_fee` AS `course_fee`,
+                    c.`registration_fee` AS `registration_fee`,
+                    c.`course_duration` AS `course_duration`,
                     p.`course_name` AS `parent_course_name`
                 FROM 
                     `student_course` AS sc
@@ -665,7 +686,12 @@ ORDER BY
                 $row['assignment_grades'] = $assignmentGrades;
                 $row['deliveryOrders'] = $deliveryOrders;
                 $row['certificateRecords'] = $certificateRecords;
+                $row['studentBalanceDetails'] = $studentBalance;
                 $row['studentBalance'] = $studentBalance['studentBalance'];
+
+                $gateEval = $this->paymentGateSettings->evaluateLock($studentBalance['studentBalance']);
+                $row['payment_gate'] = $gateEval;
+                $row['is_grade_locked'] = $gateEval['is_locked'];
 
                 // echo "Balance - " . $studentBalance['studentBalance'];
 
@@ -771,5 +797,34 @@ ORDER BY
         }
 
         return $ArrayResult;
+    }
+
+    public function getPendingPaymentRequests($userName)
+    {
+        try {
+            $studentData = $this->GetLmsStudentsByUserName($userName);
+            $actualStudentId = $studentData ? $studentData['student_id'] : $userName;
+            $actualUserName = $studentData ? $studentData['username'] : $userName;
+
+            // First, find if this user has a temp_lms_user ID (which is used as unique_number for initial registration slips)
+            $stmtTemp = $this->pdo->prepare("SELECT id FROM temp_lms_user WHERE index_number = :userName OR index_number = :studentId");
+            $stmtTemp->execute(['userName' => $actualUserName, 'studentId' => $actualStudentId]);
+            $tempId = $stmtTemp->fetchColumn();
+
+            $sql = "SELECT * FROM payment_requests WHERE payment_status = 'Pending' AND (unique_number = :userName OR unique_number = :studentId";
+            $params = ['userName' => $actualUserName, 'studentId' => $actualStudentId];
+
+            if ($tempId) {
+                $sql .= " OR (unique_number = :tempId AND number_type = 'ref_number')";
+                $params['tempId'] = $tempId;
+            }
+            $sql .= ")";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            return [];
+        }
     }
 }

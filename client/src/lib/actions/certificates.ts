@@ -1,6 +1,7 @@
+import { LMS_API_URL } from "@/lib/config";
 import type { UpdateCertificateNamePayload, ConvocationRegistration, CertificateOrder, SendSmsPayload, ConvocationCourse, FilteredConvocationRegistration, UpdateConvocationCoursesPayload, UserCertificatePrintStatus, UpdateCertificateOrderCoursesPayload, GenerateCertificatePayload, CreateCertificateOrderPayload, ConvocationCeremony, ConvocationPackage, ParentCourse, SessionCount, TcPaymentRecord, GeneratedCertificateBatchInfo } from '../types';
 
-const QA_API_BASE_URL = process.env.NEXT_PUBLIC_LMS_SERVER_URL || 'https://qa-api.pharmacollege.lk';
+const QA_API_BASE_URL = LMS_API_URL;
 
 
 // Helper type for form values passed from the component
@@ -250,7 +251,6 @@ export const createPackage = async (data: FormData): Promise<ConvocationPackage>
 };
 
 export const updatePackage = async (packageId: string, data: FormData): Promise<ConvocationPackage> => {
-    // Note: API seems to use POST for updates with FormData
     const response = await fetch(`${QA_API_BASE_URL}/packages/${packageId}`, {
         method: 'POST',
         body: data,
@@ -272,8 +272,7 @@ export const deletePackage = async (packageId: string): Promise<void> => {
     }
 };
 
-
-// Certificate Orders
+// --- Certificate Orders ---
 export const getCertificateOrders = async (): Promise<CertificateOrder[]> => {
     const response = await fetch(`${QA_API_BASE_URL}/certificate-orders`);
     if (!response.ok) {
@@ -286,14 +285,14 @@ export const getCertificateOrders = async (): Promise<CertificateOrder[]> => {
 export const getCertificateOrdersByStudent = async (studentNumber: string): Promise<CertificateOrder[]> => {
     const response = await fetch(`${QA_API_BASE_URL}/certificate-orders/student/${studentNumber}`);
     if (response.status === 404) {
-        return []; // No orders found is not an error
+        return [];
     }
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: `Failed to fetch certificate orders for ${studentNumber}` }));
         throw new Error(errorData.message || `Request failed`);
     }
     return response.json();
-}
+};
 
 export const createCertificateOrder = async (payload: FormData): Promise<{ reference_number: string; id: string; }> => {
     const response = await fetch(`${QA_API_BASE_URL}/certificate-orders/`, {
@@ -317,22 +316,67 @@ export const deleteCertificateOrder = async (orderId: string): Promise<void> => 
     }
 };
 
-export const sendCertificateNameSms = async (payload: SendSmsPayload): Promise<any> => {
-    const response = await fetch(`${QA_API_BASE_URL}/send-name-sms`, {
-        method: 'POST',
+export const updateCertificateOrderCourses = async (payload: UpdateCertificateOrderCoursesPayload): Promise<{ status: string; message: string; id: string; }> => {
+    const { orderId, courseCodes } = payload;
+    const response = await fetch(`${QA_API_BASE_URL}/certificate-orders/update-courses/${orderId}`, {
+        method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ course_code: courseCodes })
     });
+
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: `SMS sending failed. Status: ${response.status}` }));
-        throw new Error(errorData.message || 'SMS sending failed');
+       const errorData = await response.json().catch(() => ({ error: `Failed to update courses. Status: ${response.status}` }));
+       throw new Error(errorData.error || 'Failed to update courses');
     }
     return response.json();
+};
+
+export interface UpdateCertificateOrderStatusPayload {
+    orderId: string;
+    status: string;
+    tracking_number?: string;
+    courier_service?: string;
 }
 
-// Filtered Convocation Data
+export const updateCertificateOrderStatus = async (payload: UpdateCertificateOrderStatusPayload): Promise<{ status: string; message: string; }> => {
+    const { orderId, status, tracking_number, courier_service } = payload;
+    const response = await fetch(`${QA_API_BASE_URL}/certificate-orders/update-status/${orderId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status, tracking_number, courier_service })
+    });
+
+    if (!response.ok) {
+       const errorData = await response.json().catch(() => ({ error: `Failed to update status. Status: ${response.status}` }));
+       throw new Error(errorData.error || 'Failed to update status');
+    }
+    return response.json();
+};
+
+export const getUserCertificatePrintStatus = async (studentNumber: string, courseCode?: string): Promise<{ certificateStatus: UserCertificatePrintStatus[] }> => {
+    let url = `${QA_API_BASE_URL}/user_certificate_print_status?studentNumber=${studentNumber}`;
+    if (courseCode) {
+        url += `&courseCode=${courseCode}`;
+    }
+    const response = await fetch(url);
+    
+    if (response.status === 404) {
+        return { certificateStatus: [] };
+    }
+    
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `Failed to fetch certificate status. Status: ${response.status}` }));
+        throw new Error(errorData.error || 'Failed to fetch certificate status');
+    }
+    
+    const data = await response.json();
+    return Array.isArray(data) ? { certificateStatus: data } : data;
+};
+
 export const getCoursesForFilter = async (): Promise<ConvocationCourse[]> => {
     const response = await fetch(`${QA_API_BASE_URL}/parent-main-course`);
     if (!response.ok) {
@@ -366,69 +410,115 @@ export const updateConvocationCourses = async (payload: UpdateConvocationCourses
     return response.json();
 };
 
-export const updateCertificateOrderCourses = async (payload: UpdateCertificateOrderCoursesPayload): Promise<{ status: string; message: string; id: string; }> => {
-    const { orderId, courseCodes } = payload;
-    const response = await fetch(`${QA_API_BASE_URL}/certificate-orders/update-courses/${orderId}`, {
-        method: 'PUT',
+export const generateCertificate = async (payload: GenerateCertificatePayload): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/booking-updates/generate-certificate`, {
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ course_code: courseCodes })
+        body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
-       const errorData = await response.json().catch(() => ({ error: `Failed to update courses for order. Status: ${response.status}` }));
-       throw new Error(errorData.error || 'Failed to update courses for order');
+        const errorData = await response.json().catch(() => ({ message: 'Failed to generate certificate' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to generate certificate');
     }
     return response.json();
 };
 
-// User Certificate Print Status
-export const getUserCertificatePrintStatus = async (studentNumber: string, courseCode?: string): Promise<{ certificateStatus: UserCertificatePrintStatus[] }> => {
-    let url = `${QA_API_BASE_URL}/user_certificate_print_status?studentNumber=${studentNumber}`;
-    if (courseCode) {
-        url += `&courseCode=${courseCode}`;
-    }
-    const response = await fetch(url);
-    
-    if (response.status === 404) {
-        return { certificateStatus: [] };
-    }
-    
+export const getCertificateTemplate = async (courseCode: string, docType: string = 'Certificate'): Promise<any> => {
+    if (!courseCode) return { success: false, message: 'No course code provided' };
+    const response = await fetch(`${QA_API_BASE_URL}/certificate-templates/${courseCode}?doc_type=${docType}`);
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: `Failed to fetch certificate status. Status: ${response.status}` }));
-        throw new Error(errorData.error || 'Failed to fetch certificate status');
+        throw new Error('Failed to fetch certificate template');
     }
-    
-    const data = await response.json();
-    return Array.isArray(data) ? { certificateStatus: data } : data;
+    return response.json();
+};
+
+export const saveCertificateTemplate = async (payload: any): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/certificate-templates`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to save certificate template');
+    }
+    return response.json();
 };
 
 export const getCertificatePrintStatusById = async (certificateId: string): Promise<UserCertificatePrintStatus | null> => {
-    const response = await fetch(`${QA_API_BASE_URL}/certificate-print-status/by-certificate_id/${certificateId}`);
-    if (response.status === 404) {
-        return null;
-    }
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: `Failed to fetch certificate status for ID ${certificateId}` }));
-        throw new Error(errorData.message || 'Failed to fetch certificate status');
-    }
-    return response.json();
+    if (!certificateId) return null;
+    
+    // 1. Try fetching by certificateId query parameter
+    try {
+        const response = await fetch(`${QA_API_BASE_URL}/user_certificate_print_status/?certificateId=${encodeURIComponent(certificateId)}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                return data[0];
+            }
+            if (data && !data.error && (data.id || data.student_number || data.certificate_id)) {
+                return data;
+            }
+        }
+    } catch (e) {}
+
+    // 2. Try fetching by certificate-print-status by-certificate_id endpoint
+    try {
+        const response = await fetch(`${QA_API_BASE_URL}/certificate-print-status/by-certificate_id/${encodeURIComponent(certificateId)}/`);
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                return data[0];
+            }
+            if (data && !data.error && (data.id || data.student_number || data.certificate_id)) {
+                return data;
+            }
+        }
+    } catch (e) {}
+
+    // 3. Try fetching by studentNumber parameter
+    try {
+        const response = await fetch(`${QA_API_BASE_URL}/user_certificate_print_status/?studentNumber=${encodeURIComponent(certificateId)}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                return data[0];
+            }
+            if (data && !data.error && (data.id || data.student_number || data.certificate_id)) {
+                return data;
+            }
+        }
+    } catch (e) {}
+
+    // 4. Fallback: Try fetching by direct record ID endpoint
+    try {
+        const directRes = await fetch(`${QA_API_BASE_URL}/user_certificate_print_status/${encodeURIComponent(certificateId)}/`);
+        if (directRes.ok) {
+            const directData = await directRes.json();
+            if (directData && !directData.error && (directData.id || directData.student_number || directData.certificate_id)) {
+                return directData;
+            }
+        }
+    } catch (e) {}
+
+    return null;
 };
 
-
-export const generateCertificate = async (payload: GenerateCertificatePayload): Promise<any> => {
-    const response = await fetch(`${QA_API_BASE_URL}/certificate-print-status`, {
+export const sendCertificateNameSms = async (payload: SendSmsPayload): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/send-name-sms`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload)
     });
-
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: `Certificate generation failed. Status: ${response.status}` }));
-        throw new Error(errorData.message || 'Certificate generation failed');
+        const errorData = await response.json().catch(() => ({ message: `SMS sending failed. Status: ${response.status}` }));
+        throw new Error(errorData.message || 'SMS sending failed');
     }
     return response.json();
 };
@@ -487,6 +577,7 @@ export const getGeneratedCertificatesByBatch = async (courseCode: string): Promi
     }
     return response.json();
 };
+
 export const uploadConvocationStudentCsv = async (convocationId: string, file: File): Promise<any> => {
     const formData = new FormData();
     formData.append('convocation_id', convocationId);

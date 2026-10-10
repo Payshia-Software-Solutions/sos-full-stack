@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Calendar, User, Search } from "lucide-react";
+import { LMS_API_URL } from "@/lib/config";
 
 export default function SingleBlogPage() {
     const params = useParams();
@@ -21,7 +22,7 @@ export default function SingleBlogPage() {
             if (!slug) return;
             try {
                 // Fetch current blog
-                const res = await fetch(`http://localhost/sos-full-stack/server/api/blogs/${slug}`);
+                const res = await fetch(`${LMS_API_URL}/api/blogs/${slug}`);
                 const data = await res.json();
                 if (data.success && data.blog) {
                     setBlog(data.blog);
@@ -30,7 +31,7 @@ export default function SingleBlogPage() {
                 }
 
                 // Fetch all blogs for recent list
-                const listRes = await fetch("http://localhost/sos-full-stack/server/api/blogs");
+                const listRes = await fetch(`${LMS_API_URL}/api/blogs`);
                 const listData = await listRes.json();
                 if (listData.success && listData.blogs) {
                     setBlogs(listData.blogs.filter((b: any) => b.status === 'published'));

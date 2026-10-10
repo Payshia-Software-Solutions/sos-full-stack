@@ -115,14 +115,14 @@ class PaymentPortalRequestController
             $data['hash_value'] = $imageHash;
 
             // Check if the image already exists in the database
-            // if ($this->isDuplicateImage($imageHash)) {
-            //     http_response_code(409); // Conflict
-            //     echo json_encode([
-            //         'success' => false,
-            //         'error'   => 'Duplicate image detected. The same image has already been uploaded.'
-            //     ]);
-            //     return;
-            // }
+            if ($this->isDuplicateImage($imageHash)) {
+                http_response_code(409); // Conflict
+                echo json_encode([
+                    'success' => false,
+                    'error'   => 'Duplicate image detected. The same image has already been uploaded.'
+                ]);
+                return;
+            }
 
             // File details
             $fileExtension = pathinfo($_FILES['slip']['name'], PATHINFO_EXTENSION);

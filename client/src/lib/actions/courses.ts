@@ -1,7 +1,8 @@
 
+import { LMS_API_URL } from "@/lib/config";
 import type { Course, ApiCourseResponse, Batch, ParentCourse, ApiCourse } from '../types';
 
-const QA_API_BASE_URL = process.env.NEXT_PUBLIC_LMS_SERVER_URL || 'https://qa-api.pharmacollege.lk';
+const QA_API_BASE_URL = LMS_API_URL;
 
 export const getCourses = async (): Promise<Course[]> => {
     const response = await fetch(`${QA_API_BASE_URL}/course`);
@@ -16,6 +17,7 @@ export const getCourses = async (): Promise<Course[]> => {
         name: courseDetails.course_name,
         courseCode: courseDetails.course_code,
         course_img: courseDetails.course_img,
+        whatsapp_link: courseDetails.whatsapp_link,
     }));
 };
 
@@ -41,38 +43,45 @@ export const getBatches = async (): Promise<Batch[]> => {
         certification: courseDetails.certification,
         mini_description: courseDetails.mini_description,
         criteria_list: courseDetails.criteria_list,
+        whatsapp_link: courseDetails.whatsapp_link,
     }));
 };
 
-export const createBatch = async (batchData: Omit<Batch, 'id'>): Promise<Batch> => {
+export const createBatch = async (batchData: Omit<Batch, 'id'> & { instructor_id?: string }): Promise<Batch> => {
      const payload = {
         course_name: batchData.name,
         parent_course_id: batchData.parent_course_id,
         course_code: batchData.courseCode,
-        course_description: batchData.description,
-        course_duration: batchData.duration,
-        course_fee: batchData.fee,
-        registration_fee: batchData.registration_fee,
-        enroll_key: batchData.enroll_key,
-        course_img: batchData.course_img,
-        certification: batchData.certification,
-        mini_description: batchData.mini_description,
-        criteria_list: batchData.criteria_list,
+        instructor_id: (batchData as any).instructor_id || 'Dr. H.M.D.K. FONSEKA',
+        course_description: batchData.description || '',
+        course_duration: batchData.duration || '',
+        course_fee: batchData.fee ?? 0,
+        registration_fee: batchData.registration_fee ?? 0,
+        enroll_key: batchData.enroll_key || '',
+        course_img: batchData.course_img || '',
+        certification: batchData.certification || '',
+        mini_description: batchData.mini_description || '',
+        criteria_list: batchData.criteria_list || null,
+        whatsapp_link: batchData.whatsapp_link || null,
     };
     const response = await fetch(`${QA_API_BASE_URL}/course`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
     });
-    if (!response.ok) throw new Error('Failed to create batch');
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || errorData?.message || `Failed to create batch (Status ${response.status})`);
+    }
     return response.json();
 };
 
-export const updateBatch = async (id: string, batchData: Partial<Omit<Batch, 'id'>>): Promise<Batch> => {
+export const updateBatch = async (id: string, batchData: Partial<Omit<Batch, 'id'>> & { instructor_id?: string }): Promise<Batch> => {
     const payload = {
         course_name: batchData.name,
         parent_course_id: batchData.parent_course_id,
         course_code: batchData.courseCode,
+        instructor_id: (batchData as any).instructor_id || 'Dr. H.M.D.K. FONSEKA',
         course_description: batchData.description,
         course_duration: batchData.duration,
         course_fee: batchData.fee,
@@ -82,13 +91,17 @@ export const updateBatch = async (id: string, batchData: Partial<Omit<Batch, 'id
         certification: batchData.certification,
         mini_description: batchData.mini_description,
         criteria_list: batchData.criteria_list,
+        whatsapp_link: batchData.whatsapp_link,
     };
     const response = await fetch(`${QA_API_BASE_URL}/course/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
     });
-    if (!response.ok) throw new Error('Failed to update batch');
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || errorData?.message || 'Failed to update batch');
+    }
     return response.json();
 };
 
@@ -108,10 +121,12 @@ export const getParentCourseList = async (): Promise<ParentCourse[]> => {
 
 export const getParentCourses = async (): Promise<ParentCourse[]> => {
     const response = await fetch(`${QA_API_BASE_URL}/parent-main-course`);
-     if (!response.ok) {
+    if (!response.ok) {
         throw new Error('Failed to fetch parent courses');
     }
-    return response.json();
+    const json = await response.json();
+    // API returns { data: [...], Count: N } or a plain array
+    return Array.isArray(json) ? json : (json.data ?? []);
 }
 
 export const getParentCourse = async (id: string): Promise<ParentCourse> => {
@@ -188,4 +203,90 @@ export const getDeliverySettingsForCourse = async (courseCode: string): Promise<
     return response.json();
 }
 
+export const getCourseContentTitles = async (courseCode: string): Promise<import('../types').CourseContent[]> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/course/${courseCode}/`);
+    if (response.status === 404) return [];
+    if (!response.ok) throw new Error('Failed to fetch course content');
+    return response.json();
+}
+
+export const getCourseContentModules = async (courseCode: string): Promise<import('../types').CourseContentModule[]> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content/course/${courseCode}/`);
+    if (response.status === 404) return [];
+    if (!response.ok) throw new Error('Failed to fetch course content modules');
+    return response.json();
+}
+
+export const createCourseContentModule = async (data: any): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create course content module');
+}
+
+export const uploadCourseContentFile = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${QA_API_BASE_URL}/course-content/upload`, {
+        method: 'POST',
+        body: formData, // Do not set Content-Type, browser will automatically set it with boundary
+    });
     
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to upload file');
+    }
+    
+    const data = await response.json();
+    return data.filePath;
+}
+
+export const updateCourseContentModule = async (id: string, data: any): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update course content module');
+}
+
+export const deleteCourseContentModule = async (id: string): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content/${id}`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete course content module');
+}
+
+export const getCourseContentById = async (id: string): Promise<import('../types').CourseContent> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/${id}/`);
+    if (!response.ok) throw new Error('Failed to fetch course content title');
+    return response.json();
+}
+
+export const createCourseContent = async (data: any): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create course content');
+}
+
+export const updateCourseContent = async (id: string, data: any): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/${id}/`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update course content');
+}
+
+export const deleteCourseContent = async (id: string): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/course-content-titles/${id}/`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete course content');
+}

@@ -1,5 +1,6 @@
-
 "use client";
+
+import { LMS_API_URL } from "@/lib/config";
 
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -61,7 +62,8 @@ export default function CreateDeliveryOrderPage() {
         setStudentData(null);
 
         try {
-            const response = await fetch(`https://qa-api.pharmacollege.lk/get-student-full-info?loggedUser=${studentId.trim().toUpperCase()}`);
+            const baseUrl = LMS_API_URL;
+            const response = await fetch(`${baseUrl}/get-student-full-info?loggedUser=${studentId.trim().toUpperCase()}`);
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: `Student not found or server error. Status: ${response.status}` }));
                 throw new Error(errorData.message || 'Student data is invalid or not found.');

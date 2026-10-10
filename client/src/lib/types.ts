@@ -25,6 +25,7 @@ export interface Message {
   avatar?: string;
   attachments?: Attachment[];
   readStatus?: 'Read' | 'Unread';
+  createdBy?: string;
 }
 
 export interface Chat {
@@ -69,6 +70,7 @@ export interface UserProfile {
   email: string;
   role: 'student' | 'staff';
   userlevel?: string; // e.g. "Admin", "Staff", "Student"
+  verification_status?: 'Unverified' | 'Pending' | 'Verified' | 'Rejected';
   avatar: string;
   joinedDate: string;
   lastLogin?: string;
@@ -106,6 +108,7 @@ export interface Batch {
   course_img?: string | null;
   certification?: string;
   mini_description?: string;
+  whatsapp_link?: string | null;
 }
 
 export interface Recording {
@@ -339,6 +342,7 @@ export interface StudentInfo {
     postal_code: string;
     nic: string;
     gender: string;
+    status?: string;
 }
 
 export interface ApiPaymentRecord {
@@ -513,6 +517,7 @@ export interface ApiCourse {
     mini_description: string;
     start_date?: string;
     end_date?: string;
+    whatsapp_link?: string | null;
 }
 
 export interface ApiCourseResponse {
@@ -571,6 +576,9 @@ export interface StudentEnrollmentInfo {
   username: string;
   full_name: string;
   name_on_certificate: string;
+  course_name?: string;
+  course_img?: string;
+  whatsapp_link?: string;
 }
 
 export interface CreatePaymentPayload {
@@ -592,6 +600,12 @@ export interface StudentBalanceData {
   studentBalance: number;
   TotalRegistrationFee: number;
   paymentRecords: Record<string, ApiPaymentRecord>;
+}
+
+export interface CareSavedAnswer {
+  id: string;
+  answer_type: string;
+  answer: string;
 }
 
 export interface Announcement {
@@ -735,6 +749,28 @@ export interface Course {
   name: string;
   courseCode: string;
   course_img?: string | null;
+  whatsapp_link?: string | null;
+}
+
+export interface CourseContentModule {
+    id: string;
+    course_code: string;
+    title_name: string;
+    title_description: string | null;
+    created_by: string;
+    created_at: string;
+}
+
+export interface CourseContent {
+    id: string;
+    course_code: string;
+    title_id: string;
+    resource_type: string;
+    description: string;
+    file_path: string | null;
+    web_link: string | null;
+    created_at: string;
+    title_name: string;
 }
 
 export interface BnfWordIndexEntry {
@@ -1202,3 +1238,32 @@ export interface CriteriaListFormValues {
     moq: number;
     is_active: number;
 }
+
+export type DocumentVerificationStatus = 'not_submitted' | 'pending' | 'approved' | 'rejected';
+export type DocumentIdType = 'nic' | 'passport' | 'driving_license';
+
+export interface StudentDocumentVerification {
+  id?: number;
+  student_id: string;
+  id_type: DocumentIdType;
+  id_number?: string;
+  id_front_image?: string;
+  id_back_image?: string;
+  birth_certificate_front?: string;
+  birth_certificate_back?: string;
+  ol_certificate?: string;
+  al_certificate?: string;
+  other_documents?: string;
+  status: DocumentVerificationStatus;
+  rejection_reason?: string;
+  verified_by?: string;
+  verified_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Joined user fields
+  fname?: string;
+  lname?: string;
+  email?: string;
+  phone?: string;
+}
+
