@@ -2,6 +2,7 @@
 // models/CertificationCenter/CcEvaluation.php
 require './models/Orders/DeliveryOrder.php';
 require_once './models/StudentCertificates/UserCertificatePrintStatus.php';
+require_once __DIR__ . '/../Settings/PaymentGateSettings.php';
 
 
 class CcEvaluation extends DeliveryOrder
@@ -9,12 +10,19 @@ class CcEvaluation extends DeliveryOrder
     private $pdo;
     protected $lastError;
     private $certificatePrintStatus;
+    private $paymentGateSettings;
 
     public function __construct($pdo)
     {
         parent::__construct($pdo);
         $this->pdo = $pdo; // Initialize UserCertificatePrintStatus
         $this->certificatePrintStatus = new UserCertificatePrintStatus($pdo);
+        $this->paymentGateSettings = new PaymentGateSettings($pdo);
+    }
+
+    public function getPaymentGateSettings()
+    {
+        return $this->paymentGateSettings->getSettings();
     }
 
     public function GetRecoveredPatientsByCourse($CourseCode, $loggedUser)
@@ -680,6 +688,10 @@ ORDER BY
                 $row['certificateRecords'] = $certificateRecords;
                 $row['studentBalanceDetails'] = $studentBalance;
                 $row['studentBalance'] = $studentBalance['studentBalance'];
+
+                $gateEval = $this->paymentGateSettings->evaluateLock($studentBalance['studentBalance']);
+                $row['payment_gate'] = $gateEval;
+                $row['is_grade_locked'] = $gateEval['is_locked'];
 
                 // echo "Balance - " . $studentBalance['studentBalance'];
 
