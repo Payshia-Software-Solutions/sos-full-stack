@@ -23,6 +23,7 @@ import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { GradePaymentGate } from '@/components/GradePaymentGate';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -604,7 +605,15 @@ export default function CreateCertificateOrderPage() {
                                   {selectedEnrollments.map(enrollment => (
                                       <div key={enrollment.id} className="p-3 border rounded-md">
                                           <h4 className="font-semibold text-card-foreground">{enrollment.parent_course_name}</h4>
-                                          <p className="text-xs text-muted-foreground mb-2">Average Grade: {parseFloat(enrollment.assignment_grades.average_grade).toFixed(2)}%</p>
+                                          <GradePaymentGate
+                                               isLocked={(enrollment as any).is_grade_locked}
+                                               balance={(enrollment as any).studentBalance}
+                                               courseCode={enrollment.course_code}
+                                               type="inline"
+                                               payUrl="/dashboard/payments"
+                                           >
+                                               <p className="text-xs text-muted-foreground mb-2">Average Grade: {parseFloat(enrollment.assignment_grades.average_grade).toFixed(2)}%</p>
+                                           </GradePaymentGate>
                                       </div>
                                   ))}
                               </div>

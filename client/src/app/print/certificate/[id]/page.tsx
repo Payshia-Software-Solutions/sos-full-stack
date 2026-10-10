@@ -208,6 +208,13 @@ export default function PrintCertificatePage() {
         if (!matchedEnrollment.certificate_eligibility) {
             return { finalGrade: "Not Eligible", gradeError: `Student ${effectiveCertData.student_number} is NOT eligible for a certificate in ${matchedEnrollment.parent_course_name || matchedEnrollment.course_code}.` };
         }
+        if (matchedEnrollment.is_grade_locked) {
+            const dueAmt = matchedEnrollment.studentBalance != null ? Number(matchedEnrollment.studentBalance).toLocaleString() : 'Due';
+            return {
+                finalGrade: "Payment Pending",
+                gradeError: `Student ${effectiveCertData.student_number} has an outstanding balance of LKR ${dueAmt}. Complete payment to release certificate and grades.`
+            };
+        }
         const avgStr = matchedEnrollment.assignment_grades?.average_grade;
         const avg = parseFloat(avgStr);
         if (isNaN(avg)) {
