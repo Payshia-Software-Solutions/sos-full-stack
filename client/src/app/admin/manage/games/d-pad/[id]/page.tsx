@@ -228,10 +228,9 @@ export default function DpadAnswerKeySetupPage() {
       ...(formState.drug_qty ? [formState.drug_qty] : [])
     ])
   ).sort((a, b) => {
-    const numA = parseFloat(a);
-    const numB = parseFloat(b);
-    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-    return a.localeCompare(b);
+    if (a === "-") return -1;
+    if (b === "-") return 1;
+    return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
   });
 
   return (

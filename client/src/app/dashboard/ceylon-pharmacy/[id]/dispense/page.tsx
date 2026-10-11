@@ -68,7 +68,11 @@ const SelectionDialog = ({ triggerText, title, options, onSelect, icon: Icon, va
     const [searchTerm, setSearchTerm] = useState('');
     
     const filteredOptions = useMemo(() => {
-        const sortedOptions = [...options].sort((a, b) => a.localeCompare(b));
+        const sortedOptions = [...options].sort((a, b) => {
+            if (a === "-") return -1;
+            if (b === "-") return 1;
+            return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+        });
         if (!searchTerm) return sortedOptions;
         return sortedOptions.filter(option => option.toLowerCase().includes(searchTerm.toLowerCase()));
     }, [options, searchTerm]);

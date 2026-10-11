@@ -106,9 +106,9 @@ class CareAnswer
             }
         }
 
-        // Sort the arrays for consistent ordering
+        // Sort the arrays for consistent natural ordering
         foreach ($selectionData as &$values) {
-            sort($values);
+            sort($values, SORT_NATURAL | SORT_FLAG_CASE);
         }
 
         return $selectionData;

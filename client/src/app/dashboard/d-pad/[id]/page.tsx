@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -210,12 +210,19 @@ function SearchableSelectDialog({
     return found ? found.label[lang] : val;
   };
 
-  const filteredOptions = options.filter((opt) => {
-    const label = getOptionLabel(opt).toLowerCase();
-    const val = opt.toLowerCase();
-    const query = searchQuery.toLowerCase();
-    return label.includes(query) || val.includes(query);
-  });
+  const filteredOptions = useMemo(() => {
+    const sorted = [...options].sort((a, b) => {
+      if (a === "-") return -1;
+      if (b === "-") return 1;
+      return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+    });
+    return sorted.filter((opt) => {
+      const label = getOptionLabel(opt).toLowerCase();
+      const val = opt.toLowerCase();
+      const query = searchQuery.toLowerCase();
+      return label.includes(query) || val.includes(query);
+    });
+  }, [options, searchQuery, fieldKey, lang]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
