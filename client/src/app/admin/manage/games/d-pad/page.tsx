@@ -269,22 +269,22 @@ export default function DpadAdminManagementPage() {
 
   return (
     <div className="p-4 md:p-8 space-y-6 pb-24">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
           <Button 
             variant="ghost" 
             onClick={() => router.push("/admin/manage")} 
-            className="gap-2 pl-0 hover:pl-2 text-slate-400 hover:text-white transition-all"
+            className="gap-2 pl-0 hover:pl-2 text-muted-foreground hover:text-foreground transition-all"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Management
           </Button>
           <div className="flex items-center gap-3 mt-2">
-            <div className="p-2.5 rounded-lg bg-emerald-600 text-white">
+            <div className="p-2.5 rounded-lg bg-primary text-primary-foreground">
               <DPadIcon className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold font-headline text-slate-100">D-Pad Setup</h1>
-              <p className="text-slate-400 text-sm">Create prescriptions and configure envelope answer keys for the Dispensing Game.</p>
+              <h1 className="text-2xl md:text-3xl font-bold font-headline text-foreground">D-Pad Setup</h1>
+              <p className="text-muted-foreground text-sm">Create prescriptions and configure envelope answer keys for the Dispensing Game.</p>
             </div>
           </div>
         </div>
@@ -293,20 +293,20 @@ export default function DpadAdminManagementPage() {
           <Button 
             onClick={() => router.push('/admin/manage/game-reports?game=dpad')}
             variant="outline"
-            className="border-emerald-600/50 text-emerald-400 hover:bg-emerald-600/10 hover:text-emerald-300 gap-2 font-bold"
+            className="gap-2 font-bold"
           >
             <FileText className="w-4 h-4" /> Assessment Report
           </Button>
           <Button 
             onClick={() => router.push('/admin/manage/games/d-pad/course-assignments')}
             variant="outline"
-            className="border-indigo-600/50 text-indigo-400 hover:bg-indigo-600/10 hover:text-indigo-300 gap-2 font-bold"
+            className="gap-2 font-bold"
           >
             <BookOpen className="w-4 h-4" /> Manage Assignments
           </Button>
           <Button 
             onClick={() => handleOpenForm(null)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-bold shadow-md"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold shadow-xs"
           >
             <Plus className="w-4 h-4" /> New Prescription
           </Button>
@@ -315,35 +315,35 @@ export default function DpadAdminManagementPage() {
 
       {/* Prescriptions Grid */}
       {isLoading ? (
-        <p className="text-center text-slate-500 py-12">Loading prescriptions...</p>
+        <p className="text-center text-muted-foreground py-12">Loading prescriptions...</p>
       ) : prescriptions.length === 0 ? (
-        <Card className="border-slate-800 bg-slate-900/40 text-center p-12">
-          <p className="text-slate-400">No prescriptions found. Click "New Prescription" to get started.</p>
+        <Card className="border-border bg-card text-center p-12">
+          <p className="text-muted-foreground">No prescriptions found. Click "New Prescription" to get started.</p>
         </Card>
       ) : (
         <>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">
             <Tabs defaultValue="All" className="w-auto" onValueChange={setFilterStatus}>
-              <TabsList className="bg-slate-900 border border-slate-800">
-                <TabsTrigger value="All" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400">All</TabsTrigger>
-                <TabsTrigger value="Active" className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 text-slate-400">Active</TabsTrigger>
-                <TabsTrigger value="In-Active" className="data-[state=active]:bg-slate-800 data-[state=active]:text-slate-300 text-slate-400">In-Active</TabsTrigger>
+              <TabsList className="bg-muted border border-border">
+                <TabsTrigger value="All">All</TabsTrigger>
+                <TabsTrigger value="Active">Active</TabsTrigger>
+                <TabsTrigger value="In-Active">In-Active</TabsTrigger>
               </TabsList>
             </Tabs>
 
             {/* Search Bar */}
             <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by PRE ID, patient, doctor, drug..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-14 bg-slate-900/80 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-emerald-500"
+                className="pl-9 pr-14 bg-card border-border text-foreground placeholder:text-muted-foreground"
               />
               {searchQuery && (
                 <button 
                   onClick={() => setSearchQuery("")} 
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground hover:text-foreground"
                 >
                   Clear
                 </button>
@@ -353,23 +353,23 @@ export default function DpadAdminManagementPage() {
 
           {/* Results summary if searching */}
           {searchQuery && (
-            <div className="text-xs text-slate-400 mb-4 flex items-center justify-between">
-              <span>Showing {filteredPrescriptions.length} of {prescriptions.length} prescriptions for <strong className="text-emerald-400">"{searchQuery}"</strong></span>
-              <button onClick={() => setSearchQuery("")} className="text-emerald-400 hover:underline">Reset search</button>
+            <div className="text-xs text-muted-foreground mb-4 flex items-center justify-between">
+              <span>Showing {filteredPrescriptions.length} of {prescriptions.length} prescriptions for <strong className="text-primary">"{searchQuery}"</strong></span>
+              <button onClick={() => setSearchQuery("")} className="text-primary hover:underline">Reset search</button>
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPrescriptions.length === 0 ? (
-              <div className="col-span-full text-center py-16 bg-slate-900/20 rounded-xl border border-dashed border-slate-850">
-                <Search className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400 font-medium">No prescriptions found matching your search.</p>
+              <div className="col-span-full text-center py-16 bg-muted/20 rounded-xl border border-dashed border-border">
+                <Search className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
+                <p className="text-muted-foreground font-medium">No prescriptions found matching your search.</p>
                 {searchQuery && (
                   <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={() => setSearchQuery("")} 
-                    className="mt-3 border-slate-800 text-slate-300 hover:text-white"
+                    className="mt-3"
                   >
                     Clear Search
                   </Button>
@@ -379,7 +379,7 @@ export default function DpadAdminManagementPage() {
               filteredPrescriptions.map((pres: Prescription) => {
                 const drugCount = pres.drugs_list ? pres.drugs_list.split(", ").length : 0;
                 return (
-                  <Card key={pres.prescription_id} className="border-slate-800 bg-slate-900/50 hover:border-slate-700 transition-all flex flex-col justify-between">
+                  <Card key={pres.prescription_id} className="border-border bg-card hover:border-primary/50 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
                         <div className="flex items-center gap-2">
@@ -387,38 +387,38 @@ export default function DpadAdminManagementPage() {
                             checked={pres.prescription_status === "Active"}
                             onCheckedChange={() => toggleStatusMutation.mutate(pres)}
                             disabled={toggleStatusMutation.isPending && toggleStatusMutation.variables?.prescription_id === pres.prescription_id}
-                            className="data-[state=checked]:bg-emerald-500"
                           />
-                          <span className={cn("text-xs font-semibold", pres.prescription_status === "Active" ? "text-emerald-400" : "text-slate-500")}>
+                          <span className={cn("text-xs font-semibold", pres.prescription_status === "Active" ? "text-primary" : "text-muted-foreground")}>
                             {pres.prescription_status}
                           </span>
                         </div>
-                        <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-0.5 rounded shadow-sm">
+                        <Badge variant="outline" className="text-xs font-mono font-bold text-primary bg-primary/10 border-primary/20">
                           {pres.prescription_id}
-                        </span>
+                        </Badge>
                       </div>
-                      <CardTitle className="text-lg font-bold text-slate-100 mt-2">{pres.Pres_Name}</CardTitle>
-                      <CardDescription className="text-slate-400 text-xs">
+                      <CardTitle className="text-lg font-bold text-foreground mt-2">{pres.Pres_Name}</CardTitle>
+                      <CardDescription className="text-muted-foreground text-xs">
                         Patient: {pres.Pres_Age} Years | Date: {pres.pres_date}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="text-xs text-slate-400 border-t border-b border-slate-800/55 py-2">
-                        <p><strong className="text-slate-300">Doctor:</strong> {pres.doctor_name}</p>
-                        <p className="mt-1"><strong className="text-slate-300">Covers:</strong> {drugCount} configured</p>
+                      <div className="text-xs text-muted-foreground border-t border-b border-border py-2">
+                        <p><strong className="text-foreground">Doctor:</strong> {pres.doctor_name}</p>
+                        <p className="mt-1"><strong className="text-foreground">Covers:</strong> {drugCount} configured</p>
                       </div>
 
                       <div className="flex gap-2 w-full">
                         <Button 
                           variant="outline" 
                           onClick={() => handleOpenForm(pres)}
-                          className="flex-1 border-slate-800 bg-slate-950/40 text-slate-300 hover:bg-slate-800 hover:text-white"
+                          className="flex-1"
                         >
                           <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit
                         </Button>
                         <Button 
+                          variant="outline"
                           onClick={() => router.push(`/admin/manage/games/d-pad/${pres.prescription_id}`)}
-                          className="flex-1 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-855 hover:border-emerald-700"
+                          className="flex-1 border-primary/30 text-primary hover:bg-primary/10"
                         >
                           <Settings className="w-3.5 h-3.5 mr-1.5" /> Answers
                         </Button>
@@ -434,10 +434,10 @@ export default function DpadAdminManagementPage() {
 
       {/* Create / Edit Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 w-full max-w-6xl max-h-[90vh] overflow-y-auto custom-scrollbar p-6">
+        <DialogContent className="w-full max-w-6xl max-h-[90vh] overflow-y-auto custom-scrollbar p-6">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold font-headline text-slate-100 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-emerald-500" />
+            <DialogTitle className="text-xl font-bold font-headline text-foreground flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
               {selectedPrescription ? `Edit Prescription: ${selectedPrescription.prescription_id}` : "Create New Prescription"}
             </DialogTitle>
           </DialogHeader>
@@ -446,23 +446,22 @@ export default function DpadAdminManagementPage() {
             <form onSubmit={handleSavePrescription} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2 space-y-1.5">
-                <Label htmlFor="patientName" className="text-xs font-bold text-slate-300">Patient Name *</Label>
+                <Label htmlFor="patientName" className="text-xs font-bold text-foreground">Patient Name *</Label>
                 <Input 
                   id="patientName"
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
-                  className="bg-slate-950 border-slate-800 text-slate-100"
                   placeholder="Enter patient name"
                   required
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="prescriptionStatus" className="text-xs font-bold text-slate-300">Status *</Label>
+                <Label htmlFor="prescriptionStatus" className="text-xs font-bold text-foreground">Status *</Label>
                 <select 
                   id="prescriptionStatus"
                   value={prescriptionStatus}
                   onChange={(e) => setPrescriptionStatus(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full h-10 px-3 rounded-md bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
@@ -472,35 +471,32 @@ export default function DpadAdminManagementPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="patientDate" className="text-xs font-bold text-slate-300">Date *</Label>
+                <Label htmlFor="patientDate" className="text-xs font-bold text-foreground">Date *</Label>
                 <Input 
                   id="patientDate"
                   type="date"
                   value={patientDate}
                   onChange={(e) => setPatientDate(e.target.value)}
-                  className="bg-slate-950 border-slate-800 text-slate-100"
                   required
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="patientAge" className="text-xs font-bold text-slate-300">Age *</Label>
+                <Label htmlFor="patientAge" className="text-xs font-bold text-foreground">Age *</Label>
                 <Input 
                   id="patientAge"
                   type="number"
                   value={patientAge}
                   onChange={(e) => setPatientAge(e.target.value)}
-                  className="bg-slate-950 border-slate-800 text-slate-100"
                   placeholder="Patient Age"
                   required
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="usingMethod" className="text-xs font-bold text-slate-300">Using Method *</Label>
+                <Label htmlFor="usingMethod" className="text-xs font-bold text-foreground">Using Method *</Label>
                 <Input 
                   id="usingMethod"
                   value={usingMethod}
                   onChange={(e) => setUsingMethod(e.target.value)}
-                  className="bg-slate-950 border-slate-800 text-slate-100"
                   placeholder="e.g. 1W, 2D, 3D"
                   required
                 />
@@ -509,34 +505,32 @@ export default function DpadAdminManagementPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="doctorName" className="text-xs font-bold text-slate-300">Doctor Name *</Label>
+                <Label htmlFor="doctorName" className="text-xs font-bold text-foreground">Doctor Name *</Label>
                 <Input 
                   id="doctorName"
                   value={doctorName}
                   onChange={(e) => setDoctorName(e.target.value)}
-                  className="bg-slate-950 border-slate-800 text-slate-100"
                   placeholder="e.g. Dr. Sunil Rathnayaka"
                   required
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="drugDescription" className="text-xs font-bold text-slate-300">Prescription Instructions/Notes</Label>
+                <Label htmlFor="drugDescription" className="text-xs font-bold text-foreground">Prescription Instructions/Notes</Label>
                 <Input 
                   id="drugDescription"
                   value={drugDescription}
                   onChange={(e) => setDrugDescription(e.target.value)}
-                  className="bg-slate-950 border-slate-800 text-slate-100"
                   placeholder="Optional instruction notes"
                 />
               </div>
             </div>
 
             {/* Drugs config list builder */}
-            <div className="border-t border-slate-800 pt-4 space-y-3">
-              <h3 className="text-sm font-bold text-slate-200">Dispensing Drugs List *</h3>
+            <div className="border-t border-border pt-4 space-y-3">
+              <h3 className="text-sm font-bold text-foreground">Dispensing Drugs List *</h3>
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                 <div className="md:col-span-4 space-y-1.5">
-                  <Label htmlFor="drugSelect" className="text-xs font-bold text-slate-400">Medicine Drug *</Label>
+                  <Label htmlFor="drugSelect" className="text-xs font-bold text-muted-foreground">Medicine Drug *</Label>
                   <div className="relative">
                     <Input 
                       id="drugSelect"
@@ -548,14 +542,14 @@ export default function DpadAdminManagementPage() {
                       }}
                       onFocus={() => setIsDropdownOpen(true)}
                       onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
-                      className="bg-slate-950 border-slate-800 text-slate-100 h-10 w-full pr-8"
+                      className="h-10 w-full pr-8"
                       placeholder="Search or select drug..."
                       autoComplete="off"
                     />
                     <button
                       type="button"
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="absolute right-2 top-3 text-slate-400 hover:text-white"
+                      className="absolute right-2 top-3 text-muted-foreground hover:text-foreground"
                     >
                       <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
                         <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
@@ -563,11 +557,11 @@ export default function DpadAdminManagementPage() {
                     </button>
                     
                     {isDropdownOpen && (
-                      <div className="absolute z-50 w-full mt-1 bg-slate-900 border border-slate-800 rounded-md shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
+                      <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
                         {masterProducts.filter((p: any) => 
                           p.ProductName.toLowerCase().includes(drugSearch.toLowerCase())
                         ).length === 0 ? (
-                          <div className="px-3 py-2 text-sm text-slate-500">No results found</div>
+                          <div className="px-3 py-2 text-sm text-muted-foreground">No results found</div>
                         ) : (
                           masterProducts
                             .filter((p: any) => 
@@ -583,7 +577,7 @@ export default function DpadAdminManagementPage() {
                                   setDrugWritten(p.ProductName);
                                   setIsDropdownOpen(false);
                                 }}
-                                className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 hover:text-white transition-colors"
+                                className="w-full text-left px-3 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors"
                               >
                                 {p.ProductName}
                               </button>
@@ -594,23 +588,23 @@ export default function DpadAdminManagementPage() {
                   </div>
                 </div>
                 <div className="md:col-span-3 space-y-1.5">
-                  <Label htmlFor="drugWritten" className="text-xs font-bold text-slate-400">Medicine Drug Written *</Label>
+                  <Label htmlFor="drugWritten" className="text-xs font-bold text-muted-foreground">Medicine Drug Written *</Label>
                   <Input 
                     id="drugWritten"
                     value={drugWritten}
                     onChange={(e) => setDrugWritten(e.target.value)}
-                    className="bg-slate-950 border-slate-800 text-slate-100 h-10 w-full"
+                    className="h-10 w-full"
                     placeholder="Enter written drug"
                     autoComplete="off"
                   />
                 </div>
                 <div className="md:col-span-2 space-y-1.5">
-                  <Label htmlFor="drugUsage" className="text-xs font-bold text-slate-400">Usage *</Label>
+                  <Label htmlFor="drugUsage" className="text-xs font-bold text-muted-foreground">Usage *</Label>
                   <select 
                     id="drugUsage"
                     value={drugUsage}
                     onChange={(e) => setDrugUsage(e.target.value)}
-                    className="w-full h-10 px-3 rounded-md bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full h-10 px-3 rounded-md bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   >
                     <option value="bd">bd</option>
                     <option value="tds">tds</option>
@@ -623,7 +617,7 @@ export default function DpadAdminManagementPage() {
                   <Button 
                     type="button" 
                     onClick={handleAddDrug}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-2"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-10 px-2"
                   >
                     {editingDrugIndex !== null ? (
                       <><Check className="w-4 h-4 mr-1 shrink-0" /> Update</>
@@ -641,7 +635,7 @@ export default function DpadAdminManagementPage() {
                         setDrugSearch("");
                         setDrugWritten("");
                       }}
-                      className="h-10 px-3 border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white"
+                      className="h-10 px-3"
                     >
                       Cancel
                     </Button>
@@ -650,17 +644,17 @@ export default function DpadAdminManagementPage() {
               </div>
 
               {/* Added drugs pill elements */}
-              <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-850/80 min-h-[80px] space-y-2">
+              <div className="bg-muted/40 rounded-xl p-3 border border-border min-h-[80px] space-y-2">
                 {addedDrugs.length === 0 ? (
-                  <p className="text-slate-500 text-xs text-center py-4">No covers added yet. Select a medicine and click add.</p>
+                  <p className="text-muted-foreground text-xs text-center py-4">No covers added yet. Select a medicine and click add.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {addedDrugs.map((d, idx) => (
-                      <Badge key={idx} variant="outline" className="bg-slate-900 border-slate-800 text-slate-200 px-3 py-2 gap-3 text-xs w-full sm:w-auto">
+                      <Badge key={idx} variant="outline" className="bg-card border-border text-foreground px-3 py-2 gap-3 text-xs w-full sm:w-auto shadow-2xs">
                         <div className="flex flex-col gap-1.5 w-full">
-                            <span>Cover {idx + 1}: <strong className="text-emerald-400">{d.drug}</strong></span>
+                            <span>Cover {idx + 1}: <strong className="text-primary">{d.drug}</strong></span>
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-slate-400 shrink-0">Written:</span>
+                              <span className="text-[10px] text-muted-foreground shrink-0">Written:</span>
                               <input 
                                 type="text"
                                 value={d.written}
@@ -669,16 +663,16 @@ export default function DpadAdminManagementPage() {
                                   newDrugs[idx].written = e.target.value;
                                   setAddedDrugs(newDrugs);
                                 }}
-                                className="bg-slate-950 border border-slate-700 text-slate-200 text-xs px-2 py-1 rounded w-full sm:w-48 focus:outline-none focus:border-emerald-500"
+                                className="bg-background border border-input text-foreground text-xs px-2 py-1 rounded w-full sm:w-48 focus:outline-none focus:border-primary"
                                 placeholder="Edit written name"
                               />
                             </div>
                         </div>
                         <div className="flex flex-col gap-1 self-start mt-0.5">
-                          <button type="button" onClick={() => handleEditDrug(idx)} className="text-blue-400 hover:text-blue-600 transition-all font-bold" title="Edit">
+                          <button type="button" onClick={() => handleEditDrug(idx)} className="text-blue-500 hover:text-blue-700 transition-all font-bold" title="Edit">
                             <Edit className="w-3.5 h-3.5" />
                           </button>
-                          <button type="button" onClick={() => handleRemoveDrug(idx)} className="text-rose-400 hover:text-rose-600 transition-all font-bold" title="Remove">
+                          <button type="button" onClick={() => handleRemoveDrug(idx)} className="text-destructive hover:text-destructive/80 transition-all font-bold" title="Remove">
                             ✕
                           </button>
                         </div>
@@ -689,14 +683,14 @@ export default function DpadAdminManagementPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800 mt-4">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-4">
               <DialogClose asChild>
-                <Button type="button" variant="ghost" className="text-slate-400 hover:text-white">Cancel</Button>
+                <Button type="button" variant="ghost">Cancel</Button>
               </DialogClose>
               <Button 
                 type="submit" 
                 disabled={saveMutation.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 shadow-md"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 shadow-xs"
               >
                 {saveMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
@@ -704,9 +698,9 @@ export default function DpadAdminManagementPage() {
           </form>
 
           {/* Preview Section */}
-          <div className="hidden lg:flex flex-col h-full bg-slate-950/50 rounded-xl p-6 border border-slate-800 sticky top-0 overflow-y-auto custom-scrollbar">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-800 pb-2">Prescription Preview</h3>
-            <div className="bg-white/5 rounded-lg w-full flex-1">
+          <div className="hidden lg:flex flex-col h-full bg-muted/30 rounded-xl p-6 border border-border sticky top-0 overflow-y-auto custom-scrollbar">
+            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-6 border-b border-border pb-2">Prescription Preview</h3>
+            <div className="rounded-lg w-full flex-1">
               <PrescriptionPaper 
                 prescription={{
                   doctor_name: doctorName,
