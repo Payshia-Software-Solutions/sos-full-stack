@@ -228,14 +228,17 @@ export const getConvocationSessionCounts = async (ceremonyId: string): Promise<S
 
 // Convocation Packages
 export const getPackagesByCeremony = async (ceremonyId: string): Promise<ConvocationPackage[]> => {
-    const response = await fetch(`${QA_API_BASE_URL}/packages`);
+    const endpoint = ceremonyId 
+        ? `${QA_API_BASE_URL}/packages/convocation/${encodeURIComponent(ceremonyId)}`
+        : `${QA_API_BASE_URL}/packages`;
+    const response = await fetch(endpoint);
     if (response.status === 404) return [];
     if (!response.ok) throw new Error('Failed to fetch packages');
-    const allPackages: ConvocationPackage[] = await response.json();
+    const packages: ConvocationPackage[] = await response.json();
     if (!ceremonyId) {
-        return allPackages;
+        return packages;
     }
-    return allPackages.filter(pkg => pkg.convocation_id === ceremonyId);
+    return packages.filter(pkg => String(pkg.convocation_id) === String(ceremonyId));
 };
 
 export const createPackage = async (data: FormData): Promise<ConvocationPackage> => {
@@ -565,6 +568,16 @@ export const deleteConvocationPayment = async (registrationId: string, paymentId
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to delete payment record' }));
         throw new Error(errorData.message || 'Failed to delete payment record');
+    }
+};
+
+export const deleteConvocationRegistration = async (registrationId: string | number): Promise<void> => {
+    const response = await fetch(`${QA_API_BASE_URL}/convocation-registrations/${registrationId}/`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to delete convocation booking' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to delete convocation booking');
     }
 };
 

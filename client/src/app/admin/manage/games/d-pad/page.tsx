@@ -291,6 +291,13 @@ export default function DpadAdminManagementPage() {
 
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <Button 
+            onClick={() => router.push('/admin/manage/game-reports?game=dpad')}
+            variant="outline"
+            className="border-emerald-600/50 text-emerald-400 hover:bg-emerald-600/10 hover:text-emerald-300 gap-2 font-bold"
+          >
+            <FileText className="w-4 h-4" /> Assessment Report
+          </Button>
+          <Button 
             onClick={() => router.push('/admin/manage/games/d-pad/course-assignments')}
             variant="outline"
             className="border-indigo-600/50 text-indigo-400 hover:bg-indigo-600/10 hover:text-indigo-300 gap-2 font-bold"

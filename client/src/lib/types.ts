@@ -930,6 +930,7 @@ export interface ConvocationPackage {
     created_at: string;
     updated_at: string;
     course_list: string;
+    courses?: string;
     cover_image: string;
     convocation_id: string;
 }

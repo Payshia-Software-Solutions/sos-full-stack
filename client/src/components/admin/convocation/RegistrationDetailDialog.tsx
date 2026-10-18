@@ -13,7 +13,8 @@ import {
     getConvocationRegistrationsByStudent,
     getCertificateOrdersByStudent,
     getTcPayments,
-    deleteConvocationPayment
+    deleteConvocationPayment,
+    deleteConvocationRegistration
 } from '@/lib/actions/certificates';
 import { getStudentFullInfo } from '@/lib/actions/users';
 import type { 
@@ -219,6 +220,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
     const [isConfirmAttendanceDialogOpen, setIsConfirmAttendanceDialogOpen] = useState(false);
     const [isPackageConfirmOpen, setIsPackageConfirmOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     const [editPackageId, setEditPackageId] = useState('');
     const [pendingPackageId, setPendingPackageId] = useState('');
@@ -349,13 +351,24 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
         onError: (err: Error) => toast({ variant: 'destructive', title: 'Deletion Failed', description: err.message })
     });
 
+    const deleteRegistrationMutation = useMutation({
+        mutationFn: () => deleteConvocationRegistration(registration!.registration_id),
+        onSuccess: () => {
+            toast({ title: 'Booking Deleted', description: 'The convocation booking has been permanently deleted.' });
+            queryClient.invalidateQueries({ queryKey: ['convocationRegistrations'] });
+            setIsDeleteDialogOpen(false);
+            onOpenChange(false);
+        },
+        onError: (err: Error) => toast({ variant: 'destructive', title: 'Deletion Failed', description: err.message || 'Failed to delete booking' })
+    });
+
     const totalPaidFromRecords = useMemo(() => {
         if (!tcPayments) return 0;
         return tcPayments.reduce((acc, rec) => acc + (parseFloat(rec.payment_amount) || 0), 0);
     }, [tcPayments]);
 
     const totalPayable = useMemo(() => {
-        const pkg = packages?.find(p => p.package_id === editPackageId);
+        const pkg = packages?.find(p => String(p.package_id) === String(editPackageId));
         const packagePrice = pkg ? parseFloat(pkg.price) : 0;
         const numSeats = parseInt(editSeats, 10) || 0;
         return packagePrice + (numSeats * PARENT_SEAT_RATE);
@@ -365,8 +378,8 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
         if (!otherBookings || !registration) return new Set<string>();
         const ids = new Set<string>();
         otherBookings
-            .filter(b => b.registration_id !== registration.registration_id && b.registration_status !== 'Rejected' && b.registration_status !== 'Canceled')
-            .forEach(b => b.course_id.split(',').forEach(id => ids.add(id.trim())));
+            .filter(b => String(b.registration_id) !== String(registration.registration_id) && b.registration_status !== 'Rejected' && b.registration_status !== 'Canceled')
+            .forEach(b => (b.course_id || '').split(',').forEach(id => ids.add(id.trim())));
         return ids;
     }, [otherBookings, registration]);
 
@@ -375,7 +388,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
         const ids = new Set<string>();
         certOrders
             .filter(o => o.certificate_status !== 'Delivered')
-            .forEach(o => o.course_code.split(',').forEach(id => ids.add(id.trim())));
+            .forEach(o => (o.course_code || '').split(',').forEach(id => ids.add(id.trim())));
         return ids;
     }, [certOrders]);
 
@@ -383,13 +396,16 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
         if (!studentInfo || !registration) return { included: [], others: [] };
         
         const allEnrollments = Object.values(studentInfo.studentEnrollments);
-        const currentBookingIds = registration.course_id.split(',').map(s => s.trim()).filter(Boolean);
+        const currentBookingIds = (registration.course_id || '').split(',').map(s => s.trim()).filter(Boolean);
         
         const included: StudentEnrollment[] = [];
         const others: StudentEnrollment[] = [];
 
         allEnrollments.forEach(enrollment => {
-            if (currentBookingIds.includes(enrollment.parent_course_id)) {
+            const isMatch = currentBookingIds.some(
+                id => id === String(enrollment.parent_course_id) || id === String(enrollment.id) || id === String(enrollment.course_code)
+            );
+            if (isMatch) {
                 included.push(enrollment);
             } else {
                 others.push(enrollment);
@@ -468,7 +484,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
 
         updatePaymentMutation.mutate({
             payment_status: statusToSubmit,
-            payment_amount: totalPaidFromRecords + parseFloat(paymentAmount),
+            payment_amount: parseFloat(paymentAmount),
             created_by: user?.username || 'admin',
         });
     };
@@ -496,14 +512,15 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
         return { s1, s2 };
     })();
 
-    const currentPackage = packages?.find(p => p.package_id === registration.package_id);
+    const currentPackage = packages?.find(p => String(p.package_id) === String(registration.package_id));
     const remainingToVerify = totalPayable - totalPaidFromRecords;
     const balanceAfterCurrentCheck = remainingToVerify - (parseFloat(paymentAmount) || 0);
 
     const EnrollmentItem = ({ enrollment, isIncluded }: { enrollment: StudentEnrollment, isIncluded: boolean }) => {
         const isEligible = enrollment.certificate_eligibility;
-        const isBookedElsewhere = bookedElsewhereIds.has(enrollment.parent_course_id);
-        const isOrderedElsewhere = orderedElsewhereIds.has(enrollment.parent_course_id);
+        const enrollmentParentId = String(enrollment.parent_course_id);
+        const isBookedElsewhere = bookedElsewhereIds.has(enrollmentParentId) || bookedElsewhereIds.has(String(enrollment.course_code));
+        const isOrderedElsewhere = orderedElsewhereIds.has(enrollmentParentId) || orderedElsewhereIds.has(String(enrollment.course_code));
         const isDisabled = isBookedElsewhere || isOrderedElsewhere;
 
         return (
@@ -516,10 +533,10 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                     {isEditing || !isIncluded ? (
                         <Checkbox 
                             id={`edit-course-${enrollment.id}`} 
-                            checked={isIncluded || editCourseIds.includes(enrollment.parent_course_id)}
+                            checked={isIncluded || editCourseIds.includes(enrollmentParentId)}
                             disabled={isDisabled}
                             onCheckedChange={(checked) => {
-                                setEditCourseIds(prev => checked ? [...prev, enrollment.parent_course_id] : prev.filter(id => id !== enrollment.parent_course_id))
+                                setEditCourseIds(prev => checked ? [...prev, enrollmentParentId] : prev.filter(id => id !== enrollmentParentId))
                             }}
                             className="mt-1"
                         />
@@ -530,6 +547,11 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                         <Label htmlFor={`edit-course-${enrollment.id}`} className="text-xs font-bold leading-tight block cursor-pointer">
                             {enrollment.parent_course_name}
                         </Label>
+                        <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                            <span className="font-semibold text-foreground">Batch:</span>
+                            <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 bg-muted/60">{enrollment.course_code}</Badge>
+                            {enrollment.batch_name && <span className="truncate max-w-[220px]">({enrollment.batch_name})</span>}
+                        </div>
                         <div className="flex flex-wrap gap-1.5 pt-1">
                             {isIncluded && <Badge variant="default" className="text-[9px] h-4 px-1 bg-green-100 text-green-700 border-green-200">Included</Badge>}
                             {isBookedElsewhere && <Badge variant="secondary" className="text-[9px] h-4 px-1 bg-purple-100 text-purple-800">Booked Elsewhere</Badge>}
@@ -539,7 +561,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                     </div>
                     {!isEligible && (
                         <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="xs" className="h-6 w-6 p-0"><ChevronDown className="h-3 w-3" /></Button>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><ChevronDown className="h-3 w-3" /></Button>
                         </CollapsibleTrigger>
                     )}
                 </div>
@@ -627,7 +649,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                                             >
                                                 <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                                                 <SelectContent>
-                                                    {packages?.filter(p => p.convocation_id === registration.convocation_id).map(p => (
+                                                    {packages?.filter(p => String(p.convocation_id) === String(registration.convocation_id)).map(p => (
                                                         <SelectItem key={p.package_id} value={p.package_id} className="text-xs">{p.package_name}</SelectItem>
                                                     ))}
                                                 </SelectContent>
@@ -989,41 +1011,102 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                         <Badge variant="outline" className="h-8 uppercase">Registration: {registration.registration_status}</Badge>
                         {registration.ceremony_number && <Badge variant="default" className="h-8 bg-blue-600">Attendance #: {registration.ceremony_number}</Badge>}
                     </div>
-                    <Dialog open={isConfirmAttendanceDialogOpen} onOpenChange={setIsConfirmAttendanceDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button className="bg-primary hover:bg-primary/90">
-                                <UserCheck className="mr-2 h-4 w-4" />
-                                Confirm & Assign Ceremony #
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Confirm Convocation Attendance</DialogTitle>
-                                <DialogDescription>
-                                    Assign a ceremony number to this student. This will automatically update their registration status to <strong>Confirmed</strong>.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="py-4 space-y-2">
-                                <Label>Ceremony Number</Label>
-                                <input 
-                                    placeholder="Enter ceremony number (e.g., 402)" 
-                                    value={ceremonyNumber} 
-                                    onChange={e => setCeremonyNumber(e.target.value)} 
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                />
-                            </div>
-                            <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsConfirmAttendanceDialogOpen(false)}>Cancel</Button>
-                                <Button onClick={handleAttendanceConfirmation} disabled={updateCeremonyMutation.isPending}>
-                                    {updateCeremonyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Confirm Attendance
+                    <div className="flex items-center gap-2">
+                        <Button 
+                            variant="outline" 
+                            className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => setIsDeleteDialogOpen(true)}
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Booking
+                        </Button>
+                        <Dialog open={isConfirmAttendanceDialogOpen} onOpenChange={setIsConfirmAttendanceDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button className="bg-primary hover:bg-primary/90">
+                                    <UserCheck className="mr-2 h-4 w-4" />
+                                    Confirm & Assign Ceremony #
                                 </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Confirm Convocation Attendance</DialogTitle>
+                                    <DialogDescription>
+                                        Assign a ceremony number to this student. This will automatically update their registration status to <strong>Confirmed</strong>.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="py-4 space-y-2">
+                                    <Label>Ceremony Number</Label>
+                                    <input 
+                                        placeholder="Enter ceremony number (e.g., 402)" 
+                                        value={ceremonyNumber} 
+                                        onChange={e => setCeremonyNumber(e.target.value)} 
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    />
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="outline" onClick={() => setIsConfirmAttendanceDialogOpen(false)}>Cancel</Button>
+                                    <Button onClick={handleAttendanceConfirmation} disabled={updateCeremonyMutation.isPending}>
+                                        {updateCeremonyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Confirm Attendance
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-destructive flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5" />
+                        Delete Convocation Booking?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription asChild>
+                        <div className="space-y-3 text-sm text-muted-foreground pt-2">
+                            <div>
+                                Are you sure you want to delete the booking for{' '}
+                                <strong className="text-foreground">
+                                    {studentInfo?.studentInfo?.full_name || registration.name_on_certificate || registration.student_number}
+                                </strong>
+                                {registration.reference_number && (
+                                    <> (Ref: <span className="font-mono font-bold text-foreground">#{registration.reference_number}</span>)</>
+                                )}?
+                            </div>
+                            <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-md border border-destructive/20 space-y-1">
+                                <p className="font-bold">⚠️ Warning: This action is permanent and cannot be undone.</p>
+                                <p>This will permanently delete this booking registration from the database and remove the student's assigned ceremony pass.</p>
+                            </div>
+                        </div>
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deleteRegistrationMutation.isPending}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={(e) => {
+                            e.preventDefault();
+                            deleteRegistrationMutation.mutate();
+                        }}
+                        disabled={deleteRegistrationMutation.isPending}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                        {deleteRegistrationMutation.isPending ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Deleting...
+                            </>
+                        ) : (
+                            <>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Booking
+                            </>
+                        )}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
         </>
     );
 };

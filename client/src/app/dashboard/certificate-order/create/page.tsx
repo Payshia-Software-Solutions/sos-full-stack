@@ -357,10 +357,31 @@ export default function CreateCertificateOrderPage() {
     createOrderMutation.mutate(formData);
   };
   
-  const copyToClipboard = () => {
-    if (referenceNumber) {
-      navigator.clipboard.writeText(referenceNumber);
-      toast({ title: 'Copied!', description: 'Reference number copied to clipboard.' });
+  const copyToClipboard = async () => {
+    if (!referenceNumber) return;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(referenceNumber);
+        toast({ title: 'Copied!', description: 'Reference number copied to clipboard.' });
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = referenceNumber;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        textArea.remove();
+        if (successful) {
+          toast({ title: 'Copied!', description: 'Reference number copied to clipboard.' });
+        } else {
+          toast({ variant: 'destructive', title: 'Copy failed', description: 'Please copy the reference number manually.' });
+        }
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Copy failed', description: 'Please copy the reference number manually.' });
     }
   };
 

@@ -573,7 +573,10 @@ ORDER BY
                 FROM (
                     SELECT 
                         cl.level_id,
-                        (SELECT COUNT(*) FROM medi_mind_level_mediciens lm WHERE lm.level_id = cl.level_id) as medicine_count
+                        (SELECT COUNT(*) 
+                         FROM medi_mind_level_mediciens lm 
+                         INNER JOIN medi_mind_medicines m ON lm.medicine_id = m.id
+                         WHERE lm.level_id = cl.level_id) as medicine_count
                     FROM medi_mind_course_levels cl
                     WHERE cl.course_code = ?
                 ) level_stats

@@ -7,7 +7,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { getStudentFullInfo } from '@/lib/actions/users';
 import { getConvocationCeremonies, getPackagesByCeremony, createConvocationRegistration, getConvocationSessionCounts, getCertificateOrdersByStudent, getConvocationRegistrationsByStudent } from '@/lib/actions/certificates';
-import type { FullStudentData, StudentEnrollment, ConvocationCeremony, ConvocationPackage, SessionCount, CertificateOrder } from '@/lib/types';
+import type { FullStudentData, StudentEnrollment, ConvocationCeremony, ConvocationPackage, SessionCount, CertificateOrder, ConvocationRegistration } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, CheckCircle, Award, Loader2, Home, Truck, Copy, AlertCircle, XCircle, ChevronDown, ListOrdered, PlusCircle, FileText, Sparkles, ScrollText, Check, Paperclip, User, Users, Star, Video, Coffee, GraduationCap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, Award, Loader2, Home, Truck, Copy, AlertCircle, AlertTriangle, XCircle, ChevronDown, ListOrdered, PlusCircle, FileText, Sparkles, ScrollText, Check, Paperclip, User, Users, Star, Video, Coffee, GraduationCap } from 'lucide-react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -214,9 +214,10 @@ export default function CreateConvocationBookingPage() {
       }
       
       const availableForBooking = eligibleEnrollments.filter(e => 
-        !activeBookedCourseIds.has(e.parent_course_id) &&
-        !activeOrderedCourseIds.has(e.parent_course_id) &&
-        !activeOrderedCourseIds.has(e.course_code)
+        !activeBookedCourseIds.has(String(e.parent_course_id)) &&
+        !activeBookedCourseIds.has(String(e.course_code)) &&
+        !activeOrderedCourseIds.has(String(e.parent_course_id)) &&
+        !activeOrderedCourseIds.has(String(e.course_code))
       );
 
       if (availableForBooking.length === 0) {
@@ -299,9 +300,10 @@ export default function CreateConvocationBookingPage() {
     }
     const availableForBooking = allEnrollments.filter(e => 
         e.certificate_eligibility && 
-        !activeBookedCourseIds.has(e.parent_course_id) &&
-        !activeOrderedCourseIds.has(e.parent_course_id) &&
-        !activeOrderedCourseIds.has(e.course_code)
+        !activeBookedCourseIds.has(String(e.parent_course_id)) &&
+        !activeBookedCourseIds.has(String(e.course_code)) &&
+        !activeOrderedCourseIds.has(String(e.parent_course_id)) &&
+        !activeOrderedCourseIds.has(String(e.course_code))
     );
     setSelectedEnrollments(availableForBooking);
     setDeselectedEligible([]);
@@ -343,6 +345,7 @@ export default function CreateConvocationBookingPage() {
   };
 
   const handleConfirmAndSubmit = () => {
+    if (createBookingMutation.isPending) return;
     if (!studentData?.studentInfo?.username || !selectedCeremonyId || !selectedPackageId || !paymentSlip || selectedEnrollments.length === 0) {
       setErrorDetails({ message: "Missing required information to submit the order." });
       setStep('error');
@@ -364,10 +367,31 @@ export default function CreateConvocationBookingPage() {
     createBookingMutation.mutate(formData);
   };
   
-  const copyToClipboard = () => {
-    if (referenceNumber) {
-      navigator.clipboard.writeText(referenceNumber);
-      toast({ title: 'Copied!', description: 'Reference number copied to clipboard.' });
+  const copyToClipboard = async () => {
+    if (!referenceNumber) return;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(referenceNumber);
+        toast({ title: 'Copied!', description: 'Reference number copied to clipboard.' });
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = referenceNumber;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        textArea.remove();
+        if (successful) {
+          toast({ title: 'Copied!', description: 'Reference number copied to clipboard.' });
+        } else {
+          toast({ variant: 'destructive', title: 'Copy failed', description: 'Please copy the reference number manually.' });
+        }
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Copy failed', description: 'Please copy the reference number manually.' });
     }
   };
 
@@ -388,24 +412,31 @@ export default function CreateConvocationBookingPage() {
         return [];
     }
 
-    const selectedCourseIds = new Set(selectedEnrollments.map(e => e.parent_course_id));
+    const selectedCourseIds = new Set(
+        selectedEnrollments.flatMap(e => [
+            String(e.parent_course_id ?? '').trim(),
+            String(e.id ?? '').trim(),
+            String(e.course_code ?? '').trim(),
+        ]).filter(Boolean)
+    );
 
     return packages.filter(pkg => {
-        if (!pkg.course_list) {
+        const courseListStr = pkg.course_list || pkg.courses || '';
+        if (!courseListStr || courseListStr.trim() === '') {
             // Packages with no course list are available for all
             return true;
         }
-        const packageCourseIds = pkg.course_list.split(',').map(id => id.trim());
+        const packageCourseIds = courseListStr.split(',').map((id: string) => id.trim()).filter(Boolean);
         if (packageCourseIds.length === 0) {
             return true;
         }
-        return packageCourseIds.some(id => selectedCourseIds.has(id));
+        return packageCourseIds.some((id: string) => selectedCourseIds.has(String(id)));
     });
   }, [packages, selectedEnrollments]);
 
 
   const selectedPackage = useMemo(() => {
-      return packages?.find(p => p.package_id === selectedPackageId);
+      return packages?.find(p => String(p.package_id) === String(selectedPackageId));
   }, [packages, selectedPackageId]);
 
   const totalPrice = useMemo(() => {
@@ -566,8 +597,8 @@ export default function CreateConvocationBookingPage() {
                                 {filteredPackages.length > 0 ? (
                                   <RadioGroup value={selectedPackageId} onValueChange={setSelectedPackageId} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                       {filteredPackages.map(pkg => (
-                                          <Label key={pkg.package_id} htmlFor={pkg.package_id} className="block border rounded-lg p-4 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-primary overflow-hidden">
-                                              <RadioGroupItem value={pkg.package_id} id={pkg.package_id} className="sr-only" />
+                                          <Label key={String(pkg.package_id)} htmlFor={String(pkg.package_id)} className="block border rounded-lg p-4 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-primary overflow-hidden">
+                                              <RadioGroupItem value={String(pkg.package_id)} id={String(pkg.package_id)} className="sr-only" />
                                               {pkg.cover_image && (
                                                   <div className="relative aspect-video -mt-4 -mx-4 mb-4">
                                                       <Image
@@ -587,16 +618,16 @@ export default function CreateConvocationBookingPage() {
                                                     {pkg.description && <p className="text-muted-foreground">{pkg.description}</p>}
                                                     <h5 className="font-semibold pt-2 border-t">What's Included:</h5>
                                                     <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-muted-foreground">
-                                                        {pkg.student_seat === '1' && <li className="flex items-center gap-2"><User className="w-4 h-4 text-primary"/> Student Seat</li>}
-                                                        {parseInt(pkg.parent_seat_count, 10) > 0 && <li className="flex items-center gap-2"><Users className="w-4 h-4 text-primary"/> {pkg.parent_seat_count} Parent Seat(s)</li>}
-                                                        {parseInt(pkg.vip_seat, 10) > 0 && <li className="flex items-center gap-2"><Star className="w-4 h-4 text-primary"/> {pkg.vip_seat} VIP Seat(s)</li>}
-                                                        {pkg.graduation_cloth === '1' && <li className="flex items-center gap-2"><Award className="w-4 h-4 text-primary"/> Graduation Cloak</li>}
-                                                        {pkg.garland === '1' && <li className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary"/> Garland</li>}
-                                                        {pkg.scroll === '1' && <li className="flex items-center gap-2"><ScrollText className="w-4 h-4 text-primary"/> Scroll</li>}
-                                                        {pkg.certificate_file === '1' && <li className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary"/> Certificate File</li>}
-                                                        {pkg.photo_package === '1' && <li className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-primary"/> Graduation Hat</li>}
-                                                        {pkg.video_360 === '1' && <li className="flex items-center gap-2"><Video className="w-4 h-4 text-primary"/> 360 Video</li>}
-                                                        {pkg.refreshments === '1' && <li className="flex items-center gap-2"><Coffee className="w-4 h-4 text-primary"/> Refreshments</li>}
+                                                        {String(pkg.student_seat) === '1' && <li className="flex items-center gap-2"><User className="w-4 h-4 text-primary"/> Student Seat</li>}
+                                                        {parseInt(String(pkg.parent_seat_count || '0'), 10) > 0 && <li className="flex items-center gap-2"><Users className="w-4 h-4 text-primary"/> {pkg.parent_seat_count} Parent Seat(s)</li>}
+                                                        {parseInt(String(pkg.vip_seat || '0'), 10) > 0 && <li className="flex items-center gap-2"><Star className="w-4 h-4 text-primary"/> {pkg.vip_seat} VIP Seat(s)</li>}
+                                                        {String(pkg.graduation_cloth) === '1' && <li className="flex items-center gap-2"><Award className="w-4 h-4 text-primary"/> Graduation Cloak</li>}
+                                                        {String(pkg.garland) === '1' && <li className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary"/> Garland</li>}
+                                                        {String(pkg.scroll) === '1' && <li className="flex items-center gap-2"><ScrollText className="w-4 h-4 text-primary"/> Scroll</li>}
+                                                        {String(pkg.certificate_file) === '1' && <li className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary"/> Certificate File</li>}
+                                                        {String(pkg.photo_package) === '1' && <li className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-primary"/> Graduation Hat</li>}
+                                                        {String(pkg.video_360) === '1' && <li className="flex items-center gap-2"><Video className="w-4 h-4 text-primary"/> 360 Video</li>}
+                                                        {String(pkg.refreshments) === '1' && <li className="flex items-center gap-2"><Coffee className="w-4 h-4 text-primary"/> Refreshments</li>}
                                                     </ul>
                                                 </div>
                                           </Label>
@@ -818,8 +849,8 @@ export default function CreateConvocationBookingPage() {
                                     <h3 className="font-semibold text-center">Your Course Status Overview</h3>
                                     {errorDetails.enrollments.map(enrollment => {
                                         const isEligible = enrollment.certificate_eligibility;
-                                        const isBooked = activeBookedCourseIds.has(enrollment.parent_course_id);
-                                        const isOrdered = activeOrderedCourseIds.has(enrollment.parent_course_id) || activeOrderedCourseIds.has(enrollment.course_code);
+                                        const isBooked = activeBookedCourseIds.has(String(enrollment.parent_course_id)) || activeBookedCourseIds.has(String(enrollment.course_code));
+                                        const isOrdered = activeOrderedCourseIds.has(String(enrollment.parent_course_id)) || activeOrderedCourseIds.has(String(enrollment.course_code));
 
                                         let statusBadge: React.ReactNode;
                                         if (isBooked) {

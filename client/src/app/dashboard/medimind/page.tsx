@@ -104,7 +104,11 @@ export default function MediMindLevelsPage() {
             const questionsInLevelCount = levelSpecificQuestions.length;
             if (questionsInLevelCount === 0) return;
 
-            const levelMedicinesForThisLevel = levelMedicines.filter(lm => String(lm.level_id) === String(level.id));
+            // Filter to only include medicines that exist in the active medicines pool (consistent with individual level cards)
+            const levelMedicinesForThisLevel = levelMedicines.filter(lm => 
+                String(lm.level_id) === String(level.id) &&
+                allMedicines.some(item => String(item.id) === String(lm.medicine_id))
+            );
             const levelSpecificAnswers = batchStudentAnswers.filter(ans => String(ans.level_id) === String(level.id));
 
             totalMedicinesAcrossLevels += levelMedicinesForThisLevel.length;
@@ -133,7 +137,7 @@ export default function MediMindLevelsPage() {
             mastered: totalMasteredAcrossLevels, 
             total: totalMedicinesAcrossLevels 
         };
-    }, [levels, batchStudentAnswers, levelMedicines, levelQuestions]);
+    }, [levels, batchStudentAnswers, levelMedicines, levelQuestions, allMedicines]);
 
     const isLoading = isLoadingLevels || isLoadingLevelMedicines || isLoadingAllMedicines || (!!user?.username && isLoadingHistory) || isLoadingEnrollments || isLoadingLevelQuestions;
 
