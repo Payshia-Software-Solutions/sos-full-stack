@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowRight, UserPlus, CreditCard, ClipboardList, Truck, GraduationCap, Award, Settings, KeyRound, FileSignature, Banknote, Video, Search, UserCheck, Megaphone, UserCog, BookOpen, BarChart, Cake, Library, Percent, Briefcase, BookText, BrainCircuit, ClipboardCheck, FileCheck, Users, MessageSquare, ShieldCheck, Star, RotateCcw } from "lucide-react";
+import { ArrowRight, UserPlus, CreditCard, ClipboardList, Truck, GraduationCap, Award, Settings, KeyRound, FileSignature, Banknote, Video, Search, UserCheck, Megaphone, UserCog, BookOpen, BarChart, Cake, Library, Percent, Briefcase, BookText, BrainCircuit, ClipboardCheck, FileCheck, Users, MessageSquare, ShieldCheck, Star, RotateCcw, Gamepad2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useEffect } from 'react';
 import { cn } from "@/lib/utils";
@@ -93,6 +93,13 @@ const managementTasks: ManagementTask[] = [
     description: "View and export student contact information by batch.",
     icon: <Users className="w-8 h-8 text-white" />,
     href: "/admin/manage/student-contact-report",
+    category: "Student Management"
+  },
+  {
+    title: "Game Assessment Reports",
+    description: "View, search, export, and print student reports for WinPharma and D-Pad.",
+    icon: <Gamepad2 className="w-8 h-8 text-white" />,
+    href: "/admin/manage/game-reports",
     category: "Student Management"
   },
   {

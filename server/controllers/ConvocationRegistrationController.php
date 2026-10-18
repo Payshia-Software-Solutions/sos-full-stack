@@ -1,9 +1,11 @@
 <?php
 // controllers/ConvocationRegistrationController.php
 
-define('PARENT_SEAT_RATE', 500);
+define('PARENT_SEAT_RATE', 750);
 
 require_once './models/ConvocationRegistration.php';
+require_once './models/Convocation.php';
+require_once './models/ConvocationStudentInfo.php';
 require_once './controllers/TransactionPaymentController.php';
 require_once './controllers/UserFullDetailsController.php';
 require_once './controllers/CertificationCenter/CcEvaluationController.php';
@@ -13,6 +15,7 @@ require_once './models/SMSModel.php';
 class ConvocationRegistrationController
 {
     public $model;
+    private $pdo;
     private $ftpConfig;
     private $transactionPaymentController;
     private $userFullDetailsController;
@@ -20,10 +23,15 @@ class ConvocationRegistrationController
     private $smsModel;
     private $convocationTemplatePath;
     private $CcEvaluationController;
+    private $convocationModel;
+    private $convocationStudentInfoModel;
 
     public function __construct($pdo, $convocationTemplatePath)
     {
+        $this->pdo = $pdo;
         $this->model = new ConvocationRegistration($pdo);
+        $this->convocationModel = new Convocation($pdo);
+        $this->convocationStudentInfoModel = new ConvocationStudentInfo($pdo);
         $this->convocationTemplatePath = $convocationTemplatePath;
         $this->ftpConfig = include('./config/ftp.php');
         $this->transactionPaymentController = new TransactionPaymentController($pdo);
@@ -180,98 +188,176 @@ class ConvocationRegistrationController
     // POST create a new registration (no reference_number in input)
     public function createRegistration()
     {
-        $paymentSlipPath = '';
-        // Check if the request is multipart/form-data
-        if ($_SERVER['CONTENT_TYPE'] && strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') !== false) {
-            $data = $_POST; // Form fields
-            $file = $_FILES['image'] ?? null; // Uploaded file (matches frontend FormData key)
-            $data['payment_amount'] = 0;
+        $paymentSlipPath = null;
+        $isMultipart = (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') !== false);
+        $data = $isMultipart ? $_POST : json_decode(file_get_contents('php://input'), true);
+        $file = $isMultipart ? ($_FILES['image'] ?? null) : null;
 
-            // var_dump($data);
+        // Extract course_ids
+        $courseIds = [];
+        if (isset($data['course_id'])) {
+            if (is_array($data['course_id'])) {
+                $courseIds = $data['course_id'];
+            } else {
+                $courseIds = explode(',', $data['course_id']);
+            }
+        }
 
-            // Extract course_ids directly from $_POST['course_id']
-            // $courseIds = isset($data['course_id']) && is_array($data['course_id']) ? $data['course_id'] : [];
-            $courseIds = [];
-            if (isset($data['course_id'])) {
-                if (is_array($data['course_id'])) {
-                    $courseIds = $data['course_id']; // Use as is if it's an array
-                } else {
-                    // If it's a string (like "0,1"), split it into an array
-                    $courseIds = explode(',', $data['course_id']);
+        // Required fields validation
+        if (
+            !isset($data['student_number']) || empty(trim($data['student_number'])) ||
+            empty($courseIds) ||
+            !isset($data['package_id']) || empty($data['package_id'])
+        ) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Missing required fields: student_number, course_id, package_id']);
+            return;
+        }
+
+        $studentNumber = trim($data['student_number']);
+        $convocationId = !empty($data['convocation_id']) ? $data['convocation_id'] : null;
+        $session = !empty($data['session']) ? (int)$data['session'] : 1;
+
+        // 1. Check for Duplicate Active Booking
+        if ($convocationId) {
+            $existing = $this->model->getActiveRegistrationByStudentAndConvocation($studentNumber, $convocationId);
+            if ($existing) {
+                http_response_code(409);
+                echo json_encode([
+                    'error' => 'You already have an active registration for this convocation ceremony.',
+                    'reference_number' => $existing['reference_number']
+                ]);
+                return;
+            }
+        }
+
+        // 2. Check Session Capacity Limits
+        if ($convocationId) {
+            $convocation = $this->convocationModel->getConvocationById($convocationId);
+            if ($convocation) {
+                $maxSeats = ($session === 2) ? (int)($convocation['session_2'] ?? 0) : (int)($convocation['student_seats'] ?? 0);
+                if ($maxSeats > 0) {
+                    $currentRegistered = $this->model->getSessionCount($convocationId, $session);
+                    if ($currentRegistered >= $maxSeats) {
+                        http_response_code(409);
+                        echo json_encode([
+                            'error' => "Session {$session} is already fully booked. Please select another session."
+                        ]);
+                        return;
+                    }
                 }
-            }            
+            }
+        }
 
-            // Debugging: Log or output the incoming data
-            error_log("Received data: " . print_r($data, true)); // Log to PHP error log
-            error_log("Extracted courseIds: " . print_r($courseIds, true)); // Log courseIds array
-
-            // Required fields validation
-            if (
-                !isset($data['student_number']) ||
-                empty($courseIds) || // Check if $courseIds array is empty
-                !isset($data['package_id'])
-            ) {
+        // 3. Handle and Validate File Upload
+        if (!empty($file) && $file['error'] === UPLOAD_ERR_OK) {
+            $maxFileSize = 5 * 1024 * 1024; // 5MB limit
+            if ($file['size'] > $maxFileSize) {
                 http_response_code(400);
-                echo json_encode(['error' => 'Missing required fields: student_number, course_id, package_id']);
+                echo json_encode(['error' => 'Payment slip file size exceeds maximum limit of 5MB']);
                 return;
             }
 
-            // Convert course_ids array to a comma-separated string
-            $courseIdsString = implode(',', $courseIds);
+            $fileTmpPath = $file['tmp_name'];
+            $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf', 'webp'];
+            if (!in_array($fileExtension, $allowedExtensions, true)) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Invalid file extension. Allowed formats: JPG, JPEG, PNG, WEBP, PDF']);
+                return;
+            }
 
-            // Handle file upload if provided
-            $paymentSlipPath = null;
-            if (!empty($file) && $file['error'] === UPLOAD_ERR_OK) {
-                $fileTmpPath = $file['tmp_name'];
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $fileTmpPath);
+            finfo_close($finfo);
 
-                // Generate SHA-256 hash of the image file (optional for duplicate checking)
-                $imageHash = hash_file('sha256', $fileTmpPath);
-                $data['hash_value'] = $imageHash;
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+            if (!in_array($mimeType, $allowedMimes, true)) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Invalid file type. Only genuine image and PDF files are allowed']);
+                return;
+            }
 
-                // File details
-                $fileExtension = pathinfo($file['name'], PATHINFO_EXTENSION);
-                $fileName = $data['student_number'] . "-payment-" . uniqid() . '.' . $fileExtension;
-                $localUploadPath = './uploads/' . $fileName; // Temporary local storage
-                $ftpFilePath = "/payment-slips/" . $fileName; // Path on FTP server
+            $imageHash = hash_file('sha256', $fileTmpPath);
+            $data['hash_value'] = $imageHash;
 
-                // Ensure the local upload directory exists
-                if (!is_dir('./uploads/')) {
-                    mkdir('./uploads/', 0777, true);
-                }
+            $sanitizedStudentNumber = preg_replace('/[^a-zA-Z0-9_\-]/', '', $studentNumber);
+            $fileName = $sanitizedStudentNumber . "-payment-" . uniqid() . '.' . $fileExtension;
+            $localUploadPath = './uploads/' . $fileName;
+            $ftpFilePath = "/payment-slips/" . $fileName;
 
-                // Move the file locally first
-                if (!move_uploaded_file($fileTmpPath, $localUploadPath)) {
-                    http_response_code(400);
-                    echo json_encode(['error' => 'File upload failed']);
-                    return;
-                }
+            if (!is_dir('./uploads/')) {
+                mkdir('./uploads/', 0777, true);
+            }
 
-                // Upload to FTP server
-                if ($this->uploadToFTP($localUploadPath, $ftpFilePath)) {
-                    $paymentSlipPath = $ftpFilePath; // Store FTP path
-                    unlink($localUploadPath); // Remove local file after successful FTP upload
-                } else {
-                    http_response_code(500);
-                    echo json_encode(['error' => 'FTP upload failed']);
-                    return;
+            if (!move_uploaded_file($fileTmpPath, $localUploadPath)) {
+                http_response_code(400);
+                echo json_encode(['error' => 'File upload failed on temporary storage']);
+                return;
+            }
+
+            if ($this->uploadToFTP($localUploadPath, $ftpFilePath)) {
+                $paymentSlipPath = $ftpFilePath;
+                unlink($localUploadPath);
+            } else {
+                http_response_code(500);
+                echo json_encode(['error' => 'FTP upload failed']);
+                return;
+            }
+        }
+
+        // 4. Update Name on Certificate & Telephone in user_full_details if provided
+        if (!empty($data['name_on_certificate'])) {
+            $this->userFullDetailsController->model->updateCertificateNameByUserName(
+                $studentNumber,
+                trim($data['name_on_certificate'])
+            );
+        }
+        if (!empty($data['telephone_1'])) {
+            $stmtPhone = $this->pdo->prepare("UPDATE user_full_details SET telephone_1 = :phone WHERE username = :username");
+            $stmtPhone->execute(['phone' => trim($data['telephone_1']), 'username' => $studentNumber]);
+        }
+
+        $courseIdsString = implode(',', $courseIds);
+
+        // 5. Create Registration inside a Transaction
+        try {
+            $this->pdo->beginTransaction();
+
+            // Re-verify capacity under lock if convocationId provided
+            if ($convocationId) {
+                $convocation = $this->convocationModel->getConvocationById($convocationId);
+                if ($convocation) {
+                    $maxSeats = ($session === 2) ? (int)($convocation['session_2'] ?? 0) : (int)($convocation['student_seats'] ?? 0);
+                    if ($maxSeats > 0) {
+                        $currentCount = $this->model->getSessionCount($convocationId, $session);
+                        if ($currentCount >= $maxSeats) {
+                            $this->pdo->rollBack();
+                            http_response_code(409);
+                            echo json_encode(['error' => "Session {$session} is already fully booked."]);
+                            return;
+                        }
+                    }
                 }
             }
 
-            // Create registration in the database
             $registration_id = $this->model->createRegistration(
-                $data['student_number'],
+                $studentNumber,
                 $courseIdsString,
                 $data['package_id'],
                 $data['event_id'] ?? null,
                 $data['payment_status'] ?? 'pending',
-                $data['payment_amount'] ?? null,
+                0, // Initial booking payment amount is 0 until admin verifies
                 $data['registration_status'] ?? 'pending',
                 $data['hash_value'] ?? null,
                 $paymentSlipPath,
                 $data['additional_seats'] ?? 0,
-                $data['session'] ?? 1,
-                $data['convocation_id'] ?? null // ADDED
+                $session,
+                $convocationId
             );
+
+            $this->pdo->commit();
+
             http_response_code(201);
             echo json_encode([
                 'package_id' => $data['package_id'],
@@ -280,47 +366,12 @@ class ConvocationRegistrationController
                 'message' => 'Registration created successfully',
                 'payment_slip_path' => $paymentSlipPath
             ]);
-        } else {
-            // Fallback for JSON (if no file is sent)
-            $data = json_decode(file_get_contents('php://input'), true);
-            $courseIds = isset($data['course_id']) ? (is_array($data['course_id']) ? $data['course_id'] : [$data['course_id']]) : [];
-
-            // Debugging: Log or output the incoming data
-            error_log("Received JSON data: " . print_r($data, true));
-            error_log("Extracted courseIds: " . print_r($courseIds, true));
-
-            if (
-                !isset($data['student_number']) ||
-                empty($courseIds) ||
-                !isset($data['package_id'])
-            ) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Missing required fields: student_number, course_id, package_id']);
-                return;
+        } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
             }
-
-            $courseIdsString = implode(',', $courseIds);
-
-            $registration_id = $this->model->createRegistration(
-                $data['student_number'],
-                $courseIdsString,
-                $data['package_id'],
-                $data['event_id'] ?? null,
-                $data['payment_status'] ?? 'pending',
-                $data['payment_amount'] ?? null,
-                $data['registration_status'] ?? 'pending',
-                $data['hash_value'] ?? null,
-                $paymentSlipPath,
-                $data['additional_seats'] ?? 0,
-                $data['session'] ?? 1,
-                $data['convocation_id'] ?? null // ADDED
-            );
-            http_response_code(201);
-            echo json_encode([
-                'registration_id' => $registration_id,
-                'reference_number' => $registration_id,
-                'message' => 'Registration created successfully'
-            ]);
+            http_response_code(500);
+            echo json_encode(['error' => 'Database error during registration: ' . $e->getMessage()]);
         }
     }
 
@@ -368,11 +419,28 @@ class ConvocationRegistrationController
     // DELETE a registration
     public function deleteRegistration($registration_id)
     {
+        $registration = $this->model->getRegistrationById($registration_id);
+        if (!$registration) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Registration not found']);
+            return;
+        }
+
         $success = $this->model->deleteRegistration($registration_id);
         if ($success) {
+            // Also clean up any convocation_student_info if exists so student pass doesn't linger
+            if (!empty($registration['student_number']) && !empty($registration['convocation_id'])) {
+                try {
+                    $stmt = $this->pdo->prepare("DELETE FROM convocation_student_info WHERE student_number = ? AND convocation_id = ?");
+                    $stmt->execute([$registration['student_number'], $registration['convocation_id']]);
+                } catch (\Exception $e) {
+                    error_log("Failed to clean up convocation_student_info: " . $e->getMessage());
+                }
+            }
+            http_response_code(200);
             echo json_encode(['message' => 'Registration deleted successfully']);
         } else {
-            http_response_code(404);
+            http_response_code(500);
             echo json_encode(['error' => 'Registration not found or deletion failed']);
         }
     }
@@ -462,18 +530,22 @@ class ConvocationRegistrationController
             return;
         }
 
-        $paymentAmount = $data['payment_amount'];
+        $paymentAmount = (float) $data['payment_amount'];
         $recInfo = $this->model->getRegistrationByReference($reference_number);
+        if (!$recInfo) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Convocation registration not found']);
+            return;
+        }
+
         $student_number = $recInfo['student_number'];
         $convocation_id = $recInfo['convocation_id'];
         $recAmount = $recInfo['payment_amount'];
 
         $paybleAmount = $this->model->getPayableAmount($reference_number);
-        $paidAmount = $this->transactionPaymentController->model->getPaidAmount($student_number, 'covocation-payment-'.$convocation_id,);
+        $paidAmount = $this->transactionPaymentController->model->getPaidAmount($student_number, 'covocation-payment-'.$convocation_id);
         $studentInfo = $this->userFullDetailsController->model->getUserByUserName($student_number);
         $txnNumber = $this->transactionPaymentController->generateTransactionId();
-     
-
 
         $paymentData = [
             'transaction_id'    => $txnNumber,
@@ -496,37 +568,28 @@ class ConvocationRegistrationController
             http_response_code(500);
             echo json_encode(['error' => 'Failed to create payment record']);
             return;
-        } else {
-            // Log the payment creation
-            // echo json_encode("Payment record created successfully for reference number: $reference_number");
         }
-
 
         $updated = $this->model->updatePayment($reference_number, $data['payment_status'], $updatePaymentAmount);
 
         if ($updated) {
-            // Prepare the welcome message
-            $mobile = $studentInfo['telephone_1']; // Assuming 'phone_number' is the key for the user's mobile number
-            $studentName = $studentInfo['name_on_certificate']; // Combine first and last name
-            $referenceNumber = $reference_number; // Use the user ID as the reference number
+            // Also sync any pending 2nd payment request for this convocation to Approved
+            try {
+                $stmtReq = $this->pdo->prepare("
+                    UPDATE payment_requests 
+                    SET payment_status = 'Approved' 
+                    WHERE (unique_number = ? OR reference = ?) AND payment_reson = ? AND payment_status = 'Pending'
+                ");
+                $stmtReq->execute([$student_number, $reference_number, 'convocation2nd-' . $convocation_id]);
+            } catch (Exception $e) {
+                error_log("Failed to update payment_requests status: " . $e->getMessage());
+            }
 
-            // Send the welcome 
-            // $smsResponse = $this->smsModel->sendConvocationPaymentApprovedSMS($mobile, $studentName, $referenceNumber, $txnNumber, $paymentAmount);
-            // var_dump($smsResponse);
-
-            // Check if the SMS was sent successfully
-            // if ($smsResponse['status'] === 'error') {
-            //     throw new Exception('Failed to send SMS: ' . $smsResponse['message']);
-            // }
-
-            // Return success response with the new user's ID
-            http_response_code(201); // Created successfully
+            http_response_code(201);
             echo json_encode([
                 'status' => 'Success',
                 'message' => 'Payment record created and convocation updated',
                 'reference_number' => $reference_number,
-                // 'sms_status' => $smsResponse['status'],
-                // 'sms_message' => $smsResponse['message']
             ]);
         } else {
             http_response_code(500);
@@ -584,48 +647,42 @@ class ConvocationRegistrationController
     public function notifyCeremonyNumber($reference_number)
     {
         /* ----------------------------------------------------
-     * 1. Validate & fetch registration
-     * -------------------------------------------------- */
+         * 1. Validate & fetch registration
+         * -------------------------------------------------- */
         $registration = $this->model->getRegistrationByReference($reference_number);
         if (!$registration) {
-            http_response_code(404);   // Not Found
-            echo json_encode(['status' => 'error', 'message' => 'Registration not found', 'reference_number' => $reference_number]);
-            return;
+            http_response_code(404);
+            return ['status' => 'error', 'message' => 'Registration not found', 'reference_number' => $reference_number];
         }
 
         $studentNumber  = $registration['student_number'];
         $ceremonyNumber = $registration['ceremony_number'] ?? 'Not Assigned';
 
         /* ----------------------------------------------------
-     * 2. Calculate balances (helper throws on failure)
-     * -------------------------------------------------- */
+         * 2. Calculate balances (helper throws on failure)
+         * -------------------------------------------------- */
         try {
             $balances = $this->calculateStudentDueAmount($reference_number);
         } catch (RuntimeException $e) {
-            http_response_code(400);   // Bad Request (missing package, etc.)
-            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-            return;
+            http_response_code(400);
+            return ['status' => 'error', 'message' => $e->getMessage()];
         }
 
         /* ----------------------------------------------------
-     * 3. Fetch contact info
-     * -------------------------------------------------- */
+         * 3. Fetch contact info
+         * -------------------------------------------------- */
         $studentInfo = $this->userFullDetailsController->model->getUserByUserName($studentNumber);
         $mobile      = $studentInfo['telephone_1']        ?? null;
         $studentName = $studentInfo['name_on_certificate'] ?? 'Student';
 
         if (!$mobile) {
             http_response_code(400);
-            echo json_encode(['status' => 'error', 'message' => 'Mobile number not found for student']);
-            return;
+            return ['status' => 'error', 'message' => 'Mobile number not found for student'];
         }
 
-        /* For test‑only: override real mobile with a fixed number */
-        // $mobile = "0770481363";
-
         /* ----------------------------------------------------
-     * 4. Send SMS (handle SMS gateway result)
-     * -------------------------------------------------- */
+         * 4. Send SMS (handle SMS gateway result)
+         * -------------------------------------------------- */
         try {
             if ($balances['convocation_balance'] > 0 || $balances['course_balance'] > 0) {
                 $smsOk = $this->smsModel->sendCeremonyDueBreakdownSMS(
@@ -643,17 +700,17 @@ class ConvocationRegistrationController
             }
 
             if (!$smsOk) {
-                throw new RuntimeException('SMS gateway returned failure');
+                http_response_code(502);
+                return ['status' => 'error', 'message' => 'SMS gateway returned failure'];
             }
         } catch (Exception $e) {
-            http_response_code(502);   // Bad Gateway – downstream service failed
-            echo json_encode(['status' => 'error', 'message' => 'SMS send failed: ' . $e->getMessage()]);
-            return;
+            http_response_code(502);
+            return ['status' => 'error', 'message' => 'SMS send failed: ' . $e->getMessage()];
         }
 
         /* ----------------------------------------------------
-     * 5. Success response
-     * -------------------------------------------------- */
+         * 5. Success response
+         * -------------------------------------------------- */
         http_response_code(200);
         return [
             'status'            => 'success',
@@ -670,8 +727,8 @@ class ConvocationRegistrationController
     public function GetCeremonyNumberByStudentNumber($studentNumber)
     {
         /* ----------------------------------------------------
-     * 1. Validate & fetch registration
-     * -------------------------------------------------- */
+         * 1. Validate & fetch registration
+         * -------------------------------------------------- */
         $registration = $this->model->getRegistrationByStudentNumber($studentNumber);
         if (!$registration) {
             http_response_code(404);   // Not Found
@@ -683,8 +740,8 @@ class ConvocationRegistrationController
         $ceremonyNumber = $registration['ceremony_number'] ?? 'Not Assigned';
 
         /* ----------------------------------------------------
-     * 2. Calculate balances (helper throws on failure)
-     * -------------------------------------------------- */
+         * 2. Calculate balances (helper throws on failure)
+         * -------------------------------------------------- */
         try {
             $balances = $this->calculateStudentDueAmount($reference_number);
         } catch (RuntimeException $e) {
@@ -694,8 +751,8 @@ class ConvocationRegistrationController
         }
 
         /* ----------------------------------------------------
-     * 3. Fetch contact info
-     * -------------------------------------------------- */
+         * 3. Fetch contact info
+         * -------------------------------------------------- */
         $studentInfo = $this->userFullDetailsController->model->getUserByUserName($studentNumber);
         $mobile      = $studentInfo['telephone_1']        ?? null;
         $studentName = $studentInfo['name_on_certificate'] ?? 'Student';
@@ -707,8 +764,8 @@ class ConvocationRegistrationController
         }
 
         /* ----------------------------------------------------
-     * 5. Success response
-     * -------------------------------------------------- */
+         * 5. Success response
+         * -------------------------------------------------- */
         http_response_code(200);
         echo json_encode([
             'status'            => 'success',
@@ -733,7 +790,7 @@ class ConvocationRegistrationController
             echo json_encode(['error' => 'Missing ceremony_number']);
             return;
         }
-        $ceremony_number = $data['ceremony_number'];
+        $ceremony_number = trim($data['ceremony_number']);
 
         // Make sure the registration exists
         $registration = $this->model->getRegistrationByReference($reference_number);
@@ -743,21 +800,31 @@ class ConvocationRegistrationController
             return;
         }
 
-        // Persist the new ceremony number
+        // Persist the new ceremony number in convocation_registrations
         if (!$this->model->updateCeremonyNumber($reference_number, $ceremony_number)) {
             http_response_code(500);
             echo json_encode(['error' => 'Failed to update convocation registration']);
             return;
         }
 
-        // 🔔 Trigger SMS logic (balances looked‑up inside)
-        $this->notifyCeremonyNumber($reference_number);
+        // Sync with convocation_student_info so student pass is immediately available
+        if (!empty($registration['convocation_id']) && !empty($registration['student_number'])) {
+            $this->convocationStudentInfoModel->upsertStudentInfo(
+                $registration['convocation_id'],
+                $registration['student_number'],
+                $ceremony_number
+            );
+        }
+
+        // 🔔 Trigger SMS logic cleanly
+        $smsResult = $this->notifyCeremonyNumber($reference_number);
 
         http_response_code(200);
         echo json_encode([
             'status'           => 'success',
             'ceremony_number'  => $ceremony_number,
             'reference_number' => $reference_number,
+            'sms'              => $smsResult
         ]);
     }
 
@@ -776,8 +843,8 @@ class ConvocationRegistrationController
         }
 
         $certificate_print_status = $data['certificate_print_status'];
-        $certificate_id = $data['certificate_id'];
-        $updated = $this->model->updateCertificatePrintStatus($$certificate_print_status, $reference_number, $certificate_id,);
+        $certificate_id = $data['certificate_id'] ?? null;
+        $updated = $this->model->updateCertificatePrintStatus($certificate_print_status, $certificate_id, $reference_number);
         if ($updated) {
             http_response_code(201);
             echo json_encode([
@@ -802,9 +869,9 @@ class ConvocationRegistrationController
         }
 
         $advanced_print_status = $data['advanced_print_status'];
-        $advanced_certifiate_id = $data['advanced_certifiate_id'];
+        $advanced_certifiate_id = $data['advanced_certifiate_id'] ?? null;
 
-        $updated = $this->model->updateAdvancedCertificatePrintStatus($advanced_print_status, $reference_number, $advanced_certifiate_id);
+        $updated = $this->model->updateAdvancedCertificatePrintStatus($advanced_print_status, $advanced_certifiate_id, $reference_number);
         if ($updated) {
             http_response_code(201);
             echo json_encode([

@@ -7,7 +7,7 @@ import { FileText, ExternalLink } from 'lucide-react';
 
 const CONTENT_PROVIDER_URL = process.env.NEXT_PUBLIC_CONTENT_PROVIDER_URL || 'https://content-provider.pharmacollege.lk';
 
-export const ViewSlipDialog = ({ slipPath, studentName, trigger }: { slipPath: string | null; studentName: string; trigger: React.ReactNode }) => {
+export const ViewSlipDialog = ({ slipPath, studentName, trigger, title }: { slipPath: string | null; studentName: string; trigger: React.ReactNode; title?: string }) => {
     if (!slipPath) return <Button variant="outline" size="sm" disabled>No Slip</Button>;
 
     const fullSlipUrl = `${CONTENT_PROVIDER_URL}${slipPath}`;
@@ -18,7 +18,7 @@ export const ViewSlipDialog = ({ slipPath, studentName, trigger }: { slipPath: s
             <DialogTrigger asChild>{trigger}</DialogTrigger>
             <DialogContent className="max-w-xl">
                 <DialogHeader>
-                    <DialogTitle>Payment Slip for {studentName}</DialogTitle>
+                    <DialogTitle>{title || `Payment Slip for ${studentName}`}</DialogTitle>
                 </DialogHeader>
                 <div className="mt-4 max-h-[70vh] overflow-auto border rounded-lg p-2 bg-muted">
                     {isImage ? (

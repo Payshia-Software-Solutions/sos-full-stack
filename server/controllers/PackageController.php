@@ -14,10 +14,22 @@ class PackageController
         $this->ftpConfig = include('./config/ftp.php'); // Load FTP configuration
     }
 
-    // GET all packages
+    // GET all packages (or filter by convocation_id if provided)
     public function getPackages()
     {
-        $packages = $this->model->getAllPackages();
+        $convocation_id = $_GET['convocation_id'] ?? null;
+        if ($convocation_id !== null && $convocation_id !== '') {
+            $packages = $this->model->getPackagesByConvocationId($convocation_id);
+        } else {
+            $packages = $this->model->getAllPackages();
+        }
+        echo json_encode($packages);
+    }
+
+    // GET packages by convocation ID
+    public function getPackagesByConvocation($convocation_id)
+    {
+        $packages = $this->model->getPackagesByConvocationId($convocation_id);
         echo json_encode($packages);
     }
 
@@ -78,11 +90,15 @@ class PackageController
                 throw new Exception("Could not login to FTP server.");
             }
 
+            // Enable passive mode (required for NAT / localhost connections)
+            ftp_pasv($ftp_conn, true);
+
             // Ensure target directory exists
             $this->ensureDirectoryExists($ftp_conn, $ftp_target_dir);
 
-            // Upload file
-            $remoteFilePath = $ftp_target_dir . basename($file['name']);
+            // Upload file with web-safe filename
+            $safeFileName = time() . '_' . preg_replace('/[^a-zA-Z0-9_\.-]/', '_', basename($file['name']));
+            $remoteFilePath = $ftp_target_dir . $safeFileName;
             if (!ftp_put($ftp_conn, $remoteFilePath, $tempPath, FTP_BINARY)) {
                 throw new Exception("Failed to upload image to FTP: $remoteFilePath");
             }
@@ -91,7 +107,7 @@ class PackageController
             unlink($tempPath);
             ftp_close($ftp_conn);
 
-            return ['status' => 'success', 'message' => 'Image uploaded successfully.', 'path' => basename($file['name'])];
+            return ['status' => 'success', 'message' => 'Image uploaded successfully.', 'path' => $safeFileName];
         } catch (Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
         }

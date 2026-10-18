@@ -146,7 +146,8 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
             return null; // or throw an exception if preferred
         }
 
-        $dueAmount = $row['price'] + ($row['additional_seats'] * 500);
+        $seatRate = defined('PARENT_SEAT_RATE') ? PARENT_SEAT_RATE : 750;
+        $dueAmount = $row['price'] + ($row['additional_seats'] * $seatRate);
         return $dueAmount;
     }
 
@@ -326,6 +327,28 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
             WHERE registration_id = ?
         ");
         return $stmt->execute([$paymentStatus, $newPaymentAmount, $registration_id]);
+    }
+
+    public function getActiveRegistrationByStudentAndConvocation($studentNumber, $convocationId)
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT * FROM convocation_registrations 
+            WHERE student_number = ? AND convocation_id = ? AND registration_status NOT IN ('rejected', 'canceled', 'Rejected', 'Canceled')
+            LIMIT 1
+        ");
+        $stmt->execute([$studentNumber, $convocationId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getSessionCount($convocationId, $session)
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT COUNT(*) AS total 
+            FROM convocation_registrations 
+            WHERE convocation_id = ? AND `session` = ? AND registration_status NOT IN ('rejected', 'canceled', 'Rejected', 'Canceled')
+        ");
+        $stmt->execute([$convocationId, $session]);
+        return (int) $stmt->fetchColumn();
     }
 }
 
