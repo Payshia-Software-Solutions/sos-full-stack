@@ -334,12 +334,12 @@ export default function WinPharmaTaskDetailPage() {
             
             {/* Mobile Tab Switcher */}
             {isMobile && (
-                <div className="flex bg-zinc-900/50 p-1 rounded-xl md:rounded-[2rem] border border-white/5 backdrop-blur-md sticky top-4 z-40">
+                <div className="flex bg-muted/80 p-1 rounded-xl border border-border backdrop-blur-md sticky top-4 z-40">
                     <button 
                         onClick={() => setActiveTab('task')}
                         className={cn(
                             "flex-1 h-10 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all",
-                            activeTab === 'task' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-zinc-500 hover:text-zinc-300"
+                            activeTab === 'task' ? "bg-background text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
                         )}
                     >
                         Task Details
@@ -348,7 +348,7 @@ export default function WinPharmaTaskDetailPage() {
                         onClick={() => setActiveTab('submission')}
                         className={cn(
                             "flex-1 h-10 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all",
-                            activeTab === 'submission' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-zinc-500 hover:text-zinc-300"
+                            activeTab === 'submission' ? "bg-background text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
                         )}
                     >
                         My Submission
@@ -478,19 +478,19 @@ export default function WinPharmaTaskDetailPage() {
                                                 )}
                                                 <div className="flex flex-col gap-3 mt-6">
                                                     <div className="relative overflow-hidden group">
-                                                        <Button className="w-full h-14 rounded-2xl bg-zinc-900 text-white font-black uppercase text-[10px] shadow-lg group-hover:bg-primary transition-colors">
+                                                        <Button className="w-full h-14 rounded-2xl bg-foreground text-background font-black uppercase text-[10px] shadow-lg hover:bg-primary hover:text-primary-foreground transition-colors">
                                                             <Upload className="h-4 w-4 mr-2" /> Re-submit New Work
                                                         </Button>
                                                         <Input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept=".jpg,.jpeg,.png,.pdf" onChange={handleFileSelect} />
                                                     </div>
                                                     <div className="relative flex items-center justify-center my-2">
-                                                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-zinc-900/10 dark:border-white/10"></div></div>
-                                                        <div className="relative flex justify-center text-[10px] uppercase font-black"><span className="bg-[#fcfcfc] dark:bg-zinc-950 px-3 text-zinc-400">OR</span></div>
+                                                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border"></div></div>
+                                                        <div className="relative flex justify-center text-[10px] uppercase font-black"><span className="bg-background px-3 text-muted-foreground">OR</span></div>
                                                     </div>
                                                     <Button 
                                                         onClick={requestRecorrection} 
                                                         disabled={isUploading}
-                                                        className="w-full h-14 rounded-2xl bg-purple-600/10 text-purple-600 dark:text-purple-400 border border-purple-600/20 font-black uppercase text-[10px] shadow-sm hover:bg-purple-600 hover:text-white transition-all"
+                                                        className="w-full h-14 rounded-2xl bg-purple-600/10 text-purple-600 dark:text-purple-400 border border-purple-600/20 font-black uppercase text-[10px] shadow-xs hover:bg-purple-600 hover:text-white transition-all"
                                                     >
                                                         {isUploading ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <ShieldAlert className="h-4 w-4 mr-2" />}
                                                         Request Re-Correction
@@ -498,16 +498,16 @@ export default function WinPharmaTaskDetailPage() {
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="p-4 bg-zinc-900/5 border border-zinc-900/10 rounded-2xl text-center">
+                                            <div className="p-4 bg-muted/40 border border-border rounded-2xl text-center">
                                                 {currentSubmission.grade_status === 'Completed' ? (
-                                                    <p className="text-[10px] font-black uppercase text-green-600">Verified & Finished</p>
+                                                    <p className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400">Verified & Finished</p>
                                                 ) : (
                                                     <p className="text-[10px] font-black uppercase text-amber-600 group-hover:animate-pulse">Reviewing... Re-submit Locked</p>
                                                 )}
                                             </div>
                                         )}
                                     </div>
-                                    {currentSubmission.grade_status === 'Completed' && nextTask && <Button onClick={() => router.push(`/dashboard/winpharma/${levelId}/${nextTask.resource_id || nextTask.id}`)} className="w-full h-16 md:h-20 rounded-[1.5rem] md:rounded-[2.5rem] bg-zinc-900 text-white font-black text-sm md:text-lg shadow-2xl">Next Task <ChevronRight className="ml-2 h-5 w-5 md:h-6 md:w-6" /></Button>}
+                                    {currentSubmission.grade_status === 'Completed' && nextTask && <Button onClick={() => router.push(`/dashboard/winpharma/${levelId}/${nextTask.resource_id || nextTask.id}`)} className="w-full h-16 md:h-20 rounded-[1.5rem] md:rounded-[2.5rem] bg-foreground text-background font-black text-sm md:text-lg shadow-xl hover:bg-primary hover:text-primary-foreground">Next Task <ChevronRight className="ml-2 h-5 w-5 md:h-6 md:w-6" /></Button>}
                                 </div>
                             ) : (
                                 <div className="space-y-6 md:space-y-8 relative group cursor-pointer">
@@ -579,27 +579,27 @@ export default function WinPharmaTaskDetailPage() {
 
             {/* FEEDBACK SUGGESTIONS DIALOG MODAL */}
             <Dialog open={isFeedbackModalOpen} onOpenChange={setIsFeedbackModalOpen}>
-                <DialogContent hideCloseButton className="max-w-2xl w-[95vw] p-0 rounded-2xl md:rounded-[2rem] overflow-hidden border-none shadow-2xl bg-zinc-950">
-                    <DialogHeader className="p-8 pb-4 bg-zinc-900 border-b border-white/5 flex flex-row items-center justify-between relative mt-4">
-                        <DialogTitle className="text-xl font-black uppercase tracking-widest flex items-center gap-3 text-white">
+                <DialogContent hideCloseButton className="max-w-2xl w-[95vw] p-0 rounded-2xl md:rounded-[2rem] overflow-hidden border border-border shadow-2xl bg-card">
+                    <DialogHeader className="p-8 pb-4 bg-muted/40 border-b border-border flex flex-row items-center justify-between relative mt-4">
+                        <DialogTitle className="text-xl font-black uppercase tracking-widest flex items-center gap-3 text-foreground">
                             <ShieldAlert className="h-6 w-6 text-destructive" /> Assessor Feedback
                         </DialogTitle>
                         <Button 
                             variant="ghost" 
-                            className="h-10 w-10 rounded-xl hover:bg-white/10 flex items-center justify-center shrink-0 text-white" 
+                            className="h-10 w-10 rounded-xl hover:bg-muted flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground" 
                             onClick={() => setIsFeedbackModalOpen(false)}
                         >
                             <X className="h-6 w-6" />
                         </Button>
                     </DialogHeader>
-                    <ScrollArea className="max-h-[60vh] p-8 bg-zinc-950">
+                    <ScrollArea className="max-h-[60vh] p-8 bg-card">
                         <div className="space-y-6">
                             {parsedFeedback.map((fb, idx) => (
-                                <div key={idx} className="flex gap-4 items-start p-6 bg-zinc-900 rounded-2xl border border-white/5 shadow-inner">
+                                <div key={idx} className="flex gap-4 items-start p-6 bg-muted/30 rounded-2xl border border-border shadow-xs">
                                     <div className="h-8 w-8 rounded-full bg-destructive/10 text-destructive flex items-center justify-center font-black text-xs shrink-0 ring-4 ring-destructive/5">
                                         {idx + 1}
                                     </div>
-                                    <p className="text-sm font-bold text-zinc-300 leading-relaxed mt-0.5">
+                                    <p className="text-sm font-bold text-foreground leading-relaxed mt-0.5">
                                         {fb}
                                     </p>
                                 </div>

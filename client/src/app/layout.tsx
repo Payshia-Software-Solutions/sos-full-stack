@@ -50,8 +50,8 @@ export default function RootLayout({
       <body className={cn("font-body antialiased", ptSans.variable)}>
         <ThemeProvider
             attribute="class"
-            defaultTheme="system"
-            enableSystem
+            defaultTheme="light"
+            enableSystem={false}
             disableTransitionOnChange
         >
           <QueryProvider>
