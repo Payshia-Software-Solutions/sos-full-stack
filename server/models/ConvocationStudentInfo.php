@@ -84,4 +84,16 @@ class ConvocationStudentInfo
         $stmt = $this->pdo->prepare("DELETE FROM `convocation_student_info` WHERE `id` = ?");
         return $stmt->execute([$id]);
     }
+
+    public function upsertStudentInfo($convocationId, $studentNumber, $ceremonyNumber)
+    {
+        $existing = $this->getStudentInfoByNumber($studentNumber, $convocationId);
+        if ($existing) {
+            $stmt = $this->pdo->prepare("UPDATE `convocation_student_info` SET `ceremony_number` = ? WHERE `id` = ?");
+            return $stmt->execute([$ceremonyNumber, $existing['id']]);
+        } else {
+            $stmt = $this->pdo->prepare("INSERT INTO `convocation_student_info` (`convocation_id`, `student_number`, `ceremony_number`) VALUES (?, ?, ?)");
+            return $stmt->execute([$convocationId, $studentNumber, $ceremonyNumber]);
+        }
+    }
 }

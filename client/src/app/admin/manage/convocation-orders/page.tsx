@@ -52,7 +52,7 @@ const CertificateStatusCell = ({ studentNumber, convocationCourseIds }: { studen
     }
 
     const relevantCertificates = certificates?.filter(
-        cert => relevantCourseIds.includes(cert.parent_course_id) && cert.type === 'Certificate'
+        cert => relevantCourseIds.includes(String(cert.parent_course_id)) && cert.type === 'Certificate'
     ) || [];
 
     if (relevantCertificates.length === 0) {
@@ -109,7 +109,7 @@ const GameInfoCell = ({ studentNumber, convocationCourseIds }: { studentNumber: 
 
     const relevantCourseIds = convocationCourseIds.split(',').map(id => id.trim());
     const relevantEnrollments = Object.values(fullStudentData.studentEnrollments).filter(
-        enrollment => relevantCourseIds.includes(enrollment.parent_course_id)
+        enrollment => relevantCourseIds.includes(String(enrollment.parent_course_id))
     );
 
     if (relevantEnrollments.length === 0) {
@@ -218,7 +218,7 @@ const EligibilityStatusCell = ({ registration }: { registration: FilteredConvoca
             .filter(e => e.certificate_eligibility);
 
         const newEnrollments = allEligibleEnrollments.filter(enrollment => 
-            !currentCourses.includes(enrollment.parent_course_id)
+            !currentCourses.includes(String(enrollment.parent_course_id))
         );
         
         return { newEligibleEnrollments: newEnrollments, isUpdateAvailable: newEnrollments.length > 0 };
@@ -446,7 +446,7 @@ export default function ConvocationOrdersPage() {
                 let totalMediMindCoins = 0;
 
                 courseIds.forEach(courseId => {
-                    const enrollment = Object.values(studentData.studentEnrollments).find(e => e.parent_course_id === courseId);
+                    const enrollment = Object.values(studentData.studentEnrollments).find((e: any) => String(e.parent_course_id) === String(courseId));
                     if (enrollment) {
                         courseCodes.push(enrollment.course_code);
                         courseNames.push(enrollment.parent_course_name);

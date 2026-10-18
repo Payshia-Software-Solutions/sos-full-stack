@@ -2,11 +2,12 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
     getConvocationRegistrations, 
-    getPackagesByCeremony, 
+    getPackagesByCeremony,
+    deleteConvocationRegistration,
 } from '@/lib/actions/certificates';
 import { getParentCourses } from '@/lib/actions/courses';
 import { getStudentFullInfo } from '@/lib/actions/users';
@@ -25,7 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ArrowLeft, ArrowUp, ArrowDown, ChevronsUpDown, Eye, FileDown, Loader2, Banknote, Wallet } from 'lucide-react';
+import { Search, ArrowLeft, ArrowUp, ArrowDown, ChevronsUpDown, Eye, FileDown, Loader2, Banknote, Wallet, Trash2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { AnimatedCounter } from '@/components/ui/animated-counter';
@@ -37,6 +38,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Modular Components
 import { RegistrationDetailDialog } from '@/components/admin/convocation/RegistrationDetailDialog';
@@ -83,6 +94,28 @@ export default function ConvocationListPage() {
         queryFn: getParentCourses,
         staleTime: Infinity,
         refetchOnWindowFocus: false,
+    });
+
+    const queryClient = useQueryClient();
+    const [bookingToDelete, setBookingToDelete] = useState<ConvocationRegistration | null>(null);
+
+    const deleteBookingMutation = useMutation({
+        mutationFn: (registrationId: string | number) => deleteConvocationRegistration(registrationId),
+        onSuccess: () => {
+            toast({
+                title: 'Booking Deleted',
+                description: 'The convocation booking has been permanently removed.',
+            });
+            queryClient.invalidateQueries({ queryKey: ['convocationRegistrations'] });
+            setBookingToDelete(null);
+        },
+        onError: (err: Error) => {
+            toast({
+                variant: 'destructive',
+                title: 'Deletion Failed',
+                description: err.message || 'Failed to delete the booking.',
+            });
+        }
     });
 
     // Keep the details dialog in sync with updated data when the query refreshes
@@ -194,12 +227,13 @@ export default function ConvocationListPage() {
                 (reg.reference_number?.toLowerCase() || '').includes(lowercasedSearch);
             
             const matchesStatus = statusFilter === 'all' || (reg.payment_status?.toLowerCase() || '') === statusFilter.toLowerCase();
-            const matchesCourse = (reg.course_id || '').split(',').some(id => {
-                const course = courses?.find(c => c.id === id.trim());
-                return courseFilter === 'all' || course?.id === courseFilter;
+            const matchesCourse = courseFilter === 'all' || (reg.course_id || '').split(',').some(id => {
+                const trimmedId = id.trim();
+                const parentCourse = courses?.find(c => String(c.id) === trimmedId);
+                return String(trimmedId) === String(courseFilter) || String(parentCourse?.id) === String(courseFilter);
             });
-            const matchesPackage = packageFilter === 'all' || reg.package_id === packageFilter;
-            const matchesSession = sessionFilter === 'all' || reg.session === sessionFilter;
+            const matchesPackage = packageFilter === 'all' || String(reg.package_id) === String(packageFilter);
+            const matchesSession = sessionFilter === 'all' || String(reg.session) === String(sessionFilter);
             
             return matchesSearch && matchesStatus && matchesCourse && matchesPackage && matchesSession;
         });
@@ -317,21 +351,26 @@ export default function ConvocationListPage() {
                 const studentFullData = fullDataMap.get(reg.student_number);
                 
                 const cppEnrollment = studentFullData?.studentEnrollments ? 
-                    Object.values(studentFullData.studentEnrollments).find(e => e.parent_course_id === "1") : null;
+                    Object.values(studentFullData.studentEnrollments).find(e => String(e.parent_course_id) === "1") : null;
                 const acppEnrollment = studentFullData?.studentEnrollments ? 
-                    Object.values(studentFullData.studentEnrollments).find(e => e.parent_course_id === "2") : null;
+                    Object.values(studentFullData.studentEnrollments).find(e => String(e.parent_course_id) === "2") : null;
 
                 const cppAvg = cppEnrollment ? `${parseFloat(cppEnrollment.assignment_grades.average_grade).toFixed(2)}%` : 'N/A';
                 const acppAvg = acppEnrollment ? `${parseFloat(acppEnrollment.assignment_grades.average_grade).toFixed(2)}%` : 'N/A';
 
-                const courseNames = reg.course_id.split(',').map(id => {
-                    const course = courses?.find(c => c.id === id.trim());
-                    return course ? course.course_name : `ID: ${id}`;
-                }).join('; ');
+                const courseNames = (reg.course_id || '').split(',').map(id => {
+                    const trimmedId = id.trim();
+                    if (!trimmedId) return '';
+                    const studentEnrollmentsList = studentFullData?.studentEnrollments ? Object.values(studentFullData.studentEnrollments) : [];
+                    const matched = studentEnrollmentsList.find(e => String(e.parent_course_id) === trimmedId || String(e.id) === trimmedId || String(e.course_code) === trimmedId);
+                    const parentCourse = courses?.find(c => String(c.id) === trimmedId);
+                    const cName = matched?.parent_course_name || parentCourse?.course_name || `ID: ${trimmedId}`;
+                    return matched?.course_code ? `${cName} (${matched.course_code})` : cName;
+                }).filter(Boolean).join('; ');
 
                 const paidAmount = parseFloat(reg.payment_amount) || 0;
                 const due = (reg.dueAmount || 0) - paidAmount;
-                const packageName = packages?.find(p => p.package_id === reg.package_id)?.package_name || reg.package_id;
+                const packageName = packages?.find(p => String(p.package_id) === String(reg.package_id))?.package_name || reg.package_id;
 
                 return [
                     reg.reference_number,
@@ -418,6 +457,59 @@ export default function ConvocationListPage() {
                 packages={packages}
             />
 
+            <AlertDialog open={!!bookingToDelete} onOpenChange={(open) => !open && setBookingToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-destructive flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5" />
+                            Delete Convocation Booking?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="space-y-3 text-sm text-muted-foreground pt-2">
+                                <div>
+                                    Are you sure you want to delete the booking for{' '}
+                                    <strong className="text-foreground">
+                                        {bookingToDelete?.name_on_certificate || bookingToDelete?.student_number}
+                                    </strong>
+                                    {bookingToDelete?.reference_number && (
+                                        <> (Ref: <span className="font-mono font-bold text-foreground">#{bookingToDelete.reference_number}</span>)</>
+                                    )}?
+                                </div>
+                                <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-md border border-destructive/20 space-y-1">
+                                    <p className="font-bold">⚠️ Warning: This action is permanent and cannot be undone.</p>
+                                    <p>This will permanently delete this booking registration from the database and remove the student's assigned ceremony pass.</p>
+                                </div>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleteBookingMutation.isPending}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => {
+                                e.preventDefault();
+                                if (bookingToDelete) {
+                                    deleteBookingMutation.mutate(bookingToDelete.registration_id);
+                                }
+                            }}
+                            disabled={deleteBookingMutation.isPending}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {deleteBookingMutation.isPending ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Booking
+                                </>
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <Dialog open={isExporting && exportProgress > 0} onOpenChange={() => {}}>
                 <DialogContent className="sm:max-w-md" hideCloseButton>
                     <DialogHeader>
@@ -469,8 +561,8 @@ export default function ConvocationListPage() {
                         </div>
                         <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="h-10"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="all">All Statuses</SelectItem><SelectItem value="paid">Paid</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="rejected">Rejected</SelectItem></SelectContent></Select>
                         <Select value={sessionFilter} onValueChange={setSessionFilter}><SelectTrigger className="h-10"><SelectValue placeholder="Session" /></SelectTrigger><SelectContent><SelectItem value="all">All Sessions</SelectItem><SelectItem value="1">Session 1</SelectItem><SelectItem value="2">Session 2</SelectItem></SelectContent></Select>
-                        <Select value={courseFilter} onValueChange={setCourseFilter} disabled={isLoadingCourses}><SelectTrigger className="h-10"><SelectValue placeholder="Course" /></SelectTrigger><SelectContent><SelectItem value="all">All Courses</SelectItem>{courses?.map(c => <SelectItem key={c.id} value={c.id}>{c.course_name}</SelectItem>)}</SelectContent></Select>
-                         <Select value={packageFilter} onValueChange={setPackageFilter} disabled={isLoadingPackages}><SelectTrigger className="h-10"><SelectValue placeholder="Package" /></SelectTrigger><SelectContent><SelectItem value="all">All Packages</SelectItem>{packages?.filter(p => !ceremonyIdFilter || p.convocation_id === ceremonyIdFilter).map(p => <SelectItem key={p.package_id} value={p.package_id}>{p.package_name}</SelectItem>)}</SelectContent></Select>
+                        <Select value={courseFilter} onValueChange={setCourseFilter} disabled={isLoadingCourses}><SelectTrigger className="h-10"><SelectValue placeholder="Course" /></SelectTrigger><SelectContent><SelectItem value="all">All Courses</SelectItem>{courses?.map(c => <SelectItem key={String(c.id)} value={String(c.id)}>{c.course_name}</SelectItem>)}</SelectContent></Select>
+                         <Select value={packageFilter} onValueChange={setPackageFilter} disabled={isLoadingPackages}><SelectTrigger className="h-10"><SelectValue placeholder="Package" /></SelectTrigger><SelectContent><SelectItem value="all">All Packages</SelectItem>{packages?.filter(p => !ceremonyIdFilter || String(p.convocation_id) === String(ceremonyIdFilter)).map(p => <SelectItem key={String(p.package_id)} value={String(p.package_id)}>{p.package_name}</SelectItem>)}</SelectContent></Select>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -495,13 +587,13 @@ export default function ConvocationListPage() {
                                     {paginatedRegistrations.length > 0 ? paginatedRegistrations.map((reg) => {
                                         const paidAmount = parseFloat(reg.payment_amount) || 0;
                                         const due = (reg.dueAmount || 0) - paidAmount;
-                                        const packageName = packages?.find(p => p.package_id === reg.package_id)?.package_name || `ID: ${reg.package_id}`;
+                                        const packageName = packages?.find(p => String(p.package_id) === String(reg.package_id))?.package_name || `ID: ${reg.package_id}`;
 
                                         const studentFullData = studentDataMap.get(reg.student_number);
                                         const cppEnrollment = studentFullData?.studentEnrollments ? 
-                                            Object.values(studentFullData.studentEnrollments).find(e => e.parent_course_id === "1") : null;
+                                            Object.values(studentFullData.studentEnrollments).find(e => String(e.parent_course_id) === "1") : null;
                                         const acppEnrollment = studentFullData?.studentEnrollments ? 
-                                            Object.values(studentFullData.studentEnrollments).find(e => e.parent_course_id === "2") : null;
+                                            Object.values(studentFullData.studentEnrollments).find(e => String(e.parent_course_id) === "2") : null;
 
                                         return (
                                         <TableRow key={reg.registration_id} className={cn("text-xs transition-colors hover:bg-muted/30", reg.isDuplicate && "bg-destructive/5 hover:bg-destructive/10")}>
@@ -517,12 +609,32 @@ export default function ConvocationListPage() {
                                             </TableCell>
                                             <TableCell className="py-4 align-top">
                                                 <div className="space-y-2">
-                                                    <div className="flex flex-col gap-1">
+                                                    <div className="flex flex-col gap-1.5">
                                                         {(reg.course_id || '').split(',').map((id, idIdx) => {
                                                             const trimmedId = id.trim();
+                                                            if (!trimmedId) return null;
+                                                            const studentEnrollmentsList = studentFullData?.studentEnrollments ? Object.values(studentFullData.studentEnrollments) : [];
+                                                            const matched = studentEnrollmentsList.find(e => String(e.parent_course_id) === trimmedId || String(e.id) === trimmedId || String(e.course_code) === trimmedId);
+                                                            const parentCourse = courses?.find(c => String(c.id) === trimmedId);
+                                                            const courseName = matched?.parent_course_name || parentCourse?.course_name || `Course ${trimmedId}`;
+                                                            const batchCode = matched?.course_code;
+                                                            const batchName = matched?.batch_name;
+
                                                             return (
-                                                                <div key={`${trimmedId}-${reg.registration_id}-${idIdx}`} className="text-[11px] leading-tight font-medium text-foreground">
-                                                                    • {courses?.find(c => c.id === trimmedId)?.course_name || `ID: ${trimmedId}`}
+                                                                <div key={`${trimmedId}-${reg.registration_id}-${idIdx}`} className="text-[11px] leading-tight font-medium text-foreground flex flex-col gap-0.5">
+                                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                                        <span className="font-semibold">• {courseName}</span>
+                                                                        {batchCode && (
+                                                                            <Badge variant="outline" className="text-[9px] font-mono px-1.5 py-0 h-4 bg-primary/5 text-primary border-primary/20">
+                                                                                {batchCode}
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
+                                                                    {batchName && (
+                                                                        <span className="text-[10px] text-muted-foreground pl-2.5 truncate max-w-[240px]" title={batchName}>
+                                                                            {batchName}
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                             )
                                                         })}
@@ -571,15 +683,26 @@ export default function ConvocationListPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="py-4 pr-6 align-top text-right">
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm" 
-                                                    onClick={() => setViewingDetails(reg)} 
-                                                    className="h-8 px-3 text-[11px] font-semibold"
-                                                >
-                                                    <Eye className="h-3.5 w-3.5 mr-1.5" /> 
-                                                    View
-                                                </Button>
+                                                <div className="flex items-center justify-end gap-1.5">
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        onClick={() => setViewingDetails(reg)} 
+                                                        className="h-8 px-3 text-[11px] font-semibold"
+                                                    >
+                                                        <Eye className="h-3.5 w-3.5 mr-1.5" /> 
+                                                        View
+                                                    </Button>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        onClick={() => setBookingToDelete(reg)} 
+                                                        className="h-8 px-2 text-[11px] font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
+                                                        title="Delete Booking"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                         )

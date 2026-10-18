@@ -73,6 +73,14 @@ class Package
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    // Read packages by convocation ID
+    public function getPackagesByConvocationId($convocation_id)
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM packages WHERE convocation_id = ?");
+        $stmt->execute([$convocation_id]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     // Read a single package by ID
     public function getPackageById($package_id)
     {

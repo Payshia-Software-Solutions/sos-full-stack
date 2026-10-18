@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Image from 'next/image';
@@ -49,7 +49,7 @@ const packageFormSchema = z.object({
     video_360: z.boolean().default(false),
     refreshments: z.boolean().default(false),
     cover_image: z.any().optional(),
-    courses: z.array(z.string()).optional(),
+    courses: z.array(z.union([z.string(), z.number()])).transform(arr => arr.map(String)).optional(),
 });
 
 type PackageFormValues = z.infer<typeof packageFormSchema>;
@@ -61,6 +61,8 @@ const PackageForm = ({ pkg, onSave, onClose, isSaving }: { pkg: ConvocationPacka
         staleTime: 1000 * 60 * 15, // Cache for 15 mins
     });
     
+    const formRef = useRef<HTMLFormElement>(null);
+
     const form = useForm<PackageFormValues>({
         resolver: zodResolver(packageFormSchema),
         defaultValues: {
@@ -69,46 +71,133 @@ const PackageForm = ({ pkg, onSave, onClose, isSaving }: { pkg: ConvocationPacka
             price: pkg ? parseFloat(pkg.price) : 0,
             parent_seat_count: pkg ? parseInt(pkg.parent_seat_count, 10) : 0,
             vip_seat: pkg ? parseInt(pkg.vip_seat, 10) : 0,
-            student_seat: pkg ? pkg.student_seat === '1' : true,
-            garland: pkg?.garland === '1',
-            graduation_cloth: pkg?.graduation_cloth === '1',
-            photo_package: pkg?.photo_package === '1',
-            scroll: pkg?.scroll === '1',
-            certificate_file: pkg?.certificate_file === '1',
-            video_360: pkg?.video_360 === '1',
-            refreshments: pkg?.refreshments === '1',
+            student_seat: pkg ? String(pkg.student_seat) === '1' : true,
+            garland: String(pkg?.garland) === '1',
+            graduation_cloth: String(pkg?.graduation_cloth) === '1',
+            photo_package: String(pkg?.photo_package) === '1',
+            scroll: String(pkg?.scroll) === '1',
+            certificate_file: String(pkg?.certificate_file) === '1',
+            video_360: String(pkg?.video_360) === '1',
+            refreshments: String(pkg?.refreshments) === '1',
             cover_image: null,
-            courses: pkg?.course_list ? pkg.course_list.split(',').map(s => s.trim()) : [],
+            courses: pkg?.course_list ? pkg.course_list.split(',').map(s => s.trim()).filter(Boolean) : [],
         },
     });
 
+    useEffect(() => {
+        form.reset({
+            package_name: pkg?.package_name || '',
+            description: pkg?.description || '',
+            price: pkg ? parseFloat(pkg.price) : 0,
+            parent_seat_count: pkg ? parseInt(String(pkg.parent_seat_count), 10) : 0,
+            vip_seat: pkg ? parseInt(String(pkg.vip_seat), 10) : 0,
+            student_seat: pkg ? String(pkg.student_seat) === '1' : true,
+            garland: String(pkg?.garland) === '1',
+            graduation_cloth: String(pkg?.graduation_cloth) === '1',
+            photo_package: String(pkg?.photo_package) === '1',
+            scroll: String(pkg?.scroll) === '1',
+            certificate_file: String(pkg?.certificate_file) === '1',
+            video_360: String(pkg?.video_360) === '1',
+            refreshments: String(pkg?.refreshments) === '1',
+            cover_image: null,
+            courses: pkg?.course_list ? pkg.course_list.split(',').map(s => s.trim()).filter(Boolean) : [],
+        });
+        if (formRef.current) {
+            formRef.current.scrollTop = 0;
+        }
+    }, [pkg, form]);
+
+    const onInvalid = (errors: FieldErrors<PackageFormValues>) => {
+        const fieldNames: Record<string, string> = {
+            package_name: 'Package Name',
+            price: 'Price',
+            parent_seat_count: 'Parent Seats',
+            vip_seat: 'VIP Seats',
+            courses: 'Eligible Courses',
+        };
+
+        const errorList: string[] = [];
+        for (const [key, err] of Object.entries(errors)) {
+            const label = fieldNames[key] || key;
+            if (err && typeof err === 'object') {
+                if (Array.isArray(err)) {
+                    const firstItem = err.find(Boolean);
+                    errorList.push(`${label}: ${firstItem?.message || 'Invalid item'}`);
+                } else if ('message' in err && err.message) {
+                    errorList.push(`${label}: ${err.message}`);
+                } else {
+                    const nested = Object.values(err).map((v: any) => v?.message).filter(Boolean);
+                    errorList.push(`${label}: ${nested.length > 0 ? nested.join(', ') : 'Required'}`);
+                }
+            } else {
+                errorList.push(`${label}: Required`);
+            }
+        }
+
+        if (errorList.length > 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Validation Error',
+                description: errorList.join(' | '),
+            });
+            if (formRef.current) {
+                formRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            const firstKey = Object.keys(errors)[0];
+            const el = document.getElementById(firstKey);
+            if (el) {
+                el.focus();
+            }
+        }
+    };
+
     return (
-        <form onSubmit={form.handleSubmit(onSave)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1 pr-4">
-             <div className="space-y-2">
-                <Label htmlFor="package_name">Package Name</Label>
-                <Input id="package_name" {...form.register('package_name')} />
-                {form.formState.errors.package_name && <p className="text-sm text-destructive">{form.formState.errors.package_name.message}</p>}
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea id="description" {...form.register('description')} rows={3}/>
-            </div>
-             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <form ref={formRef} onSubmit={form.handleSubmit(onSave, onInvalid)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1 pr-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="price">Price (LKR)</Label>
-                    <Input id="price" type="number" {...form.register('price')} />
-                    {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>}
+                    <Label htmlFor="package_name" className="flex items-center gap-1 font-semibold text-sm">
+                        Package Name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input 
+                        id="package_name" 
+                        placeholder="e.g. Standard Convocation Package" 
+                        {...form.register('package_name')} 
+                        autoFocus
+                    />
+                    {form.formState.errors.package_name && <p className="text-sm font-medium text-destructive">{form.formState.errors.package_name.message}</p>}
                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="parent_seat_count">Parent Seats</Label>
-                    <Input id="parent_seat_count" type="number" {...form.register('parent_seat_count')} />
-                    {form.formState.errors.parent_seat_count && <p className="text-sm text-destructive">{form.formState.errors.parent_seat_count.message}</p>}
+                <div className="space-y-2">
+                    <Label htmlFor="price" className="flex items-center gap-1 font-semibold text-sm">
+                        Price (LKR) <span className="text-destructive">*</span>
+                    </Label>
+                    <Input id="price" type="number" min="0" placeholder="15000" {...form.register('price')} />
+                    {form.formState.errors.price && <p className="text-sm font-medium text-destructive">{form.formState.errors.price.message}</p>}
                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="vip_seat">VIP Seats</Label>
-                    <Input id="vip_seat" type="number" {...form.register('vip_seat')} />
-                    {form.formState.errors.vip_seat && <p className="text-sm text-destructive">{form.formState.errors.vip_seat.message}</p>}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="parent_seat_count" className="text-sm">Parent Seats</Label>
+                    <Input id="parent_seat_count" type="number" min="0" placeholder="0" {...form.register('parent_seat_count')} />
+                    {form.formState.errors.parent_seat_count && <p className="text-sm font-medium text-destructive">{form.formState.errors.parent_seat_count.message}</p>}
                 </div>
+                <div className="space-y-2">
+                    <Label htmlFor="vip_seat" className="text-sm">VIP Seats</Label>
+                    <Input id="vip_seat" type="number" min="0" placeholder="0" {...form.register('vip_seat')} />
+                    {form.formState.errors.vip_seat && <p className="text-sm font-medium text-destructive">{form.formState.errors.vip_seat.message}</p>}
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="description" className="flex items-center gap-1 text-sm">
+                    Description <span className="text-xs text-muted-foreground font-normal">(Optional remarks or details)</span>
+                </Label>
+                <Textarea 
+                    id="description" 
+                    placeholder="Enter detailed description or remarks about this package..." 
+                    {...form.register('description')} 
+                    rows={2}
+                />
             </div>
              <div className="space-y-2">
                 <Label htmlFor="courses">Eligible Courses</Label>
@@ -120,7 +209,7 @@ const PackageForm = ({ pkg, onSave, onClose, isSaving }: { pkg: ConvocationPacka
                             <PopoverTrigger asChild>
                                 <Button variant="outline" className="w-full justify-start font-normal">
                                     <BookOpen className="mr-2 h-4 w-4" />
-                                    {field.value?.length > 0 ? `${field.value.length} course(s) selected` : "Select eligible courses"}
+                                    {field.value && field.value.length > 0 ? `${field.value.length} course(s) selected` : "Select eligible courses"}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
@@ -130,14 +219,16 @@ const PackageForm = ({ pkg, onSave, onClose, isSaving }: { pkg: ConvocationPacka
                                         <CommandEmpty>No courses found.</CommandEmpty>
                                         <CommandGroup>
                                             {isLoadingCourses ? <div className="p-2">Loading...</div> : parentCourses?.map(course => {
-                                                const isSelected = field.value?.includes(course.id);
+                                                const courseIdStr = String(course.id);
+                                                const isSelected = !!field.value?.some(id => String(id) === courseIdStr);
                                                 return (
                                                     <CommandItem
-                                                        key={course.id}
+                                                        key={courseIdStr}
                                                         onSelect={() => {
+                                                            const current = (field.value || []).map(String);
                                                             const newValue = isSelected
-                                                                ? field.value?.filter(id => id !== course.id) || []
-                                                                : [...(field.value || []), course.id];
+                                                                ? current.filter(id => id !== courseIdStr)
+                                                                : [...current, courseIdStr];
                                                             field.onChange(newValue);
                                                         }}
                                                     >
@@ -340,11 +431,11 @@ export default function ManagePackagesPage() {
                                             <TableCell>{pkg.parent_seat_count}P + {pkg.vip_seat}V</TableCell>
                                             <TableCell>
                                                 <div className="flex justify-center gap-2">
-                                                    {pkg.graduation_cloth === '1' && <Award className="h-5 w-5 text-blue-500" title="Graduation Cloak"/>}
-                                                    {pkg.garland === '1' && <Sparkles className="h-5 w-5 text-pink-500" title="Garland" />}
-                                                    {pkg.scroll === '1' && <ScrollText className="h-5 w-5 text-amber-600" title="Scroll"/>}
-                                                    {pkg.photo_package === '1' && <GraduationCap className="h-5 w-5 text-purple-500" title="Graduation Hat"/>}
-                                                    {pkg.refreshments === '1' && <Coffee className="h-5 w-5 text-orange-500" title="Refreshments"/>}
+                                                    {String(pkg.graduation_cloth) === '1' && <span title="Graduation Cloak"><Award className="h-5 w-5 text-blue-500"/></span>}
+                                                    {String(pkg.garland) === '1' && <span title="Garland"><Sparkles className="h-5 w-5 text-pink-500" /></span>}
+                                                    {String(pkg.scroll) === '1' && <span title="Scroll"><ScrollText className="h-5 w-5 text-amber-600" /></span>}
+                                                    {String(pkg.photo_package) === '1' && <span title="Graduation Hat"><GraduationCap className="h-5 w-5 text-purple-500" /></span>}
+                                                    {String(pkg.refreshments) === '1' && <span title="Refreshments"><Coffee className="h-5 w-5 text-orange-500" /></span>}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right space-x-1">

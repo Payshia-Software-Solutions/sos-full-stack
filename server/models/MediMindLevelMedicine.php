@@ -25,7 +25,7 @@ class MediMindLevelMedicine
                 medi_mind_level_mediciens lm
             LEFT JOIN 
                 medi_mind_levels l ON lm.level_id = l.id
-            LEFT JOIN 
+            INNER JOIN 
                 medi_mind_medicines m ON lm.medicine_id = m.id
         ");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -67,7 +67,7 @@ class MediMindLevelMedicine
                 m.medicine_name
             FROM 
                 medi_mind_level_mediciens lm
-            LEFT JOIN 
+            INNER JOIN 
                 medi_mind_medicines m ON lm.medicine_id = m.id
             WHERE 
                 lm.level_id = ?
