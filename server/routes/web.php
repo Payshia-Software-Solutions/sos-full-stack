@@ -1,16 +1,7 @@
 <?php
 // routes/web.php
 
-// Set CORS headers for every response
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("X-Page-Title: API Service");
-// Handle OPTIONS requests (preflight)
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-    exit();
-}
 
 ini_set('memory_limit', '256M');
 error_reporting(E_ALL);
