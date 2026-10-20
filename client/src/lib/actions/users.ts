@@ -231,7 +231,7 @@ export const submitProfileEditRequest = async (data: any): Promise<any> => {
 };
 
 export const getPendingProfileEditRequests = async (): Promise<any[]> => {
-    const response = await fetch(`${QA_API_BASE_URL}/profile-edits/pending`);
+    const response = await fetch(`${QA_API_BASE_URL}/profile-edits/pending`, { cache: 'no-store' });
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to fetch pending profile edit requests' }));
         throw new Error(errorData.message || 'Failed to fetch pending profile edit requests');
@@ -257,6 +257,23 @@ export const approveProfileEditRequest = async (id: string | number, adminUserna
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to approve request' }));
         throw new Error(errorData.message || 'Failed to approve request');
+    }
+    return response.json();
+};
+
+export const bulkApproveProfileEditRequests = async (
+    ids: number[], 
+    adminUsername: string, 
+    approveAll = false
+): Promise<{ success: boolean; message: string; approved_count: number }> => {
+    const response = await fetch(`${QA_API_BASE_URL}/profile-edits/bulk-approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, admin_username: adminUsername, all: approveAll }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to bulk approve requests' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to bulk approve requests');
     }
     return response.json();
 };
