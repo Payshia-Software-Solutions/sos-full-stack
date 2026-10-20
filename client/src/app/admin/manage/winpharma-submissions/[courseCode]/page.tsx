@@ -175,7 +175,12 @@ export default function WinPharmaCourseSubmissionsPage() {
         <div className="p-3 md:p-8 space-y-6 md:space-y-8 pb-32 w-full">
             <header className="space-y-6 md:space-y-10">
                 <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                    <Button variant="ghost" onClick={() => router.push('/admin/manage/winpharma-submissions')} className="h-12 w-12 md:h-14 md:w-14 rounded-xl md:rounded-2xl bg-white/5 hover:bg-white/10 text-white shrink-0">
+                    <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={() => router.push('/admin/manage/winpharma-submissions')} 
+                        className="h-12 w-12 md:h-14 md:w-14 rounded-xl md:rounded-2xl border-border bg-card hover:bg-muted text-foreground shrink-0 shadow-xs"
+                    >
                         <ArrowLeft className="h-5 w-5 md:h-6 md:w-6" />
                     </Button>
                     <div className="bg-[#00ADC8] text-white px-6 md:px-10 py-4 md:py-5 rounded-2xl md:rounded-[1.5rem] w-full shadow-2xl">
@@ -251,16 +256,16 @@ export default function WinPharmaCourseSubmissionsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow className="bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border-none">
-                                    <TableHead className="px-8 font-black uppercase text-[11px] tracking-widest text-[#444]">ID</TableHead>
-                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-[#444]">Index Number</TableHead>
-                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-[#444]">Level</TableHead>
-                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-[#444]">Action</TableHead>
-                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-[#444]">Time</TableHead>
-                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-[#444]">Grade</TableHead>
-                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-[#444]">Status</TableHead>
-                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-[#444]">Reason</TableHead>
-                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-[#444]">Checked By</TableHead>
-                                    <TableHead className="px-8 font-black uppercase text-[11px] tracking-widest text-[#444]">Updated at</TableHead>
+                                    <TableHead className="px-8 font-black uppercase text-[11px] tracking-widest text-muted-foreground">ID</TableHead>
+                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-muted-foreground">Index Number</TableHead>
+                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-muted-foreground">Level</TableHead>
+                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-muted-foreground">Action</TableHead>
+                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-muted-foreground">Time</TableHead>
+                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-muted-foreground">Grade</TableHead>
+                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-muted-foreground">Status</TableHead>
+                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-muted-foreground">Reason</TableHead>
+                                    <TableHead className="font-black uppercase text-[11px] tracking-widest text-muted-foreground">Checked By</TableHead>
+                                    <TableHead className="px-8 font-black uppercase text-[11px] tracking-widest text-muted-foreground">Updated at</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -294,7 +299,7 @@ export default function WinPharmaCourseSubmissionsPage() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="max-w-[150px] truncate text-[10px] font-bold text-zinc-400" title={resolveReasonText(s.reason)}>
+                                            <div className="max-w-[150px] truncate text-[11px] font-medium text-muted-foreground" title={resolveReasonText(s.reason)}>
                                                 {resolveReasonText(s.reason)}
                                             </div>
                                         </TableCell>

@@ -234,24 +234,25 @@ export default function DpadAnswerKeySetupPage() {
   });
 
   return (
-    <div className="p-4 md:p-8 space-y-6 pb-24">
+    <div className="p-4 md:p-8 space-y-6 pb-24 max-w-7xl mx-auto w-full">
       {/* Header bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
           <Button 
             variant="ghost" 
+            size="sm"
             onClick={() => router.push("/admin/manage/games/d-pad")} 
-            className="gap-2 mb-2 pl-0 hover:pl-2 text-slate-400 hover:text-white transition-all"
+            className="gap-2 mb-2 -ml-2 text-muted-foreground hover:text-foreground transition-all"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Setup List
           </Button>
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-600/25 text-emerald-400">
+            <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20">
               <Settings className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold font-headline">Benchmark Answer Key Setup</h1>
-              <p className="text-slate-400 text-sm">Configure correct benchmark values for D-Pad Prescription ID: <span className="font-mono text-emerald-400 font-bold">{prescriptionId}</span></p>
+              <h1 className="text-2xl md:text-3xl font-bold font-headline text-foreground">Benchmark Answer Key Setup</h1>
+              <p className="text-muted-foreground text-sm">Configure correct benchmark values for D-Pad Prescription ID: <span className="font-mono text-primary font-bold">{prescriptionId}</span></p>
             </div>
           </div>
         </div>
@@ -261,12 +262,12 @@ export default function DpadAnswerKeySetupPage() {
         {/* Left Column: Digital Prescription View & Cover Selector */}
         <div className="lg:col-span-5 space-y-6">
           {/* Cover Selector */}
-          <Card className="border-slate-800 bg-slate-900/40">
+          <Card className="border-border bg-card shadow-xs">
             <CardHeader className="pb-3">
-              <CardTitle className="text-md font-bold flex items-center gap-2">
-                <Pill className="w-4 h-4 text-emerald-500" /> Dispensing Drug Covers
+              <CardTitle className="text-md font-bold flex items-center gap-2 text-foreground">
+                <Pill className="w-4 h-4 text-primary" /> Dispensing Drug Covers
               </CardTitle>
-              <CardDescription className="text-xs">Select a cover envelope to configure its answers key.</CardDescription>
+              <CardDescription className="text-xs text-muted-foreground">Select a cover envelope to configure its answers key.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               {displayDrugs.map((drugName: string, index: number) => {
@@ -277,18 +278,18 @@ export default function DpadAnswerKeySetupPage() {
                     onClick={() => setSelectedCoverIndex(index)}
                     className={`w-full p-3.5 border rounded-xl flex items-center justify-between transition-all text-left ${
                       isSelected 
-                        ? "bg-emerald-950/20 border-emerald-600 shadow-sm" 
-                        : "border-slate-800 bg-slate-950/20 hover:border-slate-700"
+                        ? "bg-primary/10 border-primary shadow-xs" 
+                        : "border-border bg-muted/20 hover:border-border/80 hover:bg-muted/40"
                     }`}
                   >
                     <div>
-                      <Badge className={`mb-1 ${isSelected ? "bg-emerald-600 hover:bg-emerald-700" : "bg-slate-800 hover:bg-slate-700"} text-white`}>
+                      <Badge className={`mb-1 ${isSelected ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"} font-semibold`}>
                         Cover {index + 1}
                       </Badge>
-                      <h4 className="font-bold text-slate-100 text-sm truncate max-w-[250px]">{drugName}</h4>
+                      <h4 className="font-bold text-foreground text-sm truncate max-w-[250px]">{drugName}</h4>
                     </div>
                     {isSelected && (
-                      <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
+                      <span className="text-xs text-primary font-bold flex items-center gap-1">
                         Active Selection
                       </span>
                     )}
@@ -299,15 +300,15 @@ export default function DpadAnswerKeySetupPage() {
           </Card>
 
           {/* Digital Prescription View (Identical to Student View) */}
-          <Card className="shadow-lg border-2 border-slate-800 overflow-hidden bg-slate-900/40">
-            <div className="bg-slate-950 text-slate-300 py-3 px-4 text-xs font-semibold uppercase tracking-wider flex items-center justify-between border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Clipboard className="w-4 h-4 text-emerald-400" />
+          <Card className="shadow-xs border border-border overflow-hidden bg-card">
+            <div className="bg-muted/30 text-muted-foreground py-3 px-4 text-xs font-semibold uppercase tracking-wider flex items-center justify-between border-b border-border">
+              <div className="flex items-center gap-2 text-foreground">
+                <Clipboard className="w-4 h-4 text-primary" />
                 Prescription Form
               </div>
-              <span className="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-0.5 rounded shadow-sm">
+              <Badge variant="outline" className="font-mono text-xs font-bold text-primary bg-primary/10 border-primary/20">
                 {prescriptionId}
-              </span>
+              </Badge>
             </div>
             <CardContent className="p-0">
               <PrescriptionPaper 
@@ -319,11 +320,11 @@ export default function DpadAnswerKeySetupPage() {
 
         {/* Right Column: Answers Configuration Form */}
         <div className="lg:col-span-7">
-          <Card className="shadow-lg border border-slate-800 bg-slate-900/50">
-            <CardHeader className="border-b border-slate-800/60 flex flex-row items-center justify-between">
+          <Card className="shadow-xs border border-border bg-card">
+            <CardHeader className="border-b border-border bg-muted/20 flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="text-lg text-slate-100 font-headline">Benchmark Config: Cover {selectedCoverIndex + 1}</CardTitle>
-                <CardDescription className="text-xs text-emerald-400 font-mono">
+                <CardTitle className="text-lg text-foreground font-headline">Benchmark Config: Cover {selectedCoverIndex + 1}</CardTitle>
+                <CardDescription className="text-xs text-primary font-mono font-semibold">
                   Target Drug: {displayDrugs[selectedCoverIndex] || drugs[selectedCoverIndex]}
                 </CardDescription>
               </div>
@@ -332,41 +333,39 @@ export default function DpadAnswerKeySetupPage() {
                 variant="outline" 
                 size="sm" 
                 onClick={handleCopyFromPrescription}
-                className="text-xs bg-slate-950 border-slate-800 hover:bg-slate-800"
+                className="text-xs"
               >
                 Copy Patient & Date
               </Button>
             </CardHeader>
             <CardContent className="p-6">
               {answerKeyLoading ? (
-                <p className="text-center text-slate-500 py-12">Loading Cover Answer Key...</p>
+                <p className="text-center text-muted-foreground py-12">Loading Cover Answer Key...</p>
               ) : (
                 <form onSubmit={handleSave} className="space-y-6">
                   {/* Basic Info */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="date" className="text-xs font-bold text-slate-300 flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" /> Correct Date *
+                      <Label htmlFor="date" className="text-xs font-bold text-foreground flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-muted-foreground" /> Correct Date *
                       </Label>
                       <Input
                         id="date"
                         type="date"
                         value={formState.date}
                         onChange={(e) => setFormState({ ...formState, date: e.target.value })}
-                        className="bg-slate-950 border-slate-800 text-slate-100"
                         required
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="name" className="text-xs font-bold text-slate-300 flex items-center gap-1">
-                        <User className="w-3.5 h-3.5 text-slate-400" /> Correct Patient Name *
+                      <Label htmlFor="name" className="text-xs font-bold text-foreground flex items-center gap-1">
+                        <User className="w-3.5 h-3.5 text-muted-foreground" /> Correct Patient Name *
                       </Label>
                       <Input
                         id="name"
                         value={formState.name}
                         onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                        className="bg-slate-950 border-slate-800 text-slate-100"
                         placeholder="Correct Patient Name matching prescription"
                         required
                       />
@@ -376,8 +375,8 @@ export default function DpadAnswerKeySetupPage() {
                   {/* Drug Info */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="md:col-span-2 space-y-1.5">
-                      <Label htmlFor="drug_name" className="text-xs font-bold text-slate-300 flex items-center gap-1">
-                        <Pill className="w-3.5 h-3.5 text-slate-400" /> Correct Drug Name *
+                      <Label htmlFor="drug_name" className="text-xs font-bold text-foreground flex items-center gap-1">
+                        <Pill className="w-3.5 h-3.5 text-muted-foreground" /> Correct Drug Name *
                       </Label>
                       <div className="relative">
                         <Input
@@ -390,7 +389,7 @@ export default function DpadAnswerKeySetupPage() {
                           }}
                           onFocus={() => setIsDrugDropdownOpen(true)}
                           onBlur={() => setTimeout(() => setIsDrugDropdownOpen(false), 200)}
-                          className="bg-slate-950 border-slate-800 text-slate-100 pr-8"
+                          className="pr-8"
                           placeholder="Search or enter correct generic/brand name"
                           autoComplete="off"
                           required
@@ -398,7 +397,7 @@ export default function DpadAnswerKeySetupPage() {
                         <button
                           type="button"
                           onClick={() => setIsDrugDropdownOpen(!isDrugDropdownOpen)}
-                          className="absolute right-2 top-3 text-slate-400 hover:text-white"
+                          className="absolute right-2 top-3 text-muted-foreground hover:text-foreground"
                         >
                           <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
                             <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
@@ -406,11 +405,11 @@ export default function DpadAnswerKeySetupPage() {
                         </button>
 
                         {isDrugDropdownOpen && (
-                          <div className="absolute z-50 w-full mt-1 bg-slate-900 border border-slate-800 rounded-md shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
+                          <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
                             {selectionData?.drug_name?.filter((name: string) => 
                               name.toLowerCase().includes(drugSearch.toLowerCase())
                             ).length === 0 ? (
-                              <div className="px-3 py-2 text-sm text-slate-500">No results found</div>
+                              <div className="px-3 py-2 text-sm text-muted-foreground">No results found</div>
                             ) : (
                               selectionData?.drug_name
                                 ?.filter((name: string) => 
@@ -425,7 +424,7 @@ export default function DpadAnswerKeySetupPage() {
                                       setDrugSearch(name);
                                       setIsDrugDropdownOpen(false);
                                     }}
-                                    className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 hover:text-white transition-colors"
+                                    className="w-full text-left px-3 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors"
                                   >
                                     {name}
                                   </button>
@@ -437,12 +436,12 @@ export default function DpadAnswerKeySetupPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="drug_type" className="text-xs font-bold text-slate-300">Dosage Form *</Label>
+                      <Label htmlFor="drug_type" className="text-xs font-bold text-foreground">Dosage Form *</Label>
                       <select
                         id="drug_type"
                         value={formState.drug_type}
                         onChange={(e) => setFormState({ ...formState, drug_type: e.target.value })}
-                        className="w-full h-10 px-3 rounded-md bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="w-full h-10 px-3 rounded-md bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         {(selectionData?.drug_type?.length ? selectionData.drug_type : OPTIONS_MAPPINGS.dosageForm).map((form: string) => (
                           <option key={form} value={form}>{form}</option>
@@ -452,16 +451,16 @@ export default function DpadAnswerKeySetupPage() {
                   </div>
 
                   {/* Qty & Daily Frequency */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-800/60 pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-border pt-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="drug_qty" className="text-xs font-bold text-slate-300 flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" /> Total Quantity *
+                      <Label htmlFor="drug_qty" className="text-xs font-bold text-foreground flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-muted-foreground" /> Total Quantity *
                       </Label>
                       <select
                         id="drug_qty"
                         value={formState.drug_qty}
                         onChange={(e) => setFormState({ ...formState, drug_qty: e.target.value })}
-                        className="w-full h-10 px-3 rounded-md bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="w-full h-10 px-3 rounded-md bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         required
                       >
                         <option value="" disabled>Select quantity...</option>
@@ -472,12 +471,12 @@ export default function DpadAnswerKeySetupPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="meal_type" className="text-xs font-bold text-slate-300">Meal Type *</Label>
+                      <Label htmlFor="meal_type" className="text-xs font-bold text-foreground">Meal Type *</Label>
                       <select
                         id="meal_type"
                         value={formState.meal_type}
                         onChange={(e) => setFormState({ ...formState, meal_type: e.target.value })}
-                        className="w-full h-10 px-3 rounded-md bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                        className="w-full h-10 px-3 rounded-md bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         {(selectionData?.meal_type?.length ? selectionData.meal_type : OPTIONS_MAPPINGS.mealType).map((meal: string) => (
                           <option key={meal} value={meal}>{meal}</option>
@@ -486,12 +485,12 @@ export default function DpadAnswerKeySetupPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="using_type" className="text-xs font-bold text-slate-300">Using Frequency *</Label>
+                      <Label htmlFor="using_type" className="text-xs font-bold text-foreground">Using Frequency *</Label>
                       <select
                         id="using_type"
                         value={formState.using_type}
                         onChange={(e) => setFormState({ ...formState, using_type: e.target.value })}
-                        className="w-full h-10 px-3 rounded-md bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                        className="w-full h-10 px-3 rounded-md bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         {(selectionData?.using_type?.length ? selectionData.using_type : OPTIONS_MAPPINGS.usingFrequency).map((freq: string) => (
                           <option key={freq} value={freq}>{freq}</option>
@@ -501,21 +500,21 @@ export default function DpadAnswerKeySetupPage() {
                   </div>
 
                   {/* Daily Quantities schedule */}
-                  <div className="bg-slate-950/60 p-4 rounded-xl space-y-3 border border-slate-850">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <div className="bg-muted/30 p-4 rounded-xl space-y-3 border border-border">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                       <Sun className="w-4 h-4 text-amber-500" />
                       Correct Schedule Quantities
                     </h4>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {/* Morning */}
-                      <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 text-center space-y-1.5">
+                      <div className="bg-card p-3 rounded-lg border border-border text-center space-y-1.5 shadow-2xs">
                         <div className="flex justify-center text-amber-500"><Sun className="w-4 h-4" /></div>
-                        <Label htmlFor="morning_qty" className="text-[10px] font-bold text-slate-400">Morning</Label>
+                        <Label htmlFor="morning_qty" className="text-[10px] font-bold text-muted-foreground">Morning</Label>
                         <select
                           id="morning_qty"
                           value={formState.morning_qty}
                           onChange={(e) => setFormState({ ...formState, morning_qty: e.target.value })}
-                          className="w-full h-8 px-1.5 rounded bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none"
+                          className="w-full h-8 px-1.5 rounded bg-background border border-input text-foreground text-xs focus:outline-none"
                         >
                           {(selectionData?.morning_qty?.length ? selectionData.morning_qty : OPTIONS_MAPPINGS.scheduleQty).map((val: string) => (
                             <option key={val} value={val}>{val}</option>
@@ -524,14 +523,14 @@ export default function DpadAnswerKeySetupPage() {
                       </div>
 
                       {/* Afternoon */}
-                      <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 text-center space-y-1.5">
+                      <div className="bg-card p-3 rounded-lg border border-border text-center space-y-1.5 shadow-2xs">
                         <div className="flex justify-center text-orange-400"><Sun className="w-4 h-4" /></div>
-                        <Label htmlFor="afternoon_qty" className="text-[10px] font-bold text-slate-400">Afternoon</Label>
+                        <Label htmlFor="afternoon_qty" className="text-[10px] font-bold text-muted-foreground">Afternoon</Label>
                         <select
                           id="afternoon_qty"
                           value={formState.afternoon_qty}
                           onChange={(e) => setFormState({ ...formState, afternoon_qty: e.target.value })}
-                          className="w-full h-8 px-1.5 rounded bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none"
+                          className="w-full h-8 px-1.5 rounded bg-background border border-input text-foreground text-xs focus:outline-none"
                         >
                           {(selectionData?.afternoon_qty?.length ? selectionData.afternoon_qty : OPTIONS_MAPPINGS.scheduleQty).map((val: string) => (
                             <option key={val} value={val}>{val}</option>
@@ -540,14 +539,14 @@ export default function DpadAnswerKeySetupPage() {
                       </div>
 
                       {/* Evening */}
-                      <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 text-center space-y-1.5">
+                      <div className="bg-card p-3 rounded-lg border border-border text-center space-y-1.5 shadow-2xs">
                         <div className="flex justify-center text-indigo-400"><Sunset className="w-4 h-4" /></div>
-                        <Label htmlFor="evening_qty" className="text-[10px] font-bold text-slate-400">Evening</Label>
+                        <Label htmlFor="evening_qty" className="text-[10px] font-bold text-muted-foreground">Evening</Label>
                         <select
                           id="evening_qty"
                           value={formState.evening_qty}
                           onChange={(e) => setFormState({ ...formState, evening_qty: e.target.value })}
-                          className="w-full h-8 px-1.5 rounded bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none"
+                          className="w-full h-8 px-1.5 rounded bg-background border border-input text-foreground text-xs focus:outline-none"
                         >
                           {(selectionData?.evening_qty?.length ? selectionData.evening_qty : OPTIONS_MAPPINGS.scheduleQty).map((val: string) => (
                             <option key={val} value={val}>{val}</option>
@@ -556,14 +555,14 @@ export default function DpadAnswerKeySetupPage() {
                       </div>
 
                       {/* Night */}
-                      <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 text-center space-y-1.5">
-                        <div className="flex justify-center text-slate-300"><Moon className="w-4 h-4" /></div>
-                        <Label htmlFor="night_qty" className="text-[10px] font-bold text-slate-400">Night</Label>
+                      <div className="bg-card p-3 rounded-lg border border-border text-center space-y-1.5 shadow-2xs">
+                        <div className="flex justify-center text-muted-foreground"><Moon className="w-4 h-4" /></div>
+                        <Label htmlFor="night_qty" className="text-[10px] font-bold text-muted-foreground">Night</Label>
                         <select
                           id="night_qty"
                           value={formState.night_qty}
                           onChange={(e) => setFormState({ ...formState, night_qty: e.target.value })}
-                          className="w-full h-8 px-1.5 rounded bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none"
+                          className="w-full h-8 px-1.5 rounded bg-background border border-input text-foreground text-xs focus:outline-none"
                         >
                           {(selectionData?.night_qty?.length ? selectionData.night_qty : OPTIONS_MAPPINGS.scheduleQty).map((val: string) => (
                             <option key={val} value={val}>{val}</option>
@@ -574,14 +573,14 @@ export default function DpadAnswerKeySetupPage() {
                   </div>
 
                   {/* Special parameters */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-950/45 rounded-xl border border-slate-850">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-xl border border-border">
                     <div className="space-y-1.5">
-                      <Label htmlFor="at_a_time" className="text-xs font-bold text-slate-300">at a time quantity (at a time) *</Label>
+                      <Label htmlFor="at_a_time" className="text-xs font-bold text-foreground">at a time quantity (at a time) *</Label>
                       <select
                         id="at_a_time"
                         value={formState.at_a_time}
                         onChange={(e) => setFormState({ ...formState, at_a_time: e.target.value })}
-                        className="w-full h-10 px-3 rounded-md bg-slate-900 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                        className="w-full h-10 px-3 rounded-md bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         {(selectionData?.at_a_time?.length ? selectionData.at_a_time : OPTIONS_MAPPINGS.atATime).map((val: string) => (
                           <option key={val} value={val}>{val}</option>
@@ -590,12 +589,12 @@ export default function DpadAnswerKeySetupPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="hour_qty" className="text-xs font-bold text-slate-300">every __ hours frequency *</Label>
+                      <Label htmlFor="hour_qty" className="text-xs font-bold text-foreground">every __ hours frequency *</Label>
                       <select
                         id="hour_qty"
                         value={formState.hour_qty}
                         onChange={(e) => setFormState({ ...formState, hour_qty: e.target.value })}
-                        className="w-full h-10 px-3 rounded-md bg-slate-900 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                        className="w-full h-10 px-3 rounded-md bg-background border border-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         {(selectionData?.hour_qty?.length ? selectionData.hour_qty : OPTIONS_MAPPINGS.hourQty).map((val: string) => (
                           <option key={val} value={val}>{val}</option>
@@ -606,7 +605,7 @@ export default function DpadAnswerKeySetupPage() {
 
                   {/* Additional Instructions */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="additional_description" className="text-xs font-bold text-slate-300 flex items-center gap-1">
+                    <Label htmlFor="additional_description" className="text-xs font-bold text-foreground flex items-center gap-1">
                       Correct Additional Instructions
                     </Label>
                     <div className="relative">
@@ -620,14 +619,14 @@ export default function DpadAnswerKeySetupPage() {
                         }}
                         onFocus={() => setIsInstructionDropdownOpen(true)}
                         onBlur={() => setTimeout(() => setIsInstructionDropdownOpen(false), 200)}
-                        className="bg-slate-950 border-slate-800 text-slate-100 pr-8"
+                        className="pr-8"
                         placeholder="Search or type correct instructions..."
                         autoComplete="off"
                       />
                       <button
                         type="button"
                         onClick={() => setIsInstructionDropdownOpen(!isInstructionDropdownOpen)}
-                        className="absolute right-2 top-3 text-slate-400 hover:text-white"
+                        className="absolute right-2 top-3 text-muted-foreground hover:text-foreground"
                       >
                         <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
                           <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
@@ -635,11 +634,11 @@ export default function DpadAnswerKeySetupPage() {
                       </button>
 
                       {isInstructionDropdownOpen && (
-                        <div className="absolute z-50 w-full mt-1 bg-slate-900 border border-slate-800 rounded-md shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
+                        <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
                           {selectionData?.additional_description?.filter((desc: string) => 
                             desc.toLowerCase().includes(instructionSearch.toLowerCase())
                           ).length === 0 ? (
-                            <div className="px-3 py-2 text-sm text-slate-500">No results found</div>
+                            <div className="px-3 py-2 text-sm text-muted-foreground">No results found</div>
                           ) : (
                             selectionData?.additional_description
                               ?.filter((desc: string) => 
@@ -654,7 +653,7 @@ export default function DpadAnswerKeySetupPage() {
                                     setInstructionSearch(desc);
                                     setIsInstructionDropdownOpen(false);
                                   }}
-                                  className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 hover:text-white transition-colors"
+                                  className="w-full text-left px-3 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors"
                                 >
                                   {desc}
                                 </button>
@@ -665,20 +664,20 @@ export default function DpadAnswerKeySetupPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-3 border-t border-slate-800 pt-4">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-450 mr-auto">
-                      <Info className="w-3.5 h-3.5 text-slate-500" />
+                  <div className="flex justify-end gap-3 border-t border-border pt-4">
+                    <div className="flex items-center gap-1.5 text-xs mr-auto">
+                      <Info className="w-3.5 h-3.5 text-muted-foreground" />
                       {existingAnswerKey ? (
-                        <span className="text-emerald-500 font-semibold">Key configured. Click save to update.</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Key configured. Click save to update.</span>
                       ) : (
-                        <span className="text-amber-500 font-semibold">No key configured yet for this cover.</span>
+                        <span className="text-amber-600 dark:text-amber-400 font-semibold">No key configured yet for this cover.</span>
                       )}
                     </div>
                     
                     <Button 
                       type="submit" 
                       disabled={saveMutation.isPending}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 px-6"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-2 px-6 shadow-xs"
                     >
                       <Save className="w-4 h-4" />
                       {saveMutation.isPending ? "Saving..." : "Save Answer Key"}

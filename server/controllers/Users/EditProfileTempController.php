@@ -35,7 +35,7 @@ class EditProfileTempController
         try {
             $insertId = $this->model->createOrUpdateRequest($data['username'], $data);
             echo json_encode(['status' => 'Request submitted successfully', 'id' => $insertId]);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             http_response_code(500);
             echo json_encode(['error' => $e->getMessage()]);
         }
@@ -54,7 +54,23 @@ class EditProfileTempController
                 http_response_code(404);
                 echo json_encode(['error' => 'Request not found']);
             }
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function bulkApprove()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $ids = $data['ids'] ?? [];
+        $adminUsername = $data['admin_username'] ?? 'Admin';
+        $approveAll = !empty($data['all']);
+
+        try {
+            $result = $this->model->bulkApprove($ids, $adminUsername, $approveAll);
+            echo json_encode($result);
+        } catch (Throwable $e) {
             http_response_code(500);
             echo json_encode(['error' => $e->getMessage()]);
         }
@@ -70,7 +86,7 @@ class EditProfileTempController
                 http_response_code(404);
                 echo json_encode(['error' => 'Request not found']);
             }
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             http_response_code(500);
             echo json_encode(['error' => $e->getMessage()]);
         }
