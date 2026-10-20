@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Layers, LayoutGrid, ClipboardCheck, MessageSquareQuote, BarChart3 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Layers, LayoutGrid, ClipboardCheck, MessageSquareQuote, BarChart3, FileSpreadsheet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from 'next/link';
 import { WinPharmaIcon } from "@/components/icons/module-icons";
@@ -34,6 +34,12 @@ export default function WinPharmaSetupPage() {
             description: "View employee grading counts and payment overview for this game.",
             href: "/admin/manage/games/winpharma/performance",
             icon: BarChart3,
+        },
+        {
+            title: "Assessment Report",
+            description: "View, search, export, and print batch evaluation marks and completion percentages.",
+            href: "/admin/manage/game-reports?game=winpharma",
+            icon: FileSpreadsheet,
         },
     ];
 

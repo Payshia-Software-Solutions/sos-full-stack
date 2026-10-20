@@ -189,35 +189,35 @@ export default function ManageSavedAnswersPage() {
                 </AlertDialogContent>
             </AlertDialog>
 
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
                 <div>
                     <Button 
                         variant="ghost" 
                         size="sm" 
                         onClick={() => router.back()}
-                        className="mb-2 text-slate-400 hover:text-white"
+                        className="mb-2 text-muted-foreground hover:text-foreground"
                     >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Game Dashboard
                     </Button>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-emerald-500">
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">
                         Manage Dropdown Options
                     </h1>
-                    <p className="text-slate-400 mt-1">
+                    <p className="text-muted-foreground mt-1">
                         Add, edit, or remove dropdown options shared across Ceylon Pharmacy and D-Pad Setup.
                     </p>
                 </div>
-                <Button onClick={() => openDialog(null)} className="bg-emerald-600 hover:bg-emerald-700">
+                <Button onClick={() => openDialog(null)} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Add Option
                 </Button>
             </header>
 
-            <div className="flex items-center gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                <Filter className="h-5 w-5 text-slate-400" />
+            <div className="flex items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
+                <Filter className="h-5 w-5 text-muted-foreground" />
                 <div className="flex-1 max-w-xs">
                     <Select value={filterType} onValueChange={setFilterType}>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-background border-input">
                             <SelectValue placeholder="Filter by Type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -228,7 +228,7 @@ export default function ManageSavedAnswersPage() {
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="text-sm text-slate-400 ml-auto">
+                <div className="text-sm text-muted-foreground ml-auto">
                     Showing {filteredAnswers.length} options
                 </div>
             </div>
@@ -236,36 +236,36 @@ export default function ManageSavedAnswersPage() {
             {isLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {[1, 2, 3, 4, 5, 6].map((i) => (
-                        <Card key={i} className="bg-slate-900/50 border-slate-800">
+                        <Card key={i} className="bg-card border-border shadow-sm">
                             <CardHeader className="pb-2">
-                                <Skeleton className="h-4 w-3/4 mb-2 bg-slate-800" />
-                                <Skeleton className="h-3 w-1/2 bg-slate-800" />
+                                <Skeleton className="h-4 w-3/4 mb-2 bg-muted" />
+                                <Skeleton className="h-3 w-1/2 bg-muted" />
                             </CardHeader>
                             <CardContent>
-                                <Skeleton className="h-8 w-full bg-slate-800" />
+                                <Skeleton className="h-8 w-full bg-muted" />
                             </CardContent>
                         </Card>
                     ))}
                 </div>
             ) : isError ? (
-                <Card className="bg-red-900/20 border-red-900/50 text-center py-12">
-                     <p className="text-red-400">Failed to load options: {error?.message}</p>
-                     <Button variant="outline" className="mt-4 border-red-800 text-red-400 hover:bg-red-950" onClick={() => queryClient.invalidateQueries({ queryKey: ['allCareSavedAnswers'] })}>Try Again</Button>
+                <Card className="bg-destructive/10 border-destructive/20 text-center py-12">
+                     <p className="text-destructive font-medium">Failed to load options: {error?.message}</p>
+                     <Button variant="outline" className="mt-4 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => queryClient.invalidateQueries({ queryKey: ['allCareSavedAnswers'] })}>Try Again</Button>
                 </Card>
             ) : filteredAnswers.length === 0 ? (
-                <Card className="bg-slate-900/50 border-slate-800 text-center py-12">
-                     <p className="text-slate-400 mb-4">No dropdown options found for this category.</p>
-                     <Button onClick={() => openDialog(null)} variant="outline" className="border-emerald-800 text-emerald-400 hover:bg-emerald-950">Add First Option</Button>
+                <Card className="bg-card border-border shadow-sm text-center py-12">
+                     <p className="text-muted-foreground mb-4">No dropdown options found for this category.</p>
+                     <Button onClick={() => openDialog(null)} variant="outline" className="border-emerald-600/30 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40">Add First Option</Button>
                 </Card>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredAnswers.map((answer) => (
-                        <Card key={answer.id} className="bg-slate-900/50 border-slate-800 hover:border-emerald-500/30 transition-colors group">
+                        <Card key={answer.id} className="bg-card border-border shadow-sm hover:border-emerald-500/40 hover:shadow-md transition-all group">
                             <CardHeader className="pb-2">
-                                <CardDescription className="text-emerald-400/80 font-medium text-xs uppercase tracking-wider mb-1">
+                                <CardDescription className="text-emerald-600 dark:text-emerald-400 font-semibold text-xs uppercase tracking-wider mb-1">
                                     {answer.answer_type}
                                 </CardDescription>
-                                <CardTitle className="text-base text-slate-200 break-words leading-relaxed">
+                                <CardTitle className="text-base text-card-foreground font-medium break-words leading-relaxed">
                                     {answer.answer}
                                 </CardTitle>
                             </CardHeader>
@@ -274,7 +274,7 @@ export default function ManageSavedAnswersPage() {
                                     variant="ghost" 
                                     size="sm" 
                                     onClick={() => openDialog(answer)}
-                                    className="h-8 text-blue-400 hover:text-blue-300 hover:bg-blue-400/10"
+                                    className="h-8 text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/40"
                                 >
                                     <Edit className="h-4 w-4 mr-1.5" />
                                     Edit
@@ -283,7 +283,7 @@ export default function ManageSavedAnswersPage() {
                                     variant="ghost" 
                                     size="sm" 
                                     onClick={() => handleDelete(answer)}
-                                    className="h-8 text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                                    className="h-8 text-red-600 dark:text-red-400 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40"
                                 >
                                     <Trash2 className="h-4 w-4 mr-1.5" />
                                     Delete

@@ -19,6 +19,11 @@ return [
         return $packageController->getPackage($package_id);
     },
 
+    // GET packages by convocation ID
+    'GET /packages/convocation/(\d+)/$' => function ($convocation_id) use ($packageController) {
+        return $packageController->getPackagesByConvocation($convocation_id);
+    },
+
     // GET packages by selected course IDs (course_ids=1,2,3)
     'GET /packages/by-courses\?course_ids=([\d,]+)/$' => function () use ($packageController) {
         $course_ids = isset($_GET['course_ids']) ? explode(',', $_GET['course_ids']) : [];

@@ -87,8 +87,14 @@ const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: Con
         enabled: !!(booking.student_number && booking.convocation_id),
     });
 
-    // Only show pass if there is a ceremony number from the API
-    if (isLoading || !ceremonyNumber || ceremonyNumber === '0') {
+    const effectiveCeremonyNumber = (ceremonyNumber && ceremonyNumber !== '0')
+        ? ceremonyNumber
+        : (booking.ceremony_number && booking.ceremony_number !== '0' && booking.ceremony_number.toLowerCase() !== 'not assigned')
+            ? booking.ceremony_number
+            : null;
+
+    // Only show pass if there is an effective ceremony number
+    if ((isLoading && !effectiveCeremonyNumber) || !effectiveCeremonyNumber) {
         return null;
     }
 
@@ -98,7 +104,7 @@ const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: Con
         .filter(Boolean)
         .map(id => courseNameMap.get(id) || `Course (ID: ${id})`);
         
-    const pkg = allPackages.find(p => p.package_id === booking.package_id);
+    const pkg = allPackages.find(p => String(p.package_id) === String(booking.package_id));
 
     return (
         <div className="w-full relative overflow-hidden rounded-2xl shadow-xl border border-primary/20 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground mb-6 transition-all hover:shadow-2xl hover:scale-[1.01] duration-300 animate-in fade-in slide-in-from-bottom-4">
@@ -190,7 +196,7 @@ const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: Con
                     
                     <div className="bg-white/10 rounded-2xl p-6 border border-white/20 shadow-inner w-full flex items-center justify-center min-h-[120px]">
                         <span className="font-mono text-7xl font-black text-yellow-300 tracking-tighter drop-shadow-md">
-                            {ceremonyNumber}
+                            {effectiveCeremonyNumber}
                         </span>
                     </div>
                     
@@ -246,7 +252,7 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
             .map(id => courseNameMap.get(id) || `Course (ID: ${id})`);
     }, [booking.course_id, courseNameMap]);
 
-    const pkg = allPackages.find(p => p.package_id === booking.package_id);
+    const pkg = allPackages.find(p => String(p.package_id) === String(booking.package_id));
     
     const totalPayable = useMemo(() => {
         const pkgPrice = pkg ? parseFloat(pkg.price) : 0;

@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowRight, UserPlus, CreditCard, ClipboardList, Truck, GraduationCap, Award, Settings, KeyRound, FileSignature, Banknote, Video, Search, UserCheck, Megaphone, UserCog, BookOpen, BarChart, Cake, Library, Percent, Briefcase, BookText, BrainCircuit, ClipboardCheck, FileCheck, Users, MessageSquare, ShieldCheck, Star, RotateCcw } from "lucide-react";
+import { ArrowRight, UserPlus, CreditCard, ClipboardList, Truck, GraduationCap, Award, Settings, KeyRound, FileSignature, Banknote, Video, Search, UserCheck, Megaphone, UserCog, BookOpen, BarChart, Cake, Library, Percent, Briefcase, BookText, BrainCircuit, ClipboardCheck, FileCheck, Users, MessageSquare, ShieldCheck, Star, RotateCcw, Gamepad2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useEffect } from 'react';
 import { cn } from "@/lib/utils";
@@ -93,6 +93,13 @@ const managementTasks: ManagementTask[] = [
     description: "View and export student contact information by batch.",
     icon: <Users className="w-8 h-8 text-white" />,
     href: "/admin/manage/student-contact-report",
+    category: "Student Management"
+  },
+  {
+    title: "Game Assessment Reports",
+    description: "View, search, export, and print student reports for WinPharma and D-Pad.",
+    icon: <Gamepad2 className="w-8 h-8 text-white" />,
+    href: "/admin/manage/game-reports",
     category: "Student Management"
   },
   {
@@ -389,7 +396,7 @@ const categoryColors: Record<ManagementTask['category'], string> = {
 
 const TaskCard = ({ task, onClick }: { task: ManagementTask; onClick?: () => void }) => (
     <Link href={task.href} onClick={onClick} className="group block h-full">
-        <Card className="shadow-lg hover:shadow-xl transition-all duration-200 h-full border-0">
+        <Card className="shadow-xs hover:shadow-md transition-all duration-200 h-full border border-border bg-card">
             <CardContent className="p-4 flex items-center gap-4">
                 <div className={cn("p-3 rounded-lg bg-gradient-to-br", categoryColors[task.category])}>
                     {task.icon}
@@ -480,7 +487,7 @@ export default function AdminManagePage() {
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input 
             placeholder="Search tasks..." 
-            className="pl-9 bg-slate-950 border-slate-800 text-slate-100" 
+            className="pl-9 bg-card border-border text-foreground shadow-2xs" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -488,7 +495,7 @@ export default function AdminManagePage() {
       </header>
 
       {searchQuery === "" && frequentlyUsedTasks.length > 0 && (
-        <section className="bg-slate-950/40 border border-slate-900 rounded-2xl p-5 shadow-sm space-y-4">
+        <section className="bg-muted/30 border border-border rounded-2xl p-5 shadow-2xs space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-primary font-semibold">
               <Star className="h-5 w-5 fill-current text-yellow-500" />
@@ -498,7 +505,7 @@ export default function AdminManagePage() {
               variant="ghost" 
               size="sm" 
               onClick={handleResetFrequencies}
-              className="text-muted-foreground hover:text-white"
+              className="text-muted-foreground hover:text-foreground"
             >
               <RotateCcw className="h-4 w-4 mr-1.5" /> Reset
             </Button>

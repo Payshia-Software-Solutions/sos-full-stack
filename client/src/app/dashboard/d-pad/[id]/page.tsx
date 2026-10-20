@@ -226,26 +226,26 @@ function SearchableSelectDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 w-full h-full max-w-none m-0 rounded-none border-none flex flex-col p-4 left-0 top-0 translate-x-0 translate-y-0 sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:max-w-lg sm:h-auto sm:rounded-xl sm:border sm:p-6 sm:m-auto">
+      <DialogContent className="bg-card border-border text-card-foreground w-full h-full max-w-none m-0 rounded-none border-none flex flex-col p-4 left-0 top-0 translate-x-0 translate-y-0 sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:max-w-lg sm:h-auto sm:rounded-xl sm:border sm:p-6 sm:m-auto shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-slate-100">{title}</DialogTitle>
+          <DialogTitle className="text-lg font-bold text-foreground">{title}</DialogTitle>
         </DialogHeader>
         
         {/* Search bar inside popup */}
         <div className="relative my-2">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-450" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder={searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-slate-950/80 border-slate-800 text-slate-100 placeholder:text-slate-500"
+            className="pl-9 bg-background border-input text-foreground placeholder:text-muted-foreground"
           />
         </div>
 
         {/* Dynamic Grid Options list */}
         <div className="flex-grow overflow-y-auto space-y-2 pr-1 custom-scrollbar sm:max-h-[300px]">
           {filteredOptions.length === 0 ? (
-            <p className="text-center text-slate-500 text-xs py-6">No results found.</p>
+            <p className="text-center text-muted-foreground text-xs py-6">No results found.</p>
           ) : (
             <div className="grid grid-cols-1 gap-2">
               {filteredOptions.map((opt) => (
@@ -256,7 +256,7 @@ function SearchableSelectDialog({
                     onSelect(opt);
                     onClose();
                   }}
-                  className="w-full justify-start text-left bg-slate-950/45 hover:bg-slate-800/80 border-slate-800 text-slate-200 hover:text-white py-6 text-sm"
+                  className="w-full justify-start text-left bg-muted/30 hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300 border-border text-foreground py-6 text-sm transition-colors"
                 >
                   {getOptionLabel(opt)}
                 </Button>
@@ -265,9 +265,9 @@ function SearchableSelectDialog({
           )}
         </div>
 
-        <div className="flex justify-end pt-3 border-t border-slate-800 mt-2">
+        <div className="flex justify-end pt-3 border-t border-border mt-2">
           <DialogClose asChild>
-            <Button variant="ghost" className="text-slate-400 hover:text-white w-full sm:w-auto">{closeText}</Button>
+            <Button variant="outline" className="w-full sm:w-auto">{closeText}</Button>
           </DialogClose>
         </div>
       </DialogContent>
@@ -445,10 +445,10 @@ export default function DPadDetailPage() {
   if (rxLoading) {
     return (
       <div className="p-4 md:p-8 space-y-6 w-full">
-        <Skeleton className="h-10 w-1/4 bg-slate-800" />
+        <Skeleton className="h-10 w-1/4 bg-muted" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Skeleton className="h-[500px] w-full bg-slate-800" />
-          <Skeleton className="h-[500px] w-full bg-slate-800" />
+          <Skeleton className="h-[500px] w-full bg-muted" />
+          <Skeleton className="h-[500px] w-full bg-muted" />
         </div>
       </div>
     );
@@ -457,7 +457,7 @@ export default function DPadDetailPage() {
   if (!rxDetails) {
     return (
       <div className="p-8 text-center space-y-4">
-        <h2 className="text-xl font-bold text-slate-100">Prescription not found</h2>
+        <h2 className="text-xl font-bold text-foreground">Prescription not found</h2>
         <Button onClick={() => router.push("/dashboard/d-pad")}>{t.backToList}</Button>
       </div>
     );
@@ -689,26 +689,26 @@ export default function DPadDetailPage() {
   return (
     <div className="p-4 md:p-8 space-y-6 w-full pb-24">
       {/* Header bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <Button variant="ghost" onClick={() => router.push("/dashboard/d-pad")} className="gap-2 pl-0 hover:pl-2 text-slate-350 hover:text-white transition-all h-8">
+            <Button variant="ghost" onClick={() => router.push("/dashboard/d-pad")} className="gap-2 pl-0 hover:pl-2 text-muted-foreground hover:text-foreground transition-all h-8">
               <ArrowLeft className="w-4 h-4" /> {t.backToList}
             </Button>
             {courseCode && (
-              <Badge className="bg-emerald-500 hover:bg-emerald-400 text-white border-none text-xs px-3 py-1 shadow-md h-8 flex items-center">
+              <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white border-none text-xs px-3 py-1 shadow-xs h-8 flex items-center">
                 Course: {courseCode}
               </Badge>
             )}
-            <Badge variant="outline" className="font-mono font-bold text-xs text-emerald-400 border-emerald-500/40 bg-slate-900/80 px-3 py-1 h-8 flex items-center gap-1.5 shadow-sm">
-              <span className="text-slate-400 font-normal">
+            <Badge variant="outline" className="font-mono font-bold text-xs text-primary border-primary/20 bg-primary/5 px-3 py-1 h-8 flex items-center gap-1.5 shadow-xs">
+              <span className="text-muted-foreground font-normal">
                 {prescriptionNumberDisplay ? `Prescription ${prescriptionNumberDisplay}` : "Ref"}:
               </span>
               {prescriptionId}
             </Badge>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold font-headline text-slate-100">{t.title}</h1>
-          <p className="text-slate-400 text-sm">{t.subtitle}</p>
+          <h1 className="text-2xl md:text-3xl font-bold font-headline text-foreground">{t.title}</h1>
+          <p className="text-muted-foreground text-sm">{t.subtitle}</p>
         </div>
 
       </div>
@@ -716,13 +716,13 @@ export default function DPadDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Digital Prescription View */}
         <div className="lg:col-span-5 space-y-4">
-          <Card className="shadow-lg border-2 border-slate-800 overflow-hidden bg-slate-900/40">
-            <div className="bg-slate-950 text-slate-300 py-3 px-4 text-xs font-semibold uppercase tracking-wider flex items-center justify-between border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Clipboard className="w-4 h-4 text-emerald-400" />
+          <Card className="shadow-sm border border-border overflow-hidden bg-card">
+            <div className="bg-muted/30 text-muted-foreground py-3 px-4 text-xs font-semibold uppercase tracking-wider flex items-center justify-between border-b border-border">
+              <div className="flex items-center gap-2 text-foreground">
+                <Clipboard className="w-4 h-4 text-primary" />
                 Prescription Form
               </div>
-              <span className="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-0.5 rounded shadow-sm">
+              <span className="font-mono text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded shadow-xs">
                 {prescriptionNumberDisplay ? `${prescriptionNumberDisplay} • ${prescriptionId}` : prescriptionId}
               </span>
             </div>
@@ -738,13 +738,13 @@ export default function DPadDetailPage() {
         {/* Right Column: Envelope Dispensing Panel */}
         <div className="lg:col-span-7 space-y-6">
           {selectedDrugIndex === null ? (
-            <Card className="shadow-md bg-slate-900/30 border-slate-850">
+            <Card className="shadow-sm bg-card border-border">
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2 text-slate-100 font-headline">
-                  <Pill className="w-5 h-5 text-emerald-500" />
+                <CardTitle className="text-lg flex items-center gap-2 text-foreground font-headline">
+                  <Pill className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                   {t.dispensingItems}
                 </CardTitle>
-                <CardDescription className="text-slate-400">{t.selectItemDescription}</CardDescription>
+                <CardDescription className="text-muted-foreground">{t.selectItemDescription}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {displayDrugs.map((drugName: string, index: number) => {
@@ -754,26 +754,26 @@ export default function DPadDetailPage() {
                     <button
                       key={index}
                       onClick={() => handleSelectDrug(index)}
-                      className={`w-full p-4 border rounded-xl flex items-center justify-between transition-all hover:bg-slate-900/40 text-left ${
+                      className={`w-full p-4 border rounded-xl flex items-center justify-between transition-all hover:bg-muted/50 text-left ${
                         isCompleted 
-                          ? "bg-emerald-950/20 border-emerald-800 shadow-sm" 
-                          : "border-slate-800 hover:border-emerald-500/50"
+                          ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500/40 shadow-xs" 
+                          : "border-border hover:border-emerald-500/50"
                       }`}
                     >
                       <div>
-                        <Badge className="mb-1 bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-800">
+                        <Badge className="mb-1 bg-muted text-foreground hover:bg-muted font-semibold">
                           Cover {index + 1}
                         </Badge>
-                        <h4 className="font-bold text-slate-100">{drugName}</h4>
+                        <h4 className="font-bold text-foreground text-sm">{drugName}</h4>
                       </div>
                       <div className="flex items-center gap-2">
                         {isCompleted ? (
-                          <span className="flex items-center gap-1 text-xs text-emerald-400 font-bold bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-800">
+                          <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-500/30">
                             <CheckCircle className="w-3.5 h-3.5" />
                             {t.completed}
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-400 font-semibold bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-750">
+                          <span className="text-xs text-muted-foreground font-medium bg-muted px-2.5 py-1 rounded-full border border-border">
                             {t.pending}
                           </span>
                         )}
@@ -787,7 +787,7 @@ export default function DPadDetailPage() {
             /* Envelope Workbench Interface */
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <Button variant="outline" size="sm" onClick={() => setSelectedDrugIndex(null)} className="gap-1.5 bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white">
+                <Button variant="outline" size="sm" onClick={() => setSelectedDrugIndex(null)} className="gap-1.5 shadow-xs">
                   <ArrowLeft className="w-4 h-4" /> {t.backToItems}
                 </Button>
                 <Badge className="bg-emerald-600 text-white font-bold px-3 py-1 text-xs">
@@ -795,14 +795,14 @@ export default function DPadDetailPage() {
                 </Badge>
               </div>
 
-              <Card className="shadow-lg border-2 border-emerald-500/20 overflow-hidden bg-slate-900/30">
-                <CardHeader className="bg-emerald-950/25 border-b border-slate-800/60 flex flex-row items-center gap-3">
-                  <div className="bg-emerald-600 text-white p-2 rounded-lg">
+              <Card className="shadow-sm border border-border overflow-hidden bg-card">
+                <CardHeader className="bg-muted/30 border-b border-border flex flex-row items-center gap-3">
+                  <div className="bg-primary text-primary-foreground p-2 rounded-lg">
                     <Clipboard className="w-5 h-5" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg text-slate-100 font-headline">{t.fillingLabel} Cover {selectedDrugIndex + 1}</CardTitle>
-                    <CardDescription className="text-xs font-semibold text-emerald-400 font-mono">
+                    <CardTitle className="text-lg text-foreground font-headline">{t.fillingLabel} Cover {selectedDrugIndex + 1}</CardTitle>
+                    <CardDescription className="text-xs font-semibold text-primary font-mono">
                       {displayDrugs[selectedDrugIndex] || drugs[selectedDrugIndex]}
                     </CardDescription>
                   </div>
@@ -812,107 +812,107 @@ export default function DPadDetailPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Date */}
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-350 flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-slate-500" /> {t.date} *
+                      <Label className="text-xs font-bold text-foreground flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-muted-foreground" /> {t.date} *
                       </Label>
                       <Input
                         type="date"
                         value={formState.date}
                         onChange={(e) => setFormState({ ...formState, date: e.target.value })}
-                        className={`bg-slate-950/50 border-slate-800 text-slate-100 ${
-                          isFieldIncorrect("date") ? "border-rose-600 bg-rose-950/20" : isFieldCorrect("date") ? "border-emerald-600 bg-emerald-950/20" : ""
+                        className={`bg-background border-input text-foreground ${
+                          isFieldIncorrect("date") ? "border-destructive bg-destructive/10" : isFieldCorrect("date") ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" : ""
                         }`}
                       />
                     </div>
 
                     {/* Patient Name Button Selection */}
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-350 flex items-center gap-1">
-                        <User className="w-3.5 h-3.5 text-slate-500" /> {t.patientName} *
+                      <Label className="text-xs font-bold text-foreground flex items-center gap-1">
+                        <User className="w-3.5 h-3.5 text-muted-foreground" /> {t.patientName} *
                       </Label>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => setActiveDialogField("name")}
-                        className={`w-full justify-between bg-slate-950/50 border-slate-800 text-slate-100 hover:bg-slate-900 ${
-                          isFieldIncorrect("name") ? "border-rose-600 bg-rose-950/20 font-bold" : isFieldCorrect("name") ? "border-emerald-600 bg-emerald-950/20" : ""
+                        className={`w-full justify-between bg-background border-input text-foreground hover:bg-muted/50 ${
+                          isFieldIncorrect("name") ? "border-destructive bg-destructive/10 font-bold" : isFieldCorrect("name") ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" : ""
                         }`}
                       >
                         <span className="truncate">{formState.name || t.selectPlaceholder}</span>
-                        <User className="w-4 h-4 text-slate-550 shrink-0" />
+                        <User className="w-4 h-4 text-muted-foreground shrink-0" />
                       </Button>
                     </div>
 
                     {/* Drug Name Button Selection */}
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-355 flex items-center gap-1">
-                        <Pill className="w-3.5 h-3.5 text-slate-500" /> {t.drugName} *
+                      <Label className="text-xs font-bold text-foreground flex items-center gap-1">
+                        <Pill className="w-3.5 h-3.5 text-muted-foreground" /> {t.drugName} *
                       </Label>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => setActiveDialogField("drug_name")}
-                        className={`w-full justify-between bg-slate-950/50 border-slate-800 text-slate-100 hover:bg-slate-900 ${
-                          isFieldIncorrect("drug_name") ? "border-rose-600 bg-rose-950/20 font-bold" : isFieldCorrect("drug_name") ? "border-emerald-600 bg-emerald-950/20" : ""
+                        className={`w-full justify-between bg-background border-input text-foreground hover:bg-muted/50 ${
+                          isFieldIncorrect("drug_name") ? "border-destructive bg-destructive/10 font-bold" : isFieldCorrect("drug_name") ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" : ""
                         }`}
                       >
                         <span className="truncate">{formState.drug_name || t.selectPlaceholder}</span>
-                        <Pill className="w-4 h-4 text-slate-550 shrink-0" />
+                        <Pill className="w-4 h-4 text-muted-foreground shrink-0" />
                       </Button>
                     </div>
 
                     {/* Dosage Form */}
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-350">{t.dosageForm} *</Label>
+                      <Label className="text-xs font-bold text-foreground">{t.dosageForm} *</Label>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => setActiveDialogField("drug_type")}
-                        className={`w-full justify-between bg-slate-950/50 border-slate-800 text-slate-100 hover:bg-slate-900 ${
-                          isFieldIncorrect("drug_type") ? "border-rose-600 bg-rose-950/20" : isFieldCorrect("drug_type") ? "border-emerald-600 bg-emerald-950/20" : ""
+                        className={`w-full justify-between bg-background border-input text-foreground hover:bg-muted/50 ${
+                          isFieldIncorrect("drug_type") ? "border-destructive bg-destructive/10" : isFieldCorrect("drug_type") ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" : ""
                         }`}
                       >
                         <span className="truncate">{getOptionLabel("dosageForm", formState.drug_type) || t.selectPlaceholder}</span>
-                        <Clock className="w-4 h-4 text-slate-550 shrink-0" />
+                        <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
                       </Button>
                     </div>
 
                     {/* Total Quantity */}
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-350 flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-slate-500" /> {t.quantity} *
+                      <Label className="text-xs font-bold text-foreground flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-muted-foreground" /> {t.quantity} *
                       </Label>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => setActiveDialogField("drug_qty")}
-                        className={`w-full justify-between bg-slate-950/50 border-slate-800 text-slate-100 hover:bg-slate-900 ${
-                          isFieldIncorrect("drug_qty") ? "border-rose-600 bg-rose-950/20 font-bold" : isFieldCorrect("drug_qty") ? "border-emerald-600 bg-emerald-950/20" : ""
+                        className={`w-full justify-between bg-background border-input text-foreground hover:bg-muted/50 ${
+                          isFieldIncorrect("drug_qty") ? "border-destructive bg-destructive/10 font-bold" : isFieldCorrect("drug_qty") ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" : ""
                         }`}
                       >
                         <span className="truncate">{formState.drug_qty || t.selectPlaceholder}</span>
-                        <Clock className="w-4 h-4 text-slate-550 shrink-0" />
+                        <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
                       </Button>
                     </div>
                   </div>
 
                   {/* Daily Quantities layout with graphical icons */}
-                  <div className="bg-slate-950/50 p-4 rounded-xl space-y-3 border border-slate-850">
-                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <div className="bg-muted/30 p-4 rounded-xl space-y-3 border border-border">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                       <Sun className="w-4 h-4 text-amber-500" />
                       {t.schedule}
                     </h4>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {/* Morning */}
-                      <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 text-center space-y-2">
+                      <div className="bg-card p-3 rounded-lg border border-border text-center space-y-2 shadow-xs">
                         <div className="flex justify-center text-amber-500"><Sun className="w-5 h-5" /></div>
-                        <Label className="text-[10px] font-bold text-slate-400">{t.morning}</Label>
+                        <Label className="text-[10px] font-bold text-muted-foreground">{t.morning}</Label>
                         <Button
                           type="button"
                           variant="outline"
                           onClick={() => setActiveDialogField("morning_qty")}
-                          className={`w-full h-8 text-xs bg-slate-950 border-slate-800 text-slate-100 hover:bg-slate-900 ${
-                            isFieldIncorrect("morning_qty") ? "border-rose-600 bg-rose-950/20" : isFieldCorrect("morning_qty") ? "border-emerald-600 bg-emerald-950/20" : ""
+                          className={`w-full h-8 text-xs bg-background border-input text-foreground hover:bg-muted ${
+                            isFieldIncorrect("morning_qty") ? "border-destructive bg-destructive/10" : isFieldCorrect("morning_qty") ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" : ""
                           }`}
                         >
                           {getOptionLabel("scheduleQty", formState.morning_qty) || "-"}
@@ -920,15 +920,15 @@ export default function DPadDetailPage() {
                       </div>
 
                       {/* Afternoon */}
-                      <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 text-center space-y-2">
-                        <div className="flex justify-center text-orange-400"><Sun className="w-5 h-5" /></div>
-                        <Label className="text-[10px] font-bold text-slate-400">{t.afternoon}</Label>
+                      <div className="bg-card p-3 rounded-lg border border-border text-center space-y-2 shadow-xs">
+                        <div className="flex justify-center text-orange-500"><Sun className="w-5 h-5" /></div>
+                        <Label className="text-[10px] font-bold text-muted-foreground">{t.afternoon}</Label>
                         <Button
                           type="button"
                           variant="outline"
                           onClick={() => setActiveDialogField("afternoon_qty")}
-                          className={`w-full h-8 text-xs bg-slate-950 border-slate-800 text-slate-100 hover:bg-slate-900 ${
-                            isFieldIncorrect("afternoon_qty") ? "border-rose-600 bg-rose-950/20" : isFieldCorrect("afternoon_qty") ? "border-emerald-600 bg-emerald-950/20" : ""
+                          className={`w-full h-8 text-xs bg-background border-input text-foreground hover:bg-muted ${
+                            isFieldIncorrect("afternoon_qty") ? "border-destructive bg-destructive/10" : isFieldCorrect("afternoon_qty") ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" : ""
                           }`}
                         >
                           {getOptionLabel("scheduleQty", formState.afternoon_qty) || "-"}
@@ -936,15 +936,15 @@ export default function DPadDetailPage() {
                       </div>
 
                       {/* Evening */}
-                      <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 text-center space-y-2">
-                        <div className="flex justify-center text-indigo-400"><Sunset className="w-5 h-5" /></div>
-                        <Label className="text-[10px] font-bold text-slate-400">{t.evening}</Label>
+                      <div className="bg-card p-3 rounded-lg border border-border text-center space-y-2 shadow-xs">
+                        <div className="flex justify-center text-indigo-500"><Sunset className="w-5 h-5" /></div>
+                        <Label className="text-[10px] font-bold text-muted-foreground">{t.evening}</Label>
                         <Button
                           type="button"
                           variant="outline"
                           onClick={() => setActiveDialogField("evening_qty")}
-                          className={`w-full h-8 text-xs bg-slate-950 border-slate-800 text-slate-100 hover:bg-slate-900 ${
-                            isFieldIncorrect("evening_qty") ? "border-rose-600 bg-rose-950/20" : isFieldCorrect("evening_qty") ? "border-emerald-600 bg-emerald-950/20" : ""
+                          className={`w-full h-8 text-xs bg-background border-input text-foreground hover:bg-muted ${
+                            isFieldIncorrect("evening_qty") ? "border-destructive bg-destructive/10" : isFieldCorrect("evening_qty") ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" : ""
                           }`}
                         >
                           {getOptionLabel("scheduleQty", formState.evening_qty) || "-"}
@@ -952,15 +952,15 @@ export default function DPadDetailPage() {
                       </div>
 
                       {/* Night */}
-                      <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 text-center space-y-2">
-                        <div className="flex justify-center text-slate-300"><Moon className="w-5 h-5" /></div>
-                        <Label className="text-[10px] font-bold text-slate-400">{t.night}</Label>
+                      <div className="bg-card p-3 rounded-lg border border-border text-center space-y-2 shadow-xs">
+                        <div className="flex justify-center text-slate-500"><Moon className="w-5 h-5" /></div>
+                        <Label className="text-[10px] font-bold text-muted-foreground">{t.night}</Label>
                         <Button
                           type="button"
                           variant="outline"
                           onClick={() => setActiveDialogField("night_qty")}
-                          className={`w-full h-8 text-xs bg-slate-950 border-slate-800 text-slate-100 hover:bg-slate-900 ${
-                            isFieldIncorrect("night_qty") ? "border-rose-600 bg-rose-950/20" : isFieldCorrect("night_qty") ? "border-emerald-600 bg-emerald-950/20" : ""
+                          className={`w-full h-8 text-xs bg-background border-input text-foreground hover:bg-muted ${
+                            isFieldIncorrect("night_qty") ? "border-destructive bg-destructive/10" : isFieldCorrect("night_qty") ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" : ""
                           }`}
                         >
                           {getOptionLabel("scheduleQty", formState.night_qty) || "-"}
@@ -972,89 +972,89 @@ export default function DPadDetailPage() {
                   {/* Meal and Using Type */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-350">{t.mealType} *</Label>
+                      <Label className="text-xs font-bold text-foreground">{t.mealType} *</Label>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => setActiveDialogField("meal_type")}
-                        className={`w-full justify-between bg-slate-950/50 border-slate-800 text-slate-100 hover:bg-slate-900 ${
-                          isFieldIncorrect("meal_type") ? "border-rose-600 bg-rose-950/20" : isFieldCorrect("meal_type") ? "border-emerald-600 bg-emerald-950/20" : ""
+                        className={`w-full justify-between bg-background border-input text-foreground hover:bg-muted/50 ${
+                          isFieldIncorrect("meal_type") ? "border-destructive bg-destructive/10" : isFieldCorrect("meal_type") ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" : ""
                         }`}
                       >
                         <span className="truncate">{getOptionLabel("mealType", formState.meal_type) || t.selectPlaceholder}</span>
-                        <Clock className="w-4 h-4 text-slate-550 shrink-0" />
+                        <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
                       </Button>
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-350">{t.frequency} *</Label>
+                      <Label className="text-xs font-bold text-foreground">{t.frequency} *</Label>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => setActiveDialogField("using_type")}
-                        className={`w-full justify-between bg-slate-950/50 border-slate-800 text-slate-100 hover:bg-slate-900 ${
-                          isFieldIncorrect("using_type") ? "border-rose-600 bg-rose-950/20" : isFieldCorrect("using_type") ? "border-emerald-600 bg-emerald-950/20" : ""
+                        className={`w-full justify-between bg-background border-input text-foreground hover:bg-muted/50 ${
+                          isFieldIncorrect("using_type") ? "border-destructive bg-destructive/10" : isFieldCorrect("using_type") ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" : ""
                         }`}
                       >
                         <span className="truncate">{getOptionLabel("usingFrequency", formState.using_type) || t.selectPlaceholder}</span>
-                        <Clock className="w-4 h-4 text-slate-550 shrink-0" />
+                        <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
                       </Button>
                     </div>
                   </div>
 
-                  {/* Sinhala / Special instructions (à¶¶à·�à¶œà·’à¶±à·Š / à¶´à·�à¶º __ à·€à¶»à¶šà·Š) */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-950/45 rounded-xl border border-slate-850">
+                  {/* Sinhala / Special instructions */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-xl border border-border">
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-black text-slate-300">{t.atATime} *</Label>
+                      <Label className="text-xs font-bold text-foreground">{t.atATime} *</Label>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => setActiveDialogField("at_a_time")}
-                        className={`w-full justify-between bg-slate-900 border-slate-800 text-slate-100 hover:bg-slate-800 ${
-                          isFieldIncorrect("at_a_time") ? "border-rose-600 bg-rose-950/20" : isFieldCorrect("at_a_time") ? "border-emerald-600 bg-emerald-950/20" : ""
+                        className={`w-full justify-between bg-background border-input text-foreground hover:bg-muted ${
+                          isFieldIncorrect("at_a_time") ? "border-destructive bg-destructive/10" : isFieldCorrect("at_a_time") ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" : ""
                         }`}
                       >
                         <span className="truncate">{formState.at_a_time || "Select quantity..."}</span>
-                        <Clock className="w-4 h-4 text-slate-550 shrink-0" />
+                        <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
                       </Button>
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-black text-slate-300">{t.hourQty} *</Label>
+                      <Label className="text-xs font-bold text-foreground">{t.hourQty} *</Label>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => setActiveDialogField("hour_qty")}
-                        className={`w-full justify-between bg-slate-900 border-slate-800 text-slate-100 hover:bg-slate-850 ${
-                          isFieldIncorrect("hour_qty") ? "border-rose-600 bg-rose-950/20" : isFieldCorrect("hour_qty") ? "border-emerald-600 bg-emerald-950/20" : ""
+                        className={`w-full justify-between bg-background border-input text-foreground hover:bg-muted ${
+                          isFieldIncorrect("hour_qty") ? "border-destructive bg-destructive/10" : isFieldCorrect("hour_qty") ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" : ""
                         }`}
                       >
                         <span className="truncate">{formState.hour_qty || "Select hours..."}</span>
-                        <Clock className="w-4 h-4 text-slate-550 shrink-0" />
+                        <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
                       </Button>
                     </div>
                   </div>
 
                   {/* Additional Instructions */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-355 flex items-center gap-1">
-                      <HelpCircle className="w-3.5 h-3.5 text-slate-500" /> {t.additionalInstructions}
+                    <Label className="text-xs font-bold text-foreground flex items-center gap-1">
+                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground" /> {t.additionalInstructions}
                     </Label>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => setActiveDialogField("additional_description")}
-                      className={`w-full justify-between bg-slate-950/50 border-slate-800 text-slate-100 hover:bg-slate-900/60 ${
-                        isFieldIncorrect("additional_description") ? "border-rose-600 bg-rose-950/20" : isFieldCorrect("additional_description") ? "border-emerald-600 bg-emerald-950/20" : ""
+                      className={`w-full justify-between bg-background border-input text-foreground hover:bg-muted ${
+                        isFieldIncorrect("additional_description") ? "border-destructive bg-destructive/10" : isFieldCorrect("additional_description") ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" : ""
                       }`}
                     >
                       <span className="truncate">{formState.additional_description || t.selectPlaceholder}</span>
-                      <HelpCircle className="w-4 h-4 text-slate-550 shrink-0" />
+                      <HelpCircle className="w-4 h-4 text-muted-foreground shrink-0" />
                     </Button>
                   </div>
 
                   {/* Form Footer Action buttons */}
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
                     <Button 
                       type="button" 
                       variant="outline"
@@ -1077,14 +1077,14 @@ export default function DPadDetailPage() {
                         });
                         setValidationResults({ incorrectFields: [], isSubmitted: false, isCorrect: false });
                       }}
-                      className="gap-2 bg-slate-900 border-slate-850 hover:bg-slate-800 text-slate-350"
+                      className="gap-2"
                     >
                       <RotateCcw className="w-4 h-4" /> {t.reset}
                     </Button>
                     <Button 
                       onClick={handleSubmitLabel} 
                       disabled={submitMutation.isPending} 
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-bold shadow-md"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-bold shadow-xs"
                     >
                       {submitMutation.isPending ? "Validating..." : t.checkAnswer}
                     </Button>
@@ -1113,15 +1113,15 @@ export default function DPadDetailPage() {
 
       {/* Incorrect Fields Report Dialog */}
       <Dialog open={showIncorrectDialog} onOpenChange={setShowIncorrectDialog}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 w-full max-w-md rounded-xl p-6">
+        <DialogContent className="bg-card border-border text-card-foreground w-full max-w-md rounded-xl p-6 shadow-xl">
           <DialogHeader className="flex flex-col items-center text-center space-y-2">
-            <div className="w-12 h-12 rounded-full bg-red-950 flex items-center justify-center border border-red-800 animate-pulse">
-              <Clipboard className="w-6 h-6 text-red-500" />
+            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center border border-destructive/20 animate-pulse">
+              <Clipboard className="w-6 h-6 text-destructive" />
             </div>
-            <DialogTitle className="text-xl font-bold text-red-500 font-headline">
+            <DialogTitle className="text-xl font-bold text-destructive font-headline">
               {t.incorrectFieldsTitle}
             </DialogTitle>
-            <p className="text-slate-450 text-sm">
+            <p className="text-muted-foreground text-sm">
               {t.incorrectFieldsDesc}
             </p>
           </DialogHeader>
@@ -1131,8 +1131,8 @@ export default function DPadDetailPage() {
               const labelKey = FIELD_LABEL_KEYS[field] || field;
               const fieldLabel = t[labelKey as keyof typeof t] || field;
               return (
-                <div key={field} className="flex items-center gap-2 p-3 bg-red-950/20 border border-red-900/30 rounded-lg text-red-200">
-                  <span className="w-2 h-2 rounded-full bg-red-500" />
+                <div key={field} className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive font-medium">
+                  <span className="w-2 h-2 rounded-full bg-destructive" />
                   <span className="text-sm font-medium">{fieldLabel}</span>
                 </div>
               );
@@ -1141,7 +1141,7 @@ export default function DPadDetailPage() {
 
           <div className="flex justify-end pt-2">
             <DialogClose asChild>
-              <Button className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700" onClick={() => setShowIncorrectDialog(false)}>
+              <Button variant="outline" className="w-full" onClick={() => setShowIncorrectDialog(false)}>
                 {t.close}
               </Button>
             </DialogClose>
