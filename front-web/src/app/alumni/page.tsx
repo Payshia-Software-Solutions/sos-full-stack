@@ -1,13 +1,13 @@
-
 "use client";
 
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslation } from '@/context/language-context';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Mail, Briefcase, Mic, Handshake, ChevronRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Mail, Briefcase, Mic, Handshake, ChevronRight, GraduationCap, Users, Award, Star } from 'lucide-react';
 
 const successStories = [
   {
@@ -37,9 +37,9 @@ const successStories = [
 ];
 
 const getInvolved = [
-    { icon: Mic, titleKey: 'getInvolvedTitle1', descKey: 'getInvolvedDesc1' },
-    { icon: Handshake, titleKey: 'getInvolvedTitle2', descKey: 'getInvolvedDesc2' },
-    { icon: Briefcase, titleKey: 'getInvolvedTitle3', descKey: 'getInvolvedDesc3' },
+  { icon: Mic, titleKey: 'getInvolvedTitle1', descKey: 'getInvolvedDesc1' },
+  { icon: Handshake, titleKey: 'getInvolvedTitle2', descKey: 'getInvolvedDesc2' },
+  { icon: Briefcase, titleKey: 'getInvolvedTitle3', descKey: 'getInvolvedDesc3' },
 ];
 
 const galleryImages = [
@@ -48,51 +48,80 @@ const galleryImages = [
   { src: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop", alt: "Past graduation ceremony", hint: "graduation day" },
 ];
 
-
 export default function AlumniPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const isSinhala = language === 'si';
 
   return (
-    <main>
-      <section className="relative h-96 bg-primary/10">
-        <Image
-          src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop"
-          alt="Graduates throwing their caps in the air"
-          fill
-          className="object-cover"
-          data-ai-hint="graduates celebration"
-        />
-        <div className="absolute inset-0 bg-black/50" />
-        <div className="relative container mx-auto px-4 md:px-6 h-full flex flex-col justify-center text-white">
-          <div className="max-w-2xl">
-            <h1 className="text-4xl md:text-5xl font-headline font-bold drop-shadow-lg">
+    <div className="min-h-screen bg-background">
+      {/* 1. Hero Header Banner */}
+      <section className="relative py-16 md:py-24 bg-gradient-to-br from-emerald-950 via-teal-950 to-zinc-950 text-white overflow-hidden border-b border-white/10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-emerald-500/15 via-transparent to-transparent pointer-events-none" />
+
+        <div className="container mx-auto px-4 md:px-6 relative z-10">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 text-xs font-medium text-emerald-200/80 mb-4">
+            <Link href="/" className="hover:text-white transition-colors">{t('home')}</Link>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <span className="text-amber-300 font-semibold">{t('alumni')}</span>
+          </div>
+
+          <div className="max-w-3xl">
+            <Badge variant="outline" className="mb-3 px-3 py-1 font-semibold text-emerald-200 border-emerald-400/30 gap-1.5 inline-flex items-center">
+              <GraduationCap className="w-3.5 h-3.5 text-amber-400" />
+              <span>5,000+ Strong Healthcare Network</span>
+            </Badge>
+
+            <h1 className={`text-3xl sm:text-4xl md:text-5xl font-headline font-bold text-white drop-shadow-xl ${
+              isSinhala ? 'leading-[1.35]' : 'leading-tight'
+            }`}>
               {t('alumniTitle')}
             </h1>
-            <p className="mt-4 text-lg text-white/90 drop-shadow-md">
+
+            <div className="w-20 h-1 bg-amber-400 mt-3 mb-4 rounded-full" />
+
+            <p className={`text-white/90 font-body text-base md:text-lg max-w-2xl ${
+              isSinhala ? 'leading-[1.75]' : 'leading-relaxed'
+            }`}>
               {t('alumniSubtitle')}
             </p>
           </div>
         </div>
       </section>
 
+      {/* 2. Success Stories */}
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-headline font-bold text-foreground">{t('alumniSuccessTitle')}</h2>
-            <p className="mt-2 max-w-2xl mx-auto text-muted-foreground font-body">{t('alumniSuccessSubtitle')}</p>
-            <div className="w-24 h-1 bg-primary mx-auto mt-4" />
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <Badge variant="outline" className="mb-2 px-3 py-1 font-semibold text-primary border-primary/30">
+              Career Milestones
+            </Badge>
+            <h2 className={`text-3xl md:text-4xl font-headline font-bold text-foreground ${
+              isSinhala ? 'leading-[1.35]' : 'leading-tight'
+            }`}>
+              {t('alumniSuccessTitle')}
+            </h2>
+            <div className="w-20 h-1 bg-primary mx-auto mt-3 mb-4 rounded-full" />
+            <p className={`text-muted-foreground font-body text-sm md:text-base ${
+              isSinhala ? 'leading-[1.75]' : 'leading-relaxed'
+            }`}>
+              {t('alumniSuccessSubtitle')}
+            </p>
           </div>
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {successStories.map((story) => (
-              <Card key={story.name} className="flex flex-col text-center">
+              <Card key={story.name} className="flex flex-col text-center rounded-2xl border border-border/80 bg-card hover:shadow-xl hover:border-primary/40 transition-all duration-300">
                 <CardContent className="p-8 flex-grow flex flex-col items-center">
-                    <Avatar className="h-24 w-24 mx-auto mb-4 border-4 border-primary/20">
-                        <AvatarImage src={story.image} alt={story.name} data-ai-hint={story.hint}/>
-                        <AvatarFallback>{story.fallback}</AvatarFallback>
-                    </Avatar>
-                    <h3 className="font-headline font-bold text-xl text-foreground">{story.name}</h3>
-                    <p className="text-primary font-medium text-sm">{story.title}</p>
-                    <p className="text-muted-foreground mt-4 text-sm italic flex-grow">"{t(story.quoteKey as any)}"</p>
+                  <Avatar className="h-24 w-24 mx-auto mb-4 border-4 border-primary/20 shadow-sm">
+                    <AvatarImage src={story.image} alt={story.name} data-ai-hint={story.hint}/>
+                    <AvatarFallback>{story.fallback}</AvatarFallback>
+                  </Avatar>
+                  <h3 className="font-headline font-bold text-lg text-foreground">{story.name}</h3>
+                  <p className="text-primary font-semibold text-xs mt-0.5">{story.title}</p>
+                  <p className="text-muted-foreground mt-4 text-xs sm:text-sm italic flex-grow leading-relaxed font-body">
+                    &ldquo;{t(story.quoteKey as any)}&rdquo;
+                  </p>
                 </CardContent>
               </Card>
             ))}
@@ -100,67 +129,58 @@ export default function AlumniPage() {
         </div>
       </section>
 
-       <section className="py-16 md:py-24 bg-card/50">
+      {/* 3. Get Involved Section */}
+      <section className="py-16 md:py-24 bg-card/40 border-y border-border/40">
         <div className="container mx-auto px-4 md:px-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                 <div>
-                    <h2 className="text-3xl md:text-4xl font-headline font-bold text-foreground">{t('getInvolvedTitle')}</h2>
-                    <p className="mt-2 text-muted-foreground font-body">{t('getInvolvedSubtitle')}</p>
-                    <div className="mt-8 space-y-6">
-                        {getInvolved.map((item) => (
-                            <div key={item.titleKey} className="flex gap-4">
-                                <div className="p-3 bg-primary/10 rounded-full h-fit">
-                                    <item.icon className="w-8 h-8 text-primary" />
-                                </div>
-                                <div>
-                                    <h3 className="font-headline font-bold text-xl text-foreground">{t(item.titleKey as any)}</h3>
-                                    <p className="text-muted-foreground mt-1 text-sm">{t(item.descKey as any)}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                 <div className="grid grid-cols-2 gap-4">
-                    {galleryImages.map((image, index) => (
-                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden group shadow-md">
-                            <Image
-                                src={image.src}
-                                alt={image.alt}
-                                fill
-                                className="object-cover transition-transform duration-300 group-hover:scale-105"
-                                data-ai-hint={image.hint}
-                            />
-                            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors duration-300"></div>
-                        </div>
-                    ))}
-                     <div className="relative aspect-square rounded-lg overflow-hidden group shadow-md bg-primary/20 flex flex-col items-center justify-center p-4 text-center">
-                        <h3 className="font-headline font-bold text-foreground text-lg">{t('alumniGalleryCTA')}</h3>
-                        <Button variant="outline" size="sm" asChild className="mt-3">
-                            <Link href="#">{t('alumniGalleryButton')}<ChevronRight /></Link>
-                        </Button>
-                    </div>
-                </div>
-            </div>
-        </div>
-      </section>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <Badge variant="outline" className="mb-2 px-3 py-1 font-semibold text-primary border-primary/30">
+                Alumni Engagement
+              </Badge>
+              <h2 className={`text-3xl md:text-4xl font-headline font-bold text-foreground ${
+                isSinhala ? 'leading-[1.35]' : 'leading-tight'
+              }`}>
+                {t('getInvolvedTitle')}
+              </h2>
+              <div className="w-20 h-1 bg-primary mt-3 mb-6 rounded-full" />
+              <p className="text-muted-foreground font-body text-sm md:text-base leading-relaxed">
+                {t('getInvolvedSubtitle')}
+              </p>
 
-      <section className="py-16 md:py-24 text-center bg-primary text-primary-foreground">
-        <div className="container mx-auto px-4 md:px-6">
-          <h2 className="text-3xl font-headline font-bold">{t('stayConnectedTitle')}</h2>
-          <p className="mt-2 max-w-xl mx-auto text-primary-foreground/90">
-            {t('stayConnectedSubtitle')}
-          </p>
-          <div className="mt-8 flex justify-center gap-4">
-            <Button asChild size="lg" variant="secondary">
-                <Link href="#">{t('updateDetails')}</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-primary">
-                <Link href="#">{t('joinNetwork')}</Link>
-            </Button>
+              <div className="mt-8 space-y-6">
+                {getInvolved.map((item) => (
+                  <div key={item.titleKey} className="flex gap-4 p-4 rounded-xl border border-border/60 bg-card">
+                    <div className="p-3 bg-primary/10 text-primary rounded-xl shrink-0 h-fit">
+                      <item.icon className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-headline font-bold text-base text-foreground">{t(item.titleKey as any)}</h3>
+                      <p className="text-muted-foreground mt-1 text-xs sm:text-sm leading-relaxed">{t(item.descKey as any)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Gallery Images */}
+            <div className="grid grid-cols-2 gap-4">
+              {galleryImages.map((image, index) => (
+                <div key={index} className={`relative rounded-2xl overflow-hidden shadow-md border border-border/80 group ${
+                  index === 0 ? "col-span-2 aspect-[2/1]" : "aspect-square"
+                }`}>
+                  <Image
+                    src={image.src}
+                    alt={image.alt}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
-
-    </main>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 
 import { LMS_API_URL } from "@/lib/config";
-import type { Course, ApiCourseResponse, Batch, ParentCourse, ApiCourse } from '../types';
+import type { Course, ApiCourseResponse, Batch, ParentCourse, ApiCourse, BatchSchedule, EducationalQualification } from '../types';
 
 const QA_API_BASE_URL = LMS_API_URL;
 
@@ -63,6 +63,8 @@ export const createBatch = async (batchData: Omit<Batch, 'id'> & { instructor_id
         mini_description: batchData.mini_description || '',
         criteria_list: batchData.criteria_list || null,
         whatsapp_link: batchData.whatsapp_link || null,
+        allowed_schedules: (batchData as any).allowed_schedules || null,
+        allowed_qualifications: (batchData as any).allowed_qualifications || null,
     };
     const response = await fetch(`${QA_API_BASE_URL}/course`, {
         method: 'POST',
@@ -92,6 +94,8 @@ export const updateBatch = async (id: string, batchData: Partial<Omit<Batch, 'id
         mini_description: batchData.mini_description,
         criteria_list: batchData.criteria_list,
         whatsapp_link: batchData.whatsapp_link,
+        allowed_schedules: (batchData as any).allowed_schedules,
+        allowed_qualifications: (batchData as any).allowed_qualifications,
     };
     const response = await fetch(`${QA_API_BASE_URL}/course/${id}`, {
         method: 'PUT',
@@ -290,3 +294,24 @@ export const deleteCourseContent = async (id: string): Promise<void> => {
     });
     if (!response.ok) throw new Error('Failed to delete course content');
 }
+
+
+export const getBatchSchedules = async (): Promise<BatchSchedule[]> => {
+    try {
+        const response = await fetch(`${QA_API_BASE_URL}/batch-schedules`);
+        if (!response.ok) throw new Error('Failed to fetch batch schedules');
+        return response.json();
+    } catch (e) {
+        return [];
+    }
+};
+
+export const getEducationalQualifications = async (): Promise<EducationalQualification[]> => {
+    try {
+        const response = await fetch(`${QA_API_BASE_URL}/educational-qualifications`);
+        if (!response.ok) throw new Error('Failed to fetch qualifications');
+        return response.json();
+    } catch (e) {
+        return [];
+    }
+};

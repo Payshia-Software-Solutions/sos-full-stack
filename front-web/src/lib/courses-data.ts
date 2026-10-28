@@ -18,6 +18,8 @@ export interface Course {
   badge?: string;
   mode?: string;
   intake?: string;
+  allowed_schedules?: string;
+  allowed_qualifications?: string;
 }
 
 export const FALLBACK_COURSES: Course[] = [
@@ -159,4 +161,98 @@ export async function getCachedCourses(): Promise<Course[]> {
     price: typeof c.course_fee === 'number' ? c.course_fee : parseFloat(String(c.course_fee)) || 0,
     category: getCourseCategory(c.course_name),
   }));
+}
+
+
+export interface BatchSchedule {
+  id: string | number;
+  name_en: string;
+  name_si?: string;
+  name_ta?: string;
+  days?: string;
+  time_slot?: string;
+  badge?: string;
+  is_active?: number | boolean;
+}
+
+export interface EducationalQualification {
+  id: string | number;
+  title_en: string;
+  title_si?: string;
+  title_ta?: string;
+  display_order?: number;
+  is_active?: number | boolean;
+}
+
+export const FALLBACK_SCHEDULES: BatchSchedule[] = [
+  {
+    id: 1,
+    name_en: 'Weekend Batch (Saturday & Sunday)',
+    name_si: 'සති අන්ත කණ්ඩායම (සෙනසුරාදා / ඉරිදා)',
+    name_ta: 'வார இறுதி தொகுதி (சனி மற்றும் ஞாயிறு)',
+    days: 'Saturday & Sunday',
+    time_slot: '8.30 AM - 1.30 PM',
+    badge: 'Most Popular for Working Students',
+  },
+  {
+    id: 2,
+    name_en: 'Weekday Batch (Tuesday & Thursday)',
+    name_si: 'සතියේ දින සන්ධ්‍යා කණ්ඩායම (අඟහරුවාදා / බ්‍රහස්පතින්දා)',
+    name_ta: 'வார நாள் மாலை தொகுதி (செவ்வாய் மற்றும் வியாழன்)',
+    days: 'Tuesday & Thursday',
+    time_slot: 'Evening Sessions (7.30 PM - 9.30 PM)',
+    badge: 'Convenient Online Sessions',
+  },
+  {
+    id: 3,
+    name_en: 'Sunday Only Batch',
+    name_si: 'ඉරිදා පමණක් පැවැත්වෙන කණ්ඩායම',
+    name_ta: 'ஞாயிறு மட்டும் தொகுதி',
+    days: 'Sunday',
+    time_slot: '8.30 AM - 4.30 PM',
+    badge: 'Special Intensive Class',
+  },
+  {
+    id: 4,
+    name_en: 'Full-Time Weekday Batch (Monday - Friday)',
+    name_si: 'සතියේ දින පූර්ණ කාලීන කණ්ඩායම (සඳුදා - සිකුරාදා)',
+    name_ta: 'முழு நேர வார நாள் தொகுதி',
+    days: 'Monday to Friday',
+    time_slot: '9.00 AM - 2.00 PM',
+    badge: 'Fast-Track Program',
+  },
+];
+
+export const FALLBACK_QUALIFICATIONS: EducationalQualification[] = [
+  { id: 1, title_en: 'G.C.E. O/L Qualified', title_si: 'සාමාන්‍ය පෙළ සමත් (G.C.E. O/L)', title_ta: 'க.பொ.த சாதாரண தரம் தேர்ச்சி', display_order: 1 },
+  { id: 2, title_en: 'G.C.E. A/L (Bio / Maths)', title_si: 'උසස් පෙළ විද්‍යා අංශය (G.C.E. A/L Bio/Maths)', title_ta: 'க.பொ.த உயர்தரம் (உயிரியல் / கணிதம்)', display_order: 2 },
+  { id: 3, title_en: 'G.C.E. A/L (Other Streams)', title_si: 'උසස් පෙළ වාණිජ / කලා / තාක්ෂණවේදය', title_ta: 'க.பொ.த உயர்தரம் (ஏனைய துறைகள்)', display_order: 3 },
+  { id: 4, title_en: 'Currently working in a Pharmacy', title_si: 'දැනටමත් ඖෂධසලක සේවය කරන අයෙක් (Pharmacy Experience)', title_ta: 'தற்போது மருந்தகத்தில் பணிபுரிபவர்', display_order: 4 },
+  { id: 5, title_en: 'Degree / Higher Diploma Holder', title_si: 'වෙනත් ඩිප්ලෝමා හෝ උපාධිධාරී (Degree / Diploma)', title_ta: 'பட்டம் அல்லது உயர் டிப்ளோமா பெற்றவர்', display_order: 5 },
+];
+
+export async function fetchBatchSchedules(): Promise<BatchSchedule[]> {
+  try {
+    const res = await fetch(`${LMS_API_URL}/batch-schedules`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) return data;
+    }
+  } catch (e) {
+    console.warn("Could not fetch schedules from API, using fallback.");
+  }
+  return FALLBACK_SCHEDULES;
+}
+
+export async function fetchEducationalQualifications(): Promise<EducationalQualification[]> {
+  try {
+    const res = await fetch(`${LMS_API_URL}/educational-qualifications`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) return data;
+    }
+  } catch (e) {
+    console.warn("Could not fetch qualifications from API, using fallback.");
+  }
+  return FALLBACK_QUALIFICATIONS;
 }

@@ -28,7 +28,8 @@ const events = [
 ];
 
 export default function EventCalendar() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const isSinhala = language === 'si';
 
   if (events.length === 0) {
     return null;
@@ -38,8 +39,9 @@ export default function EventCalendar() {
     <section id="events" className="py-16 md:py-24 bg-card">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center">
-          <h2 className="text-3xl md:text-4xl font-headline font-bold text-primary">{t('eventsTitle')}</h2>
-          <p className="mt-2 max-w-2xl mx-auto text-muted-foreground font-body">
+          <h2 className={`text-3xl md:text-4xl font-headline font-bold text-primary ${isSinhala ? 'leading-[1.35]' : 'leading-tight'}`}>{t('eventsTitle')}</h2>
+          <p className={`mt-2 max-w-2xl mx-auto text-muted-foreground font-body ${isSinhala ? 'leading-[1.75]' : 'leading-relaxed'}`}>
+
             {t('eventsSubtitle')}
           </p>
         </div>

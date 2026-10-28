@@ -1,5 +1,6 @@
-
 "use client";
+
+import { use } from "react";
 
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -12,7 +13,8 @@ import { ChevronRight, Users, Heart, Award } from "lucide-react";
 // In a real app, this would come from an API
 const projectsData: any = {};
 
-export default function CsrProjectPage({ params }: { params: { slug: string } }) {
+export default function CsrProjectPage(props: { params: Promise<{ slug: string }> }) {
+  const params = use(props.params);
   const { t } = useTranslation();
   const project = projectsData[params.slug];
 

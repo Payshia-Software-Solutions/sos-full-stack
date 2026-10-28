@@ -109,6 +109,29 @@ export interface Batch {
   certification?: string;
   mini_description?: string;
   whatsapp_link?: string | null;
+  criteria_list?: string | null;
+  allowed_schedules?: string | null;
+  allowed_qualifications?: string | null;
+}
+
+export interface BatchSchedule {
+  id: string | number;
+  name_en: string;
+  name_si?: string;
+  name_ta?: string;
+  days?: string;
+  time_slot?: string;
+  badge?: string;
+  is_active: number | boolean;
+}
+
+export interface EducationalQualification {
+  id: string | number;
+  title_en: string;
+  title_si?: string;
+  title_ta?: string;
+  display_order?: number;
+  is_active: number | boolean;
 }
 
 export interface Recording {
@@ -518,6 +541,9 @@ export interface ApiCourse {
     start_date?: string;
     end_date?: string;
     whatsapp_link?: string | null;
+  criteria_list?: string | null;
+  allowed_schedules?: string | null;
+  allowed_qualifications?: string | null;
 }
 
 export interface ApiCourseResponse {
@@ -750,6 +776,9 @@ export interface Course {
   courseCode: string;
   course_img?: string | null;
   whatsapp_link?: string | null;
+  criteria_list?: string | null;
+  allowed_schedules?: string | null;
+  allowed_qualifications?: string | null;
 }
 
 export interface CourseContentModule {

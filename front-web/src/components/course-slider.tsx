@@ -36,7 +36,8 @@ interface CourseSliderProps {
 }
 
 export default function CourseSlider({ initialCourses }: CourseSliderProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const isSinhala = language === 'si';
   
   const baseCourses = useMemo(() => {
     return (initialCourses && initialCourses.length > 0) ? initialCourses : FALLBACK_COURSES;
@@ -140,7 +141,8 @@ export default function CourseSlider({ initialCourses }: CourseSliderProps) {
                               </span>
                             </div>
 
-                            <h3 className="font-headline font-bold text-base leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                            <h3 className={`font-headline font-bold text-base line-clamp-2 group-hover:text-primary transition-colors ${isSinhala ? 'leading-normal' : 'leading-snug'}`}>
+
                               <Link href={`/courses/${course.slug}`}>
                                 {course.course_name}
                               </Link>

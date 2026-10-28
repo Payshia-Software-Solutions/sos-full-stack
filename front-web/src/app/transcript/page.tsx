@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { FileDown, Printer } from 'lucide-react';
+import { FileDown, Printer, Loader2 } from 'lucide-react';
 import { useTranslation } from '@/context/language-context';
 import { Suspense, useEffect, useState } from 'react';
 import GradePaymentGate from '@/components/GradePaymentGate';
+import { LMS_API_URL } from "@/lib/config";
 
 // Placeholder types, should be defined based on actual API response
 interface Result {
@@ -42,29 +43,75 @@ function TranscriptComponent() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // In a real app, you would fetch student details here from your API
-        // Simulating a fetch with a placeholder.
-        if (loggedUser && courseCode) {
-            setStudentData({
-                studentName: "P. A. Weerasinghe", // Placeholder
-                studentId: "CPCC18", // Placeholder
-                avatar: "https://placehold.co/100x100.png",
-                courseName: "Certificate in Pharmacy Practice", // Placeholder
-                batchCode: courseCode,
-                overallGrade: "Referred", // Placeholder
-                issueDate: new Date().toLocaleDateString(), // Placeholder
-                results: [ // Placeholder
-                    { module: "Fundamentals of Pharmacy", attempt: 1, grade: "C" },
-                    { module: "Dispensing Practice", attempt: 1, grade: "F" },
-                    { module: "Customer Service in Pharmacy", attempt: 1, grade: "B" },
-                ],
-            });
+        if (!loggedUser) {
+            setLoading(false);
+            return;
         }
-        setLoading(false);
+
+        async function fetchTranscript() {
+            try {
+                setLoading(true);
+                const response = await fetch(`${LMS_API_URL}/get-student-full-info?loggedUser=${encodeURIComponent(loggedUser || '')}`);
+                if (!response.ok) {
+                    throw new Error('Student not found');
+                }
+                const data = await response.json();
+                const enrollments = data.studentEnrollments || {};
+                const enrollment = (courseCode ? enrollments[courseCode] : Object.values(enrollments)[0]) as any;
+
+                if (enrollment) {
+                    const rawAssignments = enrollment.assignment_grades?.assignments || [];
+                    const mappedResults: Result[] = rawAssignments.map((a: any, idx: number) => ({
+                        module: a.assignment_name || `Module ${idx + 1}`,
+                        attempt: 1,
+                        grade: a.grade || 'Pending',
+                    }));
+
+                    const avgGrade = enrollment.assignment_grades?.average_grade;
+                    let letterGrade = 'Pending';
+                    const numAvg = parseFloat(avgGrade);
+                    if (!isNaN(numAvg)) {
+                        if (numAvg >= 75) letterGrade = 'Distinction';
+                        else if (numAvg >= 65) letterGrade = 'Merit';
+                        else if (numAvg >= 50) letterGrade = 'Pass';
+                        else letterGrade = 'Referred';
+                    }
+
+                    setStudentData({
+                        studentName: data.studentInfo?.name_on_certificate || data.studentInfo?.full_name || loggedUser || '',
+                        studentId: loggedUser || '',
+                        avatar: "https://placehold.co/100x100.png",
+                        courseName: enrollment.parent_course_name || enrollment.batch_name || "Pharmacy Course",
+                        batchCode: enrollment.batch_name || enrollment.course_code || courseCode || '',
+                        overallGrade: letterGrade,
+                        issueDate: new Date().toLocaleDateString(),
+                        results: mappedResults.length > 0 ? mappedResults : [
+                            { module: "Course Core Competencies", attempt: 1, grade: letterGrade }
+                        ],
+                        studentBalance: enrollment.studentBalance,
+                        is_grade_locked: enrollment.is_grade_locked,
+                    });
+                } else {
+                    setStudentData(null);
+                }
+            } catch (error) {
+                console.error("Error fetching live student transcript:", error);
+                setStudentData(null);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchTranscript();
     }, [loggedUser, courseCode]);
 
     if (loading) {
-        return <div className="container mx-auto text-center py-24">Loading transcript...</div>;
+        return (
+            <div className="container mx-auto text-center py-24 flex flex-col items-center justify-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground font-medium">Loading official academic transcript...</p>
+            </div>
+        );
     }
     
     if (!studentData) {

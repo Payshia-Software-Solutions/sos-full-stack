@@ -7,6 +7,25 @@ class TempLmsUser
     public function __construct($pdo)
     {
         $this->pdo = $pdo;
+        $this->ensureColumns();
+    }
+
+    private function ensureColumns()
+    {
+        try {
+            $cols = $this->pdo->query("SHOW COLUMNS FROM temp_lms_user")->fetchAll(PDO::FETCH_COLUMN);
+            if (!in_array('batch_preference', $cols)) {
+                $this->pdo->exec("ALTER TABLE temp_lms_user ADD COLUMN `batch_preference` VARCHAR(255) NULL AFTER `selected_course`");
+            }
+            if (!in_array('qualification', $cols)) {
+                $this->pdo->exec("ALTER TABLE temp_lms_user ADD COLUMN `qualification` VARCHAR(255) NULL AFTER `batch_preference`");
+            }
+            if (!in_array('payment_slip', $cols)) {
+                $this->pdo->exec("ALTER TABLE temp_lms_user ADD COLUMN `payment_slip` TEXT NULL AFTER `qualification`");
+            }
+        } catch (\Exception $e) {
+            // Silently continue
+        }
     }
 
     // Count all users
@@ -32,32 +51,54 @@ class TempLmsUser
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-
-    
-
     // Create a new user
     public function createUser($data)
     {
+        $params = [
+            'email_address' => $data['email_address'] ?? null,
+            'civil_status' => $data['civil_status'] ?? null,
+            'first_name' => $data['first_name'] ?? null,
+            'last_name' => $data['last_name'] ?? null,
+            'password' => $data['password'] ?? null,
+            'nic_number' => $data['nic_number'] ?? null,
+            'phone_number' => $data['phone_number'] ?? null,
+            'whatsapp_number' => $data['whatsapp_number'] ?? null,
+            'address_l1' => $data['address_l1'] ?? null,
+            'address_l2' => $data['address_l2'] ?? null,
+            'city' => $data['city'] ?? null,
+            'district' => $data['district'] ?? null,
+            'postal_code' => $data['postal_code'] ?? null,
+            'paid_amount' => $data['paid_amount'] ?? 0,
+            'aprroved_status' => $data['aprroved_status'] ?? 0,
+            'created_at' => $data['created_at'] ?? date('Y-m-d H:i:s'),
+            'full_name' => $data['full_name'] ?? null,
+            'name_with_initials' => $data['name_with_initials'] ?? null,
+            'gender' => $data['gender'] ?? null,
+            'index_number' => $data['index_number'] ?? null,
+            'name_on_certificate' => $data['name_on_certificate'] ?? null,
+            'selected_course' => $data['selected_course'] ?? null,
+            'batch_preference' => $data['batch_preference'] ?? null,
+            'qualification' => $data['qualification'] ?? null,
+            'payment_slip' => $data['payment_slip'] ?? null,
+        ];
+
         $sql = "INSERT INTO temp_lms_user (
                     email_address, civil_status, first_name, last_name, password, nic_number, phone_number, 
                     whatsapp_number, address_l1, address_l2, city, district, postal_code, paid_amount, 
                     aprroved_status, created_at, full_name, name_with_initials, gender, index_number, 
-                    name_on_certificate, selected_course
+                    name_on_certificate, selected_course, batch_preference, qualification, payment_slip
                 ) VALUES (
                     :email_address, :civil_status, :first_name, :last_name, :password, :nic_number, :phone_number, 
                     :whatsapp_number, :address_l1, :address_l2, :city, :district, :postal_code, :paid_amount, 
                     :aprroved_status, :created_at, :full_name, :name_with_initials, :gender, :index_number, 
-                    :name_on_certificate, :selected_course
+                    :name_on_certificate, :selected_course, :batch_preference, :qualification, :payment_slip
                 )";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($data);
+        $stmt->execute($params);
 
         // Return the auto-generated ID
         return $this->pdo->lastInsertId();
     }
-
-
-
 
     // Update a user by ID
     public function updateUser($id, $data)
@@ -70,34 +111,21 @@ class TempLmsUser
             'nic_number', 'phone_number', 'whatsapp_number', 'address_l1', 'address_l2',
             'city', 'district', 'postal_code', 'paid_amount', 'aprroved_status', 'created_at',
             'full_name', 'name_with_initials', 'gender', 'index_number', 'name_on_certificate',
-            'selected_course'
+            'selected_course', 'batch_preference', 'qualification', 'payment_slip'
         ];
         $filteredData = array_intersect_key($data, array_flip($allowedKeys));
 
-        $sql = "UPDATE temp_lms_user SET 
-                    email_address = :email_address,
-                    civil_status = :civil_status,
-                    first_name = :first_name,
-                    last_name = :last_name,
-                    password = :password,
-                    nic_number = :nic_number,
-                    phone_number = :phone_number,
-                    whatsapp_number = :whatsapp_number,
-                    address_l1 = :address_l1,
-                    address_l2 = :address_l2,
-                    city = :city,
-                    district = :district,
-                    postal_code = :postal_code,
-                    paid_amount = :paid_amount,
-                    aprroved_status = :aprroved_status,
-                    created_at = :created_at,
-                    full_name = :full_name,
-                    name_with_initials = :name_with_initials,
-                    gender = :gender,
-                    index_number = :index_number,
-                    name_on_certificate = :name_on_certificate,
-                    selected_course = :selected_course
-                WHERE id = :id";
+        $fields = [];
+        foreach ($filteredData as $key => $val) {
+            if ($key !== 'id') {
+                $fields[] = "`$key` = :$key";
+            }
+        }
+        if (empty($fields)) {
+            return;
+        }
+
+        $sql = "UPDATE temp_lms_user SET " . implode(', ', $fields) . " WHERE id = :id";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($filteredData);
     }
@@ -241,6 +269,7 @@ class TempLmsUser
         $stmt->execute(['course' => $course]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
     // Update user details
     public function updateUserDetails($id, $data)
     {
@@ -257,7 +286,9 @@ class TempLmsUser
                     district = :district,
                     full_name = :full_name,
                     name_with_initials = :name_with_initials,
-                    name_on_certificate = :name_on_certificate
+                    name_on_certificate = :name_on_certificate,
+                    batch_preference = :batch_preference,
+                    qualification = :qualification
                 WHERE id = :id";
                 
         $stmt = $this->pdo->prepare($sql);
@@ -275,6 +306,8 @@ class TempLmsUser
             'full_name' => $data['full_name'] ?? null,
             'name_with_initials' => $data['name_with_initials'] ?? null,
             'name_on_certificate' => $data['name_on_certificate'] ?? null,
+            'batch_preference' => $data['batch_preference'] ?? null,
+            'qualification' => $data['qualification'] ?? null,
             'id' => $id
         ]);
         

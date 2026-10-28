@@ -236,7 +236,7 @@ function ResultsViewComponent() {
             <div className="container mx-auto px-4 md:px-6 max-w-2xl">
                  <div className="mb-4">
                     <Button asChild variant="outline">
-                        <Link href="/#verify">
+                        <Link href="/certificates">
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Back to Verifier
                         </Link>
