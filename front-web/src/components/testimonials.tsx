@@ -10,7 +10,8 @@ import ReviewCard, { GoogleLogoIcon } from "./review-card";
 import { Badge } from "@/components/ui/badge";
 
 export default function Testimonials() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const isSinhala = language === 'si';
   
   // Official Google Business Profile for Ceylon Pharma College
   const googleReviewsUrl = "https://share.google/Ro5raji5UUp5oK4nc";
@@ -23,19 +24,19 @@ export default function Testimonials() {
         <div className="text-center max-w-3xl mx-auto">
           <Badge variant="outline" className="mb-3 px-3 py-1 font-semibold text-primary border-primary/30 gap-1.5 inline-flex items-center">
             <GoogleLogoIcon className="w-3.5 h-3.5" />
-            <span>Verified Student Feedback</span>
+            <span>{isSinhala ? 'සත්‍යාපිත ශිෂ්‍ය ප්‍රතිචාර' : 'Verified Student Feedback'}</span>
           </Badge>
-          <h2 className="text-3xl md:text-4xl font-headline font-bold text-foreground">
-            What Our Students Say on Google
+          <h2 className={`text-3xl md:text-4xl font-headline font-bold text-foreground ${isSinhala ? 'leading-[1.35]' : 'leading-tight'}`}>
+            {isSinhala ? 'සිසුන් Google හරහා අප ගැන පවසන දේ' : 'What Our Students Say on Google'}
           </h2>
           <div className="w-20 h-1 bg-primary mx-auto mt-3 mb-6 rounded-full" />
-          <p className="text-muted-foreground font-body text-sm md:text-base leading-relaxed">
-            Real feedback from graduates and healthcare professionals who studied with Ceylon Pharma College.
+          <p className={`text-muted-foreground font-body text-sm md:text-base ${isSinhala ? 'leading-[1.75]' : 'leading-relaxed'}`}>
+            {isSinhala ? 'සිලෝන් ෆාමා විද්‍යාලයෙන් අධ්‍යාපනය හැදෑරූ අපගේ උපාධිධාරීන් සහ සෞඛ්‍ය සේවා වෘත්තිකයන්ගේ සත්‍ය ප්‍රතිචාර.' : 'Real feedback from graduates and healthcare professionals who studied with Ceylon Pharma College.'}
           </p>
         </div>
 
         {/* Google Trust Rating Header Card */}
-        <div className="mt-10 max-w-2xl mx-auto p-6 rounded-2xl bg-background border border-border/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
+        <div className="mt-10 max-w-3xl mx-auto p-6 rounded-2xl bg-background border border-border/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-white dark:bg-zinc-900 border border-border flex items-center justify-center shadow-sm shrink-0">
               <GoogleLogoIcon className="w-8 h-8" />
@@ -71,11 +72,11 @@ export default function Testimonials() {
         {/* Carousel */}
         <Carousel
           opts={{ align: "start", loop: true }}
-          className="w-full max-w-6xl mx-auto mt-12"
+          className="w-full mt-10"
         >
-          <CarouselContent className="-ml-3">
+          <CarouselContent className="-ml-4">
             {reviewsData.map((review, index) => (
-              <CarouselItem key={index} className="pl-3 md:basis-1/2 lg:basis-1/3">
+              <CarouselItem key={index} className="pl-4 md:basis-1/2 lg:basis-1/3 2xl:basis-1/4">
                 <div className="h-full">
                   <ReviewCard review={review} />
                 </div>

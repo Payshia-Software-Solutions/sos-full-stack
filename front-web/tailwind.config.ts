@@ -17,8 +17,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Roboto', 'sans-serif'],
-        headline: ['Poppins', 'sans-serif'],
+        body: ['var(--font-roboto)', 'var(--font-sinhala)', 'var(--font-tamil)', 'Roboto', 'sans-serif'],
+        headline: ['var(--font-poppins)', 'var(--font-sinhala)', 'var(--font-tamil)', 'Poppins', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {

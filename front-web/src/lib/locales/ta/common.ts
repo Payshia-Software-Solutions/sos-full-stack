@@ -5,7 +5,7 @@ export const common = {
   enrollNow: 'இப்போதே சேரவும்',
   
   home: 'முகப்பு',
-  courses: 'படிப்புகள்',
-  about: 'பற்றி',
+  courses: 'பாடநெறிகள்',
+  about: 'எங்களை பற்றி',
   contact: 'தொடர்பு',
 };

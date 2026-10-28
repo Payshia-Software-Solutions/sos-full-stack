@@ -30,7 +30,13 @@ class Contact
         $sql = "INSERT INTO contacts (full_name, email, phone_number, subject_topic, message) 
                 VALUES (:full_name, :email, :phone_number, :subject_topic, :message)";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($data);
+        $stmt->execute([
+            'full_name' => $data['full_name'] ?? '',
+            'email' => $data['email'] ?? '',
+            'phone_number' => $data['phone_number'] ?? '',
+            'subject_topic' => $data['subject_topic'] ?? '',
+            'message' => $data['message'] ?? '',
+        ]);
     }
 
     // Update a contact by ID

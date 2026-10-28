@@ -1,5 +1,6 @@
 
 import type { Metadata } from 'next';
+import { Poppins, Roboto, Noto_Sans_Sinhala, Noto_Sans_Tamil } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import Header from '@/components/header';
@@ -8,6 +9,34 @@ import { LanguageProvider } from '@/context/language-context';
 import { ThemeProvider } from '@/components/theme-provider';
 import Preloader from '@/components/preloader';
 import MobileStickyCTA from '@/components/mobile-sticky-cta';
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['600', '700'],
+  variable: '--font-poppins',
+  display: 'swap',
+});
+
+const roboto = Roboto({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-roboto',
+  display: 'swap',
+});
+
+const notoSinhala = Noto_Sans_Sinhala({
+  subsets: ['sinhala'],
+  weight: ['400', '600', '700'],
+  variable: '--font-sinhala',
+  display: 'swap',
+});
+
+const notoTamil = Noto_Sans_Tamil({
+  subsets: ['tamil'],
+  weight: ['400', '600', '700'],
+  variable: '--font-tamil',
+  display: 'swap',
+});
 
 const siteConfig = {
   name: 'Ceylon Pharma College',
@@ -56,7 +85,7 @@ export const metadata: Metadata = {
     title: siteConfig.name,
     description: siteConfig.description,
     images: [siteConfig.ogImage],
-    creator: "@yourtwitterhandle", // Replace with your actual Twitter handle
+    creator: "@ceylonpharma",
   },
   alternates: {
     canonical: '/',
@@ -95,12 +124,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="!scroll-smooth" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-      </head>
+    <html lang="en" className={`!scroll-smooth ${poppins.variable} ${roboto.variable} ${notoSinhala.variable} ${notoTamil.variable}`} suppressHydrationWarning>
       <body className="font-body antialiased">
         <ThemeProvider
           attribute="class"

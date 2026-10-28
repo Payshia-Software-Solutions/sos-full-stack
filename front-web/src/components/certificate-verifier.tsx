@@ -2,7 +2,7 @@
 
 import { LMS_API_URL } from "@/lib/config";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from 'next/image';
 import Link from 'next/link';
 import { Input } from "@/components/ui/input";
@@ -131,7 +131,8 @@ const EnrollmentList = ({ studentData }: { studentData: StudentFullData; }) => {
 
 // --- Certificate Details Component ---
 const CertificateDetails = ({ studentData, enrollment }: { studentData: StudentFullData; enrollment: Enrollment; }) => {
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
+  const isSinhala = language === 'si';
 
     const getFinalGrade = () => {
         if (!enrollment.certificate_eligibility) return "Not Eligible";
@@ -229,63 +230,58 @@ const CertificateDetails = ({ studentData, enrollment }: { studentData: StudentF
 // --- Main Verifier Component ---
 export default function CertificateVerifier() {
   const [query, setQuery] = useState('');
-  const [allStudents, setAllStudents] = useState<StudentSearchResult[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<StudentSearchResult[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { t } = useTranslation();
+  const [searchLoading, setSearchLoading] = useState(false);
+  const { t, language } = useTranslation();
+  const isSinhala = language === 'si';
 
   const [view, setView] = useState<'search' | 'enrollments' | 'details'>('search');
   const [selectedStudentData, setSelectedStudentData] = useState<StudentFullData | null>(null);
   const [selectedEnrollment, setSelectedEnrollment] = useState<Enrollment | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  useEffect(() => {
-    async function fetchAllStudents() {
-        try {
-            const response = await fetch(`${LMS_API_URL}/userFullDetails`);
-            const data: StudentSearchResult[] = await response.json();
-            setAllStudents(data);
-        } catch (error) {
-            console.error("Failed to fetch students:", error);
-        } finally {
-            setLoading(false);
-        }
-    }
-    fetchAllStudents();
-  }, []);
-
-  const filterStudents = useCallback((searchQuery: string) => {
-    if (searchQuery.trim().length < 2) {
+  const performSearch = useCallback(async (searchQuery: string) => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 3) {
       setFilteredStudents([]);
+      setSearchLoading(false);
       return;
     }
-    
-    const lowerCaseQuery = searchQuery.toLowerCase();
-    const results: StudentSearchResult[] = [];
-    const reversedStudents = [...allStudents].reverse();
 
-    for (const student of reversedStudents) {
-        if (results.length >= 10) {
-            break;
-        }
-        const nameOnCert = (student.name_on_certificate || '').toLowerCase();
-        const username = (student.username || '').toLowerCase();
-
-        if (nameOnCert.includes(lowerCaseQuery) || username.includes(lowerCaseQuery)) {
-            results.push(student);
-        }
+    try {
+      setSearchLoading(true);
+      const response = await fetch(`${LMS_API_URL}/userFullDetails/search/?q=${encodeURIComponent(trimmed)}`);
+      if (response.ok) {
+        const data: StudentSearchResult[] = await response.json();
+        setFilteredStudents(Array.isArray(data) ? data : []);
+      } else {
+        setFilteredStudents([]);
+      }
+    } catch (error) {
+      console.error("Certificate search error:", error);
+      setFilteredStudents([]);
+    } finally {
+      setSearchLoading(false);
     }
-    setFilteredStudents(results);
-  }, [allStudents]);
-  
-  const debouncedFilterStudents = useCallback(debounce(filterStudents, 300), [filterStudents]);
+  }, []);
+
+  const debouncedSearch = useMemo(
+    () => debounce((val: string) => performSearch(val), 350),
+    [performSearch]
+  );
 
   useEffect(() => {
-    debouncedFilterStudents(query);
+    if (query.trim().length >= 3) {
+      setSearchLoading(true);
+      debouncedSearch(query);
+    } else {
+      setFilteredStudents([]);
+      setSearchLoading(false);
+    }
     return () => {
-      debouncedFilterStudents.cancel();
+      debouncedSearch.cancel();
     };
-  }, [query, debouncedFilterStudents]);
+  }, [query, debouncedSearch]);
 
   const handleStudentSelect = async (student: StudentSearchResult) => {
     try {
@@ -334,10 +330,12 @@ export default function CertificateVerifier() {
                 priority
               />
             </div>
-            <h2 className="text-4xl md:text-5xl font-headline font-bold">
+            <h2 className={`text-4xl md:text-5xl font-headline font-bold ${isSinhala ? 'leading-[1.35]' : 'leading-tight'}`}>
+
                 {t('certVerifierTitle')}
             </h2>
-            <p className="mt-4 text-lg text-primary-foreground/90 max-w-2xl mx-auto">
+            <p className={`mt-4 text-lg text-primary-foreground/90 max-w-2xl mx-auto ${isSinhala ? 'leading-[1.75]' : 'leading-relaxed'}`}>
+
                 {t('certVerifierSubtitle')}
             </p>
 
@@ -357,13 +355,18 @@ export default function CertificateVerifier() {
                         className="h-14 w-full rounded-lg border-2 border-primary-foreground/50 bg-primary-foreground/90 pl-14 pr-14 text-base text-primary placeholder:text-primary/70 focus:border-primary-foreground focus:bg-primary-foreground focus:ring-2 focus:ring-primary-foreground/50 uppercase"
                         onChange={(e) => setQuery(e.target.value.toUpperCase())}
                         value={query}
-                        disabled={loading}
                       />
                       <Search className="h-6 w-6 absolute left-5 top-1/2 -translate-y-1/2 text-primary/70" />
-                      {loading && <Loader2 className="h-6 w-6 absolute right-5 top-1/2 -translate-y-1/2 text-primary/70 animate-spin" />}
+                      {searchLoading && <Loader2 className="h-6 w-6 absolute right-5 top-1/2 -translate-y-1/2 text-primary/70 animate-spin" />}
                     </div>
                 )}
                 
+                {view === 'search' && query.trim().length > 0 && query.trim().length < 3 && (
+                    <p className="mt-3 text-sm text-primary-foreground/80 font-medium">
+                      Please enter at least 3 characters of Index Number or Name to search.
+                    </p>
+                )}
+
                 {detailsLoading && (
                     <div className="mt-4 flex justify-center items-center gap-2 text-primary-foreground/80">
                         <Loader2 className="h-6 w-6 animate-spin" />
@@ -371,7 +374,9 @@ export default function CertificateVerifier() {
                     </div>
                 )}
                 
-                {view === 'search' && query && !detailsLoading && <SearchResults students={filteredStudents} loading={false} onStudentSelect={handleStudentSelect} />}
+                {view === 'search' && query.trim().length >= 3 && !detailsLoading && (
+                    <SearchResults students={filteredStudents} loading={searchLoading} onStudentSelect={handleStudentSelect} />
+                )}
                 
                 {view === 'enrollments' && selectedStudentData && !detailsLoading && (
                     <EnrollmentList studentData={selectedStudentData} />
