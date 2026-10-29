@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -77,46 +77,75 @@ export default function CertificateVerifierHome() {
   const [selectedStudentData, setSelectedStudentData] = useState<StudentFullData | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
+  const latestQueryRef = useRef(query);
+  latestQueryRef.current = query;
 
   const performSearch = useCallback(async (searchQuery: string) => {
     const trimmed = searchQuery.trim();
     if (trimmed.length < 2) {
-      setFilteredStudents([]);
-      setSearchLoading(false);
+      if (latestQueryRef.current.trim().length < 2) {
+        setFilteredStudents([]);
+        setSearchLoading(false);
+      }
       return;
     }
 
     try {
       setSearchLoading(true);
       // Query Next.js internal search API with multi-strategy resolution
-      const response = await fetch(`/api/certificate/search?q=${encodeURIComponent(trimmed)}`);
+      const response = await fetch(`/api/certificate/search?q=${encodeURIComponent(trimmed)}`, {
+        cache: 'no-store',
+      });
       if (response.ok) {
         const data: StudentSearchResult[] = await response.json();
-        setFilteredStudents(Array.isArray(data) ? data : []);
+        // Guard against race condition: only update if query hasn't changed
+        if (searchQuery.trim().toUpperCase() === latestQueryRef.current.trim().toUpperCase()) {
+          setFilteredStudents(Array.isArray(data) ? data : []);
+        }
       } else {
         // Fallback directly to LMS
-        const cleanUser = trimmed.replace(/[\/\\ \-_]/g, '').toUpperCase();
-        const fallbackRes = await fetch(`${LMS_API_URL}/get-student-full-info?loggedUser=${encodeURIComponent(cleanUser)}`);
-        if (fallbackRes.ok) {
-          const fbData = await fallbackRes.json();
-          if (fbData?.studentInfo?.username) {
-            const s = fbData.studentInfo;
-            setFilteredStudents([{
-              id: String(s.id),
-              username: s.username,
-              name_on_certificate: s.name_on_certificate || s.full_name || `${s.first_name} ${s.last_name}`,
-              student_id: s.student_id,
-            }]);
-            return;
-          }
+        const cleanTerm = trimmed.replace(/[\/\\ \-_]/g, '').toUpperCase();
+        const candidateUsers = [cleanTerm];
+        if (/^\d{3,}$/.test(cleanTerm)) {
+          candidateUsers.unshift(`PA${cleanTerm}`);
         }
-        setFilteredStudents([]);
+        let found = false;
+        for (const user of candidateUsers) {
+          try {
+            const fallbackRes = await fetch(`${LMS_API_URL}/get-student-full-info?loggedUser=${encodeURIComponent(user)}`, {
+              cache: 'no-store',
+            });
+            if (fallbackRes.ok) {
+              const fbData = await fallbackRes.json();
+              if (fbData?.studentInfo?.username) {
+                const s = fbData.studentInfo;
+                if (searchQuery.trim().toUpperCase() === latestQueryRef.current.trim().toUpperCase()) {
+                  setFilteredStudents([{
+                    id: String(s.id),
+                    username: s.username,
+                    name_on_certificate: s.name_on_certificate || s.full_name || `${s.first_name || ''} ${s.last_name || ''}`.trim() || s.username,
+                    student_id: s.student_id,
+                  }]);
+                }
+                found = true;
+                break;
+              }
+            }
+          } catch {}
+        }
+        if (!found && searchQuery.trim().toUpperCase() === latestQueryRef.current.trim().toUpperCase()) {
+          setFilteredStudents([]);
+        }
       }
     } catch (error) {
       console.error("Certificate search error:", error);
-      setFilteredStudents([]);
+      if (searchQuery.trim().toUpperCase() === latestQueryRef.current.trim().toUpperCase()) {
+        setFilteredStudents([]);
+      }
     } finally {
-      setSearchLoading(false);
+      if (searchQuery.trim().toUpperCase() === latestQueryRef.current.trim().toUpperCase()) {
+        setSearchLoading(false);
+      }
     }
   }, []);
 
@@ -142,7 +171,10 @@ export default function CertificateVerifierHome() {
     try {
       setDetailsLoading(true);
       setDetailsError(null);
-      const cleanUser = student.username.trim().replace(/[\/\\ \-_]/g, '').toUpperCase();
+      let cleanUser = student.username.trim().replace(/[\/\\ \-_]/g, '').toUpperCase();
+      if (/^\d{3,}$/.test(cleanUser)) {
+        cleanUser = `PA${cleanUser}`;
+      }
       
       let data: StudentFullData | null = null;
       try {

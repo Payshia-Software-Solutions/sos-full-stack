@@ -18,7 +18,11 @@ export async function GET(request: NextRequest) {
   const trimmed = q.trim();
 
   if (trimmed.length < 2) {
-    return NextResponse.json([]);
+    return NextResponse.json([], {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+      },
+    });
   }
 
   // Clean term without slashes, spaces, or hyphens for index / cert matching
@@ -40,14 +44,14 @@ export async function GET(request: NextRequest) {
       try {
         const certRes = await fetch(
           `${LMS_API_URL}/certificate-print-status/by-certificate_id/${encodeURIComponent(cleanTerm)}/`,
-          { next: { revalidate: 60 } }
+          { cache: "no-store" }
         );
         if (certRes.ok) {
           const certRecord = await certRes.json();
           if (certRecord && certRecord.student_number) {
             const studentRes = await fetch(
               `${LMS_API_URL}/get-student-full-info?loggedUser=${encodeURIComponent(certRecord.student_number)}`,
-              { next: { revalidate: 60 } }
+              { cache: "no-store" }
             );
             if (studentRes.ok) {
               const studentData = await studentRes.json();
@@ -74,12 +78,21 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Strategy 2: Check if Student Index Number format (e.g. PA24600, PA/24/600, or digits)
-    if (/^[A-Z]{1,4}\d+/i.test(cleanTerm) || /^\d{3,}$/.test(cleanTerm)) {
+    // Strategy 2: Check if Student Index Number format (e.g. PA24600, PA24125, PA19125, or bare digits 19125, 24600)
+    const candidates: string[] = [];
+    if (/^[A-Z]{1,4}\d+/i.test(cleanTerm)) {
+      candidates.push(cleanTerm);
+    } else if (/^\d{3,}$/.test(cleanTerm)) {
+      // For bare digits, try prepending "PA" first as standard Ceylon Pharma College index, then bare digits
+      candidates.push(`PA${cleanTerm}`);
+      candidates.push(cleanTerm);
+    }
+
+    for (const candidate of candidates) {
       try {
         const studentRes = await fetch(
-          `${LMS_API_URL}/get-student-full-info?loggedUser=${encodeURIComponent(cleanTerm)}`,
-          { next: { revalidate: 60 } }
+          `${LMS_API_URL}/get-student-full-info?loggedUser=${encodeURIComponent(candidate)}`,
+          { cache: "no-store" }
         );
         if (studentRes.ok) {
           const studentData = await studentRes.json();
@@ -95,6 +108,7 @@ export async function GET(request: NextRequest) {
                 s.username,
               student_id: s.student_id,
             });
+            break; // Found direct match
           }
         }
       } catch (err) {
@@ -108,7 +122,7 @@ export async function GET(request: NextRequest) {
       try {
         const usersRes = await fetch(
           `${LMS_API_URL}/users/search/${encodeURIComponent(searchToken)}`,
-          { next: { revalidate: 60 } }
+          { cache: "no-store" }
         );
         if (usersRes.ok) {
           const users = await usersRes.json();
@@ -134,7 +148,7 @@ export async function GET(request: NextRequest) {
       try {
         const fallbackRes = await fetch(
           `${LMS_API_URL}/userFullDetails/search/?q=${encodeURIComponent(trimmed)}`,
-          { next: { revalidate: 60 } }
+          { cache: "no-store" }
         );
         if (fallbackRes.ok) {
           const data = await fallbackRes.json();
@@ -156,11 +170,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(results, {
       headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        "Cache-Control": "no-store, no-cache, must-revalidate",
       },
     });
   } catch (error: any) {
     console.error("Certificate search route error:", error);
-    return NextResponse.json([], { status: 200 });
+    return NextResponse.json([], {
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+      },
+    });
   }
 }
