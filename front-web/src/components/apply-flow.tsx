@@ -801,90 +801,6 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
               </div>
             </div>
 
-            {/* Preferred Batch Schedule */}
-            <div>
-              <Label className="font-semibold text-sm block mb-3 flex items-center gap-1.5">
-                <CalendarDays className="w-4 h-4 text-primary" />
-                <span>{language === 'si' ? 'කැමති දේශන කාලසටහන (Preferred Class Schedule) *' : 'Preferred Batch Schedule *'}</span>
-              </Label>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {activeSchedules.map((b) => {
-                  const displayName = language === 'si' && b.name_si 
-                    ? b.name_si 
-                    : (language === 'ta' && b.name_ta ? b.name_ta : b.name_en);
-                  const subtitleText = `${b.days || ''} ${b.time_slot ? '• ' + b.time_slot : ''}`.trim();
-                  return (
-                    <label
-                      key={b.id}
-                      className={`flex flex-col justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                        batchPreference === b.name_en
-                          ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20'
-                          : 'border-border hover:border-primary/40'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3 mb-2">
-                        <input
-                          type="radio"
-                          name="batchPreference"
-                          checked={batchPreference === b.name_en}
-                          onChange={() => setBatchPreference(b.name_en)}
-                          className="mt-1 text-primary focus:ring-primary"
-                        />
-                        <div>
-                          <span className="font-bold text-sm text-foreground block">{displayName}</span>
-                          {subtitleText && <span className="text-xs text-muted-foreground">{subtitleText}</span>}
-                        </div>
-                      </div>
-                      {b.badge && (
-                        <Badge variant="secondary" className="text-[10px] w-fit font-normal mt-2">
-                          {b.badge}
-                        </Badge>
-                      )}
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Educational Qualification */}
-            <div>
-              <Label className="font-semibold text-sm block mb-3 flex items-center gap-1.5">
-                <GraduationCap className="w-4 h-4 text-primary" />
-                <span>{language === 'si' ? 'ඔබගේ ඉහළම අධ්‍යාපන සුදුසුකම (Educational Level) *' : 'Highest Educational Qualification *'}</span>
-              </Label>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {activeQualifications.map((item) => {
-                  const subDesc = language === 'si' && item.title_si 
-                    ? item.title_si 
-                    : (language === 'ta' && item.title_ta ? item.title_ta : '');
-                  return (
-                    <label
-                      key={item.id}
-                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                        qualification === item.title_en
-                          ? 'border-primary bg-primary/5 shadow-sm'
-                          : 'border-border hover:bg-muted/40'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="qualification"
-                        checked={qualification === item.title_en}
-                        onChange={() => setQualification(item.title_en)}
-                        className="mt-1 text-primary focus:ring-primary"
-                      />
-                      <div className="text-xs">
-                        <span className="font-semibold text-foreground block text-sm">{item.title_en}</span>
-                        {subDesc && <span className="text-muted-foreground">{subDesc}</span>}
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* Next Button */}
             <div className="flex justify-end pt-4">
               <Button 
@@ -1397,10 +1313,6 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                 <span className="font-bold text-primary">{selectedCourse.course_name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">{language === 'si' ? 'කණ්ඩායම:' : 'Batch:'}</span>
-                <span className="font-bold text-foreground">{batchPreference}</span>
-              </div>
-              <div className="flex justify-between">
                 <span className="text-muted-foreground">{language === 'si' ? 'නගරය:' : 'City:'}</span>
                 <span className="font-bold text-foreground">{city ? `${city} ${district ? `(${district} District)` : ''}` : 'තෝරා නැත'}</span>
               </div>
@@ -1764,7 +1676,6 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                 <p><span className="font-semibold text-foreground">{language === 'si' ? 'දුරකථන අංකය:' : 'Mobile:'}</span> {phone}</p>
                 <p><span className="font-semibold text-foreground">{language === 'si' ? 'WhatsApp:' : 'WhatsApp:'}</span> {whatsapp}</p>
                 <p><span className="font-semibold text-foreground">{language === 'si' ? 'පාඨමාලාව:' : 'Course:'}</span> {selectedCourse.course_name}</p>
-                <p><span className="font-semibold text-foreground">{language === 'si' ? 'කණ්ඩායම:' : 'Batch:'}</span> {batchPreference}</p>
                 <p><span className="font-semibold text-foreground">{language === 'si' ? 'නගරය:' : 'City:'}</span> {city} {district ? `(${district} District)` : ''}</p>
                 <p><span className="font-semibold text-foreground">{language === 'si' ? 'ලිපිනය:' : 'Address:'}</span> {addressL1}</p>
                 <p><span className="font-semibold text-foreground">{language === 'si' ? 'උපන් දිනය:' : 'DOB:'}</span> {dob} ({gender})</p>

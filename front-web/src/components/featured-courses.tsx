@@ -30,12 +30,6 @@ function formatDuration(duration: string | number | undefined, lang: string) {
 }
 
 function getInstallmentHint(feeNumber: number, lang: string) {
-  if (feeNumber >= 12000) {
-    const installment = Math.round(feeNumber / 3);
-    if (lang === 'si') return `හෝ මසකට රු. ${installment.toLocaleString()} බැගින්`;
-    if (lang === 'ta') return `மாத தவணை LKR ${installment.toLocaleString()} முதல்`;
-    return `Installments from LKR ${installment.toLocaleString()}/mo`;
-  }
   return null;
 }
 
@@ -221,11 +215,6 @@ export default function FeaturedCourses({ courses }: FeaturedCoursesProps) {
                             {feeNumber > 0 ? `LKR ${feeNumber.toLocaleString()}` : "Contact for Fee"}
                           </span>
                         </div>
-                        {installmentText && (
-                          <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium block mt-0.5">
-                            {installmentText}
-                          </span>
-                        )}
                       </div>
                       
                       <span className="text-[10px] font-mono font-medium text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded shrink-0">
