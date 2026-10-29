@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const loggedUser = searchParams.get("loggedUser") || "";
-  const cleanUser = loggedUser.trim().replace(/[\/\\ \-_]/g, "").toUpperCase();
+  let cleanUser = loggedUser.trim().replace(/[\/\\ \-_]/g, "").toUpperCase();
 
   if (!cleanUser) {
     return NextResponse.json(
@@ -15,10 +15,15 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // If pure digits, prepend PA as standard Ceylon Pharma College index prefix
+  if (/^\d{3,}$/.test(cleanUser)) {
+    cleanUser = `PA${cleanUser}`;
+  }
+
   try {
     const res = await fetch(
       `${LMS_API_URL}/get-student-full-info?loggedUser=${encodeURIComponent(cleanUser)}`,
-      { next: { revalidate: 60 } }
+      { cache: "no-store" }
     );
 
     if (!res.ok) {
@@ -31,7 +36,7 @@ export async function GET(request: NextRequest) {
     const data = await res.json();
     return NextResponse.json(data, {
       headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        "Cache-Control": "no-store, no-cache, must-revalidate",
       },
     });
   } catch (error: any) {
