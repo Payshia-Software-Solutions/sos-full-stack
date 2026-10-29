@@ -78,12 +78,27 @@ function ResultsViewComponent() {
         async function fetchStudentDetails() {
             try {
                 setLoading(true);
-                const response = await fetch(`${LMS_API_URL}/get-student-full-info?loggedUser=${loggedUser}`);
-                if (!response.ok) {
-                    // This will trigger notFound() if the user itself doesn't exist
+                const cleanUser = (loggedUser || '').trim().replace(/[\/\\ \-_]/g, '').toUpperCase();
+                let data: ApiResponse | null = null;
+                try {
+                    const res = await fetch(`/api/certificate/details?loggedUser=${encodeURIComponent(cleanUser)}`);
+                    if (res.ok) {
+                        data = await res.json();
+                    }
+                } catch {
+                    // fallback
+                }
+
+                if (!data) {
+                    const response = await fetch(`${LMS_API_URL}/get-student-full-info?loggedUser=${encodeURIComponent(cleanUser)}`);
+                    if (response.ok) {
+                        data = await response.json();
+                    }
+                }
+
+                if (!data) {
                     throw new Error('Student not found');
                 }
-                const data: ApiResponse = await response.json();
                 setStudentData(data);
             } catch (error) {
                 console.error("Error fetching student details:", error);

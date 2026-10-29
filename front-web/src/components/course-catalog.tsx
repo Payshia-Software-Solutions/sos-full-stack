@@ -58,14 +58,7 @@ const formatDuration = (duration: string | number | undefined, lang: string) => 
   return `${num} Months`;
 };
 
-const getInstallmentHint = (fee: number, lang: string) => {
-  if (!fee || fee <= 0) return null;
-  const approx = Math.round((fee / 6) / 500) * 500;
-  if (approx < 2500) return null;
-  if (lang === "si") return `වාරික වශයෙන් ගෙවිය හැක (මසකට LKR ${approx.toLocaleString()})`;
-  if (lang === "ta") return `தவணைக் கொடுப்பனவு (மாதம் LKR ${approx.toLocaleString()})`;
-  return `Installments from LKR ${approx.toLocaleString()}/mo`;
-};
+const getInstallmentHint = (fee: number, lang: string) => null;
 
 interface CourseCatalogProps {
   initialCourses?: Course[];
@@ -541,11 +534,6 @@ export default function CourseCatalog({ initialCourses }: CourseCatalogProps) {
                                 <span className="text-xl font-bold font-headline text-foreground">
                                   {feeNumber > 0 ? `LKR ${feeNumber.toLocaleString()}` : "Contact for Fee"}
                                 </span>
-                                {installmentText && (
-                                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium block mt-0.5">
-                                    {installmentText}
-                                  </span>
-                                )}
                               </div>
                               <span className="text-[10px] font-mono font-medium text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded shrink-0">
                                 {course.course_code}
