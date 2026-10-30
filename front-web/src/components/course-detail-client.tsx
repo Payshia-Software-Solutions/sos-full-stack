@@ -24,7 +24,6 @@ import {
   Award,
   Sparkles,
   Users,
-  Check,
   Package,
   Truck,
   FileText,
@@ -52,15 +51,6 @@ const formatDuration = (duration: string | number | undefined, lang: string) => 
   return `${num} Months`;
 };
 
-const getInstallmentHint = (fee: number, lang: string) => {
-  if (!fee || fee <= 0) return null;
-  const approx = Math.round((fee / 6) / 500) * 500;
-  if (approx < 2000) return null;
-  if (lang === "si") return `වාරික වශයෙන් ගෙවිය හැක (මසකට LKR ${approx.toLocaleString()} සිට)`;
-  if (lang === "ta") return `தவணைக் கொடுப்பනவு (மாதம் LKR ${approx.toLocaleString()} முதல்)`;
-  return `Flexible Installments from LKR ${approx.toLocaleString()}/mo`;
-};
-
 interface CourseDetailClientProps {
   course: Course;
   slug: string;
@@ -81,7 +71,6 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
     : parseFloat(course.course_fee) || 0;
 
   const durationText = formatDuration(course.course_duration, language);
-  const installmentText = getInstallmentHint(feeNumber, language);
   const imgUrl = course.course_img?.startsWith('http') 
     ? course.course_img 
     : `https://content-provider.pharmacollege.lk/courses/${course.course_code}/${course.course_img}`;
@@ -506,7 +495,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                   </div>
 
                   <CardContent className="p-6">
-                    {/* Tuition & Installment Plan */}
+                    {/* Course Tuition */}
                     <div className="mb-5 pb-5 border-b border-border/80">
                       <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold block mb-1">
                         {isSinhala ? 'පාඨමාලා ගාස්තුව' : isTamil ? 'பாடநெறிக் கட்டணம்' : 'Course Tuition'}
@@ -519,12 +508,6 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                           {isSinhala ? 'සීමිත ආසන' : isTamil ? 'வரையறுக்கப்பட்ட இடங்கள்' : 'Limited Seats'}
                         </Badge>
                       </div>
-                      {installmentText && (
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-1.5 flex items-center gap-1.5">
-                          <Check className="w-3.5 h-3.5" />
-                          <span>{installmentText}</span>
-                        </p>
-                      )}
                     </div>
 
                     {/* Highlights Checklist */}
