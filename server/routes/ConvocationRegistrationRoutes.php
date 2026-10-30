@@ -90,6 +90,10 @@ return [
         return $convocationRegistrationController->updateAdditionalSeats($registration_id);
     },
 
+    'POST /convocation-registrations/(\d+)/update-refreshment-tokens/$' => function ($registration_id) use ($convocationRegistrationController) {
+        return $convocationRegistrationController->updateRefreshmentTokens($registration_id);
+    },
+
     // PUT update payment only
     'POST /convocation-registrations/(\d+)/update-package/$' => function ($registration_id) use ($convocationRegistrationController) {
         return $convocationRegistrationController->updatePackages($registration_id);

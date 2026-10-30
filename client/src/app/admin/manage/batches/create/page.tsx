@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { getParentCourseList, getBatches, createBatch } from '@/lib/actions/courses';
+import { getParentCourseList, getBatches, createBatch, getBatchSchedules, getEducationalQualifications } from '@/lib/actions/courses';
 import { getCriteriaLists } from '@/lib/actions/criteria';
 import type { ParentCourse, Batch } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -15,7 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Loader2, Sparkles, RefreshCw, Edit3 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Loader2, Sparkles, RefreshCw, Calendar, GraduationCap } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
@@ -34,6 +35,8 @@ const batchFormSchema = z.object({
     criteria_list: z.string().optional(),
     whatsapp_link: z.string().optional(),
     instructor_id: z.string().optional(),
+    allowed_schedules: z.string().optional(),
+    allowed_qualifications: z.string().optional(),
 });
 
 type BatchFormValues = z.infer<typeof batchFormSchema>;
@@ -56,6 +59,16 @@ export default function CreateBatchPage() {
     const { data: criteriaLists, isLoading: isLoadingCriteria } = useQuery({
         queryKey: ['criteriaLists'],
         queryFn: getCriteriaLists,
+    });
+
+    const { data: schedules, isLoading: isLoadingSchedules } = useQuery({
+        queryKey: ['batchSchedules'],
+        queryFn: getBatchSchedules,
+    });
+
+    const { data: qualifications, isLoading: isLoadingQualifications } = useQuery({
+        queryKey: ['educationalQualifications'],
+        queryFn: getEducationalQualifications,
     });
 
     // Auto-calculate the next sequential CPCC batch code (e.g. CPCC35)
@@ -91,6 +104,8 @@ export default function CreateBatchPage() {
             criteria_list: '',
             whatsapp_link: '',
             instructor_id: 'Dr. H.M.D.K. FONSEKA',
+            allowed_schedules: '',
+            allowed_qualifications: '',
         }
     });
 
@@ -198,102 +213,101 @@ export default function CreateBatchPage() {
                 <Card className="shadow-lg">
                     <CardHeader>
                         <CardTitle>Batch Details</CardTitle>
+                        <CardDescription>Fill out the basic information for this batch.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <CardContent className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label htmlFor="parent_course_id">Parent Course*</Label>
-                                <Controller
-                                    name="parent_course_id"
-                                    control={form.control}
-                                    render={({ field }) => (
-                                        <Select
-                                            key={field.value}
-                                            onValueChange={(val) => handleParentCourseChange(val)}
-                                            defaultValue={field.value ? String(field.value) : undefined}
-                                            value={field.value ? String(field.value) : undefined}
-                                            disabled={isLoadingParentCourses}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder={isLoadingParentCourses ? "Loading..." : "Select Parent Course"} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {parentCourses?.map(pc => (
-                                                    <SelectItem key={pc.id} value={String(pc.id)}>{pc.course_name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                />
-                                {form.formState.errors.parent_course_id && <p className="text-sm text-red-500">{form.formState.errors.parent_course_id.message}</p>}
+                                <Select
+                                    onValueChange={handleParentCourseChange}
+                                    defaultValue={form.getValues('parent_course_id')}
+                                    disabled={isLoadingParentCourses}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a parent course" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {parentCourses?.map(course => (
+                                            <SelectItem key={course.id} value={String(course.id)}>
+                                                {course.course_name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {form.formState.errors.parent_course_id && (
+                                    <p className="text-destructive text-sm">{form.formState.errors.parent_course_id.message}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="name">Batch Name*</Label>
-                                <Input id="name" {...form.register('name')} placeholder="e.g. Certificate Course In Pharmacy Practice Batch 22" />
-                                {form.formState.errors.name && <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>}
+                                <Input id="name" {...form.register('name')} placeholder="e.g. Certificate in Pharmacy Practice Batch 35" />
+                                {form.formState.errors.name && (
+                                    <p className="text-destructive text-sm">{form.formState.errors.name.message}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <Label htmlFor="courseCode" className="flex items-center gap-2">
-                                        Batch Code*
-                                        {!isCodeManual && (
-                                            <span className="inline-flex items-center gap-1 text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full font-medium">
-                                                <Sparkles className="h-3 w-3" /> Auto-generated
-                                            </span>
-                                        )}
-                                    </Label>
+                                <div className="flex justify-between items-center">
+                                    <Label htmlFor="courseCode">Batch Code*</Label>
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        className="text-xs h-6 px-2 text-muted-foreground hover:text-foreground"
+                                        className="h-6 text-xs text-muted-foreground hover:text-primary gap-1"
                                         onClick={() => {
+                                            setIsCodeManual(!isCodeManual);
                                             if (isCodeManual) {
-                                                setIsCodeManual(false);
                                                 form.setValue('courseCode', nextBatchCode, { shouldValidate: true });
-                                            } else {
-                                                setIsCodeManual(true);
                                             }
                                         }}
                                     >
-                                        {isCodeManual ? (
-                                            <span className="flex items-center gap-1"><RefreshCw className="h-3 w-3" /> Reset to Auto</span>
-                                        ) : (
-                                            <span className="flex items-center gap-1"><Edit3 className="h-3 w-3" /> Edit</span>
-                                        )}
+                                        {isCodeManual ? <RefreshCw className="h-3 w-3" /> : <Sparkles className="h-3 w-3 text-amber-500" />}
+                                        {isCodeManual ? 'Reset to Auto' : 'Edit Manually'}
                                     </Button>
                                 </div>
-                                <Input
-                                    id="courseCode"
-                                    {...form.register('courseCode')}
-                                    readOnly={!isCodeManual}
-                                    className={!isCodeManual ? "bg-muted font-mono font-semibold text-primary cursor-default" : "font-mono"}
-                                    placeholder="e.g. CPCC35"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    {!isCodeManual
-                                        ? "Automatically generated based on the latest batch code sequence."
-                                        : "Editing manually. Click 'Reset to Auto' to restore the generated code."}
-                                </p>
-                                {form.formState.errors.courseCode && <p className="text-sm text-red-500">{form.formState.errors.courseCode.message}</p>}
+                                <div className="relative">
+                                    <Input
+                                        id="courseCode"
+                                        {...form.register('courseCode')}
+                                        readOnly={!isCodeManual}
+                                        className={!isCodeManual ? "bg-muted font-mono font-bold text-primary" : "font-mono"}
+                                        placeholder="e.g. CPCC35"
+                                    />
+                                    {!isCodeManual && (
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded font-medium">
+                                            Auto-Assigned
+                                        </span>
+                                    )}
+                                </div>
+                                {form.formState.errors.courseCode && (
+                                    <p className="text-destructive text-sm">{form.formState.errors.courseCode.message}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="duration">Duration*</Label>
+                                <Label htmlFor="duration">Course Duration*</Label>
                                 <Input id="duration" {...form.register('duration')} placeholder="e.g. 6 Months" />
-                                {form.formState.errors.duration && <p className="text-sm text-red-500">{form.formState.errors.duration.message}</p>}
+                                {form.formState.errors.duration && (
+                                    <p className="text-destructive text-sm">{form.formState.errors.duration.message}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="fee">Batch Fee (LKR)*</Label>
-                                <Input id="fee" type="number" {...form.register('fee')} />
+                                <Label htmlFor="fee">Course Fee (LKR)*</Label>
+                                <Input id="fee" type="number" step="any" {...form.register('fee')} />
+                                {form.formState.errors.fee && (
+                                    <p className="text-destructive text-sm">{form.formState.errors.fee.message}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="registration_fee">Registration Fee (LKR)*</Label>
-                                <Input id="registration_fee" type="number" {...form.register('registration_fee')} />
+                                <Input id="registration_fee" type="number" step="any" {...form.register('registration_fee')} />
+                                {form.formState.errors.registration_fee && (
+                                    <p className="text-destructive text-sm">{form.formState.errors.registration_fee.message}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -316,6 +330,141 @@ export default function CreateBatchPage() {
                                 <Input id="instructor_id" {...form.register('instructor_id')} placeholder="e.g. Dr. H.M.D.K. FONSEKA" />
                                 <p className="text-xs text-muted-foreground">Auto-assigned from parent course (can be changed if needed).</p>
                             </div>
+                        </div>
+
+                        {/* Preferred Class Schedules Setup */}
+                        <div className="space-y-3 p-4 border rounded-md bg-blue-50/20 dark:bg-blue-950/10 border-blue-200 dark:border-blue-900">
+                            <div className="flex items-center gap-2">
+                                <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                <div>
+                                    <Label className="text-base font-semibold">Allowed Class Schedules</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Select which class schedules applicants can choose for this batch. (If none checked, all will be available by default).
+                                    </p>
+                                </div>
+                            </div>
+                            {isLoadingSchedules ? (
+                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                            ) : schedules && schedules.length > 0 ? (
+                                <Controller
+                                    name="allowed_schedules"
+                                    control={form.control}
+                                    render={({ field }) => {
+                                        const selectedIds = field.value ? String(field.value).split(',').filter(Boolean) : [];
+                                        return (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                                                {schedules.map((schedule) => {
+                                                    const isChecked = selectedIds.includes(String(schedule.id));
+                                                    return (
+                                                        <div
+                                                            key={schedule.id}
+                                                            onClick={() => {
+                                                                let newIds = [...selectedIds];
+                                                                if (isChecked) {
+                                                                    newIds = newIds.filter(id => id !== String(schedule.id));
+                                                                } else {
+                                                                    newIds.push(String(schedule.id));
+                                                                }
+                                                                field.onChange(newIds.join(','));
+                                                            }}
+                                                            className={`flex items-start space-x-3 p-3 rounded-lg border transition-all cursor-pointer ${
+                                                                isChecked ? 'bg-primary/5 border-primary shadow-sm' : 'hover:bg-muted/50'
+                                                            }`}
+                                                        >
+                                                            <Checkbox
+                                                                checked={isChecked}
+                                                                onCheckedChange={() => {}}
+                                                            />
+                                                            <div className="space-y-1 leading-none flex-1">
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <Label className="font-semibold cursor-pointer">
+                                                                        {schedule.name_en}
+                                                                    </Label>
+                                                                    {schedule.badge && (
+                                                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                                                            {schedule.badge}
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-xs text-muted-foreground mt-1">
+                                                                    {schedule.days} • {schedule.time_slot}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    }}
+                                />
+                            ) : (
+                                <p className="text-sm italic text-muted-foreground">No class schedules found.</p>
+                            )}
+                        </div>
+
+                        {/* Eligible Educational Qualifications Setup */}
+                        <div className="space-y-3 p-4 border rounded-md bg-purple-50/20 dark:bg-purple-950/10 border-purple-200 dark:border-purple-900">
+                            <div className="flex items-center gap-2">
+                                <GraduationCap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                <div>
+                                    <Label className="text-base font-semibold">Eligible Educational Qualifications</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Select which qualifications are accepted for this batch. (If none checked, all will be available by default).
+                                    </p>
+                                </div>
+                            </div>
+                            {isLoadingQualifications ? (
+                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                            ) : qualifications && qualifications.length > 0 ? (
+                                <Controller
+                                    name="allowed_qualifications"
+                                    control={form.control}
+                                    render={({ field }) => {
+                                        const selectedIds = field.value ? String(field.value).split(',').filter(Boolean) : [];
+                                        return (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                                                {qualifications.map((q) => {
+                                                    const isChecked = selectedIds.includes(String(q.id));
+                                                    return (
+                                                        <div
+                                                            key={q.id}
+                                                            onClick={() => {
+                                                                let newIds = [...selectedIds];
+                                                                if (isChecked) {
+                                                                    newIds = newIds.filter(id => id !== String(q.id));
+                                                                } else {
+                                                                    newIds.push(String(q.id));
+                                                                }
+                                                                field.onChange(newIds.join(','));
+                                                            }}
+                                                            className={`flex items-start space-x-3 p-3 rounded-lg border transition-all cursor-pointer ${
+                                                                isChecked ? 'bg-primary/5 border-primary shadow-sm' : 'hover:bg-muted/50'
+                                                            }`}
+                                                        >
+                                                            <Checkbox
+                                                                checked={isChecked}
+                                                                onCheckedChange={() => {}}
+                                                            />
+                                                            <div className="space-y-1 leading-none flex-1">
+                                                                <Label className="font-semibold cursor-pointer">
+                                                                    {q.title_en}
+                                                                </Label>
+                                                                {q.title_si && (
+                                                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                                                        {q.title_si}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    }}
+                                />
+                            ) : (
+                                <p className="text-sm italic text-muted-foreground">No qualifications found.</p>
+                            )}
                         </div>
 
                         <div className="space-y-2 mt-6 p-4 border rounded-md bg-muted/20">
@@ -356,10 +505,10 @@ export default function CreateBatchPage() {
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                    )
+                                                    );
                                                 })}
                                             </div>
-                                        )
+                                        );
                                     }}
                                 />
                             ) : (

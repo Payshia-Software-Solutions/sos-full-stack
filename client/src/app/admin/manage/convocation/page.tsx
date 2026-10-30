@@ -164,7 +164,7 @@ export default function ConvocationListPage() {
 
     const registrationStats = useMemo(() => {
         if (!registrations || !packages) {
-            return { totalBookings: 0, pendingPayments: 0, confirmedPayments: 0, additionalSeats: 0, totalVerified: 0, totalDue: 0 };
+            return { totalBookings: 0, pendingPayments: 0, confirmedPayments: 0, additionalSeats: 0, refreshmentTokens: 0, totalVerified: 0, totalDue: 0 };
         }
         
         const activeRegs = registrations.filter(r => 
@@ -197,6 +197,7 @@ export default function ConvocationListPage() {
             confirmedPayments: confirmed.length,
             pendingPayments: activeRegs.length - confirmed.length,
             additionalSeats: activeRegs.reduce((acc, reg) => acc + (parseInt(reg.additional_seats, 10) || 0), 0),
+            refreshmentTokens: activeRegs.reduce((acc, reg) => acc + (parseInt(reg.refreshment_tokens || '0', 10) || 0), 0),
             totalVerified,
             totalDue
         };
@@ -340,6 +341,7 @@ export default function ConvocationListPage() {
                 'Package',
                 'Session',
                 'Seats',
+                'Refreshment Tokens',
                 'Payment Status',
                 'Reg. Status',
                 'Total Payable',
@@ -385,6 +387,7 @@ export default function ConvocationListPage() {
                     packageName,
                     reg.session,
                     reg.additional_seats,
+                    reg.refreshment_tokens || '0',
                     reg.payment_status,
                     reg.registration_status,
                     reg.dueAmount?.toFixed(2),
@@ -548,6 +551,7 @@ export default function ConvocationListPage() {
                 <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Pending Payments</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.pendingPayments} /></div></CardContent></Card>
                 <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Confirmed Payments</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.confirmedPayments} /></div></CardContent></Card>
                 <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Additional Seats</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.additionalSeats} /></div></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Refreshment Tokens</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.refreshmentTokens} /></div></CardContent></Card>
                 <Card className="bg-primary/5 border-primary/20"><CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0"><CardTitle className="text-sm font-bold text-primary">Verified Revenue</CardTitle><Banknote className="h-4 w-4 text-primary" /></CardHeader><CardContent><div className="text-xl font-bold text-primary">LKR {registrationStats.totalVerified.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div></CardContent></Card>
                 <Card className="bg-destructive/5 border-destructive/20"><CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0"><CardTitle className="text-sm font-bold text-destructive">Due Balance</CardTitle><Wallet className="h-4 w-4 text-destructive" /></CardHeader><CardContent><div className="text-xl font-bold text-destructive">LKR {registrationStats.totalDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div></CardContent></Card>
             </section>
@@ -642,6 +646,12 @@ export default function ConvocationListPage() {
                                                     <div className="flex flex-wrap items-center gap-2 pt-1">
                                                         <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100">Pkg: {packageName}</span>
                                                         <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase">Sess {reg.session}</Badge>
+                                                        {parseInt(reg.additional_seats || '0', 10) > 0 && (
+                                                            <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase">Seats: {reg.additional_seats}</Badge>
+                                                        )}
+                                                        {parseInt(reg.refreshment_tokens || '0', 10) > 0 && (
+                                                            <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase bg-orange-50 text-orange-700 border-orange-200">Refreshments: {reg.refreshment_tokens}</Badge>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </TableCell>

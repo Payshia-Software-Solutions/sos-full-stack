@@ -165,6 +165,7 @@ $leadRoutes = require './routes/Lead/LeadRoutes.php';
 $studentDocumentVerificationRoutes = require './routes/Student/studentDocumentVerificationRoutes.php';
 $announcementRoutes = require './routes/AnnouncementRoutes.php';
 $paymentGateSettingsRoutes = require './routes/Settings/paymentGateSettingsRoutes.php';
+$batchScheduleRoutes = require './routes/BatchScheduleRoutes.php';
 // Combine all routes
 $routes = array_merge(
     $userRoutes,
@@ -313,7 +314,8 @@ $routes = array_merge(
     $leadRoutes,
     $studentDocumentVerificationRoutes,
     $announcementRoutes,
-    $paymentGateSettingsRoutes
+    $paymentGateSettingsRoutes,
+    $batchScheduleRoutes
 );
 
 

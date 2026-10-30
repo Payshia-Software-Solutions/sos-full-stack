@@ -16,6 +16,17 @@ class UserFullDetailsController
         echo json_encode($users);
     }
 
+    public function searchUsers()
+    {
+        $q = $_GET['q'] ?? '';
+        if (strlen(trim($q)) < 2) {
+            echo json_encode([]);
+            return;
+        }
+        $users = $this->model->searchPublicUsers($q);
+        echo json_encode($users);
+    }
+
     public function getUserById($id)
     {
         $user = $this->model->getUserById($id);

@@ -235,6 +235,14 @@ class ConvocationRegistrationController
         if ($convocationId) {
             $convocation = $this->convocationModel->getConvocationById($convocationId);
             if ($convocation) {
+                $configuredSessions = (int)($convocation['session_count'] ?? 1);
+                if ($session > $configuredSessions) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'error' => "Session {$session} is not available for this ceremony. Only {$configuredSessions} session(s) configured."
+                    ]);
+                    return;
+                }
                 $maxSeats = ($session === 2) ? (int)($convocation['session_2'] ?? 0) : (int)($convocation['student_seats'] ?? 0);
                 if ($maxSeats > 0) {
                     $currentRegistered = $this->model->getSessionCount($convocationId, $session);
@@ -328,7 +336,15 @@ class ConvocationRegistrationController
             if ($convocationId) {
                 $convocation = $this->convocationModel->getConvocationById($convocationId);
                 if ($convocation) {
-                    $maxSeats = ($session === 2) ? (int)($convocation['session_2'] ?? 0) : (int)($convocation['student_seats'] ?? 0);
+                    $configuredSessions = (int)($convocation['session_count'] ?? 1);
+                if ($session > $configuredSessions) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'error' => "Session {$session} is not available for this ceremony. Only {$configuredSessions} session(s) configured."
+                    ]);
+                    return;
+                }
+                $maxSeats = ($session === 2) ? (int)($convocation['session_2'] ?? 0) : (int)($convocation['student_seats'] ?? 0);
                     if ($maxSeats > 0) {
                         $currentCount = $this->model->getSessionCount($convocationId, $session);
                         if ($currentCount >= $maxSeats) {
@@ -353,7 +369,8 @@ class ConvocationRegistrationController
                 $paymentSlipPath,
                 $data['additional_seats'] ?? 0,
                 $session,
-                $convocationId
+                $convocationId,
+                $data['refreshment_tokens'] ?? 0
             );
 
             $this->pdo->commit();
@@ -405,7 +422,8 @@ class ConvocationRegistrationController
             $updated_data['registration_status'],
             $updated_data['convocation_id'],
             $updated_data['session'],
-            $updated_data['additional_seats']
+            $updated_data['additional_seats'],
+            $updated_data['refreshment_tokens'] ?? 0
         );
 
         if ($success) {
@@ -477,6 +495,33 @@ class ConvocationRegistrationController
             echo json_encode(['error' => 'Missing required session field']);
             return;
         }
+
+
+    public function updateRefreshmentTokens($reference_number)
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $tokens = $_POST['refreshment_tokens'] ?? $input['refreshment_tokens'] ?? null;
+        if ($tokens === null) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Missing required refreshment_tokens field']);
+            return;
+        }
+
+        $refreshment_tokens = (int)$tokens;
+
+        $updated = $this->model->updateRefreshmentTokens($reference_number, $refreshment_tokens);
+        if ($updated) {
+            http_response_code(200);
+            echo json_encode([
+                'status' => 'Success',
+                'message' => 'Refreshment tokens updated to ' . $refreshment_tokens,
+                'reference_number' => $reference_number,
+            ]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to update refreshment tokens']);
+        }
+    }
 
         $additional_seats = $_POST['additional_seats'];
 
@@ -902,7 +947,19 @@ class ConvocationRegistrationController
             throw new RuntimeException('Package not found');
         }
 
-        $convocationBalance = ($package['price'] + ($registration['additional_seats'] * PARENT_SEAT_RATE)) - $registration['payment_amount'];
+        $ceremony = !empty($registration['convocation_id']) ? $this->convocationModel->getConvocationById($registration['convocation_id']) : null;
+        $seatRate = (isset($ceremony['parent_seat_price']) && $ceremony['parent_seat_price'] !== null)
+            ? (float)$ceremony['parent_seat_price']
+            : (defined('PARENT_SEAT_RATE') ? PARENT_SEAT_RATE : 750);
+        $tokenRate = (isset($ceremony['refreshment_token_price']) && $ceremony['refreshment_token_price'] !== null)
+            ? (float)$ceremony['refreshment_token_price']
+            : 0;
+
+        $totalPayable = (float)$package['price']
+            + (((int)($registration['additional_seats'] ?? 0)) * $seatRate)
+            + (((int)($registration['refreshment_tokens'] ?? 0)) * $tokenRate);
+
+        $convocationBalance = $totalPayable - (float)$registration['payment_amount'];
         $courseBalance      = $this->CcEvaluationController->model->GetStudentBalance($studentNumber)['studentBalance'] ?? 0;
 
         return [
@@ -925,7 +982,19 @@ class ConvocationRegistrationController
             throw new RuntimeException('Package not found');
         }
 
-        $convocationBalance = ($package['price'] + ($registration['additional_seats'] * PARENT_SEAT_RATE)) - $registration['payment_amount'];
+        $ceremony = !empty($registration['convocation_id']) ? $this->convocationModel->getConvocationById($registration['convocation_id']) : null;
+        $seatRate = (isset($ceremony['parent_seat_price']) && $ceremony['parent_seat_price'] !== null)
+            ? (float)$ceremony['parent_seat_price']
+            : (defined('PARENT_SEAT_RATE') ? PARENT_SEAT_RATE : 750);
+        $tokenRate = (isset($ceremony['refreshment_token_price']) && $ceremony['refreshment_token_price'] !== null)
+            ? (float)$ceremony['refreshment_token_price']
+            : 0;
+
+        $totalPayable = (float)$package['price']
+            + (((int)($registration['additional_seats'] ?? 0)) * $seatRate)
+            + (((int)($registration['refreshment_tokens'] ?? 0)) * $tokenRate);
+
+        $convocationBalance = $totalPayable - (float)$registration['payment_amount'];
         $courseBalance      = $this->CcEvaluationController->model->GetStudentBalance($student_number)['studentBalance'] ?? 0;
 
         return [

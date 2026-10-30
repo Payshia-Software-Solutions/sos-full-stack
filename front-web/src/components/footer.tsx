@@ -21,8 +21,8 @@ export default function Footer() {
     { key: 'home', href: '/' },
     { key: 'about', href: '/about' },
     { key: 'contact', href: '/contact' },
-    { key: 'blogs', href: '#' },
-    { key: 'event', href: '#' },
+    { key: 'blogs', href: '/blogs' },
+    { key: 'event', href: '/#events' },
   ];
 
   return (
@@ -49,9 +49,8 @@ export default function Footer() {
             {t('footerSlogan')}
           </p>
            <div className="flex items-center gap-4 mt-2">
-            <a href="#" aria-label="Facebook" className="text-muted-foreground hover:text-primary transition-colors"><Facebook className="h-5 w-5" /></a>
-            <a href="#" aria-label="Twitter" className="text-muted-foreground hover:text-primary transition-colors"><Twitter className="h-5 w-5" /></a>
-            <a href="#" aria-label="LinkedIn" className="text-muted-foreground hover:text-primary transition-colors"><Linkedin className="h-5 w-5" /></a>
+            <a href="https://www.facebook.com/ceylonpharmacommunity" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-muted-foreground hover:text-primary transition-colors"><Facebook className="h-5 w-5" /></a>
+            <a href="https://www.linkedin.com/school/ceylon-pharma-college" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-muted-foreground hover:text-primary transition-colors"><Linkedin className="h-5 w-5" /></a>
           </div>
         </div>
         <div className="grid gap-4 md:col-span-2">

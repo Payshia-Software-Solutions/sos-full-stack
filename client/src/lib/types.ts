@@ -109,6 +109,29 @@ export interface Batch {
   certification?: string;
   mini_description?: string;
   whatsapp_link?: string | null;
+  criteria_list?: string | null;
+  allowed_schedules?: string | null;
+  allowed_qualifications?: string | null;
+}
+
+export interface BatchSchedule {
+  id: string | number;
+  name_en: string;
+  name_si?: string;
+  name_ta?: string;
+  days?: string;
+  time_slot?: string;
+  badge?: string;
+  is_active: number | boolean;
+}
+
+export interface EducationalQualification {
+  id: string | number;
+  title_en: string;
+  title_si?: string;
+  title_ta?: string;
+  display_order?: number;
+  is_active: number | boolean;
 }
 
 export interface Recording {
@@ -209,6 +232,7 @@ export interface ConvocationRegistration {
     hash_value: string;
     image_path: string;
     additional_seats: string;
+    refreshment_tokens?: string;
     session: string;
     ceremony_number: string;
     certificate_print_status: string;
@@ -518,6 +542,9 @@ export interface ApiCourse {
     start_date?: string;
     end_date?: string;
     whatsapp_link?: string | null;
+  criteria_list?: string | null;
+  allowed_schedules?: string | null;
+  allowed_qualifications?: string | null;
 }
 
 export interface ApiCourseResponse {
@@ -750,6 +777,9 @@ export interface Course {
   courseCode: string;
   course_img?: string | null;
   whatsapp_link?: string | null;
+  criteria_list?: string | null;
+  allowed_schedules?: string | null;
+  allowed_qualifications?: string | null;
 }
 
 export interface CourseContentModule {
@@ -904,6 +934,9 @@ export interface ConvocationCeremony {
     held_on: string;
     session_count: string;
     parent_seats: string;
+    parent_seat_price?: string;
+    refreshment_tokens?: string;
+    refreshment_token_price?: string;
     student_seats: string;
     session_2: string;
     created_by: string;

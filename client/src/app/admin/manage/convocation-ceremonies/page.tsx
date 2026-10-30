@@ -31,6 +31,9 @@ const ceremonyFormSchema = z.object({
     held_on: z.string().min(1, "Event date is required."),
     session_count: z.coerce.number().min(1, "There must be at least 1 session."),
     parent_seats: z.coerce.number().min(0, "Parent seats cannot be negative."),
+    parent_seat_price: z.coerce.number().min(0, "Parent seat price cannot be negative.").default(750),
+    refreshment_tokens: z.coerce.number().min(0, "Refreshment tokens cannot be negative.").default(0),
+    refreshment_token_price: z.coerce.number().min(0, "Token price cannot be negative.").default(0),
     student_seats: z.coerce.number().min(0, "Student seats cannot be negative."),
     session_2: z.coerce.number().min(0, "Session 2 seats cannot be negative."),
     accept_booking: z.boolean().default(true),
@@ -49,6 +52,9 @@ const CeremonyForm = ({ ceremony, onClose }: { ceremony?: ConvocationCeremony | 
             held_on: ceremony ? format(parseISO(ceremony.held_on), 'yyyy-MM-dd') : '',
             session_count: ceremony ? parseInt(ceremony.session_count, 10) : 1,
             parent_seats: ceremony ? parseInt(ceremony.parent_seats, 10) : 0,
+            parent_seat_price: ceremony?.parent_seat_price ? parseFloat(ceremony.parent_seat_price) : 750,
+            refreshment_tokens: ceremony?.refreshment_tokens ? parseInt(ceremony.refreshment_tokens, 10) : 0,
+            refreshment_token_price: ceremony?.refreshment_token_price ? parseFloat(ceremony.refreshment_token_price) : 0,
             student_seats: ceremony ? parseInt(ceremony.student_seats, 10) : 0,
             session_2: ceremony ? parseInt(ceremony.session_2, 10) : 0,
             accept_booking: ceremony ? String(ceremony.accept_booking) === '1' : true,
@@ -94,23 +100,38 @@ const CeremonyForm = ({ ceremony, onClose }: { ceremony?: ConvocationCeremony | 
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="session_count">Session Count</Label>
-                    <Input id="session_count" type="number" {...form.register('session_count')} />
+                    <Input id="session_count" type="number" min="1" {...form.register('session_count')} />
                     {form.formState.errors.session_count && <p className="text-sm text-destructive">{form.formState.errors.session_count.message}</p>}
                 </div>
                  <div className="space-y-2">
-                    <Label htmlFor="student_seats">Student Seats</Label>
+                    <Label htmlFor="student_seats">Student Seats (Session 1)</Label>
                     <Input id="student_seats" type="number" {...form.register('student_seats')} />
                     {form.formState.errors.student_seats && <p className="text-sm text-destructive">{form.formState.errors.student_seats.message}</p>}
                 </div>
                  <div className="space-y-2">
-                    <Label htmlFor="parent_seats">Parent Seats</Label>
+                    <Label htmlFor="session_2">Session 2 Seats {form.watch('session_count') < 2 && '(Inactive)'}</Label>
+                    <Input id="session_2" type="number" disabled={Number(form.watch('session_count')) < 2} {...form.register('session_2')} />
+                    {form.formState.errors.session_2 && <p className="text-sm text-destructive">{form.formState.errors.session_2.message}</p>}
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="parent_seats">Total Parent Seats Capacity</Label>
                     <Input id="parent_seats" type="number" {...form.register('parent_seats')} />
                     {form.formState.errors.parent_seats && <p className="text-sm text-destructive">{form.formState.errors.parent_seats.message}</p>}
                 </div>
                  <div className="space-y-2">
-                    <Label htmlFor="session_2">Session 2 Seats</Label>
-                    <Input id="session_2" type="number" {...form.register('session_2')} />
-                    {form.formState.errors.session_2 && <p className="text-sm text-destructive">{form.formState.errors.session_2.message}</p>}
+                    <Label htmlFor="parent_seat_price">Parent Seat Price (LKR)</Label>
+                    <Input id="parent_seat_price" type="number" step="50" {...form.register('parent_seat_price')} />
+                    {form.formState.errors.parent_seat_price && <p className="text-sm text-destructive">{form.formState.errors.parent_seat_price.message}</p>}
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="refreshment_tokens">Total Refreshment Tokens Capacity</Label>
+                    <Input id="refreshment_tokens" type="number" {...form.register('refreshment_tokens')} />
+                    {form.formState.errors.refreshment_tokens && <p className="text-sm text-destructive">{form.formState.errors.refreshment_tokens.message}</p>}
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="refreshment_token_price">Refreshment Token Price (LKR, 0 if free)</Label>
+                    <Input id="refreshment_token_price" type="number" step="10" {...form.register('refreshment_token_price')} />
+                    {form.formState.errors.refreshment_token_price && <p className="text-sm text-destructive">{form.formState.errors.refreshment_token_price.message}</p>}
                 </div>
             </div>
             <div className="md:col-span-2 flex items-center space-x-2 pt-4">
@@ -180,7 +201,11 @@ export default function ManageConvocationCeremoniesPage() {
                         <DialogTitle>{selectedCeremony ? 'Edit' : 'Create'} Convocation Ceremony</DialogTitle>
                         <DialogDescription>{selectedCeremony ? 'Modify the details of the ceremony.' : 'Add a new convocation event.'}</DialogDescription>
                     </DialogHeader>
-                    <CeremonyForm ceremony={selectedCeremony} onClose={() => setIsFormOpen(false)} />
+                    <CeremonyForm 
+                        key={selectedCeremony ? `${selectedCeremony.id}-${selectedCeremony.parent_seat_price}-${selectedCeremony.refreshment_tokens}` : 'new'} 
+                        ceremony={selectedCeremony} 
+                        onClose={() => setIsFormOpen(false)} 
+                    />
                 </DialogContent>
             </Dialog>
 
@@ -235,6 +260,8 @@ export default function ManageConvocationCeremoniesPage() {
                                         <TableHead>Date</TableHead>
                                         <TableHead>Sessions</TableHead>
                                         <TableHead>Student Seats</TableHead>
+                                        <TableHead>Parent Seat Price</TableHead>
+                                        <TableHead>Refreshment Tokens</TableHead>
                                         <TableHead>Booking Status</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
@@ -247,6 +274,8 @@ export default function ManageConvocationCeremoniesPage() {
                                                 <TableCell>{format(new Date(c.held_on), 'PPP')}</TableCell>
                                                 <TableCell>{c.session_count}</TableCell>
                                                 <TableCell>{c.student_seats}</TableCell>
+                                                <TableCell>LKR {Number(c.parent_seat_price || 750).toLocaleString()}</TableCell>
+                                                <TableCell>{c.refreshment_tokens || '0'}</TableCell>
                                                 <TableCell>
                                                     <Badge variant={String(c.accept_booking) === '1' ? 'default' : 'secondary'}>
                                                         {String(c.accept_booking) === '1' ? 'Open' : 'Closed'}
@@ -281,7 +310,7 @@ export default function ManageConvocationCeremoniesPage() {
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center h-24">No ceremonies found.</TableCell>
+                                            <TableCell colSpan={8} className="text-center h-24">No ceremonies found.</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>

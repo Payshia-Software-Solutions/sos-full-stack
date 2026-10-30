@@ -226,6 +226,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
     const [pendingPackageId, setPendingPackageId] = useState('');
     const [editSession, setEditSession] = useState<'1' | '2'>('1');
     const [editSeats, setEditSeats] = useState('0');
+    const [editTokens, setEditTokens] = useState('0');
     const [editName, setEditName] = useState('');
     const [editPhone, setEditPhone] = useState('');
     const [editCourseIds, setEditCourseIds] = useState<string[]>([]);
@@ -420,6 +421,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
             setEditPackageId(registration.package_id || '');
             setEditSession(registration.session as '1' | '2' || '1');
             setEditSeats(registration.additional_seats || '0');
+            setEditTokens(registration.refreshment_tokens || '0');
             setEditName(registration.name_on_certificate || '');
             setEditPhone(registration.telephone_1 || '');
             setEditCourseIds(registration.course_id.split(',').map(s => s.trim()).filter(Boolean));
@@ -460,6 +462,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
             package_id: editPackageId,
             session: editSession,
             additional_seats: editSeats,
+            refreshment_tokens: editTokens,
             name_on_certificate: editName,
             telephone_1: editPhone,
             course_id: editCourseIds.join(','),
@@ -705,6 +708,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                                             <div className="flex gap-2">
                                                 <Badge variant="outline">Session {registration.session}</Badge>
                                                 <Badge variant="outline">{registration.additional_seats} Guest Seats</Badge>
+                                                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">{registration.refreshment_tokens || '0'} Refreshment Tokens</Badge>
                                             </div>
                                         </div>
                                         <div className="space-y-1">
