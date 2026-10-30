@@ -11,16 +11,6 @@ $userFullDetailsController = new UserFullDetailsController($pdo);
 return [
     'GET /userFullDetails/search' => [$userFullDetailsController, 'searchUsers'],
     'GET /userFullDetails/search/' => [$userFullDetailsController, 'searchUsers'],
-    'GET /userFullDetails/search/
-    'GET /userFullDetails/' => [$userFullDetailsController, 'getAllUsers'],
-    'GET /userFullDetails/{id}/' => [$userFullDetailsController, 'getUserById'],
-    'GET /userFullDetails/username/{username}/' => [$userFullDetailsController, 'getUserByUserName'],
-    'PUT /userFullDetails/update-certificate-name/{username}/' => [$userFullDetailsController, 'updateCertificateNameByUserName'],
-    'POST /userFullDetails/' => [$userFullDetailsController, 'createUser'],
-    'PUT /userFullDetails/{id}/' => [$userFullDetailsController, 'updateUser'],
-    'DELETE /userFullDetails/{id}/' => [$userFullDetailsController, 'deleteUser']
-];
- => [$userFullDetailsController, 'searchUsers'],
     'GET /userFullDetails/' => [$userFullDetailsController, 'getAllUsers'],
     'GET /userFullDetails/{id}/' => [$userFullDetailsController, 'getUserById'],
     'GET /userFullDetails/username/{username}/' => [$userFullDetailsController, 'getUserByUserName'],

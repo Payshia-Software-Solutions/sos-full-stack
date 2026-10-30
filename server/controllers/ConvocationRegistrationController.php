@@ -496,6 +496,21 @@ class ConvocationRegistrationController
             return;
         }
 
+        $additional_seats = $_POST['additional_seats'];
+
+        $updated = $this->model->updateAdditionalSeats($reference_number, $additional_seats);
+        if ($updated) {
+            http_response_code(201);
+            echo json_encode([
+                'status' => 'Success',
+                'message' => 'Additional Seats updated to ' . $additional_seats,
+                'reference_number' => $reference_number,
+            ]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to update convocation registration']);
+        }
+    }
 
     public function updateRefreshmentTokens($reference_number)
     {
@@ -522,23 +537,6 @@ class ConvocationRegistrationController
             echo json_encode(['error' => 'Failed to update refreshment tokens']);
         }
     }
-
-        $additional_seats = $_POST['additional_seats'];
-
-        $updated = $this->model->updateAdditionalSeats($reference_number, $additional_seats);
-        if ($updated) {
-            http_response_code(201);
-            echo json_encode([
-                'status' => 'Success',
-                'message' => 'Additional Seats updated to ' . $additional_seats,
-                'reference_number' => $reference_number,
-            ]);
-        } else {
-            http_response_code(500);
-            echo json_encode(['error' => 'Failed to update convocation registration']);
-        }
-    }
-
 
     public function updatePackages($reference_number)
     {
