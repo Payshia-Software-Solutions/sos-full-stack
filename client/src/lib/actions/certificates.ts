@@ -10,6 +10,9 @@ type CeremonyFormData = {
     held_on: string;
     session_count: number;
     parent_seats: number;
+    parent_seat_price?: number;
+    refreshment_tokens?: number;
+    refreshment_token_price?: number;
     student_seats: number;
     session_2: number;
     accept_booking: boolean;
@@ -161,6 +164,9 @@ export const createConvocationCeremony = async (data: CeremonyFormData): Promise
         held_on: `${data.held_on} 00:00:00`,
         session_count: String(data.session_count),
         parent_seats: String(data.parent_seats),
+        parent_seat_price: String(data.parent_seat_price ?? 750),
+        refreshment_tokens: String(data.refreshment_tokens ?? 0),
+        refreshment_token_price: String(data.refreshment_token_price ?? 0),
         student_seats: String(data.student_seats),
         session_2: String(data.session_2),
         created_by: data.created_by,
@@ -186,6 +192,9 @@ export const updateConvocationCeremony = async (id: string, data: CeremonyFormDa
         held_on: `${data.held_on} 00:00:00`,
         session_count: String(data.session_count),
         parent_seats: String(data.parent_seats),
+        parent_seat_price: String(data.parent_seat_price ?? 750),
+        refreshment_tokens: String(data.refreshment_tokens ?? 0),
+        refreshment_token_price: String(data.refreshment_token_price ?? 0),
         student_seats: String(data.student_seats),
         session_2: String(data.session_2),
         created_by: data.created_by,
@@ -617,4 +626,17 @@ export const getConvocationStudentCeremonyNumber = async (studentNumber: string,
     } catch {
         return null;
     }
+};
+
+export const updateConvocationRefreshmentTokens = async (registrationId: string, tokens: number): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/convocation-registrations/${registrationId}/update-refreshment-tokens/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshment_tokens: tokens }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update refreshment tokens' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to update refreshment tokens');
+    }
+    return response.json();
 };

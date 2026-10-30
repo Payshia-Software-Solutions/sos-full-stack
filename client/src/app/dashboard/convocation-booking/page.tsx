@@ -168,6 +168,12 @@ const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: Con
                                 <p className="font-semibold text-lg">{booking.additional_seats}</p>
                             </div>
                         )}
+                        {parseInt(booking.refreshment_tokens || '0', 10) > 0 && (
+                            <div>
+                                <p className="text-primary-foreground/70 text-[10px] uppercase font-bold tracking-wider mb-1">Refreshments</p>
+                                <p className="font-semibold text-lg">{booking.refreshment_tokens} Tokens</p>
+                            </div>
+                        )}
                         <div>
                             <p className="text-primary-foreground/70 text-[10px] uppercase font-bold tracking-wider mb-1">Date</p>
                             <p className="font-semibold text-md">{format(new Date(booking.registered_at), 'MMM d, yyyy')}</p>
@@ -327,7 +333,7 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
                                 </div>
                             </div>
                             
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                                 <div className="space-y-1">
                                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">Session</Label>
                                     <p className="text-sm font-semibold">Session {booking.session}</p>
@@ -335,6 +341,10 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
                                 <div className="space-y-1">
                                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">Guest Seats</Label>
                                     <p className="text-sm font-semibold">{booking.additional_seats}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Refreshments</Label>
+                                    <p className="text-sm font-semibold">{booking.refreshment_tokens || '0'} Tokens</p>
                                 </div>
                             </div>
 

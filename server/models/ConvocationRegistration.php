@@ -10,23 +10,31 @@ class ConvocationRegistration
         $this->pdo = $pdo;
     }
 
-
-    // Read all registrations
+    // Get all registrations
     public function getAllRegistrations()
     {
-        $sql = "SELECT 
-    cr.*, 
-    p.package_name, 
-    p.price, 
-    p.parent_seat_count, 
-    p.garland, 
-    p.graduation_cloth, 
-    p.photo_package, 
-    p.is_active, 
-    p.created_at AS package_created_at, 
-    p.updated_at AS package_updated_at,
+        $sql = "
+SELECT 
+    cr.*,
+    u.full_name,
+    u.address,
+    u.telephone_1,
+    u.telephone_2,
     u.name_on_certificate,
-    u.telephone_1
+    u.e_mail,
+    p.package_name,
+    p.price,
+    p.parent_seat_count,
+    p.student_seat,
+    p.vip_seat,
+    p.garland,
+    p.scroll,
+    p.graduation_cloth,
+    p.certificate_file,
+    p.photo_package,
+    p.video_360,
+    p.refreshments,
+    p.is_active AS package_is_active
 FROM convocation_registrations cr
 LEFT JOIN packages p ON cr.package_id = p.package_id
 LEFT JOIN user_full_details u ON cr.student_number = u.username;
@@ -68,14 +76,14 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
 
 
     // Create a new registration (reference_number set after insert)
-    public function createRegistration($student_number, $course_id, $package_id, $event_id = null, $payment_status = 'pending', $payment_amount = null, $registration_status = 'pending', $hash_value = null, $image_path = null, $additional_seats = null, $session = 1, $convocation_id = null)
+    public function createRegistration($student_number, $course_id, $package_id, $event_id = null, $payment_status = 'pending', $payment_amount = null, $registration_status = 'pending', $hash_value = null, $image_path = null, $additional_seats = null, $session = 1, $convocation_id = null, $refreshment_tokens = 0)
     {
         // Insert without reference_number initially
         $stmt = $this->pdo->prepare("
-            INSERT INTO convocation_registrations (student_number, course_id, package_id, event_id, payment_status, payment_amount, registration_status, hash_value, image_path, additional_seats, session, convocation_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO convocation_registrations (student_number, course_id, package_id, event_id, payment_status, payment_amount, registration_status, hash_value, image_path, additional_seats, session, convocation_id, refreshment_tokens)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $hash_value, $image_path, $additional_seats, $session, $convocation_id]);
+        $stmt->execute([$student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $hash_value, $image_path, $additional_seats, $session, $convocation_id, $refreshment_tokens]);
 
         $registration_id = $this->pdo->lastInsertId();
 
@@ -134,9 +142,12 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
         p.photo_package, 
         p.is_active, 
         p.created_at AS package_created_at, 
-        p.updated_at AS package_updated_at
+        p.updated_at AS package_updated_at,
+        c.parent_seat_price,
+        c.refreshment_token_price
     FROM convocation_registrations cr
     LEFT JOIN packages p ON cr.package_id = p.package_id
+    LEFT JOIN convocations c ON cr.convocation_id = c.id
     WHERE cr.reference_number = ?");
 
         $stmt->execute([$reference_number]);
@@ -146,20 +157,28 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
             return null; // or throw an exception if preferred
         }
 
-        $seatRate = defined('PARENT_SEAT_RATE') ? PARENT_SEAT_RATE : 750;
-        $dueAmount = $row['price'] + ($row['additional_seats'] * $seatRate);
+        $seatRate = (isset($row['parent_seat_price']) && $row['parent_seat_price'] !== null)
+            ? (float)$row['parent_seat_price']
+            : (defined('PARENT_SEAT_RATE') ? PARENT_SEAT_RATE : 750);
+        $tokenRate = (isset($row['refreshment_token_price']) && $row['refreshment_token_price'] !== null)
+            ? (float)$row['refreshment_token_price']
+            : 0;
+
+        $dueAmount = (float)$row['price']
+            + (((int)($row['additional_seats'] ?? 0)) * $seatRate)
+            + (((int)($row['refreshment_tokens'] ?? 0)) * $tokenRate);
         return $dueAmount;
     }
 
     // Update a registration
-    public function updateRegistration($registration_id, $student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $convocation_id, $session, $additional_seats)
+    public function updateRegistration($registration_id, $student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $convocation_id, $session, $additional_seats, $refreshment_tokens = 0)
     {
         $stmt = $this->pdo->prepare("
             UPDATE convocation_registrations 
-            SET student_number = ?, course_id = ?, package_id = ?, event_id = ?, payment_status = ?, payment_amount = ?, registration_status = ?, convocation_id = ?, session = ?, additional_seats = ?
+            SET student_number = ?, course_id = ?, package_id = ?, event_id = ?, payment_status = ?, payment_amount = ?, registration_status = ?, convocation_id = ?, session = ?, additional_seats = ?, refreshment_tokens = ?
             WHERE registration_id = ?
         ");
-        return $stmt->execute([$student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $convocation_id, $session, $additional_seats, $registration_id]);
+        return $stmt->execute([$student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $convocation_id, $session, $additional_seats, $refreshment_tokens, $registration_id]);
     }
 
     // Delete a registration
@@ -209,6 +228,16 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
         WHERE reference_number = ?
     ");
         return $stmt->execute([$additional_seats, $reference_number]);
+    }
+
+    public function updateRefreshmentTokens($reference_number, $refreshment_tokens)
+    {
+        $stmt = $this->pdo->prepare("
+        UPDATE convocation_registrations 
+        SET refreshment_tokens = ?
+        WHERE reference_number = ?
+    ");
+        return $stmt->execute([$refreshment_tokens, $reference_number]);
     }
 
     public function updatePackages($reference_number, $package_id)
@@ -287,7 +316,7 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
 
     public function updateAdvancedCertificatePrintStatusCourier($advanced_print_status, $certificate_id, $reference_number)
     {
-        $stmt = $this.pdo->prepare("
+        $stmt = $this->pdo->prepare("
         UPDATE `cc_certificate_order`
         SET `advanced_id` = ?, `advanced_id_status` = ?
         WHERE `id` = ?;

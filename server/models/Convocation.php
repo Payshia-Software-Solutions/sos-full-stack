@@ -27,12 +27,15 @@ class Convocation
 
     public function createConvocation($data)
     {
-        $stmt = $this->pdo->prepare("INSERT INTO `convocations` (`convocation_name`, `held_on`, `session_count`, `parent_seats`, `student_seats`, `session_2`, `created_by`, `created_at`, `accept_booking`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $this->pdo->prepare("INSERT INTO `convocations` (`convocation_name`, `held_on`, `session_count`, `parent_seats`, `parent_seat_price`, `refreshment_tokens`, `refreshment_token_price`, `student_seats`, `session_2`, `created_by`, `created_at`, `accept_booking`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $data['convocation_name'],
             $data['held_on'],
             $data['session_count'],
             $data['parent_seats'],
+            $data['parent_seat_price'] ?? 750.00,
+            $data['refreshment_tokens'] ?? 0,
+            $data['refreshment_token_price'] ?? 0.00,
             $data['student_seats'],
             $data['session_2'],
             $data['created_by'],
@@ -43,12 +46,15 @@ class Convocation
 
     public function updateConvocation($id, $data)
     {
-        $stmt = $this->pdo->prepare("UPDATE `convocations` SET `convocation_name` = ?, `held_on` = ?, `session_count` = ?, `parent_seats` = ?, `student_seats` = ?, `session_2` = ?, `created_by` = ?, `created_at` = ?, `accept_booking` = ? WHERE `id` = ?");
+        $stmt = $this->pdo->prepare("UPDATE `convocations` SET `convocation_name` = ?, `held_on` = ?, `session_count` = ?, `parent_seats` = ?, `parent_seat_price` = ?, `refreshment_tokens` = ?, `refreshment_token_price` = ?, `student_seats` = ?, `session_2` = ?, `created_by` = ?, `created_at` = ?, `accept_booking` = ? WHERE `id` = ?");
         $stmt->execute([
             $data['convocation_name'],
             $data['held_on'],
             $data['session_count'],
             $data['parent_seats'],
+            $data['parent_seat_price'] ?? 750.00,
+            $data['refreshment_tokens'] ?? 0,
+            $data['refreshment_token_price'] ?? 0.00,
             $data['student_seats'],
             $data['session_2'],
             $data['created_by'],

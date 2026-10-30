@@ -232,6 +232,7 @@ export interface ConvocationRegistration {
     hash_value: string;
     image_path: string;
     additional_seats: string;
+    refreshment_tokens?: string;
     session: string;
     ceremony_number: string;
     certificate_print_status: string;
@@ -933,6 +934,9 @@ export interface ConvocationCeremony {
     held_on: string;
     session_count: string;
     parent_seats: string;
+    parent_seat_price?: string;
+    refreshment_tokens?: string;
+    refreshment_token_price?: string;
     student_seats: string;
     session_2: string;
     created_by: string;
