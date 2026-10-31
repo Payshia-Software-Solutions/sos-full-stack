@@ -63,8 +63,6 @@ return [
         echo json_encode($convocationRegistrationController->notifyCeremonyNumber($reference_number));
     },
 
-
-
     // POST create a new registration
     'POST /convocation-registrations/$' => function () use ($convocationRegistrationController) {
         return $convocationRegistrationController->createRegistration();
@@ -80,21 +78,27 @@ return [
         return $convocationRegistrationController->updatePayment($registration_id);
     },
 
-    // PUT update payment only
+    // PUT update session only
     'POST /convocation-registrations/(\d+)/update-session/$' => function ($registration_id) use ($convocationRegistrationController) {
         return $convocationRegistrationController->updateSession($registration_id);
     },
 
-    // PUT update payment only
+    // POST update additional seats only
     'POST /convocation-registrations/(\d+)/update-additional-seats/$' => function ($registration_id) use ($convocationRegistrationController) {
         return $convocationRegistrationController->updateAdditionalSeats($registration_id);
     },
 
+    // POST update refreshment tokens only
     'POST /convocation-registrations/(\d+)/update-refreshment-tokens/$' => function ($registration_id) use ($convocationRegistrationController) {
         return $convocationRegistrationController->updateRefreshmentTokens($registration_id);
     },
 
-    // PUT update payment only
+    // POST update medal type only
+    'POST /convocation-registrations/(\d+)/update-medal/$' => function ($registration_id) use ($convocationRegistrationController) {
+        return $convocationRegistrationController->updateMedalType($registration_id);
+    },
+
+    // POST update package only
     'POST /convocation-registrations/(\d+)/update-package/$' => function ($registration_id) use ($convocationRegistrationController) {
         return $convocationRegistrationController->updatePackages($registration_id);
     },
@@ -153,7 +157,6 @@ return [
     'GET /convocation-registrations/get-ceremony-number/([A-Za-z0-9]+)/$' => function ($student_number) use ($convocationRegistrationController) {
         return $convocationRegistrationController->GetCeremonyNumberByStudentNumber($student_number);
     },
-
 
     // PUT update course List
     'PUT /convocation-registrations/update-courses/([A-Za-z0-9]+)/$' => function ($registration_id) use ($convocationRegistrationController) {

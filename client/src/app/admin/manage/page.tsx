@@ -201,6 +201,13 @@ const managementTasks: ManagementTask[] = [
     category: "Certificates & Convocation"
   },
   {
+    title: "Convocation Medal Types",
+    description: "Manage medals and academic honors master.",
+    icon: <Award className="w-8 h-8 text-white" />,
+    href: "/admin/manage/convocation-medal-types",
+    category: "Certificates & Convocation"
+  },
+  {
     title: "Convocation Certificate Generation",
     description: "Issue certificates for convocation bookings.",
     icon: <Award className="w-8 h-8 text-white" />,

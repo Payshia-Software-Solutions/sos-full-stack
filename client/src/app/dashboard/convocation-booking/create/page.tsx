@@ -6,8 +6,8 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { getStudentFullInfo } from '@/lib/actions/users';
-import { getConvocationCeremonies, getPackagesByCeremony, createConvocationRegistration, getConvocationSessionCounts, getCertificateOrdersByStudent, getConvocationRegistrationsByStudent } from '@/lib/actions/certificates';
-import type { FullStudentData, StudentEnrollment, ConvocationCeremony, ConvocationPackage, SessionCount, CertificateOrder, ConvocationRegistration } from '@/lib/types';
+import { getConvocationCeremonies, getPackagesByCeremony, createConvocationRegistration, getConvocationSessionCounts, getCertificateOrdersByStudent, getConvocationRegistrationsByStudent, getConvocationMedalTypes } from '@/lib/actions/certificates';
+import type { FullStudentData, StudentEnrollment, ConvocationCeremony, ConvocationPackage, SessionCount, CertificateOrder, ConvocationRegistration, ConvocationMedalType } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -93,6 +93,7 @@ export default function CreateConvocationBookingPage() {
   const [selectedSession, setSelectedSession] = useState<'1' | '2'>('1');
   const [additionalSeats, setAdditionalSeats] = useState('0');
   const [refreshmentTokens, setRefreshmentTokens] = useState('0');
+  const [selectedMedalTypeId, setSelectedMedalTypeId] = useState<string>('none');
   const [paymentSlip, setPaymentSlip] = useState<File | null>(null);
   const [nameOnCertificate, setNameOnCertificate] = useState('');
   const [phone, setPhone] = useState('');
@@ -118,6 +119,11 @@ export default function CreateConvocationBookingPage() {
       queryKey: ['convocationPackages', selectedCeremonyId],
       queryFn: () => getPackagesByCeremony(selectedCeremonyId),
       enabled: !!selectedCeremonyId,
+  });
+
+  const { data: medalTypes } = useQuery<ConvocationMedalType[]>({
+      queryKey: ['activeMedalTypes'],
+      queryFn: () => getConvocationMedalTypes(true),
   });
 
   const { data: sessionCounts, isLoading: isLoadingCounts } = useQuery<SessionCount[]>({
@@ -908,6 +914,15 @@ export default function CreateConvocationBookingPage() {
                                         </div>
                                     )}
 
+                                    {selectedMedalTypeId !== 'none' && (
+                                        <div className="flex justify-between items-center text-xs text-muted-foreground pl-2">
+                                            <span>Award / Medal:</span>
+                                            <span className="font-semibold text-amber-600">
+                                                🏅 {medalTypes?.find(m => String(m.id) === selectedMedalTypeId)?.name}
+                                            </span>
+                                        </div>
+                                    )}
+
                                     <div className="pt-3 border-t flex justify-between items-baseline">
                                         <span className="text-base font-bold">Total Amount:</span>
                                         <span className="text-2xl font-black text-primary">LKR {totalPrice.toLocaleString()}</span>
@@ -1039,6 +1054,14 @@ export default function CreateConvocationBookingPage() {
                         {refreshmentTokens} Tokens {ceremonyRefreshTokenRate > 0 && `(LKR ${(parseInt(refreshmentTokens, 10) * ceremonyRefreshTokenRate).toLocaleString()})`}
                       </span>
                     </div>
+                    {selectedMedalTypeId !== 'none' && (
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-muted-foreground">Medal Award:</span>
+                        <Badge variant="outline" className="font-bold bg-amber-50 text-amber-900 border-amber-300 gap-1 inline-flex items-center">
+                          🏅 {medalTypes?.find(m => String(m.id) === selectedMedalTypeId)?.name}
+                        </Badge>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-muted-foreground">Name on Certificate:</span>
                       <span className="font-semibold">{nameOnCertificate}</span>

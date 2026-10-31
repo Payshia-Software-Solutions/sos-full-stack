@@ -120,10 +120,16 @@ const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: Con
                 <div className="p-6 sm:p-8 flex-grow flex flex-col justify-between">
                     <div className="flex justify-between items-start gap-4">
                         <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-6 opacity-90">
+                            <div className="flex items-center gap-2 mb-4 opacity-90">
                                 <Award className="h-6 w-6 text-yellow-300" />
                                 <h3 className="font-headline font-bold text-xl tracking-widest uppercase text-yellow-300">Convocation Pass</h3>
                             </div>
+                            {booking.medal_name && (
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-400 text-yellow-950 font-black text-xs tracking-wider shadow-md border border-yellow-200 mb-4 animate-in fade-in">
+                                    <Award className="w-4 h-4 fill-current text-yellow-900" />
+                                    <span>HONORS: {booking.medal_name.toUpperCase()}</span>
+                                </div>
+                            )}
                             
                             <div className="space-y-4">
                                 <div>
@@ -333,7 +339,7 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
                                 </div>
                             </div>
                             
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
                                 <div className="space-y-1">
                                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">Session</Label>
                                     <p className="text-sm font-semibold">Session {booking.session}</p>
@@ -346,6 +352,14 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
                                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">Refreshments</Label>
                                     <p className="text-sm font-semibold">{booking.refreshment_tokens || '0'} Tokens</p>
                                 </div>
+                                {booking.medal_name && (
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Medal Award</Label>
+                                        <p className="text-sm font-bold text-amber-600 flex items-center gap-1">
+                                            🏅 {booking.medal_name}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             {pkg && (

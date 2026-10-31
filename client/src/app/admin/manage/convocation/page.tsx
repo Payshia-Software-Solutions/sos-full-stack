@@ -4,6 +4,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { 
     getConvocationRegistrations, 
     getPackagesByCeremony,
@@ -26,7 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ArrowLeft, ArrowUp, ArrowDown, ChevronsUpDown, Eye, FileDown, Loader2, Banknote, Wallet, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, ArrowLeft, ArrowUp, ArrowDown, ChevronsUpDown, Eye, FileDown, Loader2, Banknote, Wallet, Trash2, AlertTriangle, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { AnimatedCounter } from '@/components/ui/animated-counter';
@@ -342,6 +343,7 @@ export default function ConvocationListPage() {
                 'Session',
                 'Seats',
                 'Refreshment Tokens',
+                'Medal Award',
                 'Payment Status',
                 'Reg. Status',
                 'Total Payable',
@@ -388,6 +390,7 @@ export default function ConvocationListPage() {
                     reg.session,
                     reg.additional_seats,
                     reg.refreshment_tokens || '0',
+                    reg.medal_name || 'None',
                     reg.payment_status,
                     reg.registration_status,
                     reg.dueAmount?.toFixed(2),
@@ -540,10 +543,18 @@ export default function ConvocationListPage() {
                     <h1 className="text-3xl font-headline font-semibold">{ceremonyIdFilter ? "Ceremony Registrations" : "All Convocation Registrations"}</h1>
                     <p className="text-muted-foreground">Manage student registrations and verify bookings.</p>
                 </div>
-                <Button onClick={handleExport} disabled={isExporting || filteredRegistrations.length === 0}>
-                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-                    {isExporting ? 'Preparing...' : 'Export to CSV'}
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button asChild variant="outline" className="shadow-xs">
+                        <Link href="/admin/manage/convocation-medal-types">
+                            <Award className="mr-2 h-4 w-4 text-amber-500" />
+                            Medal Types Master
+                        </Link>
+                    </Button>
+                    <Button onClick={handleExport} disabled={isExporting || filteredRegistrations.length === 0}>
+                        {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+                        {isExporting ? 'Preparing...' : 'Export to CSV'}
+                    </Button>
+                </div>
             </header>
             
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -651,6 +662,11 @@ export default function ConvocationListPage() {
                                                         )}
                                                         {parseInt(reg.refreshment_tokens || '0', 10) > 0 && (
                                                             <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase bg-orange-50 text-orange-700 border-orange-200">Refreshments: {reg.refreshment_tokens}</Badge>
+                                                        )}
+                                                        {reg.medal_name && (
+                                                            <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase bg-amber-50 text-amber-900 border-amber-300 gap-1 inline-flex items-center">
+                                                                🏅 {reg.medal_name}
+                                                            </Badge>
                                                         )}
                                                     </div>
                                                 </div>

@@ -34,10 +34,13 @@ SELECT
     p.photo_package,
     p.video_360,
     p.refreshments,
-    p.is_active AS package_is_active
+    p.is_active AS package_is_active,
+    cmt.name AS medal_name,
+    cmt.color AS medal_color
 FROM convocation_registrations cr
 LEFT JOIN packages p ON cr.package_id = p.package_id
-LEFT JOIN user_full_details u ON cr.student_number = u.username;
+LEFT JOIN user_full_details u ON cr.student_number = u.username
+LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id;
 ";
 
         $stmt = $this->pdo->query($sql);
@@ -61,7 +64,12 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
     // Get all registrations for a specific course
     public function getRegistrationByStudentNumber($student_number)
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM convocation_registrations WHERE student_number = ?");
+        $stmt = $this->pdo->prepare("
+            SELECT cr.*, cmt.name AS medal_name, cmt.color AS medal_color
+            FROM convocation_registrations cr
+            LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id
+            WHERE cr.student_number = ?
+        ");
         $stmt->execute([$student_number]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -76,14 +84,14 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
 
 
     // Create a new registration (reference_number set after insert)
-    public function createRegistration($student_number, $course_id, $package_id, $event_id = null, $payment_status = 'pending', $payment_amount = null, $registration_status = 'pending', $hash_value = null, $image_path = null, $additional_seats = null, $session = 1, $convocation_id = null, $refreshment_tokens = 0)
+    public function createRegistration($student_number, $course_id, $package_id, $event_id = null, $payment_status = 'pending', $payment_amount = null, $registration_status = 'pending', $hash_value = null, $image_path = null, $additional_seats = null, $session = 1, $convocation_id = null, $refreshment_tokens = 0, $medal_type_id = null)
     {
         // Insert without reference_number initially
         $stmt = $this->pdo->prepare("
-            INSERT INTO convocation_registrations (student_number, course_id, package_id, event_id, payment_status, payment_amount, registration_status, hash_value, image_path, additional_seats, session, convocation_id, refreshment_tokens)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO convocation_registrations (student_number, course_id, package_id, event_id, payment_status, payment_amount, registration_status, hash_value, image_path, additional_seats, session, convocation_id, refreshment_tokens, medal_type_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $hash_value, $image_path, $additional_seats, $session, $convocation_id, $refreshment_tokens]);
+        $stmt->execute([$student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $hash_value, $image_path, $additional_seats, $session, $convocation_id, $refreshment_tokens, $medal_type_id ? (int)$medal_type_id : null]);
 
         $registration_id = $this->pdo->lastInsertId();
 
@@ -117,7 +125,12 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
     // Read a single registration by ID
     public function getRegistrationById($registration_id)
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM convocation_registrations WHERE registration_id = ?");
+        $stmt = $this->pdo->prepare("
+            SELECT cr.*, cmt.name AS medal_name, cmt.color AS medal_color
+            FROM convocation_registrations cr
+            LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id
+            WHERE cr.registration_id = ?
+        ");
         $stmt->execute([$registration_id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -125,7 +138,12 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
     // Read a single registration by reference number (same as ID now)
     public function getRegistrationByReference($reference_number)
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM convocation_registrations WHERE reference_number = ?");
+        $stmt = $this->pdo->prepare("
+            SELECT cr.*, cmt.name AS medal_name, cmt.color AS medal_color
+            FROM convocation_registrations cr
+            LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id
+            WHERE cr.reference_number = ?
+        ");
         $stmt->execute([$reference_number]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -171,14 +189,14 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
     }
 
     // Update a registration
-    public function updateRegistration($registration_id, $student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $convocation_id, $session, $additional_seats, $refreshment_tokens = 0)
+    public function updateRegistration($registration_id, $student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $convocation_id, $session, $additional_seats, $refreshment_tokens = 0, $medal_type_id = null)
     {
         $stmt = $this->pdo->prepare("
             UPDATE convocation_registrations 
-            SET student_number = ?, course_id = ?, package_id = ?, event_id = ?, payment_status = ?, payment_amount = ?, registration_status = ?, convocation_id = ?, session = ?, additional_seats = ?, refreshment_tokens = ?
+            SET student_number = ?, course_id = ?, package_id = ?, event_id = ?, payment_status = ?, payment_amount = ?, registration_status = ?, convocation_id = ?, session = ?, additional_seats = ?, refreshment_tokens = ?, medal_type_id = ?
             WHERE registration_id = ?
         ");
-        return $stmt->execute([$student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $convocation_id, $session, $additional_seats, $refreshment_tokens, $registration_id]);
+        return $stmt->execute([$student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $convocation_id, $session, $additional_seats, $refreshment_tokens, $medal_type_id ? (int)$medal_type_id : null, $registration_id]);
     }
 
     // Delete a registration
@@ -238,6 +256,16 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
         WHERE reference_number = ?
     ");
         return $stmt->execute([$refreshment_tokens, $reference_number]);
+    }
+
+    public function updateMedalType($reference_number, $medal_type_id)
+    {
+        $stmt = $this->pdo->prepare("
+        UPDATE convocation_registrations 
+        SET medal_type_id = ?
+        WHERE reference_number = ?
+    ");
+        return $stmt->execute([$medal_type_id ? (int)$medal_type_id : null, $reference_number]);
     }
 
     public function updatePackages($reference_number, $package_id)
@@ -340,9 +368,10 @@ LEFT JOIN user_full_details u ON cr.student_number = u.username;
     public function getRegistrationsByConvocationId($convocationId)
     {
         $stmt = $this->pdo->prepare("
-            SELECT cr.*, u.name_on_certificate, u.telephone_1 
+            SELECT cr.*, u.name_on_certificate, u.telephone_1, cmt.name AS medal_name, cmt.color AS medal_color 
             FROM convocation_registrations cr
             LEFT JOIN user_full_details u ON cr.student_number = u.username 
+            LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id
             WHERE cr.convocation_id = ?
         ");
         $stmt->execute([$convocationId]);

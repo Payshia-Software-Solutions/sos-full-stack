@@ -14,6 +14,7 @@ import {
     getCertificateOrdersByStudent,
     getTcPayments,
     deleteConvocationPayment,
+    getConvocationMedalTypes,
     deleteConvocationRegistration
 } from '@/lib/actions/certificates';
 import { getStudentFullInfo } from '@/lib/actions/users';
@@ -26,7 +27,8 @@ import type {
     StudentEnrollment,
     TcPaymentRecord,
     UserFullDetails,
-    StudentBalanceData
+    StudentBalanceData,
+    ConvocationMedalType
 } from '@/lib/types';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -44,7 +46,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Save, Edit2, X, ChevronDown, CheckCircle, XCircle, Banknote, UserCheck, ListOrdered, Calculator, FileText, Paperclip, Hourglass, AlertTriangle, Trash2 } from 'lucide-react';
+import { Loader2, Save, Edit2, X, ChevronDown, CheckCircle, XCircle, Banknote, UserCheck, ListOrdered, Calculator, FileText, Paperclip, Hourglass, AlertTriangle, Trash2, Award } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -227,6 +229,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
     const [editSession, setEditSession] = useState<'1' | '2'>('1');
     const [editSeats, setEditSeats] = useState('0');
     const [editTokens, setEditTokens] = useState('0');
+    const [editMedalTypeId, setEditMedalTypeId] = useState<string>('none');
     const [editName, setEditName] = useState('');
     const [editPhone, setEditPhone] = useState('');
     const [editCourseIds, setEditCourseIds] = useState<string[]>([]);
@@ -234,6 +237,11 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentStatus, setPaymentStatus] = useState('');
     const [ceremonyNumber, setCeremonyNumber] = useState('');
+
+    const { data: medalTypes } = useQuery<ConvocationMedalType[]>({
+        queryKey: ['convocationMedalTypes'],
+        queryFn: () => getConvocationMedalTypes(false),
+    });
 
     const { data: studentInfo, isLoading: isLoadingStudentData } = useQuery<FullStudentData>({
         queryKey: ['studentFullInfoForConvocationDetail', registration?.student_number],
@@ -422,6 +430,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
             setEditSession(registration.session as '1' | '2' || '1');
             setEditSeats(registration.additional_seats || '0');
             setEditTokens(registration.refreshment_tokens || '0');
+            setEditMedalTypeId(registration.medal_type_id ? String(registration.medal_type_id) : 'none');
             setEditName(registration.name_on_certificate || '');
             setEditPhone(registration.telephone_1 || '');
             setEditCourseIds(registration.course_id.split(',').map(s => s.trim()).filter(Boolean));
@@ -463,6 +472,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
             session: editSession,
             additional_seats: editSeats,
             refreshment_tokens: editTokens,
+            medal_type_id: editMedalTypeId === 'none' ? null : editMedalTypeId,
             name_on_certificate: editName,
             telephone_1: editPhone,
             course_id: editCourseIds.join(','),
@@ -672,6 +682,20 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                                                 <SelectContent>{[0,1,2,3,4,5].map(i => <SelectItem key={i} value={String(i)}>{i}</SelectItem>)}</SelectContent>
                                             </Select>
                                         </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Award / Medal</Label>
+                                            <Select value={editMedalTypeId} onValueChange={setEditMedalTypeId}>
+                                                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select medal..." /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none" className="text-xs">No Medal (None)</SelectItem>
+                                                    {medalTypes?.map(m => (
+                                                        <SelectItem key={m.id} value={String(m.id)} className="text-xs">
+                                                            🏅 {m.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
                                         <div className="space-y-1.5 md:col-span-1 lg:col-span-1">
                                             <Label className="text-xs">Name on Certificate</Label>
                                             <input 
@@ -715,6 +739,17 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                                             <p className="text-[10px] text-muted-foreground uppercase font-bold">Certificate Details</p>
                                             <p className="text-sm font-semibold">{registration.name_on_certificate || studentInfo?.studentInfo.name_on_certificate || studentInfo?.studentInfo.full_name || 'N/A'}</p>
                                             <p className="text-xs text-muted-foreground">{registration.telephone_1 || studentInfo?.studentInfo.telephone_1 || 'N/A'}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Award / Medal</p>
+                                            {registration.medal_name ? (
+                                                <Badge variant="outline" className="text-xs font-bold bg-amber-50 text-amber-900 border-amber-300 gap-1.5 inline-flex items-center">
+                                                    <Award className="w-3.5 h-3.5 text-amber-600" />
+                                                    {registration.medal_name}
+                                                </Badge>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground italic">None</p>
+                                            )}
                                         </div>
                                         <div className="space-y-1">
                                             <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Calculated Payable</p>

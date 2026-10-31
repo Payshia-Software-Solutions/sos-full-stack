@@ -370,7 +370,8 @@ class ConvocationRegistrationController
                 $data['additional_seats'] ?? 0,
                 $session,
                 $convocationId,
-                $data['refreshment_tokens'] ?? 0
+                $data['refreshment_tokens'] ?? 0,
+                !empty($data['medal_type_id']) ? (int)$data['medal_type_id'] : null
             );
 
             $this->pdo->commit();
@@ -423,7 +424,8 @@ class ConvocationRegistrationController
             $updated_data['convocation_id'],
             $updated_data['session'],
             $updated_data['additional_seats'],
-            $updated_data['refreshment_tokens'] ?? 0
+            $updated_data['refreshment_tokens'] ?? 0,
+            !empty($updated_data['medal_type_id']) ? (int)$updated_data['medal_type_id'] : null
         );
 
         if ($success) {
@@ -535,6 +537,27 @@ class ConvocationRegistrationController
         } else {
             http_response_code(500);
             echo json_encode(['error' => 'Failed to update refreshment tokens']);
+        }
+    }
+
+    public function updateMedalType($reference_number)
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $medal_type_id = $_POST['medal_type_id'] ?? $input['medal_type_id'] ?? null;
+        $medal_type_id = (!empty($medal_type_id) && $medal_type_id !== 'none') ? (int)$medal_type_id : null;
+
+        $updated = $this->model->updateMedalType($reference_number, $medal_type_id);
+        if ($updated) {
+            http_response_code(200);
+            echo json_encode([
+                'status' => 'Success',
+                'message' => 'Medal type updated',
+                'reference_number' => $reference_number,
+                'medal_type_id' => $medal_type_id
+            ]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to update medal type']);
         }
     }
 
