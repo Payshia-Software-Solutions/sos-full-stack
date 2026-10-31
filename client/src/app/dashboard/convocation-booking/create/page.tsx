@@ -6,8 +6,8 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { getStudentFullInfo } from '@/lib/actions/users';
-import { getConvocationCeremonies, getPackagesByCeremony, createConvocationRegistration, getConvocationSessionCounts, getCertificateOrdersByStudent, getConvocationRegistrationsByStudent, getConvocationMedalTypes } from '@/lib/actions/certificates';
-import type { FullStudentData, StudentEnrollment, ConvocationCeremony, ConvocationPackage, SessionCount, CertificateOrder, ConvocationRegistration, ConvocationMedalType } from '@/lib/types';
+import { getConvocationCeremonies, getPackagesByCeremony, createConvocationRegistration, getConvocationSessionCounts, getCertificateOrdersByStudent, getConvocationRegistrationsByStudent } from '@/lib/actions/certificates';
+import type { FullStudentData, StudentEnrollment, ConvocationCeremony, ConvocationPackage, SessionCount, CertificateOrder, ConvocationRegistration } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, CheckCircle, Award, Loader2, Home, Truck, Copy, AlertCircle, AlertTriangle, XCircle, ChevronDown, ListOrdered, PlusCircle, FileText, Sparkles, ScrollText, Check, Paperclip, User, Users, Star, Video, Coffee, GraduationCap, Calendar } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, Award, Loader2, Home, Truck, Copy, AlertCircle, AlertTriangle, XCircle, ChevronDown, ListOrdered, PlusCircle, FileText, Sparkles, ScrollText, Check, Paperclip, User, Users, Star, Video, Coffee, GraduationCap, Calendar, Receipt } from 'lucide-react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -93,7 +93,6 @@ export default function CreateConvocationBookingPage() {
   const [selectedSession, setSelectedSession] = useState<'1' | '2'>('1');
   const [additionalSeats, setAdditionalSeats] = useState('0');
   const [refreshmentTokens, setRefreshmentTokens] = useState('0');
-  const [selectedMedalTypeId, setSelectedMedalTypeId] = useState<string>('none');
   const [paymentSlip, setPaymentSlip] = useState<File | null>(null);
   const [nameOnCertificate, setNameOnCertificate] = useState('');
   const [phone, setPhone] = useState('');
@@ -119,11 +118,6 @@ export default function CreateConvocationBookingPage() {
       queryKey: ['convocationPackages', selectedCeremonyId],
       queryFn: () => getPackagesByCeremony(selectedCeremonyId),
       enabled: !!selectedCeremonyId,
-  });
-
-  const { data: medalTypes } = useQuery<ConvocationMedalType[]>({
-      queryKey: ['activeMedalTypes'],
-      queryFn: () => getConvocationMedalTypes(true),
   });
 
   const { data: sessionCounts, isLoading: isLoadingCounts } = useQuery<SessionCount[]>({
@@ -914,15 +908,6 @@ export default function CreateConvocationBookingPage() {
                                         </div>
                                     )}
 
-                                    {selectedMedalTypeId !== 'none' && (
-                                        <div className="flex justify-between items-center text-xs text-muted-foreground pl-2">
-                                            <span>Award / Medal:</span>
-                                            <span className="font-semibold text-amber-600">
-                                                🏅 {medalTypes?.find(m => String(m.id) === selectedMedalTypeId)?.name}
-                                            </span>
-                                        </div>
-                                    )}
-
                                     <div className="pt-3 border-t flex justify-between items-baseline">
                                         <span className="text-base font-bold">Total Amount:</span>
                                         <span className="text-2xl font-black text-primary">LKR {totalPrice.toLocaleString()}</span>
@@ -996,98 +981,189 @@ export default function CreateConvocationBookingPage() {
         );
 
       case 'confirmation':
+        const packagePriceNum = selectedPackage && !isNaN(parseFloat(selectedPackage.price)) ? parseFloat(selectedPackage.price) : 0;
+        const additionalSeatsNum = parseInt(additionalSeats, 10) || 0;
+        const seatsTotal = additionalSeatsNum * ceremonyParentSeatRate;
+        const tokensNum = parseInt(refreshmentTokens, 10) || 0;
+        const tokensTotal = tokensNum * ceremonyRefreshTokenRate;
+
         return (
           <>
             <CardHeader className="pb-4 border-b">
               <Button variant="ghost" onClick={() => setStep('form')} className="w-fit h-auto p-0 mb-2 text-sm text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back to Edit Form
               </Button>
-              <CardTitle className="text-2xl">Step 4: Confirm Your Booking</CardTitle>
-              <CardDescription>Please review all details before confirming your submission.</CardDescription>
+              <CardTitle className="text-2xl font-bold">Step 4: Confirm Your Booking</CardTitle>
+              <CardDescription>Please review your booking details and the itemized fee breakdown before confirming your registration.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6 pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Left Card: Inclusions & Selection */}
-                <div className="space-y-4 p-5 rounded-xl border bg-muted/20">
-                  <h3 className="font-bold text-base flex items-center gap-2">
-                    <GraduationCap className="w-5 h-5 text-primary" />
-                    Selected Courses & Ceremony
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="text-xs text-muted-foreground uppercase font-bold">Ceremony:</span>
-                      <p className="font-semibold text-foreground">{selectedCeremony?.convocation_name}</p>
+            <CardContent className="space-y-6 pt-6 pb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Left Column: Ceremony, Academic & Student Details */}
+                <div className="lg:col-span-7 space-y-5">
+                  {/* Academic & Ceremony Card */}
+                  <div className="space-y-4 p-5 rounded-xl border bg-muted/20">
+                    <h3 className="font-bold text-base flex items-center gap-2 text-foreground">
+                      <GraduationCap className="w-5 h-5 text-primary" />
+                      Selected Ceremony & Academic Details
+                    </h3>
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Ceremony:</span>
+                        <p className="font-semibold text-foreground text-base">{selectedCeremony?.convocation_name}</p>
+                        {selectedCeremony?.held_on && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                            <Calendar className="w-3.5 h-3.5 text-primary" />
+                            {format(new Date(selectedCeremony.held_on), 'PPPP')}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="pt-2 border-t border-border/60">
+                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Enrolled Courses:</span>
+                        <ul className="list-disc list-inside space-y-1 text-muted-foreground pt-1">
+                          {selectedEnrollments.map(e => (
+                            <li key={e.id} className="text-xs font-semibold text-foreground">
+                              {e.parent_course_name} <span className="font-mono text-[11px] text-muted-foreground">({e.course_code})</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="pt-2 border-t border-border/60">
+                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Assigned Session:</span>
+                        <div className="mt-1">
+                          <Badge variant="outline" className="font-bold bg-background text-xs">
+                            Session {maxSessions === 1 ? '1' : selectedSession}
+                          </Badge>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-xs text-muted-foreground uppercase font-bold">Courses:</span>
-                      <ul className="list-disc list-inside space-y-0.5 text-muted-foreground pt-1">
-                        {selectedEnrollments.map(e => (
-                          <li key={e.id} className="text-xs font-medium text-foreground">{e.parent_course_name} ({e.course_code})</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="pt-2 border-t">
-                      <span className="text-xs text-muted-foreground uppercase font-bold">Package:</span>
-                      <p className="font-semibold text-foreground">{selectedPackage?.package_name}</p>
+                  </div>
+
+                  {/* Student & Slip Card */}
+                  <div className="space-y-4 p-5 rounded-xl border bg-card shadow-xs">
+                    <h3 className="font-bold text-base flex items-center gap-2 text-foreground">
+                      <User className="w-5 h-5 text-primary" />
+                      Student & Certificate Information
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Name on Certificate:</span>
+                        <p className="font-semibold text-foreground text-sm mt-0.5">{nameOnCertificate}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Contact Phone:</span>
+                        <p className="font-semibold text-foreground text-sm mt-0.5">{phone}</p>
+                      </div>
+                      <div className="sm:col-span-2 pt-2 border-t border-border/60">
+                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Payment Slip Attached:</span>
+                        <div className="flex items-center gap-2 mt-1 p-2.5 rounded-lg bg-muted/40 border border-border/60">
+                          <Paperclip className="w-4 h-4 text-primary shrink-0" />
+                          <span className="text-xs font-medium text-foreground truncate flex-1">{paymentSlip?.name || 'Payment slip uploaded'}</span>
+                          <span className="text-[11px] text-green-600 font-semibold flex items-center gap-1 shrink-0">
+                            <Check className="w-3.5 h-3.5" /> Attached
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Right Card: Session, Guests & Payment */}
-                <div className="space-y-4 p-5 rounded-xl border bg-card shadow-sm">
-                  <h3 className="font-bold text-base flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    Booking & Payment Details
-                  </h3>
-                  <div className="space-y-2.5 text-sm">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-muted-foreground">Session:</span>
-                      <Badge variant="outline" className="font-semibold">Session {maxSessions === 1 ? '1' : selectedSession}</Badge>
+                {/* Right Column: Complete Invoice Breakdown */}
+                <div className="lg:col-span-5 space-y-4">
+                  <div className="rounded-xl border-2 shadow-sm overflow-hidden bg-card">
+                    <div className="p-4 bg-muted/30 border-b">
+                      <h3 className="font-bold text-base flex items-center gap-2 text-foreground">
+                        <Receipt className="w-5 h-5 text-primary" />
+                        Fee Breakdown & Total
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Itemized calculation of your registration fee</p>
                     </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-muted-foreground">Additional Seats:</span>
-                      <span className="font-semibold">{additionalSeats} Seats (LKR {(parseInt(additionalSeats, 10) * ceremonyParentSeatRate).toLocaleString()})</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-muted-foreground">Refreshments Tokens:</span>
-                      <span className="font-semibold">
-                        {refreshmentTokens} Tokens {ceremonyRefreshTokenRate > 0 && `(LKR ${(parseInt(refreshmentTokens, 10) * ceremonyRefreshTokenRate).toLocaleString()})`}
-                      </span>
-                    </div>
-                    {selectedMedalTypeId !== 'none' && (
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-muted-foreground">Medal Award:</span>
-                        <Badge variant="outline" className="font-bold bg-amber-50 text-amber-900 border-amber-300 gap-1 inline-flex items-center">
-                          🏅 {medalTypes?.find(m => String(m.id) === selectedMedalTypeId)?.name}
-                        </Badge>
+
+                    <div className="p-5 space-y-4">
+                      {/* Breakdown Line Items */}
+                      <div className="space-y-3.5 text-sm">
+                        {/* 1. Package Fee */}
+                        <div className="flex justify-between items-start gap-3">
+                          <div>
+                            <p className="font-semibold text-foreground leading-tight">
+                              {selectedPackage?.package_name || 'Convocation Package'}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">Standard graduation package fee</p>
+                          </div>
+                          <span className="font-mono font-bold text-foreground text-sm shrink-0">
+                            LKR {packagePriceNum.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+
+                        {/* 2. Additional Seats */}
+                        <div className="flex justify-between items-start gap-3 pt-3 border-t border-dashed">
+                          <div>
+                            <p className="font-semibold text-foreground leading-tight">Additional Guest Seats</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {additionalSeatsNum} {additionalSeatsNum === 1 ? 'seat' : 'seats'} × LKR {ceremonyParentSeatRate.toLocaleString()}
+                            </p>
+                          </div>
+                          <span className="font-mono font-bold text-foreground text-sm shrink-0">
+                            LKR {seatsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+
+                        {/* 3. Refreshment Tokens */}
+                        <div className="flex justify-between items-start gap-3 pt-3 border-t border-dashed">
+                          <div>
+                            <p className="font-semibold text-foreground leading-tight">Refreshment Tokens</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {tokensNum} {tokensNum === 1 ? 'token' : 'tokens'}
+                              {ceremonyRefreshTokenRate > 0 ? ` × LKR ${ceremonyRefreshTokenRate.toLocaleString()}` : ' (Included / Free)'}
+                            </p>
+                          </div>
+                          <span className="font-mono font-bold text-foreground text-sm shrink-0">
+                            {ceremonyRefreshTokenRate > 0 
+                              ? `LKR ${tokensTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}` 
+                              : 'LKR 0.00'}
+                          </span>
+                        </div>
                       </div>
-                    )}
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-muted-foreground">Name on Certificate:</span>
-                      <span className="font-semibold">{nameOnCertificate}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-muted-foreground">Contact Phone:</span>
-                      <span className="font-semibold">{phone}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-muted-foreground">Slip File:</span>
-                      <span className="font-medium truncate max-w-[180px]">{paymentSlip?.name}</span>
-                    </div>
-                    <div className="pt-3 border-t flex justify-between items-baseline">
-                      <span className="text-base font-bold">Total Amount:</span>
-                      <span className="text-2xl font-black text-primary">LKR {totalPrice.toLocaleString()}</span>
+
+                      {/* Total Box */}
+                      <div className="pt-4 border-t-2 border-border/80">
+                        <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-1.5">
+                          <div className="flex justify-between items-baseline">
+                            <span className="text-base font-bold text-foreground">Total Amount:</span>
+                            <span className="text-2xl font-black text-primary font-mono">
+                              LKR {totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          {(seatsTotal > 0 || tokensTotal > 0) ? (
+                            <p className="text-[11px] text-muted-foreground font-mono pt-1">
+                              Package (LKR {packagePriceNum.toLocaleString()})
+                              {seatsTotal > 0 ? ` + Seats (LKR ${seatsTotal.toLocaleString()})` : ''}
+                              {tokensTotal > 0 ? ` + Tokens (LKR ${tokensTotal.toLocaleString()})` : ''}
+                              {' = '}<span className="font-bold text-foreground">LKR {totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                            </p>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground font-mono pt-1">
+                              Standard package fee only
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
+
+                  <Button 
+                    size="lg" 
+                    className="w-full font-bold shadow-md h-12 text-base" 
+                    onClick={handleConfirmAndSubmit} 
+                    disabled={createBookingMutation.isPending}
+                  >
+                    {createBookingMutation.isPending && <Loader2 className="mr-2 h-5 w-5 animate-spin"/>}
+                    Confirm & Submit Booking
+                  </Button>
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="pt-4 border-t">
-              <Button size="lg" className="w-full font-bold shadow-md" onClick={handleConfirmAndSubmit} disabled={createBookingMutation.isPending}>
-                {createBookingMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                Confirm & Submit Booking
-              </Button>
-            </CardFooter>
           </>
         );
 
