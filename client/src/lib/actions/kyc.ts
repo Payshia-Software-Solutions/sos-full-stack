@@ -22,8 +22,20 @@ export interface KycListResponse {
 }
 
 export const getStudentKycStatus = async (studentId: string): Promise<StudentDocumentVerification> => {
+  if (!studentId || !studentId.trim()) {
+    return {
+      student_id: '',
+      id_type: 'nic',
+      status: 'not_submitted',
+    };
+  }
+
+  const rawId = studentId.trim();
+  // Strip slashes for URL path so Apache mod_rewrite never encounters %2F or 404s
+  const cleanPathId = encodeURIComponent(rawId.replace(/\//g, ''));
+
   try {
-    const response = await fetch(`${API_BASE_URL}/student-kyc/status/${encodeURIComponent(studentId)}/`, {
+    const response = await fetch(`${API_BASE_URL}/student-kyc/status/${cleanPathId}/?student_id=${encodeURIComponent(rawId)}`, {
       cache: 'no-store'
     });
     
@@ -37,14 +49,14 @@ export const getStudentKycStatus = async (studentId: string): Promise<StudentDoc
     }
     
     return {
-      student_id: studentId,
+      student_id: rawId,
       id_type: 'nic',
       status: 'not_submitted'
     };
   } catch (error) {
     console.error('Error fetching KYC status:', error);
     return {
-      student_id: studentId,
+      student_id: rawId,
       id_type: 'nic',
       status: 'not_submitted'
     };

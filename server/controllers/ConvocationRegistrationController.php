@@ -218,6 +218,81 @@ class ConvocationRegistrationController
         $convocationId = !empty($data['convocation_id']) ? $data['convocation_id'] : null;
         $session = !empty($data['session']) ? (int)$data['session'] : 1;
 
+        // 0. Verify Student KYC Verification Status
+        $isKycVerified = false;
+        try {
+            $identifiers = [$studentNumber];
+            $noSlash = str_replace('/', '', $studentNumber);
+            if (!empty($noSlash)) $identifiers[] = $noSlash;
+            if (preg_match('/^([A-Za-z]+)(\d{2})(\d{3,})$/', $studentNumber, $m)) {
+                $identifiers[] = $m[1] . '/' . $m[2] . '/' . $m[3];
+            }
+            $identifiers = array_values(array_unique(array_filter($identifiers)));
+            $placeholders = implode(',', array_fill(0, count($identifiers), '?'));
+
+            // 1. Check users table verification_status
+            $userStmt = $this->pdo->prepare("
+                SELECT verification_status 
+                FROM users 
+                WHERE username IN ($placeholders) OR userid IN ($placeholders)
+                LIMIT 1
+            ");
+            $userStmt->execute(array_merge($identifiers, $identifiers));
+            $userRow = $userStmt->fetch(PDO::FETCH_ASSOC);
+            if ($userRow) {
+                $uStatus = strtolower(trim($userRow['verification_status'] ?? ''));
+                if ($uStatus === 'verified' || $uStatus === 'approved') {
+                    $isKycVerified = true;
+                }
+            }
+
+            // 2. Check student_document_verifications table status
+            if (!$isKycVerified) {
+                $docStmt = $this->pdo->prepare("
+                    SELECT status 
+                    FROM student_document_verifications 
+                    WHERE student_id IN ($placeholders) 
+                    ORDER BY id DESC LIMIT 1
+                ");
+                $docStmt->execute($identifiers);
+                $docRow = $docStmt->fetch(PDO::FETCH_ASSOC);
+                if ($docRow) {
+                    $dStatus = strtolower(trim($docRow['status'] ?? ''));
+                    if ($dStatus === 'approved' || $dStatus === 'verified') {
+                        $isKycVerified = true;
+                    }
+                }
+            }
+
+            // 3. Check user_full_details table verification_status
+            if (!$isKycVerified) {
+                $ufdStmt = $this->pdo->prepare("
+                    SELECT verification_status 
+                    FROM user_full_details 
+                    WHERE username IN ($placeholders) OR student_id IN ($placeholders) 
+                    LIMIT 1
+                ");
+                $ufdStmt->execute(array_merge($identifiers, $identifiers));
+                $ufdRow = $ufdStmt->fetch(PDO::FETCH_ASSOC);
+                if ($ufdRow) {
+                    $ufdStatus = strtolower(trim($ufdRow['verification_status'] ?? ''));
+                    if ($ufdStatus === 'verified' || $ufdStatus === 'approved') {
+                        $isKycVerified = true;
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            // Silently log or continue
+        }
+
+        if (!$isKycVerified) {
+            http_response_code(403);
+            echo json_encode([
+                'error' => 'Student Document Verification (KYC) must be approved before you can register for a convocation ceremony. Please complete your identity verification first.'
+            ]);
+            return;
+        }
+
         // 1. Check for Duplicate Active Booking
         if ($convocationId) {
             $existing = $this->model->getActiveRegistrationByStudentAndConvocation($studentNumber, $convocationId);
@@ -370,7 +445,8 @@ class ConvocationRegistrationController
                 $data['additional_seats'] ?? 0,
                 $session,
                 $convocationId,
-                $data['refreshment_tokens'] ?? 0
+                $data['refreshment_tokens'] ?? 0,
+                !empty($data['medal_type_id']) ? (int)$data['medal_type_id'] : null
             );
 
             $this->pdo->commit();
@@ -423,7 +499,8 @@ class ConvocationRegistrationController
             $updated_data['convocation_id'],
             $updated_data['session'],
             $updated_data['additional_seats'],
-            $updated_data['refreshment_tokens'] ?? 0
+            $updated_data['refreshment_tokens'] ?? 0,
+            !empty($updated_data['medal_type_id']) ? (int)$updated_data['medal_type_id'] : null
         );
 
         if ($success) {
@@ -535,6 +612,27 @@ class ConvocationRegistrationController
         } else {
             http_response_code(500);
             echo json_encode(['error' => 'Failed to update refreshment tokens']);
+        }
+    }
+
+    public function updateMedalType($reference_number)
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $medal_type_id = $_POST['medal_type_id'] ?? $input['medal_type_id'] ?? null;
+        $medal_type_id = (!empty($medal_type_id) && $medal_type_id !== 'none') ? (int)$medal_type_id : null;
+
+        $updated = $this->model->updateMedalType($reference_number, $medal_type_id);
+        if ($updated) {
+            http_response_code(200);
+            echo json_encode([
+                'status' => 'Success',
+                'message' => 'Medal type updated',
+                'reference_number' => $reference_number,
+                'medal_type_id' => $medal_type_id
+            ]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to update medal type']);
         }
     }
 
@@ -677,12 +775,12 @@ class ConvocationRegistrationController
 
 
     /**
-     * Send the appropriate ceremony‑related SMS and return a JSON status block.
+     * Send the appropriate ceremonyâ€‘related SMS and return a JSON status block.
      *
      * Contract:
-     *   - Success  → HTTP 200 + { status: "success", ...extraInfo }
-     *   - Business error (e.g. missing data) → HTTP 400 + { status: "error", message: "..." }
-     *   - System/runtime error              → HTTP 500 + { status: "error", message: "..." }
+     *   - Success  â†’ HTTP 200 + { status: "success", ...extraInfo }
+     *   - Business error (e.g. missing data) â†’ HTTP 400 + { status: "error", message: "..." }
+     *   - System/runtime error              â†’ HTTP 500 + { status: "error", message: "..." }
      *
      * @param string $reference_number
      * @return void  (prints/echoes JSON + sets http_response_code)
@@ -859,7 +957,7 @@ class ConvocationRegistrationController
             );
         }
 
-        // 🔔 Trigger SMS logic cleanly
+        // ðŸ”” Trigger SMS logic cleanly
         $smsResult = $this->notifyCeremonyNumber($reference_number);
 
         http_response_code(200);

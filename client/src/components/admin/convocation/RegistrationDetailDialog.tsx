@@ -14,19 +14,23 @@ import {
     getCertificateOrdersByStudent,
     getTcPayments,
     deleteConvocationPayment,
-    deleteConvocationRegistration
+    getConvocationMedalTypes,
+    deleteConvocationRegistration,
+    getConvocationCeremonies
 } from '@/lib/actions/certificates';
 import { getStudentFullInfo } from '@/lib/actions/users';
 import type { 
     ConvocationRegistration, 
     ConvocationPackage, 
+    ConvocationCeremony,
     FullStudentData, 
     SessionCount,
     CertificateOrder,
     StudentEnrollment,
     TcPaymentRecord,
     UserFullDetails,
-    StudentBalanceData
+    StudentBalanceData,
+    ConvocationMedalType
 } from '@/lib/types';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -44,7 +48,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Save, Edit2, X, ChevronDown, CheckCircle, XCircle, Banknote, UserCheck, ListOrdered, Calculator, FileText, Paperclip, Hourglass, AlertTriangle, Trash2 } from 'lucide-react';
+import { Loader2, Save, Edit2, X, ChevronDown, CheckCircle, XCircle, Banknote, UserCheck, ListOrdered, Calculator, FileText, Paperclip, Hourglass, AlertTriangle, Trash2, Award } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -227,6 +231,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
     const [editSession, setEditSession] = useState<'1' | '2'>('1');
     const [editSeats, setEditSeats] = useState('0');
     const [editTokens, setEditTokens] = useState('0');
+    const [editMedalTypeId, setEditMedalTypeId] = useState<string>('none');
     const [editName, setEditName] = useState('');
     const [editPhone, setEditPhone] = useState('');
     const [editCourseIds, setEditCourseIds] = useState<string[]>([]);
@@ -234,6 +239,11 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentStatus, setPaymentStatus] = useState('');
     const [ceremonyNumber, setCeremonyNumber] = useState('');
+
+    const { data: medalTypes } = useQuery<ConvocationMedalType[]>({
+        queryKey: ['convocationMedalTypes'],
+        queryFn: () => getConvocationMedalTypes(false),
+    });
 
     const { data: studentInfo, isLoading: isLoadingStudentData } = useQuery<FullStudentData>({
         queryKey: ['studentFullInfoForConvocationDetail', registration?.student_number],
@@ -280,6 +290,19 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
         queryFn: () => getConvocationSessionCounts(registration!.convocation_id),
         enabled: !!registration?.convocation_id,
     });
+
+    const { data: ceremonies } = useQuery<ConvocationCeremony[]>({
+        queryKey: ['convocationCeremonies'],
+        queryFn: getConvocationCeremonies,
+    });
+
+    const currentCeremony = useMemo(() => {
+        if (!ceremonies || !registration) return null;
+        return ceremonies.find(c => String(c.id) === String(registration.convocation_id)) || null;
+    }, [ceremonies, registration]);
+
+    const ceremonyParentSeatRate = currentCeremony?.parent_seat_price ? parseFloat(currentCeremony.parent_seat_price) : PARENT_SEAT_RATE;
+    const ceremonyRefreshTokenRate = currentCeremony?.refreshment_token_price ? parseFloat(currentCeremony.refreshment_token_price) : 0;
 
     const balanceSlips = useMemo(() => {
         if (!portalPayments || !registration) return [];
@@ -372,8 +395,9 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
         const pkg = packages?.find(p => String(p.package_id) === String(editPackageId));
         const packagePrice = pkg ? parseFloat(pkg.price) : 0;
         const numSeats = parseInt(editSeats, 10) || 0;
-        return packagePrice + (numSeats * PARENT_SEAT_RATE);
-    }, [editPackageId, editSeats, packages]);
+        const numTokens = parseInt(editTokens, 10) || 0;
+        return packagePrice + (numSeats * ceremonyParentSeatRate) + (numTokens * ceremonyRefreshTokenRate);
+    }, [editPackageId, editSeats, editTokens, packages, ceremonyParentSeatRate, ceremonyRefreshTokenRate]);
 
     const bookedElsewhereIds = useMemo(() => {
         if (!otherBookings || !registration) return new Set<string>();
@@ -418,13 +442,14 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
 
     useEffect(() => {
         if (registration) {
-            setEditPackageId(registration.package_id || '');
-            setEditSession(registration.session as '1' | '2' || '1');
-            setEditSeats(registration.additional_seats || '0');
-            setEditTokens(registration.refreshment_tokens || '0');
+            setEditPackageId(String(registration.package_id || ''));
+            setEditSession(String(registration.session || '1') as '1' | '2');
+            setEditSeats(String(registration.additional_seats ?? '0'));
+            setEditTokens(String(registration.refreshment_tokens ?? '0'));
+            setEditMedalTypeId(registration.medal_type_id ? String(registration.medal_type_id) : 'none');
             setEditName(registration.name_on_certificate || '');
             setEditPhone(registration.telephone_1 || '');
-            setEditCourseIds(registration.course_id.split(',').map(s => s.trim()).filter(Boolean));
+            setEditCourseIds(registration.course_id ? registration.course_id.split(',').map(s => s.trim()).filter(Boolean) : []);
             setPaymentStatus(registration.payment_status || 'Pending');
             setCeremonyNumber(registration.ceremony_number || '');
             setIsEditing(false);
@@ -463,6 +488,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
             session: editSession,
             additional_seats: editSeats,
             refreshment_tokens: editTokens,
+            medal_type_id: editMedalTypeId === 'none' ? null : editMedalTypeId,
             name_on_certificate: editName,
             telephone_1: editPhone,
             course_id: editCourseIds.join(','),
@@ -572,7 +598,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                     <p className="font-bold text-foreground">Pending Requirements:</p>
                     {enrollment.criteria_details.filter(c => !c.evaluation.completed).map(c => (
                         <div key={c.id} className="flex justify-between">
-                            <span>• {c.list_name}</span>
+                            <span>&bull; {c.list_name}</span>
                             <span>{c.evaluation.currentValue} / {c.evaluation.requiredValue}</span>
                         </div>
                     ))}
@@ -608,27 +634,55 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
         </AlertDialog>
 
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden">
-                <DialogHeader className="p-6 pb-2 shrink-0 border-b">
-                    <DialogTitle>Booking Details: #{registration.reference_number}</DialogTitle>
-                    <DialogDescription>
+            <DialogContent className="max-w-5xl w-[95vw] md:w-full max-h-[90vh] h-[90vh] flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-4 sm:p-6 pb-3 shrink-0 border-b">
+                    <DialogTitle className="text-lg sm:text-xl font-bold">Booking Details: #{registration.reference_number}</DialogTitle>
+                    <DialogDescription className="text-xs sm:text-sm">
                         Detailed overview and editing for student {registration.student_number}.
                     </DialogDescription>
                 </DialogHeader>
                 
-                <ScrollArea className="flex-1">
-                    <div className="p-6 space-y-6">
+                <ScrollArea className="flex-1 min-h-0 overflow-y-auto">
+                    <div className="p-4 sm:p-6 space-y-6">
                         {/* Booking Info Card */}
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle className="text-base uppercase tracking-wider text-muted-foreground">Booking Information</CardTitle>
                                 {!isEditing ? (
-                                    <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        onClick={() => {
+                                            setEditPackageId(String(registration.package_id || ''));
+                                            setEditSession(String(registration.session || '1') as '1' | '2');
+                                            setEditSeats(String(registration.additional_seats ?? '0'));
+                                            setEditTokens(String(registration.refreshment_tokens ?? '0'));
+                                            setEditMedalTypeId(registration.medal_type_id ? String(registration.medal_type_id) : 'none');
+                                            setEditName(registration.name_on_certificate || studentInfo?.studentInfo.name_on_certificate || studentInfo?.studentInfo.full_name || '');
+                                            setEditPhone(registration.telephone_1 || studentInfo?.studentInfo.telephone_1 || '');
+                                            setEditCourseIds(registration.course_id ? registration.course_id.split(',').map(s => s.trim()).filter(Boolean) : []);
+                                            setIsEditing(true);
+                                        }}
+                                    >
                                         <Edit2 className="h-4 w-4 mr-2" /> Edit Info
                                     </Button>
                                 ) : (
                                     <div className="flex gap-2">
-                                        <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
+                                        <Button 
+                                            size="sm" 
+                                            variant="ghost" 
+                                            onClick={() => {
+                                                setEditPackageId(String(registration.package_id || ''));
+                                                setEditSession(String(registration.session || '1') as '1' | '2');
+                                                setEditSeats(String(registration.additional_seats ?? '0'));
+                                                setEditTokens(String(registration.refreshment_tokens ?? '0'));
+                                                setEditMedalTypeId(registration.medal_type_id ? String(registration.medal_type_id) : 'none');
+                                                setEditName(registration.name_on_certificate || '');
+                                                setEditPhone(registration.telephone_1 || '');
+                                                setEditCourseIds(registration.course_id ? registration.course_id.split(',').map(s => s.trim()).filter(Boolean) : []);
+                                                setIsEditing(false);
+                                            }}
+                                        >
                                             <X className="h-4 w-4 mr-2" /> Cancel
                                         </Button>
                                         <Button size="sm" onClick={handleUpdate} disabled={updateMutation.isPending}>
@@ -640,40 +694,76 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 {isEditing ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in-50">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in-50">
                                         <div className="space-y-1.5">
-                                            <Label className="text-xs">Package</Label>
+                                            <Label className="text-xs font-semibold">Package</Label>
                                             <Select 
-                                                value={editPackageId} 
+                                                value={String(editPackageId)} 
                                                 onValueChange={(val) => {
                                                     setPendingPackageId(val);
                                                     setIsPackageConfirmOpen(true);
                                                 }}
                                             >
-                                                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                                                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select package" /></SelectTrigger>
                                                 <SelectContent>
                                                     {packages?.filter(p => String(p.convocation_id) === String(registration.convocation_id)).map(p => (
-                                                        <SelectItem key={p.package_id} value={p.package_id} className="text-xs">{p.package_name}</SelectItem>
+                                                        <SelectItem key={p.package_id} value={String(p.package_id)} className="text-xs">{p.package_name}</SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label className="text-xs">Session (S1: {seatsAvailable.s1} reg | S2: {seatsAvailable.s2} reg)</Label>
-                                            <Select value={editSession} onValueChange={(v) => setEditSession(v as '1' | '2')}>
-                                                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                                                <SelectContent><SelectItem value="1">Session 1</SelectItem><SelectItem value="2">Session 2</SelectItem></SelectContent>
+                                            <Label className="text-xs font-semibold">Session (S1: {seatsAvailable.s1} | S2: {seatsAvailable.s2})</Label>
+                                            <Select value={String(editSession)} onValueChange={(v) => setEditSession(v as '1' | '2')}>
+                                                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select session" /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="1">Session 1</SelectItem>
+                                                    <SelectItem value="2">Session 2</SelectItem>
+                                                </SelectContent>
                                             </Select>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label className="text-xs">Additional Seats</Label>
-                                            <Select value={editSeats} onValueChange={setEditSeats}>
-                                                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                                                <SelectContent>{[0,1,2,3,4,5].map(i => <SelectItem key={i} value={String(i)}>{i}</SelectItem>)}</SelectContent>
+                                            <Label className="text-xs font-semibold">Additional Seats</Label>
+                                            <Select value={String(editSeats)} onValueChange={setEditSeats}>
+                                                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select seats" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {[0, 1, 2, 3, 4, 5].map(i => (
+                                                        <SelectItem key={i} value={String(i)}>
+                                                            {i === 0 ? '0 Guest Seats' : `${i} Guest Seat${i > 1 ? 's' : ''}`}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
                                             </Select>
                                         </div>
-                                        <div className="space-y-1.5 md:col-span-1 lg:col-span-1">
-                                            <Label className="text-xs">Name on Certificate</Label>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-semibold">Refreshment Tokens</Label>
+                                            <Select value={String(editTokens)} onValueChange={setEditTokens}>
+                                                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select tokens" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
+                                                        <SelectItem key={i} value={String(i)}>
+                                                            {i === 0 ? '0 Tokens' : `${i} Refreshment Token${i > 1 ? 's' : ''}`}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-semibold">Award / Medal</Label>
+                                            <Select value={String(editMedalTypeId)} onValueChange={setEditMedalTypeId}>
+                                                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select medal..." /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none" className="text-xs">No Medal (None)</SelectItem>
+                                                    {medalTypes?.map(m => (
+                                                        <SelectItem key={m.id} value={String(m.id)} className="text-xs">
+                                                            {m.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-semibold">Name on Certificate</Label>
                                             <input 
                                                 value={editName} 
                                                 onChange={e => setEditName(e.target.value)} 
@@ -681,8 +771,8 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                                                 placeholder={studentInfo?.studentInfo.name_on_certificate || "Enter name..."}
                                             />
                                         </div>
-                                        <div className="space-y-1.5 md:col-span-1 lg:col-span-1">
-                                            <Label className="text-xs">Phone Number</Label>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-semibold">Phone Number</Label>
                                             <input 
                                                 value={editPhone} 
                                                 onChange={e => setEditPhone(e.target.value)} 
@@ -690,35 +780,46 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                                                 placeholder={studentInfo?.studentInfo.telephone_1 || "Enter phone..."}
                                             />
                                         </div>
-                                        <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
-                                            <Label className="text-xs">Total Payable (Auto-calc)</Label>
-                                            <div className="h-9 flex items-center px-3 border rounded-md bg-muted/50 font-mono font-bold text-primary">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-semibold">Total Payable (Auto-calc)</Label>
+                                            <div className="h-9 flex items-center px-3 border rounded-md bg-muted/50 font-mono font-bold text-primary text-xs">
                                                 LKR {totalPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                             </div>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in-50">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 animate-in fade-in-50">
                                         <div className="space-y-1">
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Selected Package</p>
-                                            <p className="text-sm font-semibold">{currentPackage?.package_name || 'N/A'}</p>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Selected Package</p>
+                                            <p className="text-sm font-semibold truncate">{currentPackage?.package_name || 'N/A'}</p>
                                         </div>
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Session & Seats</p>
-                                            <div className="flex gap-2">
-                                                <Badge variant="outline">Session {registration.session}</Badge>
-                                                <Badge variant="outline">{registration.additional_seats} Guest Seats</Badge>
-                                                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">{registration.refreshment_tokens || '0'} Refreshment Tokens</Badge>
+                                        <div className="space-y-1 sm:col-span-2 md:col-span-1">
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Session & Seats</p>
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <Badge variant="outline" className="text-xs">Session {registration.session}</Badge>
+                                                <Badge variant="outline" className="text-xs">{registration.additional_seats} Guest Seats</Badge>
+                                                <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">{registration.refreshment_tokens || '0'} Refreshment Tokens</Badge>
                                             </div>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Certificate Details</p>
-                                            <p className="text-sm font-semibold">{registration.name_on_certificate || studentInfo?.studentInfo.name_on_certificate || studentInfo?.studentInfo.full_name || 'N/A'}</p>
-                                            <p className="text-xs text-muted-foreground">{registration.telephone_1 || studentInfo?.studentInfo.telephone_1 || 'N/A'}</p>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Certificate Details</p>
+                                            <p className="text-sm font-semibold break-words leading-tight">{registration.name_on_certificate || studentInfo?.studentInfo.name_on_certificate || studentInfo?.studentInfo.full_name || 'N/A'}</p>
+                                            <p className="text-xs text-muted-foreground font-mono mt-0.5">{registration.telephone_1 || studentInfo?.studentInfo.telephone_1 || 'N/A'}</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Calculated Payable</p>
-                                            <p className="text-sm font-bold text-primary">LKR {totalPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Award / Medal</p>
+                                            {registration.medal_name ? (
+                                                <Badge variant="outline" className="text-xs font-bold bg-amber-50 text-amber-900 border-amber-300 gap-1.5 inline-flex items-center">
+                                                    <Award className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                                    <span className="truncate">{registration.medal_name}</span>
+                                                </Badge>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground italic">None</p>
+                                            )}
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Total Calculated Payable</p>
+                                            <p className="text-sm font-bold text-primary font-mono">LKR {totalPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                                         </div>
                                     </div>
                                 )}
@@ -1010,7 +1111,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                     </div>
                 </ScrollArea>
 
-                <DialogFooter className="p-4 bg-muted/20 border-t shrink-0 flex items-center justify-between">
+                <DialogFooter className="p-4 bg-muted/20 border-t shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                         <Badge variant="outline" className="h-8 uppercase">Registration: {registration.registration_status}</Badge>
                         {registration.ceremony_number && <Badge variant="default" className="h-8 bg-blue-600">Attendance #: {registration.ceremony_number}</Badge>}
@@ -1080,7 +1181,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                                 )}?
                             </div>
                             <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-md border border-destructive/20 space-y-1">
-                                <p className="font-bold">⚠️ Warning: This action is permanent and cannot be undone.</p>
+                                <p className="font-bold">Warning: This action is permanent and cannot be undone.</p>
                                 <p>This will permanently delete this booking registration from the database and remove the student's assigned ceremony pass.</p>
                             </div>
                         </div>

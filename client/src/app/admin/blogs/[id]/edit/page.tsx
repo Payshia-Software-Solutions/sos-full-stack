@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { ArrowLeft, Image as ImageIcon, Loader2, Settings, Globe, Sparkles } from "lucide-react";
+import { LMS_API_URL } from "@/lib/config";
 import dynamic from "next/dynamic";
 import "react-quill-new/dist/quill.snow.css";
 import "react-quill-new/dist/quill.bubble.css";
@@ -60,7 +61,7 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
     useEffect(() => {
         const fetchBlog = async () => {
             try {
-                const res = await fetch(`http://localhost/sos-full-stack/server/api/blogs/id/${params.id}`);
+                const res = await fetch(`${LMS_API_URL}/api/blogs/id/${params.id}`);
                 const data = await res.json();
                 if (data.success && data.blog) {
                     setFormData({
@@ -151,7 +152,7 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
         formPayload.append("image", file);
 
         try {
-            const res = await fetch("http://localhost/sos-full-stack/server/api/blogs/upload-image", {
+            const res = await fetch(`${LMS_API_URL}/api/blogs/upload-image`, {
                 method: "POST",
                 body: formPayload,
             });
@@ -174,7 +175,7 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
         setLoading(true);
 
         try {
-            const res = await fetch(`http://localhost/sos-full-stack/server/api/blogs/${params.id}`, {
+            const res = await fetch(`${LMS_API_URL}/api/blogs/${params.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),

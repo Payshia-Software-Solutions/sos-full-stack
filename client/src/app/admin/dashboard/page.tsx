@@ -30,6 +30,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 
+// Admin Dashboard View
 export default function AdminDashboardPage() {
   const { user } = useAuth();
 
@@ -310,7 +311,7 @@ export default function AdminDashboardPage() {
                             {payload?.map((entry) => (
                               <li key={`item-${entry.value}`} className="flex items-center gap-2 text-sm">
                                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                                <span>{entry.value} ({entry.payload.payload.total})</span>
+                                <span>{entry.value} ({((entry as any).payload?.payload?.total) ?? 0})</span>
                               </li>
                             ))}
                           </ul>

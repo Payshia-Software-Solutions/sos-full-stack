@@ -5,6 +5,7 @@ import { LMS_API_URL } from "@/lib/config";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { getConvocationRegistrationsByStudent, getPackagesByCeremony, submitSecondPayment, getConvocationStudentCeremonyNumber } from '@/lib/actions/certificates';
+import { getStudentKycStatus } from '@/lib/actions/kyc';
 import { getParentCourses } from '@/lib/actions/courses';
 import { getPaymentRequestsByReference } from '@/lib/api';
 import type { ConvocationRegistration, ParentCourse, ConvocationPackage, PaymentRequest } from '@/lib/types';
@@ -14,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, ListOrdered, PlusCircle, ArrowLeft, GraduationCap, Banknote, Calendar, Users, Wallet, Upload, CheckCircle, Award, Sparkles, ScrollText, FileText, Video, Coffee, Loader2, ExternalLink, Paperclip, Hourglass } from 'lucide-react';
+import { AlertCircle, ListOrdered, PlusCircle, ArrowLeft, ArrowRight, GraduationCap, Banknote, Calendar, Users, Wallet, Upload, CheckCircle, Award, Sparkles, ScrollText, FileText, Video, Coffee, Loader2, ExternalLink, Paperclip, Hourglass, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -120,10 +121,16 @@ const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: Con
                 <div className="p-6 sm:p-8 flex-grow flex flex-col justify-between">
                     <div className="flex justify-between items-start gap-4">
                         <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-6 opacity-90">
+                            <div className="flex items-center gap-2 mb-4 opacity-90">
                                 <Award className="h-6 w-6 text-yellow-300" />
                                 <h3 className="font-headline font-bold text-xl tracking-widest uppercase text-yellow-300">Convocation Pass</h3>
                             </div>
+                            {booking.medal_name && (
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-400 text-yellow-950 font-black text-xs tracking-wider shadow-md border border-yellow-200 mb-4 animate-in fade-in">
+                                    <Award className="w-4 h-4 fill-current text-yellow-900" />
+                                    <span>HONORS: {booking.medal_name.toUpperCase()}</span>
+                                </div>
+                            )}
                             
                             <div className="space-y-4">
                                 <div>
@@ -333,7 +340,7 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
                                 </div>
                             </div>
                             
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
                                 <div className="space-y-1">
                                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">Session</Label>
                                     <p className="text-sm font-semibold">Session {booking.session}</p>
@@ -346,6 +353,14 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
                                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">Refreshments</Label>
                                     <p className="text-sm font-semibold">{booking.refreshment_tokens || '0'} Tokens</p>
                                 </div>
+                                {booking.medal_name && (
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Medal Award</Label>
+                                        <p className="text-sm font-bold text-amber-600 flex items-center gap-1">
+                                            ðŸ… {booking.medal_name}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             {pkg && (
@@ -496,6 +511,22 @@ export default function ConvocationBookingHistoryPage() {
         staleTime: 1000 * 60 * 10,
     });
 
+    const { data: kycDetails } = useQuery({
+        queryKey: ['studentKycStatus', user?.username],
+        queryFn: () => getStudentKycStatus(user?.username || ''),
+        enabled: !!user?.username,
+    });
+    const userVer = (user?.verification_status || '').toLowerCase();
+    const docStatus = (kycDetails?.status || '').toLowerCase();
+    const kycUserVer = (kycDetails?.user_verification_status || '').toLowerCase();
+    const isKycVerified = 
+      userVer === 'verified' || 
+      userVer === 'approved' || 
+      docStatus === 'approved' || 
+      docStatus === 'verified' ||
+      kycUserVer === 'verified' ||
+      kycUserVer === 'approved';
+
     const courseNameMap = useMemo(() => {
         if (!allCourses) return new Map<string, string>();
         return new Map(allCourses.map(course => [course.id, course.course_name]));
@@ -513,13 +544,47 @@ export default function ConvocationBookingHistoryPage() {
                     <h1 className="text-3xl font-headline font-semibold">Convocation Bookings</h1>
                     <p className="text-muted-foreground">View your detailed booking history and manage balance payments.</p>
                 </div>
-                <Button asChild className="mt-2">
-                    <Link href="/dashboard/convocation-booking/create">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Create New Booking
+                <Button asChild className="mt-2" variant={isKycVerified ? "default" : "secondary"}>
+                    <Link href={isKycVerified ? "/dashboard/convocation-booking/create" : "/dashboard/kyc"}>
+                        {isKycVerified ? (
+                            <>
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Create New Booking
+                            </>
+                        ) : (
+                            <>
+                                <ShieldAlert className="mr-2 h-4 w-4 text-amber-600" />
+                                Complete KYC to Book
+                            </>
+                        )}
                     </Link>
                 </Button>
             </header>
+
+            {!isKycVerified && (
+                <div className="rounded-2xl border-2 border-amber-300 dark:border-amber-700 bg-gradient-to-r from-amber-50 via-amber-50/90 to-amber-100/60 dark:from-amber-950/40 dark:via-amber-950/30 dark:to-amber-900/20 p-5 sm:p-6 shadow-sm">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-start sm:items-center gap-4">
+                            <div className="p-3 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-400 shrink-0">
+                                <ShieldAlert className="h-8 w-8" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg sm:text-xl font-bold text-amber-950 dark:text-amber-100 tracking-tight">
+                                    Convocation Booking Locked: KYC Verification Required
+                                </h3>
+                                <p className="text-sm sm:text-base text-amber-900/80 dark:text-amber-200/80 mt-1">
+                                    Identity verification (KYC) must be approved by the administration before you can register for a convocation ceremony.
+                                </p>
+                            </div>
+                        </div>
+                        <Button asChild size="lg" className="bg-amber-600 hover:bg-amber-700 text-white font-bold shrink-0 h-12 px-6 text-sm shadow-md">
+                            <Link href="/dashboard/kyc" className="flex items-center gap-2">
+                                Complete KYC Now <ArrowRight className="h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <div className="space-y-6">
                 {isLoading && (
@@ -560,11 +625,38 @@ export default function ConvocationBookingHistoryPage() {
                     </div>
                 )}
                  {!isLoading && !isError && (!previousBookings || previousBookings.length === 0) && (
-                    <div className="text-center py-20 text-muted-foreground flex flex-col items-center border rounded-xl bg-muted/10">
-                        <GraduationCap className="w-16 h-16 mb-4 opacity-50" />
-                        <h3 className="font-semibold text-lg">You haven't made any convocation bookings yet.</h3>
-                        <p className="text-sm mt-1">When you book for a ceremony, it will appear here.</p>
-                    </div>
+                    !isKycVerified ? (
+                        <div className="text-center py-16 px-6 border-2 border-dashed border-amber-300 dark:border-amber-800/60 rounded-2xl bg-amber-50/30 dark:bg-amber-950/15 flex flex-col items-center max-w-3xl mx-auto shadow-xs my-4">
+                            <div className="w-20 h-20 rounded-full bg-amber-500/15 border-2 border-amber-500/30 flex items-center justify-center mb-5 text-amber-600 dark:text-amber-400">
+                                <ShieldAlert className="w-10 h-10" />
+                            </div>
+                            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground tracking-tight">
+                                Convocation Booking is Locked
+                            </h2>
+                            <p className="text-base sm:text-lg text-muted-foreground mt-3 max-w-xl leading-relaxed">
+                                You must complete your <strong className="font-bold text-foreground">Student Identity Verification (KYC)</strong> and receive administration approval before you can register for a convocation ceremony.
+                            </p>
+
+                            <div className="mt-5 mb-8">
+                                <Badge variant="outline" className="text-sm px-4 py-1.5 font-bold bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-900/40 dark:text-amber-200">
+                                    {kycDetails?.status === 'pending' ? 'Verification Under Review' : kycDetails?.status === 'rejected' ? 'Verification Rejected - Action Required' : 'Verification Documents Not Submitted'}
+                                </Badge>
+                            </div>
+
+                            <Button asChild size="lg" className="h-13 px-8 font-bold text-base sm:text-lg bg-amber-600 hover:bg-amber-700 text-white shadow-lg">
+                                <Link href="/dashboard/kyc" className="flex items-center gap-2.5">
+                                    {kycDetails?.status === 'pending' ? 'View Submitted Documents' : 'Complete KYC Verification Now'}
+                                    <ArrowRight className="w-5 h-5" />
+                                </Link>
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="text-center py-20 text-muted-foreground flex flex-col items-center border rounded-xl bg-muted/10">
+                            <GraduationCap className="w-16 h-16 mb-4 opacity-50" />
+                            <h3 className="font-semibold text-lg">You haven't made any convocation bookings yet.</h3>
+                            <p className="text-sm mt-1">When you book for a ceremony, it will appear here.</p>
+                        </div>
+                    )
                  )}
             </div>
         </div>

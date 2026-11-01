@@ -1,5 +1,5 @@
 import { LMS_API_URL } from "@/lib/config";
-import type { UpdateCertificateNamePayload, ConvocationRegistration, CertificateOrder, SendSmsPayload, ConvocationCourse, FilteredConvocationRegistration, UpdateConvocationCoursesPayload, UserCertificatePrintStatus, UpdateCertificateOrderCoursesPayload, GenerateCertificatePayload, CreateCertificateOrderPayload, ConvocationCeremony, ConvocationPackage, ParentCourse, SessionCount, TcPaymentRecord, GeneratedCertificateBatchInfo } from '../types';
+import type { UpdateCertificateNamePayload, ConvocationRegistration, ConvocationMedalType, CertificateOrder, SendSmsPayload, ConvocationCourse, FilteredConvocationRegistration, UpdateConvocationCoursesPayload, UserCertificatePrintStatus, UpdateCertificateOrderCoursesPayload, GenerateCertificatePayload, CreateCertificateOrderPayload, ConvocationCeremony, ConvocationPackage, ParentCourse, SessionCount, TcPaymentRecord, GeneratedCertificateBatchInfo } from '../types';
 
 const QA_API_BASE_URL = LMS_API_URL;
 
@@ -637,6 +637,65 @@ export const updateConvocationRefreshmentTokens = async (registrationId: string,
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to update refreshment tokens' }));
         throw new Error(errorData.error || errorData.message || 'Failed to update refreshment tokens');
+    }
+    return response.json();
+};
+
+export const getConvocationMedalTypes = async (activeOnly: boolean = false): Promise<ConvocationMedalType[]> => {
+    const url = activeOnly ? `${QA_API_BASE_URL}/convocation-medal-types?active_only=1` : `${QA_API_BASE_URL}/convocation-medal-types`;
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error('Failed to fetch convocation medal types');
+    }
+    return response.json();
+};
+
+export const createConvocationMedalType = async (data: Partial<ConvocationMedalType>): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/convocation-medal-types`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to create medal type' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to create medal type');
+    }
+    return response.json();
+};
+
+export const updateConvocationMedalType = async (id: number | string, data: Partial<ConvocationMedalType>): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/convocation-medal-types/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update medal type' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to update medal type');
+    }
+    return response.json();
+};
+
+export const deleteConvocationMedalType = async (id: number | string): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/convocation-medal-types/${id}`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to delete medal type' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to delete medal type');
+    }
+    return response.json();
+};
+
+export const updateConvocationMedal = async (registrationId: string | number, medalTypeId: number | string | null): Promise<any> => {
+    const response = await fetch(`${QA_API_BASE_URL}/convocation-registrations/${registrationId}/update-medal/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ medal_type_id: medalTypeId }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update medal' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to update medal');
     }
     return response.json();
 };
