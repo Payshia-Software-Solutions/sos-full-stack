@@ -6,8 +6,9 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { getStudentFullInfo } from '@/lib/actions/users';
+import { getStudentKycStatus } from '@/lib/actions/kyc';
 import { getConvocationCeremonies, getPackagesByCeremony, createConvocationRegistration, getConvocationSessionCounts, getCertificateOrdersByStudent, getConvocationRegistrationsByStudent } from '@/lib/actions/certificates';
-import type { FullStudentData, StudentEnrollment, ConvocationCeremony, ConvocationPackage, SessionCount, CertificateOrder, ConvocationRegistration } from '@/lib/types';
+import type { FullStudentData, StudentEnrollment, ConvocationCeremony, ConvocationPackage, SessionCount, CertificateOrder, ConvocationRegistration, StudentDocumentVerification } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, CheckCircle, Award, Loader2, Home, Truck, Copy, AlertCircle, AlertTriangle, XCircle, ChevronDown, ListOrdered, PlusCircle, FileText, Sparkles, ScrollText, Check, Paperclip, User, Users, Star, Video, Coffee, GraduationCap, Calendar, Receipt } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, Award, Loader2, Home, Truck, Copy, AlertCircle, AlertTriangle, XCircle, ChevronDown, ListOrdered, PlusCircle, FileText, Sparkles, ScrollText, Check, Paperclip, User, Users, Star, Video, Coffee, GraduationCap, Calendar, Receipt, ShieldAlert, Clock } from 'lucide-react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -44,7 +45,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const PARENT_SEAT_RATE = 750; 
 
-type OrderStep = 'loading' | 'ceremony_selection' | 'course_selection' | 'form' | 'confirmation' | 'success' | 'error';
+type OrderStep = 'loading' | 'ceremony_selection' | 'course_selection' | 'form' | 'confirmation' | 'success' | 'error' | 'kyc_required';
 
 interface City {
     id: string;
@@ -138,6 +139,23 @@ export default function CreateConvocationBookingPage() {
     enabled: !!user?.username,
   });
 
+  const { data: kycDetails, isLoading: isLoadingKyc } = useQuery<StudentDocumentVerification>({
+    queryKey: ['studentKycStatus', user?.username],
+    queryFn: () => getStudentKycStatus(user?.username || ''),
+    enabled: !!user?.username,
+  });
+
+  const userVer = (user?.verification_status || '').toLowerCase();
+  const docStatus = (kycDetails?.status || '').toLowerCase();
+  const kycUserVer = (kycDetails?.user_verification_status || '').toLowerCase();
+  const isKycVerified = 
+    userVer === 'verified' || 
+    userVer === 'approved' || 
+    docStatus === 'approved' || 
+    docStatus === 'verified' ||
+    kycUserVer === 'verified' ||
+    kycUserVer === 'approved';
+
   const allEnrollments = useMemo(() => {
     if (!studentData) return [];
     return Object.values(studentData.studentEnrollments);
@@ -180,7 +198,7 @@ export default function CreateConvocationBookingPage() {
 
   useEffect(() => {
     resetAllState();
-    const isLoading = isLoadingStudent || isLoadingCeremonies || isLoadingOrders || isLoadingBookings;
+    const isLoading = isLoadingStudent || isLoadingCeremonies || isLoadingOrders || isLoadingBookings || isLoadingKyc;
     if (isLoading) {
       setStep('loading');
       return;
@@ -189,6 +207,12 @@ export default function CreateConvocationBookingPage() {
     if (anyError) {
       setErrorDetails({ message: (studentError?.message || ceremonyError?.message) ?? 'Failed to load initial data.' });
       setStep('error');
+      return;
+    }
+
+    // Guard: KYC must be approved before booking convocation
+    if (!isKycVerified) {
+      setStep('kyc_required');
       return;
     }
 
@@ -238,7 +262,7 @@ export default function CreateConvocationBookingPage() {
       setStep('ceremony_selection');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoadingStudent, isLoadingCeremonies, isLoadingOrders, isLoadingBookings, isStudentError, isCeremonyError, studentData, allEnrollments, activeBookedCourseIds, activeOrderedCourseIds]);
+  }, [isLoadingStudent, isLoadingCeremonies, isLoadingOrders, isLoadingBookings, isLoadingKyc, isKycVerified, isStudentError, isCeremonyError, studentData, allEnrollments, activeBookedCourseIds, activeOrderedCourseIds]);
 
   const createBookingMutation = useMutation({
       mutationFn: (payload: FormData) => createConvocationRegistration(payload),
@@ -929,8 +953,8 @@ export default function CreateConvocationBookingPage() {
                                         className="cursor-pointer file:cursor-pointer text-xs"
                                     />
                                     {paymentSlip && (
-                                        <p className="text-[11px] text-green-600 font-medium truncate">
-                                            ✓ {paymentSlip.name}
+                                        <p className="text-[11px] text-green-600 font-medium truncate flex items-center gap-1">
+                                            <Check className="w-3.5 h-3.5 shrink-0" /> {paymentSlip.name}
                                         </p>
                                     )}
                                 </div>
@@ -1101,7 +1125,7 @@ export default function CreateConvocationBookingPage() {
                           <div>
                             <p className="font-semibold text-foreground leading-tight">Additional Guest Seats</p>
                             <p className="text-[11px] text-muted-foreground">
-                              {additionalSeatsNum} {additionalSeatsNum === 1 ? 'seat' : 'seats'} × LKR {ceremonyParentSeatRate.toLocaleString()}
+                              {additionalSeatsNum} {additionalSeatsNum === 1 ? 'seat' : 'seats'} Ã— LKR {ceremonyParentSeatRate.toLocaleString()}
                             </p>
                           </div>
                           <span className="font-mono font-bold text-foreground text-sm shrink-0">
@@ -1115,7 +1139,7 @@ export default function CreateConvocationBookingPage() {
                             <p className="font-semibold text-foreground leading-tight">Refreshment Tokens</p>
                             <p className="text-[11px] text-muted-foreground">
                               {tokensNum} {tokensNum === 1 ? 'token' : 'tokens'}
-                              {ceremonyRefreshTokenRate > 0 ? ` × LKR ${ceremonyRefreshTokenRate.toLocaleString()}` : ' (Included / Free)'}
+                              {ceremonyRefreshTokenRate > 0 ? ` Ã— LKR ${ceremonyRefreshTokenRate.toLocaleString()}` : ' (Included / Free)'}
                             </p>
                           </div>
                           <span className="font-mono font-bold text-foreground text-sm shrink-0">
@@ -1187,6 +1211,72 @@ export default function CreateConvocationBookingPage() {
                   <Home className="mr-2 h-4 w-4" /> View Booking History
               </Button>
             </CardFooter>
+          </>
+        );
+
+      case 'kyc_required':
+        const kycStatus = kycDetails?.status || (user?.verification_status?.toLowerCase() as string) || 'not_submitted';
+        return (
+          <>
+            <CardHeader className="text-center pb-2 pt-8">
+              <div className="mx-auto w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-3 text-amber-600 dark:text-amber-400 border-2 border-amber-500/20 shadow-xs">
+                <ShieldAlert className="w-8 h-8" />
+              </div>
+              <CardTitle className="text-2xl font-bold">Identity Verification (KYC) Required</CardTitle>
+              <CardDescription className="max-w-lg mx-auto text-sm mt-1">
+                Student Document Verification (KYC) must be approved before you can register for a convocation ceremony.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-4 max-w-xl mx-auto pb-8">
+              <div className="p-4 rounded-xl border bg-muted/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Your KYC Status:</span>
+                  <Badge 
+                    variant="outline" 
+                    className={
+                      kycStatus === 'pending'
+                        ? "bg-amber-50 text-amber-800 border-amber-300 font-bold"
+                        : kycStatus === 'rejected'
+                        ? "bg-red-50 text-red-800 border-red-300 font-bold"
+                        : "bg-muted text-muted-foreground font-bold"
+                    }
+                  >
+                    {kycStatus === 'pending' ? 'Under Review' : kycStatus === 'rejected' ? 'Rejected' : 'Not Submitted'}
+                  </Badge>
+                </div>
+
+                {kycStatus === 'pending' && (
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Your verification documents have been submitted and are currently awaiting review by our administration. Once approved, convocation booking will automatically unlock.
+                  </p>
+                )}
+
+                {kycStatus === 'rejected' && (
+                  <div className="text-xs text-red-700 bg-red-50 dark:bg-red-950/40 p-3 rounded-lg border border-red-200 dark:border-red-900 space-y-1">
+                    <p className="font-semibold">Rejection Reason:</p>
+                    <p>{kycDetails?.rejection_reason || 'Documents did not meet verification criteria. Please re-upload corrected copies.'}</p>
+                  </div>
+                )}
+
+                {(kycStatus === 'not_submitted' || kycStatus === 'unverified') && (
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    To comply with academic convocation regulations and certify official graduation certificates, you must upload your National Identity Card (NIC) and educational certificates.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Button asChild className="flex-1 font-bold h-11" size="lg">
+                  <Link href="/dashboard/kyc" className="flex items-center justify-center gap-2">
+                    {kycStatus === 'pending' ? 'View Submitted Documents' : 'Complete KYC Verification Now'}
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="h-11">
+                  <Link href="/dashboard/convocation-booking">Back to Bookings</Link>
+                </Button>
+              </div>
+            </CardContent>
           </>
         );
 
@@ -1294,9 +1384,15 @@ export default function CreateConvocationBookingPage() {
                       <div className="space-y-0.5 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h2 className="text-lg sm:text-xl font-bold truncate text-foreground">{studentData.studentInfo.full_name}</h2>
-                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 shrink-0">
-                            Eligible
-                          </Badge>
+                          {isKycVerified ? (
+                            <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 shrink-0">
+                              Eligible
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300 shrink-0 flex items-center gap-1 font-semibold">
+                              <ShieldAlert className="w-3.5 h-3.5 text-amber-600" /> KYC Verification Required
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs sm:text-sm text-muted-foreground font-mono">{studentData.studentInfo.student_id}</p>
                       </div>
@@ -1319,7 +1415,7 @@ export default function CreateConvocationBookingPage() {
                                 isCurrent ? "bg-primary-foreground text-primary" :
                                 isCompleted ? "bg-primary text-primary-foreground" : "bg-muted-foreground/30 text-foreground"
                               )}>
-                                {isCompleted ? '✓' : s.num}
+                                {isCompleted ? <Check className="w-3 h-3 stroke-[3]" /> : s.num}
                               </span>
                               <span className="hidden sm:inline">{s.label}</span>
                             </div>

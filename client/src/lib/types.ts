@@ -1314,5 +1314,6 @@ export interface StudentDocumentVerification {
   lname?: string;
   email?: string;
   phone?: string;
+  user_verification_status?: string;
 }
 

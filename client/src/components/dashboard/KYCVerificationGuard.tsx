@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
 import { getStudentKycStatus } from '@/lib/actions/kyc';
 import type { StudentDocumentVerification } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, Clock, XCircle, ArrowRight, FileCheck, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, Clock, XCircle, ArrowRight, FileCheck } from 'lucide-react';
 import Link from 'next/link';
 
 interface KYCVerificationGuardProps {
@@ -17,29 +18,31 @@ export function KYCVerificationGuard({ children }: KYCVerificationGuardProps) {
   const { user } = useAuth();
   const pathname = usePathname();
 
-  const [kycDetails, setKycDetails] = useState<StudentDocumentVerification | null>(null);
-
   const isStudent = user?.role === 'student';
-  const isVerified = user?.verification_status === 'Verified' || kycDetails?.status === 'approved';
 
-  useEffect(() => {
-    let isMounted = true;
-    if (isStudent && !isVerified) {
-      getStudentKycStatus(user.username || '')
-        .then((data) => {
-          if (isMounted) setKycDetails(data);
-        })
-        .catch(() => {});
-    }
-    return () => {
-      isMounted = false;
-    };
-  }, [isStudent, isVerified, user?.username, pathname]);
+  const { data: kycDetails } = useQuery<StudentDocumentVerification>({
+    queryKey: ['studentKycStatus', user?.username],
+    queryFn: () => getStudentKycStatus(user?.username || ''),
+    enabled: isStudent && !!user?.username,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const userVer = (user?.verification_status || '').toLowerCase();
+  const docStatus = (kycDetails?.status || '').toLowerCase();
+  const kycUserVer = (kycDetails?.user_verification_status || '').toLowerCase();
+
+  const isVerified = 
+    userVer === 'verified' || 
+    userVer === 'approved' || 
+    docStatus === 'approved' || 
+    docStatus === 'verified' ||
+    kycUserVer === 'verified' ||
+    kycUserVer === 'approved';
 
   // If staff or user is already verified or on the KYC page itself, render children with no banner
   const hideBanner = !isStudent || isVerified || pathname === '/dashboard/kyc';
 
-  const currentStatus = kycDetails?.status || (user?.verification_status?.toLowerCase() as string) || 'not_submitted';
+  const currentStatus = docStatus || userVer || 'not_submitted';
 
   return (
     <div className="flex flex-col flex-1 w-full min-h-0">

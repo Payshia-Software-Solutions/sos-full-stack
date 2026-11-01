@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { ArrowLeft, Image as ImageIcon, Loader2, Settings, Globe, Sparkles } from "lucide-react";
+import { LMS_API_URL } from "@/lib/config";
 import dynamic from "next/dynamic";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -120,7 +121,7 @@ export default function CreateBlogPage() {
         formPayload.append("image", file);
 
         try {
-            const res = await fetch("http://localhost/sos-full-stack/server/api/blogs/upload-image", {
+            const res = await fetch(`${LMS_API_URL}/api/blogs/upload-image`, {
                 method: "POST",
                 body: formPayload,
             });
@@ -143,7 +144,7 @@ export default function CreateBlogPage() {
         setLoading(true);
 
         try {
-            const res = await fetch("http://localhost/sos-full-stack/server/api/blogs", {
+            const res = await fetch(`${LMS_API_URL}/api/blogs`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),

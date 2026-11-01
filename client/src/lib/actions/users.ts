@@ -3,6 +3,7 @@ import { LMS_API_URL } from "@/lib/config";
 
 import type { StudentSearchResult, UserFullDetails, ApiStaffMember, StaffMember, StudentEnrollmentInfo, TempUser, StudentBalanceData, GamePatient, Course } from '../types';
 
+// Uses centralized LMS_API_URL dynamically resolved in config.ts
 const QA_API_BASE_URL = LMS_API_URL;
 
 // Student Search

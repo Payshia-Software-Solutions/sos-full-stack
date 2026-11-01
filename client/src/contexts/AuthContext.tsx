@@ -139,6 +139,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(studentProfile));
     setUser(studentProfile);
     setIsImpersonating(true);
+
+    // Asynchronously resolve and populate student KYC verification status
+    if (studentProfile.username) {
+      getStudentKycStatus(studentProfile.username)
+        .then((kyc) => {
+          const docStat = (kyc?.status || '').toLowerCase();
+          const userStat = (kyc?.user_verification_status || '').toLowerCase();
+          if (docStat === 'approved' || docStat === 'verified' || userStat === 'verified' || userStat === 'approved') {
+            const updatedProfile: UserProfile = {
+              ...studentProfile,
+              verification_status: 'Verified',
+            };
+            setUser(updatedProfile);
+            localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedProfile));
+          }
+        })
+        .catch(() => {});
+    }
+
     router.push('/dashboard');
   }, [user, router]);
 
