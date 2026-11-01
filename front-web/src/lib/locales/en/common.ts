@@ -8,7 +8,7 @@ export const common = {
   // Common Labels
   home: 'Home',
   courses: 'Courses',
-  about: 'About',
+  about: 'About Us',
   contact: 'Contact',
   
   // Other common terms can be added here

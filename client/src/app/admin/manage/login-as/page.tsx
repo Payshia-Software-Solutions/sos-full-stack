@@ -41,6 +41,7 @@ export default function LoginAsPage() {
             name: `${student.fname} ${student.lname}`,
             email: student.email,
             role: 'student',
+            verification_status: (student as any).verification_status || 'Unverified',
             avatar: `https://placehold.co/100x100.png?text=${student.fname.charAt(0)}${student.lname.charAt(0)}`,
             joinedDate: student.created_at,
         };

@@ -148,7 +148,10 @@ export function UserActionDialog({ user, courses, onSuccess }: { user: any, cour
     }
   };
 
-  const slips = user.slip_paths ? user.slip_paths.split(',') : [];
+  const slips = [
+    ...(user.slip_paths ? user.slip_paths.split(',') : []),
+    ...(user.payment_slip ? [user.payment_slip] : [])
+  ].filter(Boolean);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -262,6 +265,24 @@ export function UserActionDialog({ user, courses, onSuccess }: { user: any, cour
                   <Input value={editedUser.name_on_certificate || ''} onChange={e => setEditedUser({...editedUser, name_on_certificate: e.target.value})} className="mt-1" />
                 ) : (
                   <div className="font-medium mt-1">{editedUser.name_on_certificate || '-'}</div>
+                )}
+              </div>
+
+              <div>
+                <Label className="text-muted-foreground text-xs">Preferred Class Schedule</Label>
+                {isEditing ? (
+                  <Input value={editedUser.batch_preference || ''} onChange={e => setEditedUser({...editedUser, batch_preference: e.target.value})} className="mt-1" placeholder="e.g. Weekend Batch" />
+                ) : (
+                  <div className="font-medium mt-1 text-primary">{editedUser.batch_preference || '-'}</div>
+                )}
+              </div>
+
+              <div>
+                <Label className="text-muted-foreground text-xs">Educational Qualification</Label>
+                {isEditing ? (
+                  <Input value={editedUser.qualification || ''} onChange={e => setEditedUser({...editedUser, qualification: e.target.value})} className="mt-1" placeholder="e.g. G.C.E. A/L (Bio)" />
+                ) : (
+                  <div className="font-medium mt-1 text-primary">{editedUser.qualification || '-'}</div>
                 )}
               </div>
             </div>

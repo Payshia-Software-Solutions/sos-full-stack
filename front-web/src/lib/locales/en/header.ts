@@ -12,7 +12,7 @@ export const header = {
   studentLogin: 'Student Login',
 
   // Main Nav
-  certificate: 'Certificate',
+  certificate: 'Certificates',
   departments: 'Departments',
   students: 'Students',
   reviews: 'Reviews',

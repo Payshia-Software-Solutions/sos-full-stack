@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Edit, Trash2 } from "lucide-react";
+import { LMS_API_URL } from "@/lib/config";
 
 export default function AdminBlogsPage() {
     const [blogs, setBlogs] = useState<any[]>([]);
@@ -12,7 +13,7 @@ export default function AdminBlogsPage() {
 
     const fetchBlogs = async () => {
         try {
-            const res = await fetch("http://localhost/sos-full-stack/server/api/blogs");
+            const res = await fetch(`${LMS_API_URL}/api/blogs`);
             const data = await res.json();
             if (data.success) {
                 setBlogs(data.blogs);
@@ -31,7 +32,7 @@ export default function AdminBlogsPage() {
     const deleteBlog = async (id: number) => {
         if (!confirm("Are you sure you want to delete this blog?")) return;
         try {
-            const res = await fetch(`http://localhost/sos-full-stack/server/api/blogs/${id}`, {
+            const res = await fetch(`${LMS_API_URL}/api/blogs/${id}`, {
                 method: "DELETE",
             });
             const data = await res.json();

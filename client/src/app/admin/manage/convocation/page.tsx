@@ -4,6 +4,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { 
     getConvocationRegistrations, 
     getPackagesByCeremony,
@@ -26,7 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ArrowLeft, ArrowUp, ArrowDown, ChevronsUpDown, Eye, FileDown, Loader2, Banknote, Wallet, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, ArrowLeft, ArrowUp, ArrowDown, ChevronsUpDown, Eye, FileDown, Loader2, Banknote, Wallet, Trash2, AlertTriangle, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { AnimatedCounter } from '@/components/ui/animated-counter';
@@ -164,7 +165,7 @@ export default function ConvocationListPage() {
 
     const registrationStats = useMemo(() => {
         if (!registrations || !packages) {
-            return { totalBookings: 0, pendingPayments: 0, confirmedPayments: 0, additionalSeats: 0, totalVerified: 0, totalDue: 0 };
+            return { totalBookings: 0, pendingPayments: 0, confirmedPayments: 0, additionalSeats: 0, refreshmentTokens: 0, totalVerified: 0, totalDue: 0 };
         }
         
         const activeRegs = registrations.filter(r => 
@@ -197,6 +198,7 @@ export default function ConvocationListPage() {
             confirmedPayments: confirmed.length,
             pendingPayments: activeRegs.length - confirmed.length,
             additionalSeats: activeRegs.reduce((acc, reg) => acc + (parseInt(reg.additional_seats, 10) || 0), 0),
+            refreshmentTokens: activeRegs.reduce((acc, reg) => acc + (parseInt(reg.refreshment_tokens || '0', 10) || 0), 0),
             totalVerified,
             totalDue
         };
@@ -340,6 +342,8 @@ export default function ConvocationListPage() {
                 'Package',
                 'Session',
                 'Seats',
+                'Refreshment Tokens',
+                'Medal Award',
                 'Payment Status',
                 'Reg. Status',
                 'Total Payable',
@@ -385,6 +389,8 @@ export default function ConvocationListPage() {
                     packageName,
                     reg.session,
                     reg.additional_seats,
+                    reg.refreshment_tokens || '0',
+                    reg.medal_name || 'None',
                     reg.payment_status,
                     reg.registration_status,
                     reg.dueAmount?.toFixed(2),
@@ -537,10 +543,18 @@ export default function ConvocationListPage() {
                     <h1 className="text-3xl font-headline font-semibold">{ceremonyIdFilter ? "Ceremony Registrations" : "All Convocation Registrations"}</h1>
                     <p className="text-muted-foreground">Manage student registrations and verify bookings.</p>
                 </div>
-                <Button onClick={handleExport} disabled={isExporting || filteredRegistrations.length === 0}>
-                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-                    {isExporting ? 'Preparing...' : 'Export to CSV'}
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button asChild variant="outline" className="shadow-xs">
+                        <Link href="/admin/manage/convocation-medal-types">
+                            <Award className="mr-2 h-4 w-4 text-amber-500" />
+                            Medal Types Master
+                        </Link>
+                    </Button>
+                    <Button onClick={handleExport} disabled={isExporting || filteredRegistrations.length === 0}>
+                        {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+                        {isExporting ? 'Preparing...' : 'Export to CSV'}
+                    </Button>
+                </div>
             </header>
             
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -548,6 +562,7 @@ export default function ConvocationListPage() {
                 <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Pending Payments</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.pendingPayments} /></div></CardContent></Card>
                 <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Confirmed Payments</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.confirmedPayments} /></div></CardContent></Card>
                 <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Additional Seats</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.additionalSeats} /></div></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Refreshment Tokens</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.refreshmentTokens} /></div></CardContent></Card>
                 <Card className="bg-primary/5 border-primary/20"><CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0"><CardTitle className="text-sm font-bold text-primary">Verified Revenue</CardTitle><Banknote className="h-4 w-4 text-primary" /></CardHeader><CardContent><div className="text-xl font-bold text-primary">LKR {registrationStats.totalVerified.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div></CardContent></Card>
                 <Card className="bg-destructive/5 border-destructive/20"><CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0"><CardTitle className="text-sm font-bold text-destructive">Due Balance</CardTitle><Wallet className="h-4 w-4 text-destructive" /></CardHeader><CardContent><div className="text-xl font-bold text-destructive">LKR {registrationStats.totalDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div></CardContent></Card>
             </section>
@@ -642,6 +657,17 @@ export default function ConvocationListPage() {
                                                     <div className="flex flex-wrap items-center gap-2 pt-1">
                                                         <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100">Pkg: {packageName}</span>
                                                         <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase">Sess {reg.session}</Badge>
+                                                        {parseInt(reg.additional_seats || '0', 10) > 0 && (
+                                                            <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase">Seats: {reg.additional_seats}</Badge>
+                                                        )}
+                                                        {parseInt(reg.refreshment_tokens || '0', 10) > 0 && (
+                                                            <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase bg-orange-50 text-orange-700 border-orange-200">Refreshments: {reg.refreshment_tokens}</Badge>
+                                                        )}
+                                                        {reg.medal_name && (
+                                                            <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase bg-amber-50 text-amber-900 border-amber-300 gap-1 inline-flex items-center">
+                                                                🏅 {reg.medal_name}
+                                                            </Badge>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </TableCell>

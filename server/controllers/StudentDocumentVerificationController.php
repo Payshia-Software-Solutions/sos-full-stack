@@ -19,8 +19,9 @@ class StudentDocumentVerificationController
     // Get student KYC verification status by student username/ID
     public function getStatusByStudent($studentId)
     {
-        $studentId = rtrim(trim($studentId), '/');
-        $record = $this->model->getByStudentId($studentId);
+        $resolvedStudentId = $_GET['student_id'] ?? $_GET['username'] ?? $studentId;
+        $resolvedStudentId = rtrim(trim($resolvedStudentId), '/');
+        $record = $this->model->getByStudentId($resolvedStudentId);
         if ($record) {
             echo json_encode([
                 'success' => true,
@@ -30,7 +31,7 @@ class StudentDocumentVerificationController
             echo json_encode([
                 'success' => true,
                 'data' => [
-                    'student_id' => $studentId,
+                    'student_id' => $resolvedStudentId,
                     'status' => 'not_submitted',
                     'rejection_reason' => null
                 ]
@@ -199,6 +200,8 @@ class StudentDocumentVerificationController
     // Admin: Set user verification status directly in users table
     public function updateUserVerificationStatus($username)
     {
+        $resolvedUsername = $_GET['student_id'] ?? $_GET['username'] ?? $username;
+        $resolvedUsername = rtrim(trim($resolvedUsername), '/');
         $raw = file_get_contents('php://input');
         $input = json_decode($raw, true) ?? $_POST;
         $status = $input['verification_status'] ?? null;
@@ -209,7 +212,7 @@ class StudentDocumentVerificationController
             return;
         }
 
-        $result = $this->model->setUserVerificationStatus($username, $status);
+        $result = $this->model->setUserVerificationStatus($resolvedUsername, $status);
         if ($result) {
             echo json_encode([
                 'success' => true,

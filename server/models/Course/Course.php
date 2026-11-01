@@ -9,6 +9,22 @@ class Course
     public function __construct($pdo)
     {
         $this->pdo = $pdo;
+        $this->ensureColumns();
+    }
+
+    private function ensureColumns()
+    {
+        try {
+            $cols = $this->pdo->query("SHOW COLUMNS FROM course")->fetchAll(PDO::FETCH_COLUMN);
+            if (!in_array('allowed_schedules', $cols)) {
+                $this->pdo->exec("ALTER TABLE course ADD COLUMN `allowed_schedules` TEXT NULL AFTER `criteria_list`");
+            }
+            if (!in_array('allowed_qualifications', $cols)) {
+                $this->pdo->exec("ALTER TABLE course ADD COLUMN `allowed_qualifications` TEXT NULL AFTER `allowed_schedules`");
+            }
+        } catch (\Exception $e) {
+            // Silently continue
+        }
     }
 
     public function getAllRecords()
@@ -24,7 +40,6 @@ class Course
         return $courses;
     }
 
-
     public function getRecordById($id)
     {
         $stmt = $this->pdo->prepare("SELECT * FROM course WHERE id = :id AND display = 1");
@@ -39,20 +54,6 @@ class Course
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // public function getCourseFeeByCourseCode($course_code)
-    // {
-    //     $query = "
-    //     SELECT course_fee
-    //     FROM course
-    //     WHERE course_code = :course_code
-    // ";
-
-    //     $stmt = $this->pdo->prepare($query);
-    //     $stmt->execute(['course_code' => $course_code]);
-
-    //     return $stmt->fetch(PDO::FETCH_ASSOC);
-    // }
-
     public function createRecord($data)
     {
         if (!isset($data['created_at'])) {
@@ -60,6 +61,12 @@ class Course
         }
         if (!array_key_exists('criteria_list', $data)) {
             $data['criteria_list'] = null;
+        }
+        if (!array_key_exists('allowed_schedules', $data)) {
+            $data['allowed_schedules'] = null;
+        }
+        if (!array_key_exists('allowed_qualifications', $data)) {
+            $data['allowed_qualifications'] = null;
         }
 
         // Auto-generate course_code if missing or empty
@@ -91,9 +98,9 @@ class Course
         }
 
         $sql = "INSERT INTO course 
-                (course_name, parent_course_id, course_code, instructor_id, course_description, course_duration, course_fee, registration_fee, other, created_at, created_by, enroll_key, certification, mini_description, course_img, CertificateImagePath, criteria_list, whatsapp_link) 
+                (course_name, parent_course_id, course_code, instructor_id, course_description, course_duration, course_fee, registration_fee, other, created_at, created_by, enroll_key, certification, mini_description, course_img, CertificateImagePath, criteria_list, whatsapp_link, allowed_schedules, allowed_qualifications) 
                 VALUES 
-                (:course_name, :parent_course_id, :course_code, :instructor_id, :course_description, :course_duration, :course_fee, :registration_fee, :other, :created_at, :created_by, :enroll_key, :certification, :mini_description, :course_img, :CertificateImagePath, :criteria_list, :whatsapp_link)";
+                (:course_name, :parent_course_id, :course_code, :instructor_id, :course_description, :course_duration, :course_fee, :registration_fee, :other, :created_at, :created_by, :enroll_key, :certification, :mini_description, :course_img, :CertificateImagePath, :criteria_list, :whatsapp_link, :allowed_schedules, :allowed_qualifications)";
 
         $stmt = $this->pdo->prepare($sql);
         
@@ -115,7 +122,9 @@ class Course
             ':course_img' => $data['course_img'] ?? '',
             ':CertificateImagePath' => $data['CertificateImagePath'] ?? null,
             ':criteria_list' => $data['criteria_list'] ?? null,
-            ':whatsapp_link' => $data['whatsapp_link'] ?? null
+            ':whatsapp_link' => $data['whatsapp_link'] ?? null,
+            ':allowed_schedules' => $data['allowed_schedules'] ?? null,
+            ':allowed_qualifications' => $data['allowed_qualifications'] ?? null
         ];
         
         $stmt->execute($params);
@@ -130,6 +139,8 @@ class Course
         if (!array_key_exists('CertificateImagePath', $data)) $data['CertificateImagePath'] = null;
         if (!array_key_exists('parent_course_id', $data)) $data['parent_course_id'] = null;
         if (!array_key_exists('whatsapp_link', $data)) $data['whatsapp_link'] = null;
+        if (!array_key_exists('allowed_schedules', $data)) $data['allowed_schedules'] = null;
+        if (!array_key_exists('allowed_qualifications', $data)) $data['allowed_qualifications'] = null;
 
         if (empty($data['instructor_id'])) {
             $existing = $this->getRecordById($id);
@@ -163,7 +174,9 @@ class Course
                     course_img = :course_img,
                     CertificateImagePath = :CertificateImagePath,
                     criteria_list = :criteria_list,
-                    whatsapp_link = :whatsapp_link
+                    whatsapp_link = :whatsapp_link,
+                    allowed_schedules = :allowed_schedules,
+                    allowed_qualifications = :allowed_qualifications
                 WHERE id = :id";
 
         $stmt = $this->pdo->prepare($sql);
@@ -188,6 +201,8 @@ class Course
             ':CertificateImagePath' => $data['CertificateImagePath'] ?? null,
             ':criteria_list' => $data['criteria_list'] ?? null,
             ':whatsapp_link' => $data['whatsapp_link'] ?? null,
+            ':allowed_schedules' => $data['allowed_schedules'] ?? null,
+            ':allowed_qualifications' => $data['allowed_qualifications'] ?? null,
             ':id' => $id
         ];
         $stmt->execute($params);

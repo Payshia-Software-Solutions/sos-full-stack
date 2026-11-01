@@ -23,20 +23,23 @@ const accreditations = [
 ];
 
 export default function Accreditations() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const isSinhala = language === 'si';
   return (
     <section id="accreditations" className="py-16 md:py-24 bg-white dark:bg-card">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center">
-          <h2 className="text-3xl md:text-4xl font-headline font-bold text-foreground">
+          <h2 className={`text-3xl md:text-4xl font-headline font-bold text-foreground ${isSinhala ? 'leading-[1.35]' : 'leading-tight'}`}>
+
             {t('accreditationsTitle')}
           </h2>
-          <p className="mt-4 max-w-4xl mx-auto text-muted-foreground font-body leading-relaxed">
+          <p className={`mt-4 max-w-4xl mx-auto text-muted-foreground font-body ${isSinhala ? 'leading-[1.75]' : 'leading-relaxed'}`}>
+
             {t('accreditationsSubtitle')}
           </p>
         </div>
         <div className="mt-12">
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-6 md:gap-x-12 lg:gap-x-16">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-6 items-center justify-items-center w-full">
             {accreditations.map((accreditation: any, index) => {
               const content = (
                  <div className="relative h-16 w-32 transition-all duration-300">

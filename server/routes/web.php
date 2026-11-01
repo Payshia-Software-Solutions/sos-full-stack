@@ -116,6 +116,7 @@ $PackageRoutes  = require './routes/PackageRoutes.php';
 $CertificateOrderRoutes = require './routes/CertificateOrderRoutes.php';
 $convocationRoutes = require './routes/convocationRoutes.php';
 $convocationStatusRoutes = require './routes/convocationStatusRoutes.php';
+$convocationMedalTypeRoutes = require './routes/convocationMedalTypeRoutes.php';
 $convocationStudentInfoRoutes = require './routes/convocationStudentInfoRoutes.php';
 $transactionPaymentRoutes = require './routes/transactionPaymentRoutes.php';
 $WordListRoutes = require './routes/WordListRoutes.php';
@@ -165,6 +166,7 @@ $leadRoutes = require './routes/Lead/LeadRoutes.php';
 $studentDocumentVerificationRoutes = require './routes/Student/studentDocumentVerificationRoutes.php';
 $announcementRoutes = require './routes/AnnouncementRoutes.php';
 $paymentGateSettingsRoutes = require './routes/Settings/paymentGateSettingsRoutes.php';
+$batchScheduleRoutes = require './routes/BatchScheduleRoutes.php';
 // Combine all routes
 $routes = array_merge(
     $userRoutes,
@@ -304,6 +306,7 @@ $routes = array_merge(
     $mediMindLevelMedicineRoutes,
     $mediMindCourseLevelRoutes,
     $birthdaySettingsRoutes,
+    $convocationMedalTypeRoutes,
     $convocationStudentInfoRoutes,
     $blogRoutes,
     $pharmaReaderRoutes,
@@ -313,7 +316,8 @@ $routes = array_merge(
     $leadRoutes,
     $studentDocumentVerificationRoutes,
     $announcementRoutes,
-    $paymentGateSettingsRoutes
+    $paymentGateSettingsRoutes,
+    $batchScheduleRoutes
 );
 
 

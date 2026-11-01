@@ -1,4 +1,3 @@
-
 import type {NextConfig} from 'next';
 
 const chatServerUrl = process.env.NEXT_PUBLIC_CHAT_SERVER_URL || 'https://chat-server.pharmacollege.lk';
@@ -8,7 +7,6 @@ const posHostname = "pos.payshia.com";
 
 const chatServerHostname = new URL(chatServerUrl).hostname;
 const lmsServerHostname = new URL(lmsServerUrl).hostname;
-
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -39,7 +37,7 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
-       {
+      {
         protocol: 'https',
         hostname: 'images.unsplash.com',
         port: '',
@@ -47,6 +45,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: lmsServerHostname,
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
         hostname: lmsServerHostname,
         port: '',
         pathname: '/**',
@@ -71,9 +75,6 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-  env: {
-    NEXT_PUBLIC_LMS_SERVER_URL: process.env.NEXT_PUBLIC_LMS_SERVER_URL,
-  }
 };
 
 export default nextConfig;

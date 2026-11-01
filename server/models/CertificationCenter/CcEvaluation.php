@@ -792,6 +792,15 @@ ORDER BY
                     $row['certificate_eligibility_reasons'] = ["No criteria available"];
                 }
 
+                if (!empty($row['is_grade_locked'])) {
+                    $row['assignment_grades'] = [
+                        'assignments' => [],
+                        'average_grade' => '0',
+                        'is_locked' => true,
+                        'message' => 'Results withheld pending payment clearance'
+                    ];
+                }
+
                 // Add the updated row to the result array
                 $ArrayResult[$row['course_code']] = $row;
             }

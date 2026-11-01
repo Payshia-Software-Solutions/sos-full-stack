@@ -15,6 +15,22 @@ class UserFullDetails
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function searchPublicUsers($search, $limit = 10)
+    {
+        $search = trim($search);
+        if (strlen($search) < 2) {
+            return [];
+        }
+
+        $term = '%' . $search . '%';
+        $stmt = $this->pdo->prepare("SELECT id, username, name_on_certificate FROM user_full_details WHERE username LIKE :term1 OR name_on_certificate LIKE :term2 ORDER BY id DESC LIMIT :limit");
+        $stmt->bindValue(':term1', $term, PDO::PARAM_STR);
+        $stmt->bindValue(':term2', $term, PDO::PARAM_STR);
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function getUserById($id)
     {
         $stmt = $this->pdo->prepare("SELECT * FROM user_full_details WHERE id = :id");

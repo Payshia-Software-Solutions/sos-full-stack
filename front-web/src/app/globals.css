@@ -57,3 +57,135 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+/* Sinhala-specific typography & line-height rules (diacritics headroom without breaking English) */
+html[lang="si"],
+html[data-lang="si"],
+[lang="si"] {
+  --sinhala-line-height-heading: 1.38;
+  --sinhala-line-height-subheading: 1.45;
+  --sinhala-line-height-body: 1.75;
+}
+
+html[lang="si"] body,
+html[data-lang="si"] body {
+  line-height: var(--sinhala-line-height-body);
+}
+
+/* Headings in Sinhala: ample headroom for upper (ispilla/kombuwa) and lower (papilla) diacritics */
+html[lang="si"] h1,
+html[data-lang="si"] h1 {
+  line-height: var(--sinhala-line-height-heading) !important;
+  letter-spacing: 0.01em;
+}
+
+html[lang="si"] h2,
+html[data-lang="si"] h2 {
+  line-height: 1.36 !important;
+  letter-spacing: 0.01em;
+}
+
+html[lang="si"] h3,
+html[data-lang="si"] h3 {
+  line-height: var(--sinhala-line-height-subheading) !important;
+}
+
+html[lang="si"] h4,
+html[data-lang="si"] h4,
+html[lang="si"] h5,
+html[data-lang="si"] h5 {
+  line-height: 1.48 !important;
+}
+
+html[lang="si"] p,
+html[data-lang="si"] p,
+html[lang="si"] li,
+html[data-lang="si"] li,
+html[lang="si"] blockquote,
+html[data-lang="si"] blockquote {
+  line-height: var(--sinhala-line-height-body);
+}
+
+/* Override utility classes specifically under Sinhala context so diacritics don't clip */
+html[lang="si"] .leading-none,
+html[data-lang="si"] .leading-none {
+  line-height: 1.28 !important;
+}
+
+html[lang="si"] .leading-tight,
+html[data-lang="si"] .leading-tight {
+  line-height: 1.38 !important;
+}
+
+html[lang="si"] .leading-snug,
+html[data-lang="si"] .leading-snug {
+  line-height: 1.48 !important;
+}
+
+html[lang="si"] .leading-normal,
+html[data-lang="si"] .leading-normal {
+  line-height: 1.62 !important;
+}
+
+html[lang="si"] .leading-relaxed,
+html[data-lang="si"] .leading-relaxed {
+  line-height: 1.78 !important;
+}
+
+/* Prose container typography in Sinhala */
+html[lang="si"] .prose,
+html[data-lang="si"] .prose {
+  line-height: var(--sinhala-line-height-body);
+}
+
+html[lang="si"] .prose p,
+html[data-lang="si"] .prose p {
+  line-height: var(--sinhala-line-height-body) !important;
+}
+
+html[lang="si"] .prose h1,
+html[data-lang="si"] .prose h1,
+html[lang="si"] .prose h2,
+html[data-lang="si"] .prose h2,
+html[lang="si"] .prose h3,
+html[data-lang="si"] .prose h3 {
+  line-height: 1.4 !important;
+}
+
+/* Tamil-specific typography adjustments */
+html[lang="ta"],
+html[data-lang="ta"],
+[lang="ta"] {
+  --tamil-line-height-heading: 1.34;
+  --tamil-line-height-body: 1.68;
+}
+
+html[lang="ta"] h1,
+html[data-lang="ta"] h1,
+html[lang="ta"] h2,
+html[data-lang="ta"] h2 {
+  line-height: var(--tamil-line-height-heading) !important;
+}
+
+html[lang="ta"] p,
+html[data-lang="ta"] p,
+html[lang="ta"] li,
+html[data-lang="ta"] li {
+  line-height: var(--tamil-line-height-body);
+}
+
+html[lang="ta"] .leading-none,
+html[data-lang="ta"] .leading-none {
+  line-height: 1.25 !important;
+}
+
+html[lang="ta"] .leading-tight,
+html[data-lang="ta"] .leading-tight {
+  line-height: 1.34 !important;
+}
+
+html[lang="ta"] .leading-snug,
+html[data-lang="ta"] .leading-snug {
+  line-height: 1.44 !important;
+}

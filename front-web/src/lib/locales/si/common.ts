@@ -6,6 +6,6 @@ export const common = {
   
   home: 'මුල් පිටුව',
   courses: 'පාඨමාලා',
-  about: 'පිළිබඳව',
+  about: 'අප ගැන',
   contact: 'සම්බන්ධ වන්න',
 };

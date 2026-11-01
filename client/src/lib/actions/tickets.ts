@@ -2,13 +2,14 @@
 import type { Ticket, Chat, Message, Attachment, CreateTicketMessageClientPayload, UpdateTicketPayload, CreateChatMessageClientPayload, TicketStatus } from '../types';
 import { LMS_API_URL } from "@/lib/config";
 
+// Uses centralized LMS_API_URL dynamically resolved in config.ts
 const API_BASE_URL = LMS_API_URL;
 const CONTENT_PROVIDER_URL = 'https://content-provider.pharmacollege.lk';
 const QA_API_BASE_URL = LMS_API_URL;
 
 async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   try {
-    const headers: HeadersInit = options.headers || {};
+    const headers: Record<string, string> = { ...(options.headers as any) };
     
     if (!(options.body instanceof FormData)) {
       headers['Content-Type'] = 'application/json';
