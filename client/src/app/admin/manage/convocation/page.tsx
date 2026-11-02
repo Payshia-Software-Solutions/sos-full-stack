@@ -20,7 +20,7 @@ import type {
 } from '@/lib/types';
 import { parseISO, isValid, format } from 'date-fns';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -557,14 +557,58 @@ export default function ConvocationListPage() {
                 </div>
             </header>
             
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Bookings</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.totalBookings} /></div></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Pending Payments</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.pendingPayments} /></div></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Confirmed Payments</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.confirmedPayments} /></div></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Additional Seats</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.additionalSeats} /></div></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Refreshment Tokens</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.refreshmentTokens} /></div></CardContent></Card>
-                <Card className="bg-primary/5 border-primary/20"><CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0"><CardTitle className="text-sm font-bold text-primary">Verified Revenue</CardTitle><Banknote className="h-4 w-4 text-primary" /></CardHeader><CardContent><div className="text-xl font-bold text-primary">LKR {registrationStats.totalVerified.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div></CardContent></Card>
-                <Card className="bg-destructive/5 border-destructive/20"><CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0"><CardTitle className="text-sm font-bold text-destructive">Due Balance</CardTitle><Wallet className="h-4 w-4 text-destructive" /></CardHeader><CardContent><div className="text-xl font-bold text-destructive">LKR {registrationStats.totalDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div></CardContent></Card>
+            <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <Card className="p-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Total Bookings</span>
+                        <span className="text-xl font-bold"><AnimatedCounter value={registrationStats.totalBookings} /></span>
+                    </div>
+                </Card>
+                <Card className="p-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Confirmed</span>
+                        <span className="text-xl font-bold text-green-600"><AnimatedCounter value={registrationStats.confirmedPayments} /></span>
+                    </div>
+                </Card>
+                <Card className="p-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Pending</span>
+                        <span className="text-xl font-bold text-yellow-600"><AnimatedCounter value={registrationStats.pendingPayments} /></span>
+                    </div>
+                </Card>
+                <Card className="p-4">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="text-center">
+                                <div className="text-lg font-bold"><AnimatedCounter value={registrationStats.additionalSeats} /></div>
+                                <div className="text-[10px] text-muted-foreground">Seats</div>
+                            </div>
+                            <div className="h-6 w-px bg-border" />
+                            <div className="text-center">
+                                <div className="text-lg font-bold"><AnimatedCounter value={registrationStats.refreshmentTokens} /></div>
+                                <div className="text-[10px] text-muted-foreground">Tokens</div>
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+                <Card className="col-span-2 p-4 bg-primary/5 border-primary/20">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Banknote className="h-4 w-4 text-primary" />
+                            <span className="text-xs font-bold text-primary">Verified Revenue</span>
+                        </div>
+                        <span className="text-lg font-bold text-primary">LKR {registrationStats.totalVerified.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                </Card>
+                <Card className="col-span-2 p-4 bg-destructive/5 border-destructive/20">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Wallet className="h-4 w-4 text-destructive" />
+                            <span className="text-xs font-bold text-destructive">Due Balance</span>
+                        </div>
+                        <span className="text-lg font-bold text-destructive">LKR {registrationStats.totalDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                </Card>
             </section>
             
             <Card className="shadow-lg overflow-hidden">
@@ -591,8 +635,7 @@ export default function ConvocationListPage() {
                                         <TableHead className="w-[180px]"><SortableHeader column="ref" label="Ref #" /></TableHead>
                                         <TableHead className="w-[220px]">Student Info</TableHead>
                                         <TableHead className="min-w-[200px]">Booking Details</TableHead>
-                                        <TableHead className="w-[120px] text-center">CPP Avg (%)</TableHead>
-                                        <TableHead className="w-[120px] text-center">ACPP Avg (%)</TableHead>
+                                        <TableHead className="w-[130px] text-center">Grades</TableHead>
                                         <TableHead className="w-[150px]">Status</TableHead>
                                         <TableHead className="w-[180px] text-right"><SortableHeader column="due" label="Payment Details" className="justify-end" /></TableHead>
                                         <TableHead className="w-[100px] text-right pr-6">Actions</TableHead>
@@ -612,17 +655,17 @@ export default function ConvocationListPage() {
 
                                         return (
                                         <TableRow key={reg.registration_id} className={cn("text-xs transition-colors hover:bg-muted/30", reg.isDuplicate && "bg-destructive/5 hover:bg-destructive/10")}>
-                                            <TableCell className="py-4 align-top">
+                                            <TableCell className="py-3 align-top">
                                                 <div className="font-mono font-bold text-sm">#{reg.reference_number}</div>
                                                 <div className="text-[9px] text-muted-foreground pt-1">Ceremony: {reg.ceremony_number || 'N/A'}</div>
                                             </TableCell>
-                                            <TableCell className="py-4 align-top">
+                                            <TableCell className="py-3 align-top">
                                                 <div className="space-y-1">
                                                     <div className="font-semibold text-sm text-primary">{reg.student_number}</div>
                                                     <div className="text-[10px] font-medium uppercase tracking-tighter truncate max-w-[180px]">{reg.name_on_certificate || 'N/A'}</div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="py-4 align-top">
+                                            <TableCell className="py-3 align-top">
                                                 <div className="space-y-2">
                                                     <div className="flex flex-col gap-1.5">
                                                         {(reg.course_id || '').split(',').map((id, idIdx) => {
@@ -663,44 +706,46 @@ export default function ConvocationListPage() {
                                                         {parseInt(reg.refreshment_tokens || '0', 10) > 0 && (
                                                             <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase bg-orange-50 text-orange-700 border-orange-200">Refreshments: {reg.refreshment_tokens}</Badge>
                                                         )}
-                                                        {reg.medal_name && (
-                                                            <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase bg-amber-50 text-amber-900 border-amber-300 gap-1 inline-flex items-center">
-                                                                🏅 {reg.medal_name}
+                                                        {reg.medal_name && reg.medal_name.split(',').map((mName, i) => (
+                                                            <Badge key={i} variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase bg-amber-50 text-amber-900 border-amber-300 gap-1 inline-flex items-center">
+                                                                🏅 {mName.trim()}
                                                             </Badge>
-                                                        )}
+                                                        ))}
                                                     </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="py-4 align-top text-center">
-                                                {isLoadingStudentData && !studentFullData ? (
-                                                    <Skeleton className="h-5 w-12 mx-auto" />
-                                                ) : cppEnrollment ? (
-                                                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-mono bg-blue-50 text-blue-700 border-blue-200">
-                                                        {parseFloat(cppEnrollment.assignment_grades.average_grade).toFixed(2)}%
-                                                    </Badge>
-                                                ) : (
-                                                    <span className="text-muted-foreground">--</span>
-                                                )}
+                                            <TableCell className="py-3 align-top text-center">
+                                                <div className="flex flex-col items-center gap-1">
+                                                    {isLoadingStudentData && !studentFullData ? (
+                                                        <Skeleton className="h-5 w-16" />
+                                                    ) : (
+                                                        <>
+                                                            {cppEnrollment ? (
+                                                                <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-mono bg-blue-50 text-blue-700 border-blue-200">
+                                                                    CPP {parseFloat(cppEnrollment.assignment_grades.average_grade).toFixed(1)}%
+                                                                </Badge>
+                                                            ) : (
+                                                                <span className="text-[10px] text-muted-foreground">CPP --</span>
+                                                            )}
+                                                            {acppEnrollment ? (
+                                                                <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-mono bg-purple-50 text-purple-700 border-purple-200">
+                                                                    ACPP {parseFloat(acppEnrollment.assignment_grades.average_grade).toFixed(1)}%
+                                                                </Badge>
+                                                            ) : (
+                                                                <span className="text-[10px] text-muted-foreground">ACPP --</span>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
                                             </TableCell>
-                                            <TableCell className="py-4 align-top text-center">
-                                                {isLoadingStudentData && !studentFullData ? (
-                                                    <Skeleton className="h-5 w-12 mx-auto" />
-                                                ) : acppEnrollment ? (
-                                                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-mono bg-purple-50 text-purple-700 border-purple-200">
-                                                        {parseFloat(acppEnrollment.assignment_grades.average_grade).toFixed(2)}%
-                                                    </Badge>
-                                                ) : (
-                                                    <span className="text-muted-foreground">--</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="py-4 align-top">
+                                            <TableCell className="py-3 align-top">
                                                 <div className="flex flex-col items-start gap-1.5 pt-1">
                                                     <Badge className={cn("px-2 py-0.5 h-auto text-[9px] uppercase font-bold w-fit", getStatusBadge(reg.payment_status || 'Pending'))}>{reg.payment_status}</Badge>
                                                     <Badge variant="secondary" className="px-2 py-0.5 h-auto text-[9px] uppercase font-medium w-fit bg-muted text-muted-foreground">{reg.registration_status}</Badge>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="py-4 align-top text-right">
-                                                <div className="space-y-1.5">
+                                            <TableCell className="py-3 align-top text-right">
+                                                <div className="space-y-1">
                                                     <div className="text-[10px] text-muted-foreground font-medium">Total: LKR {(reg.dueAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                                                     <div className="text-[10px] text-muted-foreground font-medium">Paid: LKR {paidAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                                                     <div className={cn("font-mono font-bold text-sm pt-1 border-t border-dashed", due > 0 ? "text-destructive" : "text-green-600")}>
@@ -708,7 +753,7 @@ export default function ConvocationListPage() {
                                                     </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="py-4 pr-6 align-top text-right">
+                                            <TableCell className="py-3 pr-6 align-top text-right">
                                                 <div className="flex items-center justify-end gap-1.5">
                                                     <Button 
                                                         variant="outline" 
@@ -733,7 +778,7 @@ export default function ConvocationListPage() {
                                         </TableRow>
                                         )
                                     }) : (
-                                        <TableRow><TableCell colSpan={8} className="text-center h-32 text-muted-foreground italic">No registrations found.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={7} className="text-center h-32 text-muted-foreground italic">No registrations found.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>
@@ -749,7 +794,7 @@ export default function ConvocationListPage() {
                             type="number"
                             defaultValue={currentPage}
                             onKeyDown={handlePageInputChange}
-                            className="h-8 w-[200px] mx-2 text-center"
+                            className="h-8 w-16 mx-2 text-center"
                         />
                         of {totalPages || 1}
                     </div>

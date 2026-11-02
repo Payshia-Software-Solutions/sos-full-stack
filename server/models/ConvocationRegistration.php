@@ -35,12 +35,13 @@ SELECT
     p.video_360,
     p.refreshments,
     p.is_active AS package_is_active,
-    cmt.name AS medal_name,
-    cmt.color AS medal_color
+    GROUP_CONCAT(cmt.name ORDER BY cmt.id SEPARATOR ', ') AS medal_name,
+    GROUP_CONCAT(cmt.color ORDER BY cmt.id SEPARATOR ', ') AS medal_color
 FROM convocation_registrations cr
 LEFT JOIN packages p ON cr.package_id = p.package_id
 LEFT JOIN user_full_details u ON cr.student_number = u.username
-LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id;
+LEFT JOIN convocation_medal_types cmt ON FIND_IN_SET(cmt.id, cr.medal_type_id)
+GROUP BY cr.registration_id;
 ";
 
         $stmt = $this->pdo->query($sql);
@@ -65,10 +66,13 @@ LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id;
     public function getRegistrationByStudentNumber($student_number)
     {
         $stmt = $this->pdo->prepare("
-            SELECT cr.*, cmt.name AS medal_name, cmt.color AS medal_color
+            SELECT cr.*, 
+                   GROUP_CONCAT(cmt.name ORDER BY cmt.id SEPARATOR ', ') AS medal_name, 
+                   GROUP_CONCAT(cmt.color ORDER BY cmt.id SEPARATOR ', ') AS medal_color
             FROM convocation_registrations cr
-            LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id
+            LEFT JOIN convocation_medal_types cmt ON FIND_IN_SET(cmt.id, cr.medal_type_id)
             WHERE cr.student_number = ?
+            GROUP BY cr.registration_id
         ");
         $stmt->execute([$student_number]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -91,7 +95,7 @@ LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id;
             INSERT INTO convocation_registrations (student_number, course_id, package_id, event_id, payment_status, payment_amount, registration_status, hash_value, image_path, additional_seats, session, convocation_id, refreshment_tokens, medal_type_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $hash_value, $image_path, $additional_seats, $session, $convocation_id, $refreshment_tokens, $medal_type_id ? (int)$medal_type_id : null]);
+        $stmt->execute([$student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $hash_value, $image_path, $additional_seats, $session, $convocation_id, $refreshment_tokens, !empty($medal_type_id) ? (string)$medal_type_id : null]);
 
         $registration_id = $this->pdo->lastInsertId();
 
@@ -126,10 +130,13 @@ LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id;
     public function getRegistrationById($registration_id)
     {
         $stmt = $this->pdo->prepare("
-            SELECT cr.*, cmt.name AS medal_name, cmt.color AS medal_color
+            SELECT cr.*, 
+                   GROUP_CONCAT(cmt.name ORDER BY cmt.id SEPARATOR ', ') AS medal_name, 
+                   GROUP_CONCAT(cmt.color ORDER BY cmt.id SEPARATOR ', ') AS medal_color
             FROM convocation_registrations cr
-            LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id
+            LEFT JOIN convocation_medal_types cmt ON FIND_IN_SET(cmt.id, cr.medal_type_id)
             WHERE cr.registration_id = ?
+            GROUP BY cr.registration_id
         ");
         $stmt->execute([$registration_id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -139,10 +146,13 @@ LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id;
     public function getRegistrationByReference($reference_number)
     {
         $stmt = $this->pdo->prepare("
-            SELECT cr.*, cmt.name AS medal_name, cmt.color AS medal_color
+            SELECT cr.*, 
+                   GROUP_CONCAT(cmt.name ORDER BY cmt.id SEPARATOR ', ') AS medal_name, 
+                   GROUP_CONCAT(cmt.color ORDER BY cmt.id SEPARATOR ', ') AS medal_color
             FROM convocation_registrations cr
-            LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id
+            LEFT JOIN convocation_medal_types cmt ON FIND_IN_SET(cmt.id, cr.medal_type_id)
             WHERE cr.reference_number = ?
+            GROUP BY cr.registration_id
         ");
         $stmt->execute([$reference_number]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -196,7 +206,7 @@ LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id;
             SET student_number = ?, course_id = ?, package_id = ?, event_id = ?, payment_status = ?, payment_amount = ?, registration_status = ?, convocation_id = ?, session = ?, additional_seats = ?, refreshment_tokens = ?, medal_type_id = ?
             WHERE registration_id = ?
         ");
-        return $stmt->execute([$student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $convocation_id, $session, $additional_seats, $refreshment_tokens, $medal_type_id ? (int)$medal_type_id : null, $registration_id]);
+        return $stmt->execute([$student_number, $course_id, $package_id, $event_id, $payment_status, $payment_amount, $registration_status, $convocation_id, $session, $additional_seats, $refreshment_tokens, !empty($medal_type_id) ? (string)$medal_type_id : null, $registration_id]);
     }
 
     // Delete a registration
@@ -265,7 +275,7 @@ LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id;
         SET medal_type_id = ?
         WHERE reference_number = ?
     ");
-        return $stmt->execute([$medal_type_id ? (int)$medal_type_id : null, $reference_number]);
+        return $stmt->execute([!empty($medal_type_id) ? (string)$medal_type_id : null, $reference_number]);
     }
 
     public function updatePackages($reference_number, $package_id)
@@ -368,11 +378,14 @@ LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id;
     public function getRegistrationsByConvocationId($convocationId)
     {
         $stmt = $this->pdo->prepare("
-            SELECT cr.*, u.name_on_certificate, u.telephone_1, cmt.name AS medal_name, cmt.color AS medal_color 
+            SELECT cr.*, u.name_on_certificate, u.telephone_1, 
+                   GROUP_CONCAT(cmt.name ORDER BY cmt.id SEPARATOR ', ') AS medal_name, 
+                   GROUP_CONCAT(cmt.color ORDER BY cmt.id SEPARATOR ', ') AS medal_color 
             FROM convocation_registrations cr
             LEFT JOIN user_full_details u ON cr.student_number = u.username 
-            LEFT JOIN convocation_medal_types cmt ON cr.medal_type_id = cmt.id
+            LEFT JOIN convocation_medal_types cmt ON FIND_IN_SET(cmt.id, cr.medal_type_id)
             WHERE cr.convocation_id = ?
+            GROUP BY cr.registration_id
         ");
         $stmt->execute([$convocationId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

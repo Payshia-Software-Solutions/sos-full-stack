@@ -126,9 +126,13 @@ const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: Con
                                 <h3 className="font-headline font-bold text-xl tracking-widest uppercase text-yellow-300">Convocation Pass</h3>
                             </div>
                             {booking.medal_name && (
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-400 text-yellow-950 font-black text-xs tracking-wider shadow-md border border-yellow-200 mb-4 animate-in fade-in">
-                                    <Award className="w-4 h-4 fill-current text-yellow-900" />
-                                    <span>HONORS: {booking.medal_name.toUpperCase()}</span>
+                                <div className="flex flex-wrap gap-1.5 mb-4 animate-in fade-in">
+                                    {booking.medal_name.split(',').map((mName, i) => (
+                                        <div key={i} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-400 text-yellow-950 font-black text-xs tracking-wider shadow-md border border-yellow-200">
+                                            <Award className="w-3.5 h-3.5 fill-current text-yellow-900 shrink-0" />
+                                            <span>HONORS: {mName.trim().toUpperCase()}</span>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                             
@@ -355,10 +359,15 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
                                 </div>
                                 {booking.medal_name && (
                                     <div className="space-y-1">
-                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Medal Award</Label>
-                                        <p className="text-sm font-bold text-amber-600 flex items-center gap-1">
-                                            ðŸ… {booking.medal_name}
-                                        </p>
+                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Medal Awards</Label>
+                                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                            {booking.medal_name.split(',').map((mName, i) => (
+                                                <Badge key={i} variant="outline" className="text-xs font-bold text-amber-700 bg-amber-50 border-amber-300 dark:text-amber-300 dark:bg-amber-950/60 dark:border-amber-800 flex items-center gap-1">
+                                                    <Award className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                                                    <span>{mName.trim()}</span>
+                                                </Badge>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>

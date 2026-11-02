@@ -446,7 +446,7 @@ class ConvocationRegistrationController
                 $session,
                 $convocationId,
                 $data['refreshment_tokens'] ?? 0,
-                !empty($data['medal_type_id']) ? (int)$data['medal_type_id'] : null
+                (!empty($data['medal_type_id']) && $data['medal_type_id'] !== 'none') ? (is_array($data['medal_type_id']) ? implode(',', array_filter($data['medal_type_id'])) : trim((string)$data['medal_type_id'])) : null
             );
 
             $this->pdo->commit();
@@ -500,7 +500,7 @@ class ConvocationRegistrationController
             $updated_data['session'],
             $updated_data['additional_seats'],
             $updated_data['refreshment_tokens'] ?? 0,
-            !empty($updated_data['medal_type_id']) ? (int)$updated_data['medal_type_id'] : null
+            (!empty($updated_data['medal_type_id']) && $updated_data['medal_type_id'] !== 'none') ? (is_array($updated_data['medal_type_id']) ? implode(',', array_filter($updated_data['medal_type_id'])) : trim((string)$updated_data['medal_type_id'])) : null
         );
 
         if ($success) {
@@ -618,8 +618,11 @@ class ConvocationRegistrationController
     public function updateMedalType($reference_number)
     {
         $input = json_decode(file_get_contents('php://input'), true);
-        $medal_type_id = $_POST['medal_type_id'] ?? $input['medal_type_id'] ?? null;
-        $medal_type_id = (!empty($medal_type_id) && $medal_type_id !== 'none') ? (int)$medal_type_id : null;
+        $rawMedal = $_POST['medal_type_id'] ?? $input['medal_type_id'] ?? null;
+        if (is_array($rawMedal)) {
+            $rawMedal = implode(',', array_filter($rawMedal));
+        }
+        $medal_type_id = (!empty($rawMedal) && $rawMedal !== 'none') ? trim((string)$rawMedal) : null;
 
         $updated = $this->model->updateMedalType($reference_number, $medal_type_id);
         if ($updated) {
