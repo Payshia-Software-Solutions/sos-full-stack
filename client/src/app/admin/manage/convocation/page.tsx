@@ -9,12 +9,16 @@ import {
     getConvocationRegistrations, 
     getPackagesByCeremony,
     deleteConvocationRegistration,
+    getConvocationCeremonies,
+    getConvocationSlipDownloadUrl,
+    downloadConvocationSlipPdf,
 } from '@/lib/actions/certificates';
 import { getParentCourses } from '@/lib/actions/courses';
 import { getStudentFullInfo } from '@/lib/actions/users';
 import type { 
     ConvocationRegistration, 
     ConvocationPackage, 
+    ConvocationCeremony,
     ParentCourse, 
     FullStudentData
 } from '@/lib/types';
@@ -97,8 +101,34 @@ export default function ConvocationListPage() {
         refetchOnWindowFocus: false,
     });
 
+    const { data: ceremonies, isLoading: isLoadingCeremonies } = useQuery<ConvocationCeremony[]>({
+        queryKey: ['convocationCeremonies'],
+        queryFn: getConvocationCeremonies,
+        staleTime: 1000 * 60 * 15,
+        refetchOnWindowFocus: false,
+    });
+
     const queryClient = useQueryClient();
     const [bookingToDelete, setBookingToDelete] = useState<ConvocationRegistration | null>(null);
+    const [downloadingId, setDownloadingId] = useState<string | number | null>(null);
+
+    const handleDownloadPdf = async (reg: ConvocationRegistration) => {
+        try {
+            setDownloadingId(reg.registration_id);
+            await downloadConvocationSlipPdf(
+                reg.registration_id,
+                `Convocation_Admission_${reg.reference_number || reg.registration_id}.pdf`
+            );
+        } catch (e: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Download Failed',
+                description: e.message || 'Could not download Convocation Admission PDF.',
+            });
+        } finally {
+            setDownloadingId(null);
+        }
+    };
 
     const deleteBookingMutation = useMutation({
         mutationFn: (registrationId: string | number) => deleteConvocationRegistration(registrationId),
@@ -163,6 +193,20 @@ export default function ConvocationListPage() {
         );
     };
 
+    const calculateTotalPayable = (reg: ConvocationRegistration) => {
+        const pkg = packages?.find(p => String(p.package_id) === String(reg.package_id));
+        const packagePrice = pkg ? parseFloat(pkg.price) : 0;
+        
+        const ceremony = ceremonies?.find(c => String(c.id) === String(reg.convocation_id));
+        const parentSeatRate = ceremony?.parent_seat_price ? parseFloat(ceremony.parent_seat_price) : PARENT_SEAT_RATE;
+        const refreshTokenRate = ceremony?.refreshment_token_price ? parseFloat(ceremony.refreshment_token_price) : 0;
+
+        const guestSeatsCount = parseInt(String(reg.additional_seats ?? 0), 10) || 0;
+        const tokensCount = parseInt(String(reg.refreshment_tokens ?? 0), 10) || 0;
+
+        return packagePrice + (guestSeatsCount * parentSeatRate) + (tokensCount * refreshTokenRate);
+    };
+
     const registrationStats = useMemo(() => {
         if (!registrations || !packages) {
             return { totalBookings: 0, pendingPayments: 0, confirmedPayments: 0, additionalSeats: 0, refreshmentTokens: 0, totalVerified: 0, totalDue: 0 };
@@ -183,10 +227,7 @@ export default function ConvocationListPage() {
         let totalDue = 0;
 
         activeRegs.forEach(reg => {
-            const pkg = packages.find(p => p.package_id === reg.package_id);
-            const packagePrice = pkg ? parseFloat(pkg.price) : 0;
-            const guestSeatsCount = parseInt(reg.additional_seats, 10) || 0;
-            const dueAmount = packagePrice + (guestSeatsCount * PARENT_SEAT_RATE);
+            const dueAmount = calculateTotalPayable(reg);
             const paidAmount = parseFloat(reg.payment_amount) || 0;
 
             totalVerified += paidAmount;
@@ -202,7 +243,7 @@ export default function ConvocationListPage() {
             totalVerified,
             totalDue
         };
-    }, [registrations, packages]);
+    }, [registrations, packages, ceremonies]);
 
 
     const filteredRegistrations = useMemo(() => {
@@ -215,10 +256,7 @@ export default function ConvocationListPage() {
             const isDuplicate = seenHashes.has(reg.hash_value);
             if (reg.hash_value) seenHashes.add(reg.hash_value);
             
-            const pkg = packages.find(p => p.package_id === reg.package_id);
-            const packagePrice = pkg ? parseFloat(pkg.price) : 0;
-            const guestSeatsCount = parseInt(reg.additional_seats, 10) || 0;
-            const dueAmount = packagePrice + (guestSeatsCount * PARENT_SEAT_RATE);
+            const dueAmount = calculateTotalPayable(reg);
             
             return { ...reg, isDuplicate, dueAmount };
         })
@@ -267,7 +305,7 @@ export default function ConvocationListPage() {
             return 0;
         });
 
-    }, [registrations, packages, searchTerm, statusFilter, courseFilter, packageFilter, sessionFilter, sortOption, courses]);
+    }, [registrations, packages, ceremonies, searchTerm, statusFilter, courseFilter, packageFilter, sessionFilter, sortOption, courses]);
     
     useEffect(() => {
         const params = new URLSearchParams(searchParams.toString());
@@ -621,7 +659,7 @@ export default function ConvocationListPage() {
                         <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="h-10"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="all">All Statuses</SelectItem><SelectItem value="paid">Paid</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="rejected">Rejected</SelectItem></SelectContent></Select>
                         <Select value={sessionFilter} onValueChange={setSessionFilter}><SelectTrigger className="h-10"><SelectValue placeholder="Session" /></SelectTrigger><SelectContent><SelectItem value="all">All Sessions</SelectItem><SelectItem value="1">Session 1</SelectItem><SelectItem value="2">Session 2</SelectItem></SelectContent></Select>
                         <Select value={courseFilter} onValueChange={setCourseFilter} disabled={isLoadingCourses}><SelectTrigger className="h-10"><SelectValue placeholder="Course" /></SelectTrigger><SelectContent><SelectItem value="all">All Courses</SelectItem>{courses?.map(c => <SelectItem key={String(c.id)} value={String(c.id)}>{c.course_name}</SelectItem>)}</SelectContent></Select>
-                         <Select value={packageFilter} onValueChange={setPackageFilter} disabled={isLoadingPackages}><SelectTrigger className="h-10"><SelectValue placeholder="Package" /></SelectTrigger><SelectContent><SelectItem value="all">All Packages</SelectItem>{packages?.filter(p => !ceremonyIdFilter || String(p.convocation_id) === String(ceremonyIdFilter)).map(p => <SelectItem key={String(p.package_id)} value={String(p.package_id)}>{p.package_name}</SelectItem>)}</SelectContent></Select>
+                         <Select value={packageFilter} onValueChange={setPackageFilter} disabled={isLoadingPackages}><SelectTrigger className="h-10"><SelectValue placeholder="Package" /></SelectTrigger><SelectContent><SelectItem value="all">All Packages</SelectItem>{packages?.filter(p => !ceremonyIdFilter || String(p.convocation_id) === String(ceremonyIdFilter)).sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0)).map(p => <SelectItem key={String(p.package_id)} value={String(p.package_id)}>{p.package_name}</SelectItem>)}</SelectContent></Select>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -645,7 +683,8 @@ export default function ConvocationListPage() {
                                     {paginatedRegistrations.length > 0 ? paginatedRegistrations.map((reg) => {
                                         const paidAmount = parseFloat(reg.payment_amount) || 0;
                                         const due = (reg.dueAmount || 0) - paidAmount;
-                                        const packageName = packages?.find(p => String(p.package_id) === String(reg.package_id))?.package_name || `ID: ${reg.package_id}`;
+                                        const regPkg = packages?.find(p => String(p.package_id) === String(reg.package_id));
+                                        const packageName = regPkg?.package_name || `ID: ${reg.package_id}`;
 
                                         const studentFullData = studentDataMap.get(reg.student_number);
                                         const cppEnrollment = studentFullData?.studentEnrollments ? 
@@ -700,6 +739,9 @@ export default function ConvocationListPage() {
                                                     <div className="flex flex-wrap items-center gap-2 pt-1">
                                                         <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100">Pkg: {packageName}</span>
                                                         <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase">Sess {reg.session}</Badge>
+                                                        {regPkg?.vip_seat && parseInt(regPkg.vip_seat, 10) > 0 && (
+                                                            <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase bg-amber-50 text-amber-800 border-amber-300">VIP: {regPkg.vip_seat}</Badge>
+                                                        )}
                                                         {parseInt(reg.additional_seats || '0', 10) > 0 && (
                                                             <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase">Seats: {reg.additional_seats}</Badge>
                                                         )}
@@ -763,6 +805,16 @@ export default function ConvocationListPage() {
                                                     >
                                                         <Eye className="h-3.5 w-3.5 mr-1.5" /> 
                                                         View
+                                                    </Button>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        onClick={() => handleDownloadPdf(reg)}
+                                                        disabled={downloadingId === reg.registration_id}
+                                                        className="h-8 px-2 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 border-blue-500/20"
+                                                        title="Download Convocation Admission PDF"
+                                                    >
+                                                        {downloadingId === reg.registration_id ? <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" /> : <FileDown className="h-3.5 w-3.5" />}
                                                     </Button>
                                                     <Button 
                                                         variant="outline" 
