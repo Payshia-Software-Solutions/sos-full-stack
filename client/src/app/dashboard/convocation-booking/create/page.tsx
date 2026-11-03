@@ -465,7 +465,7 @@ export default function CreateConvocationBookingPage() {
         ]).filter(Boolean)
     );
 
-    return packages.filter(pkg => {
+    return [...packages].sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0)).filter(pkg => {
         const courseListStr = pkg.course_list || pkg.courses || '';
         if (!courseListStr || courseListStr.trim() === '') {
             return true;

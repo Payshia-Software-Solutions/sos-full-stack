@@ -21,6 +21,11 @@ return [
         return $convocationRegistrationController->getAdditionalSeatsCountsBySessions($sessionId, $ceremonyId);
     },
 
+    // GET download booking slip PDF by ID, reference number, or student number
+    'GET /convocation-registrations/download-slip/([A-Za-z0-9_\-]+)/$' => function ($id) use ($convocationRegistrationController) {
+        return $convocationRegistrationController->downloadBookingSummaryPdf($id);
+    },
+
     // GET a single registration by ID
     'GET /convocation-registrations/(\d+)/$' => function ($registration_id) use ($convocationRegistrationController) {
         return $convocationRegistrationController->getRegistration($registration_id);
