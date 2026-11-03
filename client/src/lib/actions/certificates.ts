@@ -245,9 +245,9 @@ export const getPackagesByCeremony = async (ceremonyId: string): Promise<Convoca
     if (!response.ok) throw new Error('Failed to fetch packages');
     const packages: ConvocationPackage[] = await response.json();
     if (!ceremonyId) {
-        return packages;
+        return [...packages].sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
     }
-    return packages.filter(pkg => String(pkg.convocation_id) === String(ceremonyId));
+    return packages.filter(pkg => String(pkg.convocation_id) === String(ceremonyId)).sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
 };
 
 export const createPackage = async (data: FormData): Promise<ConvocationPackage> => {
@@ -698,4 +698,26 @@ export const updateConvocationMedal = async (registrationId: string | number, me
         throw new Error(errorData.error || errorData.message || 'Failed to update medal');
     }
     return response.json();
+};
+
+
+export const getConvocationSlipDownloadUrl = (registrationId: string | number): string => {
+    return `${QA_API_BASE_URL}/convocation-registrations/download-slip/${registrationId}/`;
+};
+
+export const downloadConvocationSlipPdf = async (registrationId: string | number, filename?: string): Promise<void> => {
+    const url = getConvocationSlipDownloadUrl(registrationId);
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error('Failed to generate Convocation Admission PDF.');
+    }
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename || `Convocation_Admission_${registrationId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 200);
 };

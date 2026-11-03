@@ -4,7 +4,14 @@ import { LMS_API_URL } from "@/lib/config";
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { getConvocationRegistrationsByStudent, getPackagesByCeremony, submitSecondPayment, getConvocationStudentCeremonyNumber } from '@/lib/actions/certificates';
+import { 
+    getConvocationRegistrationsByStudent, 
+    getPackagesByCeremony, 
+    submitSecondPayment, 
+    getConvocationStudentCeremonyNumber,
+    getConvocationSlipDownloadUrl,
+    downloadConvocationSlipPdf 
+} from '@/lib/actions/certificates';
 import { getStudentKycStatus } from '@/lib/actions/kyc';
 import { getParentCourses } from '@/lib/actions/courses';
 import { getPaymentRequestsByReference } from '@/lib/api';
@@ -82,6 +89,20 @@ const ViewSlipDialog = ({ slipPath, title, trigger }: { slipPath: string | null;
 
 const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: ConvocationRegistration, courseNameMap: Map<string, string>, allPackages: ConvocationPackage[] }) => {
     const { user } = useAuth();
+    const [isDownloadingPass, setIsDownloadingPass] = useState(false);
+    const handleDownloadPass = async () => {
+        try {
+            setIsDownloadingPass(true);
+            await downloadConvocationSlipPdf(
+                booking.registration_id, 
+                `Convocation_Admission_${booking.reference_number || booking.registration_id}.pdf`
+            );
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsDownloadingPass(false);
+        }
+    };
     const { data: ceremonyNumber, isLoading } = useQuery({
         queryKey: ['ceremonyNumber', booking.student_number, booking.convocation_id],
         queryFn: () => getConvocationStudentCeremonyNumber(booking.student_number, booking.convocation_id),
@@ -173,6 +194,12 @@ const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: Con
                             <p className="text-primary-foreground/70 text-[10px] uppercase font-bold tracking-wider mb-1">Package</p>
                             <p className="font-semibold text-md leading-tight">{pkg?.package_name || 'Standard'}</p>
                         </div>
+                        {pkg?.vip_seat && parseInt(pkg.vip_seat, 10) > 0 && (
+                            <div>
+                                <p className="text-yellow-300 text-[10px] uppercase font-bold tracking-wider mb-1">VIP Seats</p>
+                                <p className="font-semibold text-lg text-yellow-300">{pkg.vip_seat}</p>
+                            </div>
+                        )}
                         {parseInt(booking.additional_seats || '0', 10) > 0 && (
                             <div>
                                 <p className="text-primary-foreground/70 text-[10px] uppercase font-bold tracking-wider mb-1">Guest Seats</p>
@@ -220,6 +247,15 @@ const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: Con
                     <div className="mt-6 text-center">
                         <p className="text-[10px] text-primary-foreground/50 uppercase tracking-widest font-mono">Reference Number</p>
                         <p className="text-sm font-mono font-medium text-primary-foreground/70 tracking-widest mt-1">{booking.reference_number}</p>
+                        <Button 
+                            onClick={handleDownloadPass}
+                            disabled={isDownloadingPass}
+                            size="sm"
+                            className="w-full bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-bold text-xs gap-1.5 shadow mt-3"
+                        >
+                            {isDownloadingPass ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                            {isDownloadingPass ? 'Downloading...' : 'Convocation Admission (PDF)'}
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -234,6 +270,21 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
     const [branch, setBranch] = useState('');
     const [slip, setSlip] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDownloadingDetail, setIsDownloadingDetail] = useState(false);
+
+    const handleDownloadDetail = async () => {
+        try {
+            setIsDownloadingDetail(true);
+            await downloadConvocationSlipPdf(
+                booking.registration_id, 
+                `Convocation_Admission_${booking.reference_number || booking.registration_id}.pdf`
+            );
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Download Failed', description: e.message || 'Could not download PDF' });
+        } finally {
+            setIsDownloadingDetail(false);
+        }
+    };
 
     const { data: banks } = useQuery<{ id: string; bank_name: string }[]>({
         queryKey: ['banks'],
@@ -274,11 +325,13 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
     const totalPayable = useMemo(() => {
         const pkgPrice = pkg ? parseFloat(pkg.price) : 0;
         const seatPrice = (parseInt(booking.additional_seats, 10) || 0) * PARENT_SEAT_RATE;
-        return pkgPrice + seatPrice;
-    }, [pkg, booking.additional_seats]);
+        const tokenPrice = (parseInt(booking.refreshment_tokens || '0', 10) || 0) * 800;
+        return pkgPrice + seatPrice + tokenPrice;
+    }, [pkg, booking.additional_seats, booking.refreshment_tokens]);
 
     const alreadyPaid = parseFloat(booking.payment_amount) || 0;
     const dueBalance = Math.max(0, totalPayable - alreadyPaid);
+    const isFullyPaid = dueBalance <= 0 || booking.payment_status === 'paid' || booking.payment_status === 'confirmed';
 
     const secondPaymentMutation = useMutation({
         mutationFn: submitSecondPayment,
@@ -324,6 +377,18 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
                         </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
+                        {isFullyPaid && (
+                            <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={handleDownloadDetail}
+                                disabled={isDownloadingDetail}
+                                className="h-8 gap-1.5 text-xs border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-medium"
+                            >
+                                {isDownloadingDetail ? <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" /> : <FileText className="h-3.5 w-3.5 text-blue-500" />}
+                                {isDownloadingDetail ? 'Downloading...' : 'Admission Slip'}
+                            </Button>
+                        )}
                         {getStatusBadge(booking.registration_status)}
                     </div>
                 </div>
@@ -349,6 +414,12 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
                                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">Session</Label>
                                     <p className="text-sm font-semibold">Session {booking.session}</p>
                                 </div>
+                                {pkg?.vip_seat && parseInt(pkg.vip_seat, 10) > 0 && (
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">VIP Seats</Label>
+                                        <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">{pkg.vip_seat}</p>
+                                    </div>
+                                )}
                                 <div className="space-y-1">
                                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">Guest Seats</Label>
                                     <p className="text-sm font-semibold">{booking.additional_seats}</p>
@@ -489,6 +560,22 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
                                         </Button>
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {isFullyPaid && (
+                            <div className="pt-4 border-t border-dashed mt-4 space-y-2">
+                                <Button 
+                                    onClick={handleDownloadDetail}
+                                    disabled={isDownloadingDetail}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-2 shadow-sm h-10"
+                                >
+                                    {isDownloadingDetail ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                                    {isDownloadingDetail ? 'Generating & Downloading...' : 'Download Convocation Admission Slip (PDF)'}
+                                </Button>
+                                <p className="text-[10px] text-center text-muted-foreground leading-tight">
+                                    * This document confirms your registered details and full settlement. Official physical entry passes will be issued upon desk verification.
+                                </p>
                             </div>
                         )}
                     </div>

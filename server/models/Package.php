@@ -69,14 +69,14 @@ class Package
     // Read all packages
     public function getAllPackages()
     {
-        $stmt = $this->pdo->query("SELECT * FROM packages");
+        $stmt = $this->pdo->query("SELECT * FROM packages ORDER BY CAST(price AS DECIMAL(10,2)) ASC");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     // Read packages by convocation ID
     public function getPackagesByConvocationId($convocation_id)
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM packages WHERE convocation_id = ?");
+        $stmt = $this->pdo->prepare("SELECT * FROM packages WHERE convocation_id = ? ORDER BY CAST(price AS DECIMAL(10,2)) ASC");
         $stmt->execute([$convocation_id]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -103,6 +103,7 @@ class Package
             SELECT DISTINCT p.* 
             FROM packages p
             WHERE $whereClause
+            ORDER BY CAST(p.price AS DECIMAL(10,2)) ASC
         ";
 
         $stmt = $this->pdo->prepare($sql);

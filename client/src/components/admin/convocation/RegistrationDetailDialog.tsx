@@ -15,7 +15,9 @@ import {
     deleteConvocationPayment,
     getConvocationMedalTypes,
     deleteConvocationRegistration,
-    getConvocationCeremonies
+    getConvocationCeremonies,
+    getConvocationSlipDownloadUrl,
+    downloadConvocationSlipPdf
 } from '@/lib/actions/certificates';
 import { getStudentFullInfo } from '@/lib/actions/users';
 import type { 
@@ -253,6 +255,22 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
     const [isConfirmAttendanceDialogOpen, setIsConfirmAttendanceDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
+    const handleDownloadPdf = async () => {
+        if (!registration) return;
+        try {
+            setIsDownloadingPdf(true);
+            await downloadConvocationSlipPdf(
+                registration.registration_id, 
+                `Convocation_Admission_${registration.reference_number || registration.registration_id}.pdf`
+            );
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Download Failed', description: e.message || 'Could not download PDF' });
+        } finally {
+            setIsDownloadingPdf(false);
+        }
+    };
 
     // Edit form states
     const [editPackageId, setEditPackageId] = useState('');
@@ -654,6 +672,17 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                         <Button size="sm" variant="outline" onClick={openPaymentModal} className="h-8 gap-1.5 text-xs border-green-600/30 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/30 font-medium">
                             <Banknote className="h-3.5 w-3.5 text-green-600 dark:text-green-400" /> Update Payment
                         </Button>
+                        <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={handleDownloadPdf}
+                            disabled={isDownloadingPdf}
+                            className="h-8 gap-1.5 text-xs border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-medium"
+                            title="Download Convocation Admission PDF"
+                        >
+                            {isDownloadingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" /> : <FileText className="h-3.5 w-3.5 text-blue-500" />}
+                            {isDownloadingPdf ? 'Downloading...' : 'Admission PDF'}
+                        </Button>
                     </div>
                 </DialogHeader>
                 
@@ -693,6 +722,11 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                                         <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Session & Passes</p>
                                         <div className="flex flex-wrap items-center gap-1.5">
                                             <Badge variant="outline" className="text-xs font-semibold">Session {registration.session}</Badge>
+                                            {currentPackage?.vip_seat && parseInt(currentPackage.vip_seat, 10) > 0 && (
+                                                <Badge variant="outline" className="text-xs font-semibold bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700">
+                                                    {currentPackage.vip_seat} VIP Seats
+                                                </Badge>
+                                            )}
                                             <Badge variant="outline" className="text-xs font-semibold">{registration.additional_seats || '0'} Guest Seats</Badge>
                                             <Badge variant="outline" className="text-xs font-semibold bg-orange-50 text-orange-700 border-orange-200">{registration.refreshment_tokens || '0'} Refreshments</Badge>
                                         </div>
@@ -800,38 +834,55 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                                     </Button>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    <div className="space-y-2">
-                                        {isLoadingStudentData ? <Skeleton className="h-20 w-full" /> : studentInfo && (
-                                            <>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-muted-foreground">Total Registration Fee:</span>
-                                                    <span className="font-semibold">LKR {studentInfo.studentBalance.TotalRegistrationFee.toLocaleString()}</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-muted-foreground">Total Verified Payments:</span>
-                                                    <span className="font-semibold text-green-600">LKR {studentInfo.studentBalance.totalPaymentAmount.toLocaleString()}</span>
-                                                </div>
-                                                <div className="flex justify-between text-lg font-bold pt-2 border-t mt-2">
-                                                    <span className="text-muted-foreground">Student Balance:</span>
-                                                    <span className={cn(studentInfo.studentBalance.studentBalance > 0 ? 'text-destructive' : 'text-green-600')}>
-                                                        LKR {studentInfo.studentBalance.studentBalance.toLocaleString()}
-                                                    </span>
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                    <div className="pt-4 border-t">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Booking Payment Verification</p>
+                                    {/* 1. Convocation Booking Financials */}
+                                    <div className="space-y-2 p-3 bg-muted/40 rounded-lg border">
+                                        <div className="flex items-center justify-between pb-1 border-b">
+                                            <span className="text-xs font-bold text-foreground">Convocation Booking Fees</span>
                                             <Badge className={cn(
-                                                "uppercase text-[10px]",
-                                                registration.payment_status?.toLowerCase() === 'paid' ? 'bg-green-600' : 
-                                                (registration.payment_status?.toLowerCase() === 'partially-paid' || registration.payment_status?.toLowerCase() === 'partially paid') ? 'bg-orange-500' : 
-                                                'bg-destructive'
-                                            )}>{registration.payment_status}</Badge>
+                                                "uppercase text-[9px] font-bold",
+                                                registration.payment_status?.toLowerCase() === 'paid' ? 'bg-green-600 text-white' : 
+                                                (registration.payment_status?.toLowerCase() === 'partially-paid' || registration.payment_status?.toLowerCase() === 'partially paid') ? 'bg-orange-500 text-white' : 
+                                                'bg-destructive text-white'
+                                            )}>{registration.payment_status || 'Pending'}</Badge>
                                         </div>
-                                        <p className="text-sm font-bold font-mono">Total Verified: LKR {totalPaidFromRecords.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-muted-foreground">Total Required Fee:</span>
+                                            <span className="font-mono font-semibold">LKR {viewTotalPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-green-600 font-medium">
+                                            <span>Verified Booking Paid:</span>
+                                            <span className="font-mono font-semibold">LKR {totalPaidFromRecords.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm font-bold pt-1.5 border-t border-dashed">
+                                            <span>Booking Due Balance:</span>
+                                            <span className={cn("font-mono", (viewTotalPayable - totalPaidFromRecords) > 0 ? "text-destructive" : "text-green-600")}>
+                                                LKR {Math.max(0, viewTotalPayable - totalPaidFromRecords).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
                                     </div>
+
+                                    {/* 2. Academic / Tuition Balance from LMS (Student Profile) */}
+                                    {isLoadingStudentData ? <Skeleton className="h-16 w-full" /> : studentInfo && (
+                                        <div className="space-y-1.5 p-3 rounded-lg border bg-background/50 text-xs">
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                                Student LMS Academic Balance
+                                            </p>
+                                            <div className="flex justify-between text-muted-foreground">
+                                                <span>Course Fee:</span>
+                                                <span className="font-mono font-medium text-foreground">LKR {studentInfo.studentBalance.TotalRegistrationFee.toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex justify-between text-muted-foreground">
+                                                <span>Course Paid:</span>
+                                                <span className="font-mono font-medium text-green-600">LKR {studentInfo.studentBalance.totalPaymentAmount.toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex justify-between font-semibold pt-1 border-t border-dashed">
+                                                <span>Academic Balance:</span>
+                                                <span className={cn("font-mono", studentInfo.studentBalance.studentBalance > 0 ? "text-destructive" : "text-green-600")}>
+                                                    LKR {studentInfo.studentBalance.studentBalance.toLocaleString()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
                                     
                                     <div className="pt-4 border-t space-y-3">
                                         <h4 className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-2">
@@ -991,6 +1042,15 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                     <div className="flex items-center gap-2">
                         <Button 
                             variant="outline" 
+                            disabled={isDownloadingPdf}
+                            className="border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-medium"
+                            onClick={handleDownloadPdf}
+                        >
+                            {isDownloadingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin text-blue-500" /> : <FileText className="mr-2 h-4 w-4 text-blue-500" />}
+                            {isDownloadingPdf ? 'Downloading...' : 'Admission Slip'}
+                        </Button>
+                        <Button 
+                            variant="outline" 
                             className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
                             onClick={() => setIsDeleteDialogOpen(true)}
                         >
@@ -1034,7 +1094,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                             >
                                 <SelectTrigger className="h-9 text-xs bg-background"><SelectValue placeholder="Select package" /></SelectTrigger>
                                 <SelectContent>
-                                    {packages?.filter(p => String(p.convocation_id) === String(registration.convocation_id)).map(p => (
+                                    {packages?.filter(p => String(p.convocation_id) === String(registration.convocation_id)).sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0)).map(p => (
                                         <SelectItem key={p.package_id} value={String(p.package_id)} className="text-xs font-medium">
                                             {p.package_name} - LKR {parseFloat(p.price).toLocaleString()}
                                         </SelectItem>
