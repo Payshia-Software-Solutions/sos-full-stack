@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useTranslation } from "@/context/language-context";
 import type { Course } from "@/lib/courses-data";
 import { isBlockEmpty, resolveDoc, type CoursePageData, type CoursePageDoc, type RefundPolicyDoc } from "@/lib/course-page";
+import { formatDuration } from "@/lib/format-duration";
 import { LABELS } from "./labels";
 import HeroFacts from "./hero-facts";
 import SectionTabs, { type SectionTab } from "./section-tabs";
@@ -37,7 +38,7 @@ export default function CoursePageView({ data, course }: { data: CoursePageData;
 
   const courseName = doc.hero?.title || course.course_name;
   const feeText = formatFee(course.course_fee);
-  const durationText = course.course_duration ? String(course.course_duration) : null;
+  const durationText = formatDuration(course.course_duration, lang);
   const phone = data.content.en.cta?.phone; // shared field, stored in English only
   const applyHref = `/apply?course=${course.slug}`;
   const whatsappHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
