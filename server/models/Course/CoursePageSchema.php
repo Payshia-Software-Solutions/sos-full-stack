@@ -42,6 +42,15 @@ class CoursePageSchema
         return $s === '' ? null : $s;
     }
 
+    /** Removes empty placeholders from the end of a list (nothing after them to keep aligned). */
+    private static function trimTrailingEmpty(array $items, $empty): array
+    {
+        while ($items && end($items) === $empty) {
+            array_pop($items);
+        }
+        return $items;
+    }
+
     private static function cleanField(string $field, $value, bool $isEnglish): ?string
     {
         if (!$isEnglish && in_array($field, self::SHARED_FIELDS, true)) {
@@ -80,9 +89,11 @@ class CoursePageSchema
                     $v = self::cleanString($item);
                     if ($v !== null) {
                         $items[] = $v;
+                    } elseif (!$isEnglish) {
+                        $items[] = ''; // keep the position: SI/TA lists line up with the English list by index
                     }
                 }
-                $clean[$spec['strings']] = array_slice($items, 0, self::MAX_ITEMS);
+                $clean[$spec['strings']] = array_slice(self::trimTrailingEmpty($items, ''), 0, self::MAX_ITEMS);
             }
             foreach ($spec['objects'] ?? [] as $listKey => $itemFields) {
                 if (!isset($in[$listKey]) || !is_array($in[$listKey])) {
@@ -91,6 +102,9 @@ class CoursePageSchema
                 $items = [];
                 foreach ($in[$listKey] as $item) {
                     if (!is_array($item)) {
+                        if (!$isEnglish) {
+                            $items[] = []; // keep the position (see strings list above)
+                        }
                         continue;
                     }
                     $cleanItem = [];
@@ -104,9 +118,11 @@ class CoursePageSchema
                     }
                     if ($cleanItem) {
                         $items[] = $cleanItem;
+                    } elseif (!$isEnglish) {
+                        $items[] = [];
                     }
                 }
-                $clean[$listKey] = array_slice($items, 0, self::MAX_ITEMS);
+                $clean[$listKey] = array_slice(self::trimTrailingEmpty($items, []), 0, self::MAX_ITEMS);
             }
             if ($clean) {
                 $out[$block] = $clean;

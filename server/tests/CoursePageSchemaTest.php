@@ -83,3 +83,32 @@ function test_normalize_refund_policy()
     assert_same([], $out['si']);
     assert_same(['en', 'si', 'ta'], array_keys($out));
 }
+
+// SI/TA lists are matched to the English list by position, so empty placeholders must survive.
+function test_non_english_lists_keep_positions()
+{
+    $si = CoursePageSchema::normalizeDoc([
+        'modules' => ['items' => [[], ['title' => ''], ['title' => 'සි3', 'description' => 'D']]],
+        'audience' => ['items' => [null, '', 'ඉ3']],
+    ], false);
+    assert_same(3, count($si['modules']['items']));
+    assert_same([], $si['modules']['items'][0]);
+    assert_same(['title' => 'සි3', 'description' => 'D'], $si['modules']['items'][2]);
+    assert_same(['', '', 'ඉ3'], $si['audience']['items']);
+}
+
+function test_non_english_trailing_empty_items_are_trimmed()
+{
+    $si = CoursePageSchema::normalizeDoc([
+        'audience' => ['items' => ['ඉ1', '', '']],
+        'faq' => ['items' => [['question' => 'Q', 'answer' => 'A'], [], []]],
+    ], false);
+    assert_same(['ඉ1'], $si['audience']['items']);
+    assert_same(1, count($si['faq']['items']));
+}
+
+function test_english_lists_still_drop_empty_items()
+{
+    $en = CoursePageSchema::normalizeDoc(['audience' => ['items' => ['A', '', 'C']]], true);
+    assert_same(['A', 'C'], $en['audience']['items']);
+}
