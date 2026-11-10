@@ -19,6 +19,9 @@ return [
     'POST /api/course-pages/{course_code}/publish' => function ($courseCode) use ($coursePageController) {
         $coursePageController->publish($courseCode);
     },
+    'POST /api/course-pages/{course_code}/cover' => function ($courseCode) use ($coursePageController) {
+        $coursePageController->uploadCover($courseCode);
+    },
     'GET /api/site-content/{setting_name}' => function ($key) use ($coursePageController) {
         $coursePageController->getSiteContent($key);
     },

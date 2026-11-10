@@ -93,6 +93,26 @@ check "site content key allow-list" "$r" 400 "b.success===false"
 r="$(req GET "/api/site-content/refund_policy")"
 check "refund policy readable" "$r" 200 "b.value.en.items.length===7"
 
+# Cover upload: validation paths only. A successful upload would copy a file to the live content server
+# and change the course's cover, so that path is verified by hand in the editor.
+WTMP="$(cygpath -m "$TMP" 2>/dev/null || echo "$TMP")" # curl -F needs a path curl itself can open (Windows)
+upload() { # path file-name-in-tmp [type] -> body, then status
+  curl -s -m 30 -X POST -F "image=@$WTMP/$2;type=${3:-application/octet-stream}" -w '
+%{http_code}' "$API$1"
+}
+printf 'plain text pretending to be a picture' > "$TMP/fake.jpg"
+printf '%s' 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==' | base64 -d > "$TMP/ok.png"
+
+r="$(curl -s -m 30 -X POST -w '
+%{http_code}' "$API/api/course-pages/$CODE/cover")"
+check "cover: no file is rejected" "$r" 400 "b.message==='No image provided'"
+
+r="$(upload "/api/course-pages/$CODE/cover" fake.jpg image/jpeg)"
+check "cover: non-image rejected" "$r" 400 "b.message==='The file must be a JPG, PNG or WebP image'"
+
+r="$(upload "/api/course-pages/NOPE999/cover" ok.png image/png)"
+check "cover: unknown course rejected before any upload" "$r" 400 "b.message==='Unknown course_code'"
+
 # restore through the same path the cleanup uses, then verify what students would see
 if restore_seed; then echo "PASS restore seed and publish"; mutated=0; else echo "FAIL restore seed and publish"; fails=$((fails+1)); fi
 r="$(req GET "/api/course-pages/$SLUG")"

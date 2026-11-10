@@ -3,6 +3,7 @@
 
 require_once __DIR__ . '/../../models/Course/CoursePageSchema.php';
 require_once __DIR__ . '/../../models/Course/CoursePageContent.php';
+require_once __DIR__ . '/../../models/Course/CourseCover.php';
 require_once __DIR__ . '/../../models/SiteContent.php';
 
 class CoursePageController
@@ -96,6 +97,55 @@ class CoursePageController
             return $this->fail(404, 'No draft to publish');
         }
         echo json_encode(['success' => true, 'published_at' => $publishedAt]);
+    }
+
+    // POST /api/course-pages/{course_code}/cover — multipart field "image"; copies it to the content server
+    // under /courses/{course_code}/ and stores the file name in the course record.
+    public function uploadCover($courseCode)
+    {
+        $dir = CourseCover::remoteDir($courseCode);
+        if ($dir === null || !$this->pages->courseExists($courseCode)) {
+            return $this->fail(400, 'Unknown course_code');
+        }
+        $file = $_FILES['image'] ?? null;
+        $error = CourseCover::validate($file);
+        if ($error !== null) {
+            return $this->fail(400, $error);
+        }
+        $fileName = CourseCover::fileName(CourseCover::extensionFor($file['tmp_name']));
+
+        $ftp = include(__DIR__ . '/../../config/ftp.php');
+        $conn = @ftp_connect($ftp['ftp_server']);
+        if (!$conn) {
+            return $this->fail(500, 'Could not reach the content server');
+        }
+        if (!@ftp_login($conn, $ftp['ftp_username'], $ftp['ftp_password'])) {
+            ftp_close($conn);
+            return $this->fail(500, 'Could not sign in to the content server');
+        }
+        ftp_pasv($conn, true);
+
+        $path = '';
+        foreach (explode('/', trim($dir, '/')) as $part) {
+            $path .= '/' . $part;
+            if (!@ftp_chdir($conn, $path)) {
+                @ftp_mkdir($conn, $path);
+            }
+        }
+        ftp_chdir($conn, '/');
+
+        $uploaded = @ftp_put($conn, $dir . $fileName, $file['tmp_name'], FTP_BINARY);
+        ftp_close($conn);
+        if (!$uploaded) {
+            return $this->fail(500, 'Could not copy the image to the content server');
+        }
+
+        $this->pages->setCourseImage($courseCode, $fileName);
+        echo json_encode([
+            'success' => true,
+            'filename' => $fileName,
+            'url' => CourseCover::publicUrl($courseCode, $fileName),
+        ]);
     }
 
     // GET /api/site-content/{setting_name}

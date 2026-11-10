@@ -46,6 +46,13 @@ class CoursePageContent
         return (bool)$stmt->fetchColumn();
     }
 
+    /** Points the course record at an uploaded cover image (file name only; the public site adds the folder). */
+    public function setCourseImage(string $courseCode, string $fileName): void
+    {
+        $stmt = $this->pdo->prepare("UPDATE parent_main_course SET course_img = :img WHERE course_code = :code");
+        $stmt->execute(['img' => $fileName, 'code' => $courseCode]);
+    }
+
     /** Admin view: draft + published + status for a course code, or null when no row exists. */
     public function getByCourseCode(string $courseCode): ?array
     {
