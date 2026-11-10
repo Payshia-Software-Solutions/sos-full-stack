@@ -76,3 +76,24 @@ describe('getCoursePage', () => {
     expect(data?.refundPolicy).toBeNull();
   });
 });
+
+import { buildCoverUrl } from './course-page';
+
+describe('buildCoverUrl', () => {
+  it('builds the content-server URL and encodes spaces in the file name', () => {
+    expect(buildCoverUrl('CS0001', 'WhatsApp Image 2025.jpg')).toBe(
+      'https://content-provider.pharmacollege.lk/courses/CS0001/WhatsApp%20Image%202025.jpg'
+    );
+  });
+
+  it('passes a full URL through unchanged', () => {
+    expect(buildCoverUrl('CS0001', 'https://cdn.example.com/a.png')).toBe('https://cdn.example.com/a.png');
+  });
+
+  it('returns null when there is no cover', () => {
+    expect(buildCoverUrl('CS0001', '')).toBeNull();
+    expect(buildCoverUrl('CS0001', null)).toBeNull();
+    expect(buildCoverUrl('CS0001', undefined)).toBeNull();
+    expect(buildCoverUrl('', 'a.png')).toBeNull();
+  });
+});

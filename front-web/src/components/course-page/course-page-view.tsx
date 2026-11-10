@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "@/context/language-context";
 import type { Course } from "@/lib/courses-data";
-import { isBlockEmpty, resolveDoc, type CoursePageData, type CoursePageDoc, type RefundPolicyDoc } from "@/lib/course-page";
+import { buildCoverUrl, isBlockEmpty, resolveDoc, type CoursePageData, type CoursePageDoc, type RefundPolicyDoc } from "@/lib/course-page";
 import { formatDuration } from "@/lib/format-duration";
 import { LABELS } from "./labels";
 import HeroFacts from "./hero-facts";
@@ -63,6 +63,7 @@ export default function CoursePageView({ data, course }: { data: CoursePageData;
         labels={labels}
         courseName={course.course_name}
         slug={course.slug}
+        coverUrl={buildCoverUrl(course.course_code, course.course_img)}
         feeText={feeText}
         durationText={durationText}
         applyHref={applyHref}

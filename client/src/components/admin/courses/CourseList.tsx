@@ -6,6 +6,7 @@ import type { ParentCourse } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Settings, BookOpen } from 'lucide-react';
+import { coverUrl } from '@/components/admin/course-page/CoverCard';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +28,7 @@ export function CourseList({ courses, onDelete }: CourseListProps) {
                         {course.course_img ? (
                              <div className="relative aspect-video rounded-t-lg -mt-6 -mx-6 mb-4 overflow-hidden">
                                 <Image 
-                                    src={`https://content-provider.pharmacollege.lk/${course.course_img}`} 
+                                    src={coverUrl(course.course_code, course.course_img) ?? ''} 
                                     alt={course.course_name} 
                                     fill 
                                     style={{ objectFit: 'cover' }} 

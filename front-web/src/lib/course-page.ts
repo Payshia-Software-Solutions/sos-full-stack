@@ -123,3 +123,13 @@ export async function getCoursePage(slug: string): Promise<CoursePageData | null
     clearTimeout(timer);
   }
 }
+
+const CONTENT_PROVIDER = 'https://content-provider.pharmacollege.lk';
+
+/** Public URL of a course cover: covers live under /courses/{course_code}/ on the content server. */
+export function buildCoverUrl(courseCode: string, courseImg?: string | null): string | null {
+  const img = (courseImg ?? '').trim();
+  if (!img || !courseCode) return null;
+  if (/^https?:\/\//i.test(img)) return img;
+  return `${CONTENT_PROVIDER}/courses/${courseCode}/${encodeURIComponent(img)}`;
+}

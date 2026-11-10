@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Check, CalendarDays, MessageCircle, GraduationCap } from "lucide-react";
 import type { CoursePageDoc } from "@/lib/course-page";
@@ -8,6 +12,7 @@ interface HeroFactsProps {
   labels: CoursePageLabels;
   courseName: string;
   slug: string;
+  coverUrl: string | null;
   feeText: string | null;
   durationText: string | null;
   applyHref: string;
@@ -24,7 +29,8 @@ function Tile({ label, value, className = "" }: { label: string; value: string; 
 }
 
 // First screen: name, promise, the decision facts, and Apply / WhatsApp.
-export default function HeroFacts({ doc, labels, courseName, feeText, durationText, applyHref, whatsappHref }: HeroFactsProps) {
+export default function HeroFacts({ doc, labels, courseName, coverUrl, feeText, durationText, applyHref, whatsappHref }: HeroFactsProps) {
+  const [coverFailed, setCoverFailed] = useState(false);
   const hero = doc.hero ?? {};
   const facts = doc.facts ?? {};
   const checklist = [facts.study_materials, facts.certificate, facts.learning_style, facts.support].filter(
@@ -35,14 +41,31 @@ export default function HeroFacts({ doc, labels, courseName, feeText, durationTe
   return (
     <section className="bg-emerald-800 text-white">
       <div className="container mx-auto px-4 md:px-6 max-w-4xl py-8 md:py-12">
-        {hero.eyebrow && (
-          <p className="inline-block rounded-full border border-white/30 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-300">
-            {hero.eyebrow}
-          </p>
-        )}
-        <h1 className="mt-3 text-3xl md:text-5xl font-headline font-bold leading-tight">{hero.title || courseName}</h1>
-        {hero.headline && <p className="mt-3 text-xl md:text-2xl font-semibold text-amber-300 leading-snug">{hero.headline}</p>}
-        {hero.promise && <p className="mt-3 text-base md:text-lg text-white/90 leading-relaxed max-w-2xl">{hero.promise}</p>}
+        <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+          <div>
+          {hero.eyebrow && (
+            <p className="inline-block rounded-full border border-white/30 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-300">
+              {hero.eyebrow}
+            </p>
+          )}
+          <h1 className="mt-3 text-3xl md:text-5xl font-headline font-bold leading-tight">{hero.title || courseName}</h1>
+          {hero.headline && <p className="mt-3 text-xl md:text-2xl font-semibold text-amber-300 leading-snug">{hero.headline}</p>}
+          {hero.promise && <p className="mt-3 text-base md:text-lg text-white/90 leading-relaxed max-w-2xl">{hero.promise}</p>}
+          </div>
+          {coverUrl && !coverFailed && (
+            <div className="relative aspect-video w-full max-w-md overflow-hidden rounded-2xl lg:max-w-none border border-white/25 bg-emerald-900 shadow-xl">
+              <Image
+                src={coverUrl}
+                alt={`${courseName} cover`}
+                fill
+                priority
+                sizes="(min-width: 1024px) 300px, 100vw"
+                className="object-cover"
+                onError={() => setCoverFailed(true)}
+              />
+            </div>
+          )}
+        </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3">
           {facts.next_intake && (
