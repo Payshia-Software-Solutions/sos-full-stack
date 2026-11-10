@@ -1,0 +1,95 @@
+"use client";
+
+import { useMemo } from "react";
+import { useTranslation } from "@/context/language-context";
+import type { Course } from "@/lib/courses-data";
+import { isBlockEmpty, resolveDoc, type CoursePageData, type CoursePageDoc, type RefundPolicyDoc } from "@/lib/course-page";
+import { LABELS } from "./labels";
+import HeroFacts from "./hero-facts";
+import SectionTabs, { type SectionTab } from "./section-tabs";
+import { AssessmentSection, AudienceSection, LearnSection, OverviewSection, ScheduleSection } from "./text-sections";
+import FeaturesSection from "./features";
+import ModulesSection from "./modules";
+import LecturersSection from "./lecturers";
+import TestimonialsSection from "./testimonials";
+import FaqSection from "./faq";
+import CtaBand from "./cta-band";
+import RefundPolicySection from "./refund-policy";
+
+const WHATSAPP_NUMBER = "94715884884";
+
+function formatFee(value: string | number | undefined): string | null {
+  const n = typeof value === "number" ? value : parseFloat(String(value ?? ""));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return `LKR ${n.toLocaleString("en-LK")}`;
+}
+
+export default function CoursePageView({ data, course }: { data: CoursePageData; course: Course }) {
+  const { language } = useTranslation();
+  const lang = language === "si" || language === "ta" ? language : "en";
+  const labels = LABELS[lang];
+
+  const doc = useMemo(() => resolveDoc<CoursePageDoc>(data.content, lang), [data.content, lang]);
+  const refund = useMemo<RefundPolicyDoc | null>(
+    () => (data.refundPolicy ? resolveDoc<RefundPolicyDoc>(data.refundPolicy, lang) : null),
+    [data.refundPolicy, lang]
+  );
+
+  const courseName = doc.hero?.title || course.course_name;
+  const feeText = formatFee(course.course_fee);
+  const durationText = course.course_duration ? String(course.course_duration) : null;
+  const phone = data.content.en.cta?.phone; // shared field, stored in English only
+  const applyHref = `/apply?course=${course.slug}`;
+  const whatsappHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+    `Hi Ceylon Pharma College, I'd like details about ${courseName}.`
+  )}`;
+
+  const showCta = !isBlockEmpty(doc.cta) || Boolean(feeText) || Boolean(doc.facts?.next_intake);
+
+  const tabs: SectionTab[] = [
+    !isBlockEmpty(doc.overview) && { id: "overview", label: labels.tabOverview },
+    !isBlockEmpty(doc.audience) && { id: "audience", label: labels.tabAudience },
+    !isBlockEmpty(doc.modules) && { id: "modules", label: labels.tabModules },
+    !isBlockEmpty(doc.lecturers) && { id: "lecturers", label: labels.tabLecturers },
+    !isBlockEmpty(doc.faq) && { id: "faq", label: labels.tabFaq },
+    showCta && { id: "fees", label: labels.tabFees },
+  ].filter((t): t is SectionTab => Boolean(t));
+
+  return (
+    <main>
+      <HeroFacts
+        doc={doc}
+        labels={labels}
+        courseName={course.course_name}
+        slug={course.slug}
+        feeText={feeText}
+        durationText={durationText}
+        applyHref={applyHref}
+        whatsappHref={whatsappHref}
+      />
+      <SectionTabs tabs={tabs} ariaLabel={labels.tabsLabel} />
+      <OverviewSection block={doc.overview} />
+      <AudienceSection block={doc.audience} />
+      <FeaturesSection block={doc.features} />
+      <LearnSection block={doc.learn} />
+      <ModulesSection block={doc.modules} />
+      <AssessmentSection block={doc.assessment} />
+      <ScheduleSection block={doc.schedule} facts={doc.facts} labels={labels} durationText={durationText} />
+      <LecturersSection block={doc.lecturers} />
+      <TestimonialsSection title={labels.testimonials} />
+      <FaqSection block={doc.faq} />
+      {showCta && (
+        <CtaBand
+          doc={doc}
+          phone={phone}
+          labels={labels}
+          feeText={feeText}
+          durationText={durationText}
+          applyHref={applyHref}
+          whatsappHref={whatsappHref}
+        />
+      )}
+      <RefundPolicySection policy={refund} fallbackTitle={labels.refundPolicy} />
+    </main>
+  );
+}

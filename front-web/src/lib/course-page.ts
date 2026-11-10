@@ -91,7 +91,8 @@ export function buildFaqJsonLd(doc: CoursePageDoc): object | null {
   };
 }
 
-const FETCH_TIMEOUT_MS = 3000;
+// Default 3s so a slow API can never hold up the page; override with COURSE_PAGE_FETCH_TIMEOUT_MS (e.g. local dev against a remote DB).
+const FETCH_TIMEOUT_MS = Number(process.env.COURSE_PAGE_FETCH_TIMEOUT_MS) || 3000;
 
 export async function getCoursePage(slug: string): Promise<CoursePageData | null> {
   const controller = new AbortController();
