@@ -50,3 +50,21 @@ export const getSiteContent = async <T>(key: 'refund_policy'): Promise<T | null>
 export const saveSiteContent = async (key: 'refund_policy', value: object): Promise<void> => {
   await request(`/api/site-content/${key}`, { method: 'PUT', body: JSON.stringify({ value }) });
 };
+
+const COVER_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const COVER_MAX_BYTES = 5 * 1024 * 1024;
+
+/** Uploads the course cover; the server copies it to the content server and saves the file name on the course. */
+export const uploadCourseCover = async (courseCode: string, file: File): Promise<{ filename: string; url: string }> => {
+  if (!COVER_TYPES.includes(file.type)) throw new Error('The cover must be a JPG, PNG or WebP image');
+  if (file.size > COVER_MAX_BYTES) throw new Error('The cover must be 5 MB or smaller');
+  const form = new FormData();
+  form.append('image', file);
+  // No Content-Type header: the browser must set the multipart boundary itself.
+  const response = await fetch(`${LMS_API_URL}/api/course-pages/${encodeURIComponent(courseCode)}/cover`, { method: 'POST', body: form });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || body?.success === false) {
+    throw new Error(body?.message || `Upload failed with status ${response.status}`);
+  }
+  return { filename: body.filename, url: body.url };
+};

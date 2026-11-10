@@ -37,3 +37,37 @@ describe('course page admin actions', () => {
     await expect(publishCoursePage('CS0001')).rejects.toThrow('No draft to publish');
   });
 });
+
+import { uploadCourseCover } from './course-pages';
+
+describe('uploadCourseCover', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('posts the image as multipart form data and returns the file name and public URL', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(ok({ success: true, filename: 'cover_1.png', url: 'https://cdn.test/courses/CS0001/cover_1.png' }));
+    vi.stubGlobal('fetch', fetchMock);
+    const file = new File([new Uint8Array([1, 2, 3])], 'my cover.png', { type: 'image/png' });
+    const result = await uploadCourseCover('CS0001', file);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://api.test/api/course-pages/CS0001/cover');
+    expect(init.method).toBe('POST');
+    expect(init.body).toBeInstanceOf(FormData);
+    expect((init.body as FormData).get('image')).toBeInstanceOf(File);
+    expect(init.headers?.['Content-Type']).toBeUndefined();
+    expect(result).toEqual({ filename: 'cover_1.png', url: 'https://cdn.test/courses/CS0001/cover_1.png' });
+  });
+
+  it('rejects a non-image or oversized file before calling the server', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(uploadCourseCover('CS0001', new File(['x'], 'a.pdf', { type: 'application/pdf' }))).rejects.toThrow('JPG, PNG or WebP');
+    const big = new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'big.png', { type: 'image/png' });
+    await expect(uploadCourseCover('CS0001', big)).rejects.toThrow('5 MB');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('throws the server message when the upload fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({ success: false, message: 'Could not reach the content server' }) }));
+    await expect(uploadCourseCover('CS0001', new File(['x'], 'a.png', { type: 'image/png' }))).rejects.toThrow('Could not reach the content server');
+  });
+});

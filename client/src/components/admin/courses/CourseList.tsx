@@ -47,7 +47,10 @@ export function CourseList({ courses, onDelete }: CourseListProps) {
                             {course.mini_description || 'No mini description available.'}
                         </p>
                     </CardContent>
-                    <CardFooter className="p-4 flex justify-end gap-2 border-t mt-auto">
+                    <CardFooter className="p-4 flex flex-wrap justify-end gap-2 border-t mt-auto">
+                        <Button variant="outline" asChild>
+                            <Link href={`/admin/manage/courses/page-content/${encodeURIComponent(course.course_code)}`}>Page content</Link>
+                        </Button>
                         <Button variant="outline" asChild>
                             <Link href={`/admin/manage/batches?courseId=${course.id}`}>Manage Batches</Link>
                         </Button>
