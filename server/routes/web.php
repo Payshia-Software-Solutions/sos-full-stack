@@ -158,6 +158,7 @@ $mediMindLevelMedicineRoutes = require './routes/MediMind/MediMindLevelMedicineR
 $mediMindCourseLevelRoutes = require './routes/MediMind/MediMindCourseLevelRoutes.php';
 $birthdaySettingsRoutes = require './routes/BirthdaySettingsRoutes.php';
 $blogRoutes = require './routes/BlogRoutes.php';
+$coursePageRoutes = require './routes/Course/CoursePageRoutes.php';
 $pharmaReaderRoutes = require './routes/pharmaReaderRoutes.php';
 $smsTemplateRoutes = require './routes/smsTemplateRoutes.php';
 $transcriptTemplateRoutes = require './routes/TranscriptTemplateRoutes.php';
@@ -309,6 +310,7 @@ $routes = array_merge(
     $convocationMedalTypeRoutes,
     $convocationStudentInfoRoutes,
     $blogRoutes,
+    $coursePageRoutes,
     $pharmaReaderRoutes,
     $smsTemplateRoutes,
     $transcriptTemplateRoutes,

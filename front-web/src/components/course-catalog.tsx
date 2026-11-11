@@ -256,7 +256,7 @@ export default function CourseCatalog({ initialCourses }: CourseCatalogProps) {
                           {category.label}
                         </Label>
                       </div>
-                      <span className="text-[11px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-muted">
+                      <span className="text-xs font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-muted">
                         {category.count}
                       </span>
                     </div>
@@ -321,7 +321,7 @@ export default function CourseCatalog({ initialCourses }: CourseCatalogProps) {
 
           <div className="max-w-3xl">
             <Badge variant="outline" className="mb-3 px-3 py-1 font-semibold text-primary border-primary/30 gap-1.5 inline-flex items-center">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
               <span>{labels.badge}</span>
             </Badge>
             
@@ -361,16 +361,16 @@ export default function CourseCatalog({ initialCourses }: CourseCatalogProps) {
 
             {/* Trust Badges Strip */}
             <div className="mt-6 flex flex-wrap items-center gap-4 text-xs font-medium text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+              <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
                 <ShieldCheck className="w-4 h-4" /> ACTD Accredited
               </span>
               <span>•</span>
-              <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+              <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
                 <CheckCircle2 className="w-4 h-4" /> ISO 9001:2015 Certified
               </span>
               <span>•</span>
               <span className="inline-flex items-center gap-1.5">
-                <GraduationCap className="w-4 h-4 text-amber-500" /> 5,000+ Alumni
+                <GraduationCap className="w-4 h-4 text-amber-700 dark:text-amber-400" /> 5,000+ Alumni
               </span>
             </div>
           </div>
@@ -396,7 +396,7 @@ export default function CourseCatalog({ initialCourses }: CourseCatalogProps) {
                       <ListFilter className="h-4 w-4 text-primary" />
                       <span>{labels.filterTitle}</span>
                       {selectedCategories.length > 0 && (
-                        <span className="ml-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                        <span className="ml-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">
                           {selectedCategories.length}
                         </span>
                       )}
@@ -463,7 +463,7 @@ export default function CourseCatalog({ initialCourses }: CourseCatalogProps) {
                       >
                         {/* Most Popular Pill */}
                         {isPopular && (
-                          <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-zinc-950 font-bold text-[11px] shadow-lg tracking-wide">
+                          <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-zinc-950 font-bold text-xs shadow-lg tracking-wide">
                             <span>🔥</span>
                             <span>{labels.popularBadge}</span>
                           </div>
@@ -489,10 +489,10 @@ export default function CourseCatalog({ initialCourses }: CourseCatalogProps) {
                         <div className="p-5 flex flex-col flex-grow">
                           {/* Category & Rating */}
                           <div className="flex items-center justify-between text-xs mb-2 gap-2">
-                            <span className="font-semibold text-primary uppercase tracking-wider text-[11px]">
+                            <span className="font-semibold text-primary uppercase tracking-wider text-xs">
                               {course.category || "Certificate"}
                             </span>
-                            <div className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                            <div className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
                               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                               <span>4.9</span>
                               <span className="text-muted-foreground font-normal">({studentCount})</span>
@@ -528,14 +528,14 @@ export default function CourseCatalog({ initialCourses }: CourseCatalogProps) {
                           <div className="mt-auto pt-4 border-t border-border flex flex-col gap-3">
                             <div className="flex items-baseline justify-between gap-2">
                               <div>
-                                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider block">
+                                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider block">
                                   {labels.courseFee}
                                 </span>
                                 <span className="text-xl font-bold font-headline text-foreground">
                                   {feeNumber > 0 ? `LKR ${feeNumber.toLocaleString()}` : "Contact for Fee"}
                                 </span>
                               </div>
-                              <span className="text-[10px] font-mono font-medium text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded shrink-0">
+                              <span className="text-xs font-mono font-medium text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded shrink-0">
                                 {course.course_code}
                               </span>
                             </div>

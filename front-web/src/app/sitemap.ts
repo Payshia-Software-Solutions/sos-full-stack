@@ -2,7 +2,7 @@ import { LMS_API_URL } from "@/lib/config";
 import { FALLBACK_COURSES } from "@/lib/courses-data";
 import { MetadataRoute } from 'next';
 
-const BASE_URL = 'https://www.pharmacollege.lk';
+const BASE_URL = 'https://pharmacollege.lk';
 
 interface Course {
   slug: string;
@@ -18,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/apply',
     '/contact',
     '/reviews',
-    '/reviews/new',
+    '/blogs',
     '/alumni',
     '/csr',
     '/students/academic-calendar',
@@ -65,5 +65,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.95,
   }));
 
-  return [...staticRoutes, ...courseRoutes];
+  // Published blog posts (previously missing, so articles were hard for Google to discover)
+  let blogRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const response = await fetch(`${LMS_API_URL}/api/blogs`, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && Array.isArray(data.blogs)) {
+        blogRoutes = data.blogs
+          .filter((b: { status?: string; slug?: string }) => b.status === 'published' && b.slug)
+          .map((b: { slug: string; updated_at?: string; created_at?: string }) => {
+            const date = new Date(b.updated_at || b.created_at || Date.now());
+            return {
+              url: `${BASE_URL}/blogs/${encodeURIComponent(b.slug)}`,
+              lastModified: (isNaN(date.getTime()) ? new Date() : date).toISOString(),
+              changeFrequency: 'monthly' as const,
+              priority: 0.7,
+            };
+          });
+      }
+    }
+  } catch (error) {
+    console.warn("Skipping blog posts in sitemap:", (error as Error).message);
+  }
+
+  return [...staticRoutes, ...courseRoutes, ...blogRoutes];
 }

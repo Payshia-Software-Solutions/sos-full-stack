@@ -5,12 +5,12 @@ export const metadata: Metadata = {
   title: 'තොරතුරු තාක්ෂණ අංශය | Department of ICT & Digital Health | Ceylon Pharma College',
   description: 'Pharmacy software, digital inventory management, and ICT for healthcare systems at Ceylon Pharma College.',
   alternates: {
-    canonical: 'https://www.pharmacollege.lk/departments/department-of-information-communication-technology',
+    canonical: 'https://pharmacollege.lk/departments/department-of-information-communication-technology',
   },
   openGraph: {
     title: 'තොරතුරු තාක්ෂණ අංශය | Department of ICT & Digital Health | Ceylon Pharma College',
     description: 'Pharmacy software, digital inventory management, and ICT for healthcare systems at Ceylon Pharma College.',
-    url: 'https://www.pharmacollege.lk/departments/department-of-information-communication-technology',
+    url: 'https://pharmacollege.lk/departments/department-of-information-communication-technology',
     siteName: 'Ceylon Pharma College',
   },
 };

@@ -242,28 +242,28 @@ export default function AboutClient() {
               <div className="p-2 sm:p-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-2 shadow-sm">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[9px] text-white/70 font-semibold uppercase leading-none">Accredited</p>
+                  <p className="text-xs text-white/70 font-semibold uppercase leading-none">Accredited</p>
                   <p className="font-bold text-xs text-white truncate mt-0.5">ACTD USA/UK</p>
                 </div>
               </div>
               <div className="p-2 sm:p-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-2 shadow-sm">
                 <Award className="w-4 h-4 text-amber-400 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[9px] text-white/70 font-semibold uppercase leading-none">Certified</p>
+                  <p className="text-xs text-white/70 font-semibold uppercase leading-none">Certified</p>
                   <p className="font-bold text-xs text-white truncate mt-0.5">ISO 9001:2015</p>
                 </div>
               </div>
               <div className="p-2 sm:p-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-2 shadow-sm">
                 <Users className="w-4 h-4 text-teal-300 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[9px] text-white/70 font-semibold uppercase leading-none">Alumni</p>
+                  <p className="text-xs text-white/70 font-semibold uppercase leading-none">Alumni</p>
                   <p className="font-bold text-xs text-white truncate mt-0.5">5,000+ Certified</p>
                 </div>
               </div>
               <div className="p-2 sm:p-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-2 shadow-sm">
                 <Star className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[9px] text-white/70 font-semibold uppercase leading-none">Rating</p>
+                  <p className="text-xs text-white/70 font-semibold uppercase leading-none">Rating</p>
                   <p className="font-bold text-xs text-white truncate mt-0.5">4.9 ★ (830+)</p>
                 </div>
               </div>
@@ -308,7 +308,7 @@ export default function AboutClient() {
               <p className="text-xs text-muted-foreground mt-1 font-medium">Certified Quality System</p>
             </div>
             <div className="p-3">
-              <p className="text-3xl md:text-4xl font-headline font-bold text-amber-500">4.9 ★</p>
+              <p className="text-3xl md:text-4xl font-headline font-bold text-amber-700 dark:text-amber-400">4.9 ★</p>
               <p className="text-xs text-muted-foreground mt-1 font-medium">830+ Google Reviews</p>
             </div>
             <div className="col-span-2 md:col-span-1 p-3">
@@ -365,7 +365,7 @@ export default function AboutClient() {
                   <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <pillar.icon className="w-6 h-6" />
                   </div>
-                  <span className="text-[11px] font-semibold text-primary uppercase tracking-wider block mb-1">
+                  <span className="text-xs font-semibold text-primary uppercase tracking-wider block mb-1">
                     {pillar.subtitle}
                   </span>
                   <h3 className="font-headline font-bold text-base text-foreground mb-2 leading-snug">
@@ -418,12 +418,12 @@ export default function AboutClient() {
             {/* Mission */}
             <Card className="rounded-2xl border border-border/80 bg-card shadow-sm hover:shadow-xl hover:border-primary/40 transition-all duration-300">
               <CardHeader className="flex flex-row items-center gap-4 pb-3">
-                <div className="p-3 bg-amber-500/10 rounded-xl text-amber-600 dark:text-amber-400 shrink-0">
+                <div className="p-3 bg-amber-500/10 rounded-xl text-amber-700 dark:text-amber-400 shrink-0">
                   <BookOpen className="w-7 h-7" />
                 </div>
                 <div>
                   <CardTitle className="font-headline text-2xl text-foreground">{t('missionTitle')}</CardTitle>
-                  <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">Our Everyday Commitment</span>
+                  <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">Our Everyday Commitment</span>
                 </div>
               </CardHeader>
               <CardContent>
@@ -444,7 +444,7 @@ export default function AboutClient() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {coreValues.map((val, idx) => (
                 <div key={idx} className="p-5 rounded-xl border border-border/60 bg-card text-left">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-center mb-3 text-sm">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold flex items-center justify-center mb-3 text-sm">
                     0{idx + 1}
                   </div>
                   <h4 className="font-headline font-bold text-sm text-foreground mb-1.5">{val.title}</h4>
@@ -480,7 +480,7 @@ export default function AboutClient() {
               >
                 <div className="flex sm:flex-col items-center sm:items-start justify-between shrink-0 sm:w-28">
                   <span className="font-headline font-bold text-2xl text-primary font-mono">{m.year}</span>
-                  <Badge variant="secondary" className="text-[10px] font-semibold mt-1">
+                  <Badge variant="secondary" className="text-xs font-semibold mt-1">
                     {m.badge}
                   </Badge>
                 </div>
@@ -527,7 +527,7 @@ export default function AboutClient() {
                       <GraduationCap className="w-6 h-6" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <Badge variant="secondary" className="text-[10px] font-semibold text-primary bg-primary/10 mb-1">
+                      <Badge variant="secondary" className="text-xs font-semibold text-primary bg-primary/10 mb-1">
                         {lecturer.tag}
                       </Badge>
                       <h3 className="font-headline font-bold text-base text-foreground truncate">
@@ -544,7 +544,7 @@ export default function AboutClient() {
                     <p className="leading-relaxed font-body">{lecturer.field}</p>
                   </div>
 
-                  <div className="mt-4 pt-2.5 border-t border-border/40 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                  <div className="mt-4 pt-2.5 border-t border-border/40 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                     ✓ {lecturer.experience}
                   </div>
                 </CardContent>
@@ -585,7 +585,7 @@ export default function AboutClient() {
                 ACTD accreditation guarantees that our pharmacy curricula, assessment criteria, and teaching methodologies comply with rigorous international standards for continuing healthcare professional education.
               </p>
               <div className="mt-4 pt-3 border-t border-border/60">
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold inline-flex items-center gap-1">
+                <span className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold inline-flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" /> Internationally Recognized Certification
                 </span>
               </div>
@@ -593,7 +593,7 @@ export default function AboutClient() {
 
             <Card className="p-6 rounded-2xl border border-border/80 bg-card shadow-sm hover:shadow-lg transition-all">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-center justify-center font-bold">
                   ISO
                 </div>
                 <div>
@@ -643,7 +643,7 @@ export default function AboutClient() {
                 </div>
                 <div>
                   <h3 className="font-headline font-bold text-base text-foreground">Main Campus & Operations Hub</h3>
-                  <Badge variant="secondary" className="text-[10px]">Pelmadulla</Badge>
+                  <Badge variant="secondary" className="text-xs">Pelmadulla</Badge>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed font-body mb-3">
@@ -661,12 +661,12 @@ export default function AboutClient() {
 
             <div className="p-6 rounded-2xl border border-border/80 bg-card">
               <div className="flex items-center gap-3 mb-3">
-                <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400">
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="font-headline font-bold text-base text-foreground">Colombo Corporate Liaison</h3>
-                  <Badge variant="secondary" className="text-[10px]">Colombo 03</Badge>
+                  <Badge variant="secondary" className="text-xs">Colombo 03</Badge>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed font-body mb-3">

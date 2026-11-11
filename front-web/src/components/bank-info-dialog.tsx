@@ -35,7 +35,7 @@ export function BankInfoDialog({ variant = 'default', className = '' }: BankInfo
           title={`Copy ${label}`}
         >
           {copiedItem === label ? (
-            <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <Check className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
           ) : (
             <Copy className="h-4 w-4" />
           )}
@@ -97,7 +97,7 @@ export function BankInfoDialog({ variant = 'default', className = '' }: BankInfo
 
           {/* Verification Advice */}
           <div className="flex items-start gap-2.5 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 text-xs text-emerald-900 dark:text-emerald-200">
-            <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+            <ShieldCheck className="h-4 w-4 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
             <p>
               {language === 'si'
                 ? 'මුදල් තැන්පත් කිරීමෙන් පසු ලැබෙන රිසිට්පත (Bank Slip / Transfer Screenshot) ඔබගේ ලියාපදිංචි Reference අංකය සමඟ අපගේ WhatsApp අංකයට යොමු කරන්න.'
@@ -107,7 +107,7 @@ export function BankInfoDialog({ variant = 'default', className = '' }: BankInfo
 
           {/* Official Bank Deposit Slip Visual Guide */}
           <div className="rounded-xl border border-border overflow-hidden bg-muted/40 shadow-sm">
-            <div className="p-2 bg-muted text-[11px] font-semibold text-center text-muted-foreground">
+            <div className="p-2 bg-muted text-xs font-semibold text-center text-muted-foreground">
               {language === 'si' ? 'නිල බැංකු පත්‍රිකා සාම්පලය (Sample Slip)' : 'Official Bank Deposit Reference Slip'}
             </div>
             <Image
