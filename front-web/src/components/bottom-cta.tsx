@@ -68,7 +68,7 @@ export default function BottomCTA() {
   const whatsappUrl = `https://wa.me/94715884884?text=${encodeURIComponent(getWhatsAppMessage())}`;
 
   return (
-    <section className="py-16 md:py-24 bg-primary text-primary-foreground relative overflow-hidden">
+    <section className="py-16 md:py-24 bg-emerald-800 text-white relative overflow-hidden">
       {/* Decorative Accents */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-black/10 rounded-full blur-3xl pointer-events-none" />
@@ -76,15 +76,15 @@ export default function BottomCTA() {
       <div className="container mx-auto px-4 md:px-6 relative z-10 text-center max-w-5xl">
         
         {/* Trust Badges */}
-        <div className="inline-flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-primary-foreground/90 bg-primary-foreground/10 px-4 py-2 rounded-full mb-6">
+        <div className="inline-flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-white/90 bg-white/10 px-4 py-2 rounded-full mb-6">
           <span className="flex items-center gap-1.5">
             <Users className="w-4 h-4 text-amber-400" /> {content.graduates}
           </span>
-          <span className="w-1 h-1 bg-primary-foreground/40 rounded-full" />
+          <span className="w-1 h-1 bg-white/40 rounded-full" />
           <span className="flex items-center gap-1.5">
             <Award className="w-4 h-4 text-amber-400" /> {content.accredited}
           </span>
-          <span className="w-1 h-1 bg-primary-foreground/40 rounded-full" />
+          <span className="w-1 h-1 bg-white/40 rounded-full" />
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-amber-400" /> {content.certified}
           </span>
@@ -96,7 +96,7 @@ export default function BottomCTA() {
           {content.title}
         </h2>
 
-        <p className={`mt-4 text-base md:text-xl text-primary-foreground/90 font-body max-w-2xl mx-auto ${
+        <p className={`mt-4 text-base md:text-xl text-white/90 font-body max-w-2xl mx-auto ${
           isSinhala ? 'leading-[1.75]' : 'leading-relaxed'
         }`}>
           {content.desc}
@@ -122,7 +122,7 @@ export default function BottomCTA() {
         </div>
 
         {/* Hotlines */}
-        <div className="mt-8 pt-8 border-t border-primary-foreground/20 text-xs text-primary-foreground/80 flex flex-wrap justify-center items-center gap-6">
+        <div className="mt-8 pt-8 border-t border-white/20 text-xs text-white/80 flex flex-wrap justify-center items-center gap-6">
           <span className="flex items-center gap-2">
             <Phone className="w-3.5 h-3.5" /> {content.general} <a href="tel:0117494335" className="font-bold underline hover:text-white">011 74 94 335</a>
           </span>

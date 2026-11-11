@@ -181,12 +181,12 @@ function PaymentPortalContent() {
 
       {submitSuccess ? (
         <Card className="border-2 border-emerald-500/40 shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 duration-400 bg-card p-6 sm:p-8 text-center space-y-5">
-          <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 rounded-full flex items-center justify-center mx-auto border-2 border-emerald-300">
+          <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto border-2 border-emerald-300">
             <CheckCircle2 className="w-10 h-10" />
           </div>
 
           <div>
-            <Badge className="bg-emerald-600 text-white font-bold mb-2">
+            <Badge className="bg-emerald-700 text-white font-bold mb-2">
               {language === 'si' ? 'ගෙවීම් රිසිට්පත ලැබිණි' : 'Slip Received'}
             </Badge>
             <h2 className="text-xl sm:text-2xl font-headline font-bold text-foreground">
@@ -223,7 +223,7 @@ function PaymentPortalContent() {
             </Button>
             <Button asChild variant="outline" size="lg" className="w-full sm:w-auto font-semibold gap-2">
               <a href="https://wa.me/94715884884" target="_blank" rel="noopener noreferrer">
-                <MessageCircle className="w-4 h-4 text-emerald-600" />
+                <MessageCircle className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                 <span>{language === 'si' ? 'WhatsApp මගින් විමසන්න' : 'Inquire on WhatsApp'}</span>
               </a>
             </Button>
@@ -369,12 +369,12 @@ function PaymentPortalContent() {
                       {slipPreviewUrl ? (
                         <div className="flex flex-col items-center gap-2">
                           <img src={slipPreviewUrl} alt="Slip Preview" className="max-h-52 rounded-lg shadow-sm border object-contain" />
-                          <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
                             <Check className="w-3.5 h-3.5" /> {slipFile?.name} (Click to change)
                           </span>
                         </div>
                       ) : slipFile ? (
-                        <div className="flex items-center justify-center gap-2 text-xs font-semibold text-emerald-600">
+                        <div className="flex items-center justify-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                           <FileCheck2 className="w-5 h-5" />
                           <span>{slipFile.name} (Ready to upload)</span>
                         </div>
@@ -436,16 +436,16 @@ function PaymentPortalContent() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
               <div className="p-3 bg-card rounded-xl border">
-                <span className="text-muted-foreground block text-[11px]">Bank Name</span>
+                <span className="text-muted-foreground block text-xs">Bank Name</span>
                 <span className="font-bold text-foreground">Bank Of Ceylon (BOC)</span>
               </div>
               <div className="p-3 bg-card rounded-xl border">
-                <span className="text-muted-foreground block text-[11px]">Account Name</span>
+                <span className="text-muted-foreground block text-xs">Account Name</span>
                 <span className="font-bold text-foreground">Ceylon Pharma College Pvt Ltd</span>
               </div>
               <div className="p-3 bg-card rounded-xl border flex items-center justify-between">
                 <div>
-                  <span className="text-muted-foreground block text-[11px]">Account Number</span>
+                  <span className="text-muted-foreground block text-xs">Account Number</span>
                   <span className="font-bold font-mono text-base text-primary">89090906</span>
                 </div>
                 <button
@@ -454,12 +454,12 @@ function PaymentPortalContent() {
                   className="p-1.5 rounded-lg border hover:bg-muted text-muted-foreground"
                   title="Copy Account Number"
                 >
-                  {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  {copied ? <Check className="w-4 h-4 text-emerald-700 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
               <div className="p-3 bg-card rounded-xl border flex items-center justify-between">
                 <div>
-                  <span className="text-muted-foreground block text-[11px]">Branch</span>
+                  <span className="text-muted-foreground block text-xs">Branch</span>
                   <span className="font-bold text-foreground">Pelmadulla Branch</span>
                 </div>
                 <button
@@ -484,7 +484,7 @@ function PaymentPortalContent() {
               href="https://wa.me/94715884884"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 font-bold text-emerald-600 hover:underline"
+              className="inline-flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
             >
               <MessageCircle className="w-3.5 h-3.5" />
               <span>WhatsApp CPC Desk</span>

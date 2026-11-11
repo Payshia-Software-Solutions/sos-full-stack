@@ -35,8 +35,8 @@ export default function ReviewCard({ review }: ReviewCardProps) {
         <Card className="h-full bg-card border border-border/80 hover:border-border hover:shadow-xl transition-all duration-300 flex flex-col rounded-2xl group">
             <CardContent className="flex flex-col p-6 h-full">
                 {/* Header with Avatar, Name, and Google Badge */}
-                <div className="flex items-start justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                    <div className="flex min-w-[11rem] flex-1 items-center gap-3">
                         <div className="relative">
                             <Avatar className="h-12 w-12 border-2 border-primary/20">
                                 <AvatarImage src={review.image} alt={review.name} data-ai-hint={review.hint} />
@@ -59,7 +59,7 @@ export default function ReviewCard({ review }: ReviewCardProps) {
                     </div>
 
                     {review.isGoogleReview && (
-                        <Badge variant="outline" className="text-[10px] font-medium gap-1 text-muted-foreground bg-muted/50 border-border shrink-0 py-0.5 px-2">
+                        <Badge variant="outline" className="text-xs font-medium gap-1 text-muted-foreground bg-muted/50 border-border shrink-0 py-0.5 px-2">
                             <GoogleLogoIcon className="w-3 h-3" />
                             <span>Google</span>
                         </Badge>
@@ -70,7 +70,7 @@ export default function ReviewCard({ review }: ReviewCardProps) {
                 <div className="flex items-center justify-between mb-3 pt-1 border-t border-border/50">
                     <StarRating rating={review.rating} />
                     {review.date && (
-                        <span className="text-[11px] text-muted-foreground font-body">
+                        <span className="text-xs text-muted-foreground font-body">
                             {review.date}
                         </span>
                     )}
@@ -82,8 +82,8 @@ export default function ReviewCard({ review }: ReviewCardProps) {
                 </p>
 
                 {/* Verified Footer */}
-                <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium">
                         ✓ Verified Student
                     </span>
                     <span>Ceylon Pharma College</span>

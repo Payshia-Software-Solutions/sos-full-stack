@@ -81,7 +81,7 @@ const SearchResults = ({
 }) => {
     if (loading) {
       return (
-        <div className="mt-4 flex items-center justify-center gap-2 text-primary-foreground/90 py-5">
+        <div className="mt-4 flex items-center justify-center gap-2 text-white/90 py-5">
           <Loader2 className="h-5 w-5 animate-spin" />
           <p className="text-sm font-medium">
             {isSinhala ? 'සත්‍යාපන දත්ත පද්ධතියෙන් සොයමින් පවතී...' : 'Searching verified registry...'}
@@ -92,11 +92,11 @@ const SearchResults = ({
 
     if (students.length === 0) {
       return (
-        <div className="mt-4 p-5 rounded-xl bg-background/15 border border-primary-foreground/20 text-center text-primary-foreground space-y-2 backdrop-blur-sm animate-in fade-in-50">
+        <div className="mt-4 p-5 rounded-xl bg-background/15 border border-white/20 text-center text-white space-y-2 backdrop-blur-sm animate-in fade-in-50">
           <p className="font-semibold text-sm">
             {isSinhala ? 'සිසුන් හෝ සහතිකපත් හමු නොවීය (No matching records)' : 'No matching student or certificate found'}
           </p>
-          <p className="text-xs text-primary-foreground/80 leading-relaxed max-w-md mx-auto">
+          <p className="text-xs text-white/80 leading-relaxed max-w-md mx-auto">
             {isSinhala 
               ? 'කරුණාකර නිවැරදි ශිෂ්‍ය අංකය (උදා: PA24600 හෝ PA/24/600), සහතික අංකය (උදා: CREF4307) හෝ නම පරීක්ෂා කර නැවත උත්සාහ කරන්න.' 
               : 'Please verify your Student Index (e.g. PA24600 or PA/24/600), Certificate ID (e.g. CREF4307), or Name and try again.'}
@@ -107,7 +107,7 @@ const SearchResults = ({
     
     return (
         <div className="mt-4 space-y-2.5 max-h-80 overflow-y-auto animate-in fade-in-50 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden text-left">
-            <p className="text-xs font-semibold text-primary-foreground/85 px-1 text-left">
+            <p className="text-xs font-semibold text-white/85 px-1 text-left">
               {isSinhala ? `ගැලපෙන සිසුන් ${students.length} ක් හමුවිය:` : `Found ${students.length} matching record(s):`}
             </p>
             {students.map((student) => (
@@ -125,7 +125,7 @@ const SearchResults = ({
                             {student.name_on_certificate}
                           </p>
                           {student.certificate_id && (
-                            <span className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-500/20">
+                            <span className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-500/20">
                               {student.certificate_id}
                             </span>
                           )}
@@ -160,15 +160,15 @@ const EnrollmentList = ({
 
     return (
         <div className="mt-4 space-y-3 animate-in fade-in-50 text-left">
-            <div className="p-3.5 rounded-xl bg-background/15 border border-primary-foreground/20 backdrop-blur-sm flex items-center justify-between text-left">
+            <div className="p-3.5 rounded-xl bg-background/15 border border-white/20 backdrop-blur-sm flex items-center justify-between text-left">
               <div className="text-left">
-                <span className="text-[11px] font-mono text-primary-foreground/70 uppercase block text-left">
+                <span className="text-xs font-mono text-white/70 uppercase block text-left">
                   {isSinhala ? 'සත්‍යාපිත ශිෂ්‍යයා' : 'Verified Graduate'}
                 </span>
-                <h3 className="text-base sm:text-lg font-headline font-bold text-primary-foreground text-left">
+                <h3 className="text-base sm:text-lg font-headline font-bold text-white text-left">
                   {studentData.studentInfo.name_on_certificate || studentData.studentInfo.full_name}
                 </h3>
-                <p className="text-xs font-mono text-primary-foreground/85 text-left mt-0.5">
+                <p className="text-xs font-mono text-white/85 text-left mt-0.5">
                   Student Index: {studentData.studentInfo.username}
                 </p>
               </div>
@@ -178,7 +178,7 @@ const EnrollmentList = ({
               </Badge>
             </div>
 
-            <p className="text-xs font-semibold text-primary-foreground/90 pt-1 text-left px-1">
+            <p className="text-xs font-semibold text-white/90 pt-1 text-left px-1">
               {isSinhala ? 'ප්‍රතිඵල බැලීමට පාඨමාලාව තෝරන්න (Select Enrollment):' : 'Select Enrollment to View Result:'}
             </p>
 
@@ -464,7 +464,7 @@ export default function CertificateVerifier() {
   };
 
   return (
-    <section id="verify" className="bg-primary py-16 md:py-24 text-primary-foreground relative overflow-hidden">
+    <section id="verify" className="bg-emerald-800 py-16 md:py-24 text-white relative overflow-hidden">
         <div className="container mx-auto px-4 md:px-6 text-center relative z-10">
             <div className="mb-6">
               <Image
@@ -480,7 +480,7 @@ export default function CertificateVerifier() {
             <h2 className={`text-3xl md:text-5xl font-headline font-bold ${isSinhala ? 'leading-[1.35]' : 'leading-tight'}`}>
                 {t('certVerifierTitle')}
             </h2>
-            <p className={`mt-4 text-base md:text-lg text-primary-foreground/90 max-w-2xl mx-auto ${isSinhala ? 'leading-[1.75]' : 'leading-relaxed'}`}>
+            <p className={`mt-4 text-base md:text-lg text-white/90 max-w-2xl mx-auto ${isSinhala ? 'leading-[1.75]' : 'leading-relaxed'}`}>
                 {t('certVerifierSubtitle')}
             </p>
 
@@ -489,7 +489,7 @@ export default function CertificateVerifier() {
                 <Button 
                   variant="ghost" 
                   onClick={handleBack} 
-                  className="absolute -top-10 left-0 text-primary-foreground hover:bg-primary-foreground/15 h-8 px-2 text-xs font-semibold gap-1"
+                  className="absolute -top-10 left-0 text-white hover:bg-white/15 h-8 px-2 text-xs font-semibold gap-1"
                 >
                   <ArrowLeft className="h-3.5 w-3.5"/> 
                   <span>{isSinhala ? 'ආපසු (Back)' : 'Back'}</span>
@@ -503,7 +503,7 @@ export default function CertificateVerifier() {
                         name="certificateNumber" 
                         placeholder={isSinhala ? 'ශිෂ්‍ය අංකය (උදා: PA24600), සහතික අංකය හෝ නම' : 'Enter Student Index (e.g. PA24600), Cert ID or Name'} 
                         aria-label={t('certVerifierButton')}
-                        className="h-14 w-full rounded-xl border-2 border-primary-foreground/50 bg-primary-foreground/95 pl-14 pr-14 text-base text-primary placeholder:text-primary/65 focus:border-primary-foreground focus:bg-primary-foreground focus:ring-2 focus:ring-primary-foreground/50 uppercase font-mono font-medium shadow-lg"
+                        className="h-14 w-full rounded-xl border-2 border-white/50 bg-white/95 pl-14 pr-14 text-base text-emerald-900 placeholder:text-emerald-800/70 focus:border-primary-foreground focus:bg-primary-foreground focus:ring-2 focus:ring-primary-foreground/50 uppercase font-mono font-medium shadow-lg"
                         onChange={(e) => setQuery(e.target.value.toUpperCase())}
                         value={query}
                       />
@@ -513,22 +513,22 @@ export default function CertificateVerifier() {
 
                     {/* Example Search Hint */}
                     {!query && (
-                      <p className="text-xs text-primary-foreground/85 pt-1 text-center font-body">
+                      <p className="text-xs text-white/85 pt-1 text-center font-body">
                         <span className="font-medium">{isSinhala ? 'උදාහරණ (e.g.): ' : 'Examples: '}</span>
-                        <span className="font-mono text-primary-foreground/95">PA24600</span>
+                        <span className="font-mono text-white/95">PA24600</span>
                         <span className="mx-1.5 opacity-60">•</span>
-                        <span className="font-mono text-primary-foreground/95">CREF4307</span>
+                        <span className="font-mono text-white/95">CREF4307</span>
                         <span className="mx-1.5 opacity-60">•</span>
-                        <span className="font-mono text-primary-foreground/95">Kasun</span>
+                        <span className="font-mono text-white/95">Kasun</span>
                         <span className="mx-1.5 opacity-60">•</span>
-                        <span className="font-mono text-primary-foreground/95">Dilshan</span>
+                        <span className="font-mono text-white/95">Dilshan</span>
                       </p>
                     )}
                   </div>
               )}
                 
               {detailsLoading && (
-                  <div className="mt-6 flex flex-col justify-center items-center gap-2 text-primary-foreground/90 py-6">
+                  <div className="mt-6 flex flex-col justify-center items-center gap-2 text-white/90 py-6">
                       <Loader2 className="h-7 w-7 animate-spin" />
                       <p className="text-sm font-medium">
                         {isSinhala ? 'සත්‍යාපිත ශිෂ්‍ය තොරතුරු පූරණය වෙමින් පවතී...' : 'Loading verified credentials...'}
@@ -537,7 +537,7 @@ export default function CertificateVerifier() {
               )}
 
               {detailsError && (
-                  <div className="mt-4 p-4 rounded-xl bg-destructive/20 border border-destructive/40 text-primary-foreground text-xs text-center">
+                  <div className="mt-4 p-4 rounded-xl bg-destructive/20 border border-destructive/40 text-white text-xs text-center">
                     {detailsError}
                   </div>
               )}
@@ -563,7 +563,7 @@ export default function CertificateVerifier() {
               )}
             </div>
 
-            <p className="mt-10 max-w-3xl mx-auto text-primary-foreground/80 text-xs sm:text-sm font-body leading-relaxed">
+            <p className="mt-10 max-w-3xl mx-auto text-white/80 text-xs sm:text-sm font-body leading-relaxed">
                 {t('certVerifierDescription')}
             </p>
         </div>

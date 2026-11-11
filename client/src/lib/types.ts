@@ -217,6 +217,16 @@ export interface UpdateCertificateNamePayload {
   updated_by: string;
 }
 
+export interface ConvocationMedalType {
+    id: number;
+    name: string;
+    description?: string | null;
+    color?: string | null;
+    is_active: number | boolean;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export interface ConvocationRegistration {
     registration_id: string;
     reference_number: string;
@@ -232,6 +242,7 @@ export interface ConvocationRegistration {
     hash_value: string;
     image_path: string;
     additional_seats: string;
+    refreshment_tokens?: string;
     session: string;
     ceremony_number: string;
     certificate_print_status: string;
@@ -241,6 +252,9 @@ export interface ConvocationRegistration {
     convocation_id: string;
     name_on_certificate: string;
     telephone_1?: string;
+    medal_type_id?: string | number | null;
+    medal_name?: string | null;
+    medal_color?: string | null;
 }
 
 export interface CertificateOrder {
@@ -933,6 +947,9 @@ export interface ConvocationCeremony {
     held_on: string;
     session_count: string;
     parent_seats: string;
+    parent_seat_price?: string;
+    refreshment_tokens?: string;
+    refreshment_token_price?: string;
     student_seats: string;
     session_2: string;
     created_by: string;
@@ -971,6 +988,8 @@ export interface CreateConvocationRegistrationPayload {
     convocation_id: string;
     payment_amount: string;
     additional_seats: string;
+    refreshment_tokens?: string;
+    medal_type_id?: string | number | null;
     session: '1' | '2';
     image: File; // The payment slip
     name_on_certificate: string;
@@ -1295,5 +1314,6 @@ export interface StudentDocumentVerification {
   lname?: string;
   email?: string;
   phone?: string;
+  user_verification_status?: string;
 }
 

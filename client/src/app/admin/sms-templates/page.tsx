@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Pencil } from "lucide-react";
+import { LMS_API_URL } from "@/lib/config";
 
 const highlightPlaceholders = (text: string) => {
   if (!text) return null;
@@ -71,7 +72,7 @@ export default function SmsTemplatesPage() {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost/sos-full-stack/server'}/sms-templates`);
+      const res = await fetch(`${LMS_API_URL}/sms-templates`);
       const data = await res.json();
       setTemplates(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -94,7 +95,7 @@ export default function SmsTemplatesPage() {
 
     setUpdateLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost/sos-full-stack/server'}/sms-templates/${editingTemplate.id}`, {
+      const res = await fetch(`${LMS_API_URL}/sms-templates/${editingTemplate.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

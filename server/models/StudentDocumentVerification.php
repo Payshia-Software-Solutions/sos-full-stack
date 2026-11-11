@@ -9,22 +9,87 @@ class StudentDocumentVerification
         $this->pdo = $pdo;
     }
 
+    private function getNormalizedIdentifiers($id)
+    {
+        if (empty($id)) return [];
+        $id = trim($id);
+        $identifiers = [$id];
+        $noSlash = str_replace('/', '', $id);
+        if (!empty($noSlash)) $identifiers[] = $noSlash;
+        if (preg_match('/^([A-Za-z]+)(\d{2})(\d{3,})$/', $id, $m)) {
+            $identifiers[] = $m[1] . '/' . $m[2] . '/' . $m[3];
+        }
+        return array_values(array_unique(array_filter($identifiers)));
+    }
+
     public function getByStudentId($studentId)
     {
+        $identifiers = $this->getNormalizedIdentifiers($studentId);
+        if (empty($identifiers)) {
+            return null;
+        }
+        $placeholders = implode(',', array_fill(0, count($identifiers), '?'));
+
+        // 1. Try to find from student_document_verifications table
         $stmt = $this->pdo->prepare("SELECT v.*, u.verification_status as user_verification_status 
             FROM student_document_verifications v 
-            LEFT JOIN users u ON v.student_id = u.username 
-            WHERE v.student_id = :student_id 
+            LEFT JOIN users u ON (v.student_id = u.username OR v.student_id = u.userid) 
+            WHERE v.student_id IN ($placeholders) 
             ORDER BY v.id DESC LIMIT 1");
-        $stmt->execute(['student_id' => $studentId]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->execute($identifiers);
+        $record = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($record) {
+            return $record;
+        }
+
+        // 2. Fallback: Check users and user_full_details tables directly
+        try {
+            $userStmt = $this->pdo->prepare("SELECT id, username, userid, fname, lname, email, verification_status 
+                FROM users 
+                WHERE username IN ($placeholders) OR userid IN ($placeholders) 
+                LIMIT 1");
+            $userStmt->execute(array_merge($identifiers, $identifiers));
+            $userRow = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+            $ufdStmt = $this->pdo->prepare("SELECT id, username, student_id, first_name, last_name, verification_status 
+                FROM user_full_details 
+                WHERE username IN ($placeholders) OR student_id IN ($placeholders) 
+                LIMIT 1");
+            $ufdStmt->execute(array_merge($identifiers, $identifiers));
+            $ufdRow = $ufdStmt->fetch(PDO::FETCH_ASSOC);
+
+            $userVerStatus = $userRow['verification_status'] ?? $ufdRow['verification_status'] ?? null;
+            if (!empty($userVerStatus)) {
+                $norm = strtolower(trim($userVerStatus));
+                $isVer = ($norm === 'verified' || $norm === 'approved');
+                $isPend = ($norm === 'pending');
+                $isRej = ($norm === 'rejected');
+
+                return [
+                    'id' => null,
+                    'student_id' => $studentId,
+                    'id_type' => 'nic',
+                    'id_number' => null,
+                    'status' => $isVer ? 'approved' : ($isPend ? 'pending' : ($isRej ? 'rejected' : 'not_submitted')),
+                    'user_verification_status' => $userVerStatus,
+                    'rejection_reason' => null,
+                    'verified_by' => $isVer ? 'Administration' : null,
+                    'verified_at' => null
+                ];
+            }
+        } catch (\Exception $e) {
+            error_log("Error resolving fallback KYC status: " . $e->getMessage());
+        }
+
+        return null;
     }
 
     public function getById($id)
     {
         $stmt = $this->pdo->prepare("SELECT v.*, u.fname, u.lname, u.email, u.phone, u.verification_status as user_verification_status 
             FROM student_document_verifications v 
-            LEFT JOIN users u ON v.student_id = u.username 
+            LEFT JOIN users u ON (v.student_id = u.username OR v.student_id = u.userid) 
             WHERE v.id = :id");
         $stmt->execute(['id' => $id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -34,7 +99,7 @@ class StudentDocumentVerification
     {
         $query = "SELECT v.*, u.fname, u.lname, u.email, u.phone, u.verification_status as user_verification_status 
                   FROM student_document_verifications v 
-                  LEFT JOIN users u ON v.student_id = u.username 
+                  LEFT JOIN users u ON (v.student_id = u.username OR v.student_id = u.userid) 
                   WHERE 1=1";
         $params = [];
 
@@ -69,7 +134,7 @@ class StudentDocumentVerification
     {
         $query = "SELECT COUNT(*) as total 
                   FROM student_document_verifications v 
-                  LEFT JOIN users u ON v.student_id = u.username 
+                  LEFT JOIN users u ON (v.student_id = u.username OR v.student_id = u.userid) 
                   WHERE 1=1";
         $params = [];
 
@@ -98,7 +163,7 @@ class StudentDocumentVerification
         $existing = $this->getByStudentId($data['student_id']);
         $recordId = null;
 
-        if ($existing) {
+        if ($existing && !empty($existing['id'])) {
             $fields = [
                 'id_type = :id_type',
                 'id_number = :id_number',
@@ -171,9 +236,20 @@ class StudentDocumentVerification
             $recordId = $this->pdo->lastInsertId();
         }
 
-        // Also update users.verification_status to 'Pending'
-        $stmtUser = $this->pdo->prepare("UPDATE users SET verification_status = 'Pending' WHERE username = :username");
-        $stmtUser->execute(['username' => $data['student_id']]);
+        // Also update users.verification_status & user_full_details.verification_status to 'Pending'
+        $identifiers = $this->getNormalizedIdentifiers($data['student_id']);
+        if (!empty($identifiers)) {
+            $placeholders = implode(',', array_fill(0, count($identifiers), '?'));
+            try {
+                $stmtUser = $this->pdo->prepare("UPDATE users SET verification_status = 'Pending' WHERE username IN ($placeholders) OR userid IN ($placeholders)");
+                $stmtUser->execute(array_merge($identifiers, $identifiers));
+
+                $stmtUfd = $this->pdo->prepare("UPDATE user_full_details SET verification_status = 'Pending' WHERE username IN ($placeholders) OR student_id IN ($placeholders)");
+                $stmtUfd->execute(array_merge($identifiers, $identifiers));
+            } catch (\Exception $e) {
+                error_log("Failed to update pending status: " . $e->getMessage());
+            }
+        }
 
         return $recordId;
     }
@@ -198,11 +274,19 @@ class StudentDocumentVerification
             $rec = $this->getById($id);
             if ($rec && !empty($rec['student_id'])) {
                 $userStatus = $status === 'approved' ? 'Verified' : ($status === 'rejected' ? 'Rejected' : 'Pending');
-                $stmtUser = $this->pdo->prepare("UPDATE users SET verification_status = :vstatus WHERE username = :username");
-                $stmtUser->execute([
-                    'vstatus' => $userStatus,
-                    'username' => $rec['student_id']
-                ]);
+                $identifiers = $this->getNormalizedIdentifiers($rec['student_id']);
+                if (!empty($identifiers)) {
+                    $placeholders = implode(',', array_fill(0, count($identifiers), '?'));
+                    try {
+                        $stmtUser = $this->pdo->prepare("UPDATE users SET verification_status = ? WHERE username IN ($placeholders) OR userid IN ($placeholders)");
+                        $stmtUser->execute(array_merge([$userStatus], $identifiers, $identifiers));
+
+                        $stmtUfd = $this->pdo->prepare("UPDATE user_full_details SET verification_status = ? WHERE username IN ($placeholders) OR student_id IN ($placeholders)");
+                        $stmtUfd->execute(array_merge([$userStatus], $identifiers, $identifiers));
+                    } catch (\Exception $e) {
+                        error_log("Failed to update user tables on verify: " . $e->getMessage());
+                    }
+                }
             }
         }
 
@@ -211,10 +295,22 @@ class StudentDocumentVerification
 
     public function setUserVerificationStatus($username, $verificationStatus)
     {
-        $stmt = $this->pdo->prepare("UPDATE users SET verification_status = :vstatus WHERE username = :username");
-        return $stmt->execute([
-            'vstatus' => $verificationStatus,
-            'username' => $username
-        ]);
+        $identifiers = $this->getNormalizedIdentifiers($username);
+        if (empty($identifiers)) {
+            return false;
+        }
+        $placeholders = implode(',', array_fill(0, count($identifiers), '?'));
+
+        try {
+            $stmtUser = $this->pdo->prepare("UPDATE users SET verification_status = ? WHERE username IN ($placeholders) OR userid IN ($placeholders)");
+            $stmtUser->execute(array_merge([$verificationStatus], $identifiers, $identifiers));
+
+            $stmtUfd = $this->pdo->prepare("UPDATE user_full_details SET verification_status = ? WHERE username IN ($placeholders) OR student_id IN ($placeholders)");
+            $stmtUfd->execute(array_merge([$verificationStatus], $identifiers, $identifiers));
+            return true;
+        } catch (\Exception $e) {
+            error_log("Failed to set user verification status: " . $e->getMessage());
+            return false;
+        }
     }
 }

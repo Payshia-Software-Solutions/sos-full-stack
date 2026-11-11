@@ -5,12 +5,12 @@ export const metadata: Metadata = {
   title: 'ඉංග්‍රීසි භාෂා අධ්‍යයන අංශය | Department of English for Healthcare | Ceylon Pharma College',
   description: 'Medical and professional English communication courses tailored for pharmacists, healthcare practitioners, and medical representatives.',
   alternates: {
-    canonical: 'https://www.pharmacollege.lk/departments/department-of-english',
+    canonical: 'https://pharmacollege.lk/departments/department-of-english',
   },
   openGraph: {
     title: 'ඉංග්‍රීසි භාෂා අධ්‍යයන අංශය | Department of English for Healthcare | Ceylon Pharma College',
     description: 'Medical and professional English communication courses tailored for pharmacists, healthcare practitioners, and medical representatives.',
-    url: 'https://www.pharmacollege.lk/departments/department-of-english',
+    url: 'https://pharmacollege.lk/departments/department-of-english',
     siteName: 'Ceylon Pharma College',
   },
 };

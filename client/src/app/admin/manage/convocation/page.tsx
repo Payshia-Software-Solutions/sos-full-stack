@@ -4,29 +4,34 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { 
     getConvocationRegistrations, 
     getPackagesByCeremony,
     deleteConvocationRegistration,
+    getConvocationCeremonies,
+    getConvocationSlipDownloadUrl,
+    downloadConvocationSlipPdf,
 } from '@/lib/actions/certificates';
 import { getParentCourses } from '@/lib/actions/courses';
 import { getStudentFullInfo } from '@/lib/actions/users';
 import type { 
     ConvocationRegistration, 
     ConvocationPackage, 
+    ConvocationCeremony,
     ParentCourse, 
     FullStudentData
 } from '@/lib/types';
 import { parseISO, isValid, format } from 'date-fns';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ArrowLeft, ArrowUp, ArrowDown, ChevronsUpDown, Eye, FileDown, Loader2, Banknote, Wallet, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, ArrowLeft, ArrowUp, ArrowDown, ChevronsUpDown, Eye, FileDown, Loader2, Banknote, Wallet, Trash2, AlertTriangle, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { AnimatedCounter } from '@/components/ui/animated-counter';
@@ -96,8 +101,34 @@ export default function ConvocationListPage() {
         refetchOnWindowFocus: false,
     });
 
+    const { data: ceremonies, isLoading: isLoadingCeremonies } = useQuery<ConvocationCeremony[]>({
+        queryKey: ['convocationCeremonies'],
+        queryFn: getConvocationCeremonies,
+        staleTime: 1000 * 60 * 15,
+        refetchOnWindowFocus: false,
+    });
+
     const queryClient = useQueryClient();
     const [bookingToDelete, setBookingToDelete] = useState<ConvocationRegistration | null>(null);
+    const [downloadingId, setDownloadingId] = useState<string | number | null>(null);
+
+    const handleDownloadPdf = async (reg: ConvocationRegistration) => {
+        try {
+            setDownloadingId(reg.registration_id);
+            await downloadConvocationSlipPdf(
+                reg.registration_id,
+                `Convocation_Admission_${reg.reference_number || reg.registration_id}.pdf`
+            );
+        } catch (e: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Download Failed',
+                description: e.message || 'Could not download Convocation Admission PDF.',
+            });
+        } finally {
+            setDownloadingId(null);
+        }
+    };
 
     const deleteBookingMutation = useMutation({
         mutationFn: (registrationId: string | number) => deleteConvocationRegistration(registrationId),
@@ -162,9 +193,23 @@ export default function ConvocationListPage() {
         );
     };
 
+    const calculateTotalPayable = (reg: ConvocationRegistration) => {
+        const pkg = packages?.find(p => String(p.package_id) === String(reg.package_id));
+        const packagePrice = pkg ? parseFloat(pkg.price) : 0;
+        
+        const ceremony = ceremonies?.find(c => String(c.id) === String(reg.convocation_id));
+        const parentSeatRate = ceremony?.parent_seat_price ? parseFloat(ceremony.parent_seat_price) : PARENT_SEAT_RATE;
+        const refreshTokenRate = ceremony?.refreshment_token_price ? parseFloat(ceremony.refreshment_token_price) : 0;
+
+        const guestSeatsCount = parseInt(String(reg.additional_seats ?? 0), 10) || 0;
+        const tokensCount = parseInt(String(reg.refreshment_tokens ?? 0), 10) || 0;
+
+        return packagePrice + (guestSeatsCount * parentSeatRate) + (tokensCount * refreshTokenRate);
+    };
+
     const registrationStats = useMemo(() => {
         if (!registrations || !packages) {
-            return { totalBookings: 0, pendingPayments: 0, confirmedPayments: 0, additionalSeats: 0, totalVerified: 0, totalDue: 0 };
+            return { totalBookings: 0, pendingPayments: 0, confirmedPayments: 0, additionalSeats: 0, refreshmentTokens: 0, totalVerified: 0, totalDue: 0 };
         }
         
         const activeRegs = registrations.filter(r => 
@@ -182,10 +227,7 @@ export default function ConvocationListPage() {
         let totalDue = 0;
 
         activeRegs.forEach(reg => {
-            const pkg = packages.find(p => p.package_id === reg.package_id);
-            const packagePrice = pkg ? parseFloat(pkg.price) : 0;
-            const guestSeatsCount = parseInt(reg.additional_seats, 10) || 0;
-            const dueAmount = packagePrice + (guestSeatsCount * PARENT_SEAT_RATE);
+            const dueAmount = calculateTotalPayable(reg);
             const paidAmount = parseFloat(reg.payment_amount) || 0;
 
             totalVerified += paidAmount;
@@ -197,10 +239,11 @@ export default function ConvocationListPage() {
             confirmedPayments: confirmed.length,
             pendingPayments: activeRegs.length - confirmed.length,
             additionalSeats: activeRegs.reduce((acc, reg) => acc + (parseInt(reg.additional_seats, 10) || 0), 0),
+            refreshmentTokens: activeRegs.reduce((acc, reg) => acc + (parseInt(reg.refreshment_tokens || '0', 10) || 0), 0),
             totalVerified,
             totalDue
         };
-    }, [registrations, packages]);
+    }, [registrations, packages, ceremonies]);
 
 
     const filteredRegistrations = useMemo(() => {
@@ -213,10 +256,7 @@ export default function ConvocationListPage() {
             const isDuplicate = seenHashes.has(reg.hash_value);
             if (reg.hash_value) seenHashes.add(reg.hash_value);
             
-            const pkg = packages.find(p => p.package_id === reg.package_id);
-            const packagePrice = pkg ? parseFloat(pkg.price) : 0;
-            const guestSeatsCount = parseInt(reg.additional_seats, 10) || 0;
-            const dueAmount = packagePrice + (guestSeatsCount * PARENT_SEAT_RATE);
+            const dueAmount = calculateTotalPayable(reg);
             
             return { ...reg, isDuplicate, dueAmount };
         })
@@ -265,7 +305,7 @@ export default function ConvocationListPage() {
             return 0;
         });
 
-    }, [registrations, packages, searchTerm, statusFilter, courseFilter, packageFilter, sessionFilter, sortOption, courses]);
+    }, [registrations, packages, ceremonies, searchTerm, statusFilter, courseFilter, packageFilter, sessionFilter, sortOption, courses]);
     
     useEffect(() => {
         const params = new URLSearchParams(searchParams.toString());
@@ -340,6 +380,8 @@ export default function ConvocationListPage() {
                 'Package',
                 'Session',
                 'Seats',
+                'Refreshment Tokens',
+                'Medal Award',
                 'Payment Status',
                 'Reg. Status',
                 'Total Payable',
@@ -385,6 +427,8 @@ export default function ConvocationListPage() {
                     packageName,
                     reg.session,
                     reg.additional_seats,
+                    reg.refreshment_tokens || '0',
+                    reg.medal_name || 'None',
                     reg.payment_status,
                     reg.registration_status,
                     reg.dueAmount?.toFixed(2),
@@ -537,19 +581,72 @@ export default function ConvocationListPage() {
                     <h1 className="text-3xl font-headline font-semibold">{ceremonyIdFilter ? "Ceremony Registrations" : "All Convocation Registrations"}</h1>
                     <p className="text-muted-foreground">Manage student registrations and verify bookings.</p>
                 </div>
-                <Button onClick={handleExport} disabled={isExporting || filteredRegistrations.length === 0}>
-                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-                    {isExporting ? 'Preparing...' : 'Export to CSV'}
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button asChild variant="outline" className="shadow-xs">
+                        <Link href="/admin/manage/convocation-medal-types">
+                            <Award className="mr-2 h-4 w-4 text-amber-500" />
+                            Medal Types Master
+                        </Link>
+                    </Button>
+                    <Button onClick={handleExport} disabled={isExporting || filteredRegistrations.length === 0}>
+                        {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+                        {isExporting ? 'Preparing...' : 'Export to CSV'}
+                    </Button>
+                </div>
             </header>
             
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Bookings</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.totalBookings} /></div></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Pending Payments</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.pendingPayments} /></div></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Confirmed Payments</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.confirmedPayments} /></div></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Additional Seats</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold"><AnimatedCounter value={registrationStats.additionalSeats} /></div></CardContent></Card>
-                <Card className="bg-primary/5 border-primary/20"><CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0"><CardTitle className="text-sm font-bold text-primary">Verified Revenue</CardTitle><Banknote className="h-4 w-4 text-primary" /></CardHeader><CardContent><div className="text-xl font-bold text-primary">LKR {registrationStats.totalVerified.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div></CardContent></Card>
-                <Card className="bg-destructive/5 border-destructive/20"><CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0"><CardTitle className="text-sm font-bold text-destructive">Due Balance</CardTitle><Wallet className="h-4 w-4 text-destructive" /></CardHeader><CardContent><div className="text-xl font-bold text-destructive">LKR {registrationStats.totalDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div></CardContent></Card>
+            <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <Card className="p-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Total Bookings</span>
+                        <span className="text-xl font-bold"><AnimatedCounter value={registrationStats.totalBookings} /></span>
+                    </div>
+                </Card>
+                <Card className="p-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Confirmed</span>
+                        <span className="text-xl font-bold text-green-600"><AnimatedCounter value={registrationStats.confirmedPayments} /></span>
+                    </div>
+                </Card>
+                <Card className="p-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Pending</span>
+                        <span className="text-xl font-bold text-yellow-600"><AnimatedCounter value={registrationStats.pendingPayments} /></span>
+                    </div>
+                </Card>
+                <Card className="p-4">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="text-center">
+                                <div className="text-lg font-bold"><AnimatedCounter value={registrationStats.additionalSeats} /></div>
+                                <div className="text-[10px] text-muted-foreground">Seats</div>
+                            </div>
+                            <div className="h-6 w-px bg-border" />
+                            <div className="text-center">
+                                <div className="text-lg font-bold"><AnimatedCounter value={registrationStats.refreshmentTokens} /></div>
+                                <div className="text-[10px] text-muted-foreground">Tokens</div>
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+                <Card className="col-span-2 p-4 bg-primary/5 border-primary/20">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Banknote className="h-4 w-4 text-primary" />
+                            <span className="text-xs font-bold text-primary">Verified Revenue</span>
+                        </div>
+                        <span className="text-lg font-bold text-primary">LKR {registrationStats.totalVerified.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                </Card>
+                <Card className="col-span-2 p-4 bg-destructive/5 border-destructive/20">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Wallet className="h-4 w-4 text-destructive" />
+                            <span className="text-xs font-bold text-destructive">Due Balance</span>
+                        </div>
+                        <span className="text-lg font-bold text-destructive">LKR {registrationStats.totalDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                </Card>
             </section>
             
             <Card className="shadow-lg overflow-hidden">
@@ -562,7 +659,7 @@ export default function ConvocationListPage() {
                         <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="h-10"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="all">All Statuses</SelectItem><SelectItem value="paid">Paid</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="rejected">Rejected</SelectItem></SelectContent></Select>
                         <Select value={sessionFilter} onValueChange={setSessionFilter}><SelectTrigger className="h-10"><SelectValue placeholder="Session" /></SelectTrigger><SelectContent><SelectItem value="all">All Sessions</SelectItem><SelectItem value="1">Session 1</SelectItem><SelectItem value="2">Session 2</SelectItem></SelectContent></Select>
                         <Select value={courseFilter} onValueChange={setCourseFilter} disabled={isLoadingCourses}><SelectTrigger className="h-10"><SelectValue placeholder="Course" /></SelectTrigger><SelectContent><SelectItem value="all">All Courses</SelectItem>{courses?.map(c => <SelectItem key={String(c.id)} value={String(c.id)}>{c.course_name}</SelectItem>)}</SelectContent></Select>
-                         <Select value={packageFilter} onValueChange={setPackageFilter} disabled={isLoadingPackages}><SelectTrigger className="h-10"><SelectValue placeholder="Package" /></SelectTrigger><SelectContent><SelectItem value="all">All Packages</SelectItem>{packages?.filter(p => !ceremonyIdFilter || String(p.convocation_id) === String(ceremonyIdFilter)).map(p => <SelectItem key={String(p.package_id)} value={String(p.package_id)}>{p.package_name}</SelectItem>)}</SelectContent></Select>
+                         <Select value={packageFilter} onValueChange={setPackageFilter} disabled={isLoadingPackages}><SelectTrigger className="h-10"><SelectValue placeholder="Package" /></SelectTrigger><SelectContent><SelectItem value="all">All Packages</SelectItem>{packages?.filter(p => !ceremonyIdFilter || String(p.convocation_id) === String(ceremonyIdFilter)).sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0)).map(p => <SelectItem key={String(p.package_id)} value={String(p.package_id)}>{p.package_name}</SelectItem>)}</SelectContent></Select>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -576,8 +673,7 @@ export default function ConvocationListPage() {
                                         <TableHead className="w-[180px]"><SortableHeader column="ref" label="Ref #" /></TableHead>
                                         <TableHead className="w-[220px]">Student Info</TableHead>
                                         <TableHead className="min-w-[200px]">Booking Details</TableHead>
-                                        <TableHead className="w-[120px] text-center">CPP Avg (%)</TableHead>
-                                        <TableHead className="w-[120px] text-center">ACPP Avg (%)</TableHead>
+                                        <TableHead className="w-[130px] text-center">Grades</TableHead>
                                         <TableHead className="w-[150px]">Status</TableHead>
                                         <TableHead className="w-[180px] text-right"><SortableHeader column="due" label="Payment Details" className="justify-end" /></TableHead>
                                         <TableHead className="w-[100px] text-right pr-6">Actions</TableHead>
@@ -587,7 +683,8 @@ export default function ConvocationListPage() {
                                     {paginatedRegistrations.length > 0 ? paginatedRegistrations.map((reg) => {
                                         const paidAmount = parseFloat(reg.payment_amount) || 0;
                                         const due = (reg.dueAmount || 0) - paidAmount;
-                                        const packageName = packages?.find(p => String(p.package_id) === String(reg.package_id))?.package_name || `ID: ${reg.package_id}`;
+                                        const regPkg = packages?.find(p => String(p.package_id) === String(reg.package_id));
+                                        const packageName = regPkg?.package_name || `ID: ${reg.package_id}`;
 
                                         const studentFullData = studentDataMap.get(reg.student_number);
                                         const cppEnrollment = studentFullData?.studentEnrollments ? 
@@ -597,17 +694,17 @@ export default function ConvocationListPage() {
 
                                         return (
                                         <TableRow key={reg.registration_id} className={cn("text-xs transition-colors hover:bg-muted/30", reg.isDuplicate && "bg-destructive/5 hover:bg-destructive/10")}>
-                                            <TableCell className="py-4 align-top">
+                                            <TableCell className="py-3 align-top">
                                                 <div className="font-mono font-bold text-sm">#{reg.reference_number}</div>
                                                 <div className="text-[9px] text-muted-foreground pt-1">Ceremony: {reg.ceremony_number || 'N/A'}</div>
                                             </TableCell>
-                                            <TableCell className="py-4 align-top">
+                                            <TableCell className="py-3 align-top">
                                                 <div className="space-y-1">
                                                     <div className="font-semibold text-sm text-primary">{reg.student_number}</div>
                                                     <div className="text-[10px] font-medium uppercase tracking-tighter truncate max-w-[180px]">{reg.name_on_certificate || 'N/A'}</div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="py-4 align-top">
+                                            <TableCell className="py-3 align-top">
                                                 <div className="space-y-2">
                                                     <div className="flex flex-col gap-1.5">
                                                         {(reg.course_id || '').split(',').map((id, idIdx) => {
@@ -642,39 +739,55 @@ export default function ConvocationListPage() {
                                                     <div className="flex flex-wrap items-center gap-2 pt-1">
                                                         <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100">Pkg: {packageName}</span>
                                                         <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase">Sess {reg.session}</Badge>
+                                                        {regPkg?.vip_seat && parseInt(regPkg.vip_seat, 10) > 0 && (
+                                                            <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase bg-amber-50 text-amber-800 border-amber-300">VIP: {regPkg.vip_seat}</Badge>
+                                                        )}
+                                                        {parseInt(reg.additional_seats || '0', 10) > 0 && (
+                                                            <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase">Seats: {reg.additional_seats}</Badge>
+                                                        )}
+                                                        {parseInt(reg.refreshment_tokens || '0', 10) > 0 && (
+                                                            <Badge variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase bg-orange-50 text-orange-700 border-orange-200">Refreshments: {reg.refreshment_tokens}</Badge>
+                                                        )}
+                                                        {reg.medal_name && reg.medal_name.split(',').map((mName, i) => (
+                                                            <Badge key={i} variant="outline" className="h-5 text-[9px] px-2 font-bold uppercase bg-amber-50 text-amber-900 border-amber-300 gap-1 inline-flex items-center">
+                                                                🏅 {mName.trim()}
+                                                            </Badge>
+                                                        ))}
                                                     </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="py-4 align-top text-center">
-                                                {isLoadingStudentData && !studentFullData ? (
-                                                    <Skeleton className="h-5 w-12 mx-auto" />
-                                                ) : cppEnrollment ? (
-                                                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-mono bg-blue-50 text-blue-700 border-blue-200">
-                                                        {parseFloat(cppEnrollment.assignment_grades.average_grade).toFixed(2)}%
-                                                    </Badge>
-                                                ) : (
-                                                    <span className="text-muted-foreground">--</span>
-                                                )}
+                                            <TableCell className="py-3 align-top text-center">
+                                                <div className="flex flex-col items-center gap-1">
+                                                    {isLoadingStudentData && !studentFullData ? (
+                                                        <Skeleton className="h-5 w-16" />
+                                                    ) : (
+                                                        <>
+                                                            {cppEnrollment ? (
+                                                                <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-mono bg-blue-50 text-blue-700 border-blue-200">
+                                                                    CPP {parseFloat(cppEnrollment.assignment_grades.average_grade).toFixed(1)}%
+                                                                </Badge>
+                                                            ) : (
+                                                                <span className="text-[10px] text-muted-foreground">CPP --</span>
+                                                            )}
+                                                            {acppEnrollment ? (
+                                                                <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-mono bg-purple-50 text-purple-700 border-purple-200">
+                                                                    ACPP {parseFloat(acppEnrollment.assignment_grades.average_grade).toFixed(1)}%
+                                                                </Badge>
+                                                            ) : (
+                                                                <span className="text-[10px] text-muted-foreground">ACPP --</span>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
                                             </TableCell>
-                                            <TableCell className="py-4 align-top text-center">
-                                                {isLoadingStudentData && !studentFullData ? (
-                                                    <Skeleton className="h-5 w-12 mx-auto" />
-                                                ) : acppEnrollment ? (
-                                                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-mono bg-purple-50 text-purple-700 border-purple-200">
-                                                        {parseFloat(acppEnrollment.assignment_grades.average_grade).toFixed(2)}%
-                                                    </Badge>
-                                                ) : (
-                                                    <span className="text-muted-foreground">--</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="py-4 align-top">
+                                            <TableCell className="py-3 align-top">
                                                 <div className="flex flex-col items-start gap-1.5 pt-1">
                                                     <Badge className={cn("px-2 py-0.5 h-auto text-[9px] uppercase font-bold w-fit", getStatusBadge(reg.payment_status || 'Pending'))}>{reg.payment_status}</Badge>
                                                     <Badge variant="secondary" className="px-2 py-0.5 h-auto text-[9px] uppercase font-medium w-fit bg-muted text-muted-foreground">{reg.registration_status}</Badge>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="py-4 align-top text-right">
-                                                <div className="space-y-1.5">
+                                            <TableCell className="py-3 align-top text-right">
+                                                <div className="space-y-1">
                                                     <div className="text-[10px] text-muted-foreground font-medium">Total: LKR {(reg.dueAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                                                     <div className="text-[10px] text-muted-foreground font-medium">Paid: LKR {paidAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                                                     <div className={cn("font-mono font-bold text-sm pt-1 border-t border-dashed", due > 0 ? "text-destructive" : "text-green-600")}>
@@ -682,7 +795,7 @@ export default function ConvocationListPage() {
                                                     </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="py-4 pr-6 align-top text-right">
+                                            <TableCell className="py-3 pr-6 align-top text-right">
                                                 <div className="flex items-center justify-end gap-1.5">
                                                     <Button 
                                                         variant="outline" 
@@ -692,6 +805,16 @@ export default function ConvocationListPage() {
                                                     >
                                                         <Eye className="h-3.5 w-3.5 mr-1.5" /> 
                                                         View
+                                                    </Button>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        onClick={() => handleDownloadPdf(reg)}
+                                                        disabled={downloadingId === reg.registration_id}
+                                                        className="h-8 px-2 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 border-blue-500/20"
+                                                        title="Download Convocation Admission PDF"
+                                                    >
+                                                        {downloadingId === reg.registration_id ? <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" /> : <FileDown className="h-3.5 w-3.5" />}
                                                     </Button>
                                                     <Button 
                                                         variant="outline" 
@@ -707,7 +830,7 @@ export default function ConvocationListPage() {
                                         </TableRow>
                                         )
                                     }) : (
-                                        <TableRow><TableCell colSpan={8} className="text-center h-32 text-muted-foreground italic">No registrations found.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={7} className="text-center h-32 text-muted-foreground italic">No registrations found.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>
@@ -723,7 +846,7 @@ export default function ConvocationListPage() {
                             type="number"
                             defaultValue={currentPage}
                             onKeyDown={handlePageInputChange}
-                            className="h-8 w-[200px] mx-2 text-center"
+                            className="h-8 w-16 mx-2 text-center"
                         />
                         of {totalPages || 1}
                     </div>

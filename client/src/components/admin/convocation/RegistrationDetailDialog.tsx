@@ -6,7 +6,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
     updateConvocationBooking, 
-    updateConvocationPackage,
     updateConvocationPayment,
     updateCeremonyNumber,
     getConvocationSessionCounts, 
@@ -14,19 +13,25 @@ import {
     getCertificateOrdersByStudent,
     getTcPayments,
     deleteConvocationPayment,
-    deleteConvocationRegistration
+    getConvocationMedalTypes,
+    deleteConvocationRegistration,
+    getConvocationCeremonies,
+    getConvocationSlipDownloadUrl,
+    downloadConvocationSlipPdf
 } from '@/lib/actions/certificates';
 import { getStudentFullInfo } from '@/lib/actions/users';
 import type { 
     ConvocationRegistration, 
     ConvocationPackage, 
+    ConvocationCeremony,
     FullStudentData, 
     SessionCount,
     CertificateOrder,
     StudentEnrollment,
     TcPaymentRecord,
     UserFullDetails,
-    StudentBalanceData
+    StudentBalanceData,
+    ConvocationMedalType
 } from '@/lib/types';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -44,7 +49,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Save, Edit2, X, ChevronDown, CheckCircle, XCircle, Banknote, UserCheck, ListOrdered, Calculator, FileText, Paperclip, Hourglass, AlertTriangle, Trash2 } from 'lucide-react';
+import { 
+    Loader2, Save, Edit2, X, ChevronDown, CheckCircle, Banknote, UserCheck, 
+    ListOrdered, Calculator, FileText, Paperclip, AlertTriangle, Trash2, 
+    Award, Users, Coffee, Plus, Minus, Check, Sparkles, BookOpen 
+} from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -63,6 +72,29 @@ import { ViewSlipDialog } from './ViewSlipDialog';
 
 const PARENT_SEAT_RATE = 750;
 
+export const getMedalBadgeClass = (color?: string | null) => {
+    switch (color?.toLowerCase()) {
+        case 'silver':
+            return 'bg-slate-100 text-slate-900 border-slate-300 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700';
+        case 'bronze':
+            return 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-800';
+        case 'purple':
+            return 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-950 dark:text-purple-200 dark:border-purple-800';
+        case 'blue':
+            return 'bg-blue-100 text-blue-900 border-blue-300 dark:bg-blue-950 dark:text-blue-200 dark:border-blue-800';
+        case 'emerald':
+            return 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-800';
+        case 'gold':
+        default:
+            return 'bg-yellow-100 text-yellow-900 border-yellow-400 dark:bg-yellow-950 dark:text-yellow-200 dark:border-yellow-800';
+    }
+};
+
+export const parseMedalIds = (val: string | number | null | undefined): string[] => {
+    if (!val || val === 'none') return [];
+    return String(val).split(',').map(s => s.trim()).filter(Boolean);
+};
+
 function TempUserInfo({ user }: { user: any }) {
     return (
         <div className="space-y-2 text-muted-foreground text-sm">
@@ -74,7 +106,7 @@ function TempUserInfo({ user }: { user: any }) {
                 </div>
             )}
         </div>
-    )
+    );
 }
 
 function RegisteredStudentInfo({ user, studentNumber }: { user: UserFullDetails, studentNumber: string }) {
@@ -97,7 +129,7 @@ function RegisteredStudentInfo({ user, studentNumber }: { user: UserFullDetails,
                     <span className="font-medium text-card-foreground">{user.telephone_1}</span>
                 </div>
             </TabsContent>
-             <TabsContent value="payment">
+            <TabsContent value="payment">
                 {isLoadingBalance ? <Skeleton className="h-40"/> : balanceData && (
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4 text-center">
@@ -109,7 +141,7 @@ function RegisteredStudentInfo({ user, studentNumber }: { user: UserFullDetails,
             </TabsContent>
         </Tabs>
     );
-};
+}
 
 function DuplicateSlipCheck({ hashValue, currentRegistrationId }: { hashValue: string, currentRegistrationId: string }) {
     const [isInfoOpen, setIsInfoOpen] = useState(false);
@@ -131,7 +163,6 @@ function DuplicateSlipCheck({ hashValue, currentRegistrationId }: { hashValue: s
     
     if (isError || !hashValue) return null;
 
-    // Filter out the record we are currently viewing
     const otherRecords = duplicateRecords?.filter(r => 
         (r.registration_id && String(r.registration_id) !== String(currentRegistrationId)) || 
         (r.id && String(r.id) !== String(currentRegistrationId))
@@ -215,24 +246,74 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
 }) => {
     const queryClient = useQueryClient();
     const { user } = useAuth();
-    const [isEditing, setIsEditing] = useState(false);
     
+    // Dedicated action modals state
+    const [isEditBookingOpen, setIsEditBookingOpen] = useState(false);
+    const [isAddonsDialogOpen, setIsAddonsDialogOpen] = useState(false);
+    const [isMedalsDialogOpen, setIsMedalsDialogOpen] = useState(false);
+    const [isCoursesDialogOpen, setIsCoursesDialogOpen] = useState(false);
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
     const [isConfirmAttendanceDialogOpen, setIsConfirmAttendanceDialogOpen] = useState(false);
-    const [isPackageConfirmOpen, setIsPackageConfirmOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
+    const handleDownloadPdf = async () => {
+        if (!registration) return;
+        try {
+            setIsDownloadingPdf(true);
+            await downloadConvocationSlipPdf(
+                registration.registration_id, 
+                `Convocation_Admission_${registration.reference_number || registration.registration_id}.pdf`
+            );
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Download Failed', description: e.message || 'Could not download PDF' });
+        } finally {
+            setIsDownloadingPdf(false);
+        }
+    };
+
+    // Edit form states
     const [editPackageId, setEditPackageId] = useState('');
-    const [pendingPackageId, setPendingPackageId] = useState('');
     const [editSession, setEditSession] = useState<'1' | '2'>('1');
     const [editSeats, setEditSeats] = useState('0');
+    const [editTokens, setEditTokens] = useState('0');
+    const [editMedalTypeIds, setEditMedalTypeIds] = useState<string[]>([]);
     const [editName, setEditName] = useState('');
     const [editPhone, setEditPhone] = useState('');
     const [editCourseIds, setEditCourseIds] = useState<string[]>([]);
 
+    const toggleMedal = (idStr: string) => {
+        setEditMedalTypeIds(prev => 
+            prev.includes(idStr) ? prev.filter(m => m !== idStr) : [...prev, idStr]
+        );
+    };
+
+    // Payment & attendance form states
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentStatus, setPaymentStatus] = useState('');
     const [ceremonyNumber, setCeremonyNumber] = useState('');
+
+    const { data: medalTypes } = useQuery<ConvocationMedalType[]>({
+        queryKey: ['convocationMedalTypes'],
+        queryFn: () => getConvocationMedalTypes(false),
+    });
+
+    const selectedMedalsInView = useMemo(() => {
+        if (!registration) return [];
+        const ids = parseMedalIds(registration.medal_type_id);
+        if (ids.length > 0 && medalTypes && medalTypes.length > 0) {
+            return medalTypes.filter(m => ids.includes(String(m.id)));
+        }
+        if (registration.medal_name) {
+            const colors = (registration.medal_color || '').split(',');
+            return registration.medal_name.split(',').map((name, idx) => ({
+                id: idx,
+                name: name.trim(),
+                color: colors[idx]?.trim() || 'gold'
+            }));
+        }
+        return [];
+    }, [registration, medalTypes]);
 
     const { data: studentInfo, isLoading: isLoadingStudentData } = useQuery<FullStudentData>({
         queryKey: ['studentFullInfoForConvocationDetail', registration?.student_number],
@@ -280,6 +361,38 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
         enabled: !!registration?.convocation_id,
     });
 
+    const { data: ceremonies } = useQuery<ConvocationCeremony[]>({
+        queryKey: ['convocationCeremonies'],
+        queryFn: getConvocationCeremonies,
+    });
+
+    const currentCeremony = useMemo(() => {
+        if (!ceremonies || !registration) return null;
+        return ceremonies.find(c => String(c.id) === String(registration.convocation_id)) || null;
+    }, [ceremonies, registration]);
+
+    const sessionInfo = useMemo(() => {
+        const hasMultiple = currentCeremony ? parseInt(currentCeremony.session_count, 10) >= 2 : false;
+        const s1Booked = sessionCounts ? parseInt(sessionCounts.find(s => s.session === '1')?.sessionCounts || '0', 10) : 0;
+        const s2Booked = sessionCounts ? parseInt(sessionCounts.find(s => s.session === '2')?.sessionCounts || '0', 10) : 0;
+        
+        const s1Cap = currentCeremony?.student_seats ? parseInt(currentCeremony.student_seats, 10) : null;
+        const s2Cap = currentCeremony?.session_2 ? parseInt(currentCeremony.session_2, 10) : null;
+
+        const s1Text = s1Cap ? `S1: ${s1Booked}/${s1Cap}` : `S1: ${s1Booked}`;
+        const s2Text = s2Cap ? `S2: ${s2Booked}/${s2Cap}` : `S2: ${s2Booked}`;
+
+        return {
+            hasMultipleSessions: hasMultiple,
+            s1Booked,
+            s2Booked,
+            label: hasMultiple ? `Session (${s1Text} | ${s2Text})` : `Session (${s1Text})`,
+        };
+    }, [currentCeremony, sessionCounts]);
+
+    const ceremonyParentSeatRate = currentCeremony?.parent_seat_price ? parseFloat(currentCeremony.parent_seat_price) : PARENT_SEAT_RATE;
+    const ceremonyRefreshTokenRate = currentCeremony?.refreshment_token_price ? parseFloat(currentCeremony.refreshment_token_price) : 0;
+
     const balanceSlips = useMemo(() => {
         if (!portalPayments || !registration) return [];
         const reasonKey = `convocation2nd-${registration.convocation_id}`;
@@ -302,7 +415,10 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
         onSuccess: () => {
             toast({ title: 'Success', description: 'Booking updated successfully.' });
             refreshAllData();
-            setIsEditing(false);
+            setIsEditBookingOpen(false);
+            setIsAddonsDialogOpen(false);
+            setIsMedalsDialogOpen(false);
+            setIsCoursesDialogOpen(false);
         },
         onError: (err: Error) => toast({ variant: 'destructive', title: 'Update Failed', description: err.message })
     });
@@ -318,16 +434,6 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
         onError: (error: Error) => {
             toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
         },
-    });
-
-    const packageUpdateMutation = useMutation({
-        mutationFn: (newPackageId: string) => updateConvocationPackage(registration!.registration_id, newPackageId),
-        onSuccess: () => {
-            toast({ title: 'Package Updated', description: 'The convocation package has been updated.' });
-            refreshAllData();
-            setIsPackageConfirmOpen(false);
-        },
-        onError: (err: Error) => toast({ variant: 'destructive', title: 'Update Failed', description: err.message })
     });
 
     const updateCeremonyMutation = useMutation({
@@ -367,12 +473,24 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
         return tcPayments.reduce((acc, rec) => acc + (parseFloat(rec.payment_amount) || 0), 0);
     }, [tcPayments]);
 
-    const totalPayable = useMemo(() => {
+    // View total payable (based on actual registered values)
+    const viewTotalPayable = useMemo(() => {
+        if (!registration) return 0;
+        const pkg = packages?.find(p => String(p.package_id) === String(registration.package_id));
+        const packagePrice = pkg ? parseFloat(pkg.price) : 0;
+        const numSeats = parseInt(String(registration.additional_seats ?? 0), 10) || 0;
+        const numTokens = parseInt(String(registration.refreshment_tokens ?? 0), 10) || 0;
+        return packagePrice + (numSeats * ceremonyParentSeatRate) + (numTokens * ceremonyRefreshTokenRate);
+    }, [registration, packages, ceremonyParentSeatRate, ceremonyRefreshTokenRate]);
+
+    // Edit total payable (based on live input fields in edit modal)
+    const editTotalPayable = useMemo(() => {
         const pkg = packages?.find(p => String(p.package_id) === String(editPackageId));
         const packagePrice = pkg ? parseFloat(pkg.price) : 0;
         const numSeats = parseInt(editSeats, 10) || 0;
-        return packagePrice + (numSeats * PARENT_SEAT_RATE);
-    }, [editPackageId, editSeats, packages]);
+        const numTokens = parseInt(editTokens, 10) || 0;
+        return packagePrice + (numSeats * ceremonyParentSeatRate) + (numTokens * ceremonyRefreshTokenRate);
+    }, [editPackageId, editSeats, editTokens, packages, ceremonyParentSeatRate, ceremonyRefreshTokenRate]);
 
     const bookedElsewhereIds = useMemo(() => {
         if (!otherBookings || !registration) return new Set<string>();
@@ -391,6 +509,11 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
             .forEach(o => (o.course_code || '').split(',').forEach(id => ids.add(id.trim())));
         return ids;
     }, [certOrders]);
+
+    const allEnrollmentsList = useMemo(() => {
+        if (!studentInfo) return [];
+        return Object.values(studentInfo.studentEnrollments);
+    }, [studentInfo]);
 
     const courseGrouping = useMemo(() => {
         if (!studentInfo || !registration) return { included: [], others: [] };
@@ -415,37 +538,45 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
         return { included, others };
     }, [studentInfo, registration]);
 
-    useEffect(() => {
-        if (registration) {
-            setEditPackageId(registration.package_id || '');
-            setEditSession(registration.session as '1' | '2' || '1');
-            setEditSeats(registration.additional_seats || '0');
-            setEditName(registration.name_on_certificate || '');
-            setEditPhone(registration.telephone_1 || '');
-            setEditCourseIds(registration.course_id.split(',').map(s => s.trim()).filter(Boolean));
-            setPaymentStatus(registration.payment_status || 'Pending');
-            setCeremonyNumber(registration.ceremony_number || '');
-            setIsEditing(false);
-        }
-    }, [registration]);
+    const initEditState = () => {
+        if (!registration) return;
+        setEditPackageId(String(registration.package_id || ''));
+        const hasMultiple = currentCeremony ? parseInt(currentCeremony.session_count, 10) >= 2 : false;
+        setEditSession(hasMultiple ? (String(registration.session || '1') as '1' | '2') : '1');
+        setEditSeats(String(registration.additional_seats ?? '0'));
+        setEditTokens(String(registration.refreshment_tokens ?? '0'));
+        setEditMedalTypeIds(parseMedalIds(registration.medal_type_id));
+        setEditName(registration.name_on_certificate || studentInfo?.studentInfo.name_on_certificate || studentInfo?.studentInfo.full_name || '');
+        setEditPhone(registration.telephone_1 || studentInfo?.studentInfo.telephone_1 || '');
+        setEditCourseIds(registration.course_id ? registration.course_id.split(',').map(s => s.trim()).filter(Boolean) : []);
+    };
 
-    useEffect(() => {
-        if (studentInfo && !editName && !registration?.name_on_certificate) {
-            setEditName(studentInfo.studentInfo.name_on_certificate || studentInfo.studentInfo.full_name);
-        }
-        if (studentInfo && !editPhone && !registration?.telephone_1) {
-            setEditPhone(studentInfo.studentInfo.telephone_1);
-        }
-    }, [studentInfo, registration, editName, editPhone]);
+    const openEditModal = () => { initEditState(); setIsEditBookingOpen(true); };
+    const openAddonsModal = () => { initEditState(); setIsAddonsDialogOpen(true); };
+    const openMedalsModal = () => { initEditState(); setIsMedalsDialogOpen(true); };
+    const openCoursesModal = () => { initEditState(); setIsCoursesDialogOpen(true); };
+
+    const openPaymentModal = () => {
+        if (!registration) return;
+        setPaymentAmount('');
+        setPaymentStatus(registration.payment_status || 'Pending');
+        setIsPaymentDialogOpen(true);
+    };
+
+    const openAttendanceModal = () => {
+        if (!registration) return;
+        setCeremonyNumber(registration.ceremony_number || '');
+        setIsConfirmAttendanceDialogOpen(true);
+    };
 
     const handleVerifiedAmountChange = (val: string) => {
         setPaymentAmount(val);
         const verifiedInput = parseFloat(val) || 0;
         const totalVerifiedSoFar = totalPaidFromRecords + verifiedInput;
 
-        if (totalVerifiedSoFar >= totalPayable && totalPayable > 0) {
+        if (totalVerifiedSoFar >= viewTotalPayable && viewTotalPayable > 0) {
             setPaymentStatus('Paid');
-        } else if (totalVerifiedSoFar > 0 && totalVerifiedSoFar < totalPayable) {
+        } else if (totalVerifiedSoFar > 0 && totalVerifiedSoFar < viewTotalPayable) {
             setPaymentStatus('Partially Paid');
         } else if (totalVerifiedSoFar === 0) {
             setPaymentStatus('Pending');
@@ -460,6 +591,8 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
             package_id: editPackageId,
             session: editSession,
             additional_seats: editSeats,
+            refreshment_tokens: editTokens,
+            medal_type_id: editMedalTypeIds.length > 0 ? editMedalTypeIds.join(',') : null,
             name_on_certificate: editName,
             telephone_1: editPhone,
             course_id: editCourseIds.join(','),
@@ -505,363 +638,251 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
 
     if (!open || !registration) return null;
 
-    const seatsAvailable = (() => {
-        if (!registration.convocation_id || !sessionCounts) return { s1: 0, s2: 0 };
-        const s1 = parseInt(sessionCounts.find(s => s.session === '1')?.sessionCounts || '0', 10);
-        const s2 = parseInt(sessionCounts.find(s => s.session === '2')?.sessionCounts || '0', 10);
-        return { s1, s2 };
-    })();
-
     const currentPackage = packages?.find(p => String(p.package_id) === String(registration.package_id));
-    const remainingToVerify = totalPayable - totalPaidFromRecords;
+    const remainingToVerify = viewTotalPayable - totalPaidFromRecords;
     const balanceAfterCurrentCheck = remainingToVerify - (parseFloat(paymentAmount) || 0);
-
-    const EnrollmentItem = ({ enrollment, isIncluded }: { enrollment: StudentEnrollment, isIncluded: boolean }) => {
-        const isEligible = enrollment.certificate_eligibility;
-        const enrollmentParentId = String(enrollment.parent_course_id);
-        const isBookedElsewhere = bookedElsewhereIds.has(enrollmentParentId) || bookedElsewhereIds.has(String(enrollment.course_code));
-        const isOrderedElsewhere = orderedElsewhereIds.has(enrollmentParentId) || orderedElsewhereIds.has(String(enrollment.course_code));
-        const isDisabled = isBookedElsewhere || isOrderedElsewhere;
-
-        return (
-            <Collapsible className={cn(
-                "border rounded-md p-3 transition-colors",
-                isIncluded && "bg-primary/5 border-primary/20",
-                isDisabled && !isIncluded && "opacity-60 bg-muted/50"
-            )}>
-                <div className="flex items-start gap-3">
-                    {isEditing || !isIncluded ? (
-                        <Checkbox 
-                            id={`edit-course-${enrollment.id}`} 
-                            checked={isIncluded || editCourseIds.includes(enrollmentParentId)}
-                            disabled={isDisabled}
-                            onCheckedChange={(checked) => {
-                                setEditCourseIds(prev => checked ? [...prev, enrollmentParentId] : prev.filter(id => id !== enrollmentParentId))
-                            }}
-                            className="mt-1"
-                        />
-                    ) : (
-                        <CheckCircle className="h-4 w-4 text-green-500 mt-1 shrink-0" />
-                    )}
-                    <div className="flex-1 space-y-1">
-                        <Label htmlFor={`edit-course-${enrollment.id}`} className="text-xs font-bold leading-tight block cursor-pointer">
-                            {enrollment.parent_course_name}
-                        </Label>
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
-                            <span className="font-semibold text-foreground">Batch:</span>
-                            <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 bg-muted/60">{enrollment.course_code}</Badge>
-                            {enrollment.batch_name && <span className="truncate max-w-[220px]">({enrollment.batch_name})</span>}
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                            {isIncluded && <Badge variant="default" className="text-[9px] h-4 px-1 bg-green-100 text-green-700 border-green-200">Included</Badge>}
-                            {isBookedElsewhere && <Badge variant="secondary" className="text-[9px] h-4 px-1 bg-purple-100 text-purple-800">Booked Elsewhere</Badge>}
-                            {isOrderedElsewhere && <Badge variant="secondary" className="text-[9px] h-4 px-1 bg-amber-100 text-amber-800 border-amber-200">Already Ordered</Badge>}
-                            {!isEligible && <Badge variant="destructive" className="text-[9px] h-4 px-1">Not Eligible</Badge>}
-                        </div>
-                    </div>
-                    {!isEligible && (
-                        <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><ChevronDown className="h-3 w-3" /></Button>
-                        </CollapsibleTrigger>
-                    )}
-                </div>
-                <CollapsibleContent className="mt-2 pt-2 border-t text-[10px] space-y-1 text-muted-foreground">
-                    <p className="font-bold text-foreground">Pending Requirements:</p>
-                    {enrollment.criteria_details.filter(c => !c.evaluation.completed).map(c => (
-                        <div key={c.id} className="flex justify-between">
-                            <span>• {c.list_name}</span>
-                            <span>{c.evaluation.currentValue} / {c.evaluation.requiredValue}</span>
-                        </div>
-                    ))}
-                </CollapsibleContent>
-            </Collapsible>
-        );
-    };
 
     return (
         <>
-        <AlertDialog open={isPackageConfirmOpen} onOpenChange={setIsPackageConfirmOpen}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Change Package?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Are you sure you want to change the package to <strong>"{packages?.find(p => p.package_id === pendingPackageId)?.package_name}"</strong>? This will update the booking record immediately.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction 
-                        onClick={() => {
-                            packageUpdateMutation.mutate(pendingPackageId);
-                            setEditPackageId(pendingPackageId);
-                        }} 
-                        disabled={packageUpdateMutation.isPending}
-                    >
-                        {packageUpdateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Confirm Change
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-
+        {/* ========================================================================= */}
+        {/* MAIN DIALOG: PURE VIEW-ONLY DETAILS DASHBOARD                            */}
+        {/* ========================================================================= */}
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden">
-                <DialogHeader className="p-6 pb-2 shrink-0 border-b">
-                    <DialogTitle>Booking Details: #{registration.reference_number}</DialogTitle>
-                    <DialogDescription>
-                        Detailed overview and editing for student {registration.student_number}.
-                    </DialogDescription>
+            <DialogContent className="max-w-5xl w-[95vw] md:w-full max-h-[90vh] h-[90vh] flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-4 sm:p-6 pb-3 shrink-0 border-b flex flex-row items-center justify-between gap-4">
+                    <div>
+                        <DialogTitle className="text-lg sm:text-xl font-bold">Booking Details: #{registration.reference_number}</DialogTitle>
+                        <DialogDescription className="text-xs sm:text-sm">
+                            Detailed overview for student {registration.student_number}.
+                        </DialogDescription>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                        <Button size="sm" variant="outline" onClick={openEditModal} className="h-8 gap-1.5 text-xs">
+                            <Edit2 className="h-3.5 w-3.5" /> Details
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={openAddonsModal} className="h-8 gap-1.5 text-xs">
+                            <Sparkles className="h-3.5 w-3.5" /> Add-ons
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={openMedalsModal} className="h-8 gap-1.5 text-xs">
+                            <Award className="h-3.5 w-3.5" /> Medals
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={openCoursesModal} className="h-8 gap-1.5 text-xs">
+                            <BookOpen className="h-3.5 w-3.5" /> Courses
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={openPaymentModal} className="h-8 gap-1.5 text-xs border-green-600/30 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/30 font-medium">
+                            <Banknote className="h-3.5 w-3.5 text-green-600 dark:text-green-400" /> Update Payment
+                        </Button>
+                        <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={handleDownloadPdf}
+                            disabled={isDownloadingPdf}
+                            className="h-8 gap-1.5 text-xs border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-medium"
+                            title="Download Convocation Admission PDF"
+                        >
+                            {isDownloadingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" /> : <FileText className="h-3.5 w-3.5 text-blue-500" />}
+                            {isDownloadingPdf ? 'Downloading...' : 'Admission PDF'}
+                        </Button>
+                    </div>
                 </DialogHeader>
                 
-                <ScrollArea className="flex-1">
-                    <div className="p-6 space-y-6">
-                        {/* Booking Info Card */}
+                <ScrollArea className="flex-1 min-h-0 overflow-y-auto">
+                    <div className="p-4 sm:p-6 space-y-6">
+                        
+                        {/* 1. BOOKING & ADD-ONS OVERVIEW (READ-ONLY) */}
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle className="text-base uppercase tracking-wider text-muted-foreground">Booking Information</CardTitle>
-                                {!isEditing ? (
-                                    <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                                        <Edit2 className="h-4 w-4 mr-2" /> Edit Info
+                            <CardHeader className="flex flex-row items-center justify-between pb-3">
+                                <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-bold">
+                                    Booking Information
+                                </CardTitle>
+                                <div className="flex items-center gap-1">
+                                    <Button size="sm" variant="ghost" onClick={openEditModal} className="h-7 gap-1 text-[11px]">
+                                        <Edit2 className="h-3 w-3" /> Details
                                     </Button>
-                                ) : (
-                                    <div className="flex gap-2">
-                                        <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
-                                            <X className="h-4 w-4 mr-2" /> Cancel
-                                        </Button>
-                                        <Button size="sm" onClick={handleUpdate} disabled={updateMutation.isPending}>
-                                            {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                            Save Changes
-                                        </Button>
-                                    </div>
-                                )}
+                                    <Button size="sm" variant="ghost" onClick={openAddonsModal} className="h-7 gap-1 text-[11px]">
+                                        <Sparkles className="h-3 w-3" /> Add-ons
+                                    </Button>
+                                    <Button size="sm" variant="ghost" onClick={openMedalsModal} className="h-7 gap-1 text-[11px]">
+                                        <Award className="h-3 w-3" /> Medals
+                                    </Button>
+                                </div>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                {isEditing ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in-50">
-                                        <div className="space-y-1.5">
-                                            <Label className="text-xs">Package</Label>
-                                            <Select 
-                                                value={editPackageId} 
-                                                onValueChange={(val) => {
-                                                    setPendingPackageId(val);
-                                                    setIsPackageConfirmOpen(true);
-                                                }}
-                                            >
-                                                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                                                <SelectContent>
-                                                    {packages?.filter(p => String(p.convocation_id) === String(registration.convocation_id)).map(p => (
-                                                        <SelectItem key={p.package_id} value={p.package_id} className="text-xs">{p.package_name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-xs">Session (S1: {seatsAvailable.s1} reg | S2: {seatsAvailable.s2} reg)</Label>
-                                            <Select value={editSession} onValueChange={(v) => setEditSession(v as '1' | '2')}>
-                                                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                                                <SelectContent><SelectItem value="1">Session 1</SelectItem><SelectItem value="2">Session 2</SelectItem></SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-xs">Additional Seats</Label>
-                                            <Select value={editSeats} onValueChange={setEditSeats}>
-                                                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                                                <SelectContent>{[0,1,2,3,4,5].map(i => <SelectItem key={i} value={String(i)}>{i}</SelectItem>)}</SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-1.5 md:col-span-1 lg:col-span-1">
-                                            <Label className="text-xs">Name on Certificate</Label>
-                                            <input 
-                                                value={editName} 
-                                                onChange={e => setEditName(e.target.value)} 
-                                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                                placeholder={studentInfo?.studentInfo.name_on_certificate || "Enter name..."}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5 md:col-span-1 lg:col-span-1">
-                                            <Label className="text-xs">Phone Number</Label>
-                                            <input 
-                                                value={editPhone} 
-                                                onChange={e => setEditPhone(e.target.value)} 
-                                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                                placeholder={studentInfo?.studentInfo.telephone_1 || "Enter phone..."}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
-                                            <Label className="text-xs">Total Payable (Auto-calc)</Label>
-                                            <div className="h-9 flex items-center px-3 border rounded-md bg-muted/50 font-mono font-bold text-primary">
-                                                LKR {totalPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                            </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 animate-in fade-in-50">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Selected Package</p>
+                                        <p className="text-sm font-semibold truncate">{currentPackage?.package_name || 'N/A'}</p>
+                                        {currentPackage && (
+                                            <p className="text-xs text-muted-foreground font-mono">
+                                                LKR {parseFloat(currentPackage.price).toLocaleString()}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="space-y-1 sm:col-span-2 md:col-span-1">
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Session & Passes</p>
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <Badge variant="outline" className="text-xs font-semibold">Session {registration.session}</Badge>
+                                            {currentPackage?.vip_seat && parseInt(currentPackage.vip_seat, 10) > 0 && (
+                                                <Badge variant="outline" className="text-xs font-semibold bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700">
+                                                    {currentPackage.vip_seat} VIP Seats
+                                                </Badge>
+                                            )}
+                                            <Badge variant="outline" className="text-xs font-semibold">{registration.additional_seats || '0'} Guest Seats</Badge>
+                                            <Badge variant="outline" className="text-xs font-semibold bg-orange-50 text-orange-700 border-orange-200">{registration.refreshment_tokens || '0'} Refreshments</Badge>
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in-50">
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Selected Package</p>
-                                            <p className="text-sm font-semibold">{currentPackage?.package_name || 'N/A'}</p>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Session & Seats</p>
-                                            <div className="flex gap-2">
-                                                <Badge variant="outline">Session {registration.session}</Badge>
-                                                <Badge variant="outline">{registration.additional_seats} Guest Seats</Badge>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Certificate Details</p>
+                                        <p className="text-sm font-semibold break-words leading-tight">{registration.name_on_certificate || studentInfo?.studentInfo.name_on_certificate || studentInfo?.studentInfo.full_name || 'N/A'}</p>
+                                        <p className="text-xs text-muted-foreground font-mono mt-0.5">{registration.telephone_1 || studentInfo?.studentInfo.telephone_1 || 'N/A'}</p>
+                                    </div>
+                                    <div className="space-y-1 sm:col-span-2 md:col-span-1">
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Awards & Medals</p>
+                                        {selectedMedalsInView.length > 0 ? (
+                                            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                                {selectedMedalsInView.map((m, idx) => (
+                                                    <Badge 
+                                                        key={m.id ?? idx} 
+                                                        variant="outline" 
+                                                        className={cn("text-xs font-bold gap-1.5 inline-flex items-center", getMedalBadgeClass(m.color))}
+                                                    >
+                                                        <Award className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                                        <span>{m.name}</span>
+                                                    </Badge>
+                                                ))}
                                             </div>
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground italic">None</p>
+                                        )}
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Total Calculated Payable</p>
+                                        <p className="text-base font-bold text-primary font-mono">
+                                            LKR {viewTotalPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Included Courses Section */}
+                                <div className="space-y-3 pt-4 border-t">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                                            <CheckCircle className="w-3.5 h-3.5 text-green-600" /> Included in this Booking
+                                        </Label>
+                                        <Button size="sm" variant="ghost" onClick={openCoursesModal} className="h-6 px-2 text-[11px] text-muted-foreground hover:text-primary">
+                                            Manage Courses
+                                        </Button>
+                                    </div>
+                                    {isLoadingStudentData ? <Skeleton className="h-20 w-full" /> : studentInfo && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {courseGrouping.included.length > 0 ? (
+                                                courseGrouping.included.map(enrollment => (
+                                                    <div key={enrollment.id} className="border rounded-md p-3 bg-primary/5 border-primary/20 flex items-start gap-3">
+                                                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                                                        <div className="flex-1 space-y-1">
+                                                            <p className="text-xs font-bold leading-tight text-foreground">{enrollment.parent_course_name}</p>
+                                                            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                                                                <span className="font-semibold text-foreground">Batch:</span>
+                                                                <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 bg-muted/60">{enrollment.course_code}</Badge>
+                                                                {enrollment.batch_name && <span className="truncate max-w-[200px]">({enrollment.batch_name})</span>}
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-1.5 pt-1">
+                                                                <Badge variant="default" className="text-[9px] h-4 px-1.5 bg-green-100 text-green-700 border-green-200">Included</Badge>
+                                                                {!enrollment.certificate_eligibility && <Badge variant="destructive" className="text-[9px] h-4 px-1">Academic Pending</Badge>}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-xs text-muted-foreground italic col-span-2 p-3 border border-dashed rounded-md text-center">
+                                                    No courses are currently assigned to this booking. Click "Edit Booking & Add-ons" to assign courses.
+                                                </p>
+                                            )}
                                         </div>
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Certificate Details</p>
-                                            <p className="text-sm font-semibold">{registration.name_on_certificate || studentInfo?.studentInfo.name_on_certificate || studentInfo?.studentInfo.full_name || 'N/A'}</p>
-                                            <p className="text-xs text-muted-foreground">{registration.telephone_1 || studentInfo?.studentInfo.telephone_1 || 'N/A'}</p>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Calculated Payable</p>
-                                            <p className="text-sm font-bold text-primary">LKR {totalPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                                    )}
+                                </div>
+
+                                {courseGrouping.others.length > 0 && (
+                                    <div className="space-y-2 pt-3 border-t">
+                                        <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Other Enrollments Available ({courseGrouping.others.length})
+                                        </Label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {courseGrouping.others.map(enrollment => (
+                                                <div key={enrollment.id} className="text-xs px-2.5 py-1.5 rounded border bg-muted/20 flex items-center gap-2">
+                                                    <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                                                    <span className="font-medium text-foreground">{enrollment.parent_course_name}</span>
+                                                    <Badge variant="outline" className="text-[10px] font-mono">{enrollment.course_code}</Badge>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 )}
-
-                                <div className="space-y-6 pt-4 border-t">
-                                    <div className="space-y-3">
-                                        <Label className="text-xs font-semibold uppercase tracking-wider text-primary">Included in this Booking</Label>
-                                        {isLoadingStudentData ? <Skeleton className="h-20 w-full" /> : studentInfo && (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                {courseGrouping.included.length > 0 ? (
-                                                    courseGrouping.included.map(enrollment => (
-                                                        <EnrollmentItem key={enrollment.id} enrollment={enrollment} isIncluded={true} />
-                                                    ))
-                                                ) : (
-                                                    <p className="text-xs text-muted-foreground italic col-span-2">No courses are currently assigned to this booking.</p>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-3 pt-4 border-t">
-                                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Other Enrollments (Available to Add)</Label>
-                                        {isLoadingStudentData ? <Skeleton className="h-20 w-full" /> : studentInfo && (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                {courseGrouping.others.length > 0 ? (
-                                                    courseGrouping.others.map(enrollment => (
-                                                        <EnrollmentItem key={enrollment.id} enrollment={enrollment} isIncluded={false} />
-                                                    ))
-                                                ) : (
-                                                    <p className="text-xs text-muted-foreground italic col-span-2">No other enrollments available.</p>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
                             </CardContent>
                         </Card>
 
-                        {/* Financials & Documents */}
+                        {/* 2. FINANCIAL OVERVIEW & VERIFICATION DOCUMENTS */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                            {/* Financial Overview Card */}
                             <Card>
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <CardTitle className="text-base uppercase tracking-wider text-muted-foreground">Financial Overview</CardTitle>
-                                    <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button size="sm" variant="outline"><Banknote className="mr-2 h-4 w-4" />Update Payment</Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>Update Payment Details</DialogTitle>
-                                                <DialogDescription>Manually verify and set the cumulative payment status for this registration.</DialogDescription>
-                                            </DialogHeader>
-                                            <div className="space-y-4 py-4">
-                                                <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <span className="text-muted-foreground">Total Required Amount:</span>
-                                                        <div className="font-bold font-mono">
-                                                            LKR {totalPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div className="flex justify-between items-center text-sm text-green-600 border-t pt-2 border-dashed">
-                                                        <div className="flex items-center gap-2">
-                                                            <ListOrdered className="h-3.5 w-3.5" />
-                                                            <span>Already Verified:</span>
-                                                        </div>
-                                                        <div className="font-bold font-mono">
-                                                            LKR {totalPaidFromRecords.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex justify-between items-center text-sm font-bold border-t pt-2 mt-2">
-                                                        <span className="text-muted-foreground">Remaining to Verify:</span>
-                                                        <div className="font-mono text-primary">
-                                                            LKR {remainingToVerify.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="p-3 bg-primary/5 rounded-lg flex justify-between items-center text-sm border border-primary/20">
-                                                    <div className="flex items-center gap-2 font-semibold">
-                                                        <Calculator className="h-4 w-4" />
-                                                        <span>Due Balance (Final):</span>
-                                                    </div>
-                                                    <div className={cn(
-                                                        "font-bold font-mono text-lg",
-                                                        balanceAfterCurrentCheck > 0 ? "text-destructive" : "text-green-600"
-                                                    )}>
-                                                        LKR {balanceAfterCurrentCheck.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-2 pt-2">
-                                                    <Label className="text-xs">Verified Amount in CURRENT Slip (LKR)</Label>
-                                                    <input 
-                                                        type="number" 
-                                                        value={paymentAmount} 
-                                                        onChange={e => handleVerifiedAmountChange(e.target.value)} 
-                                                        placeholder="Type verified amount..."
-                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">New Payment Status</Label>
-                                                    <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-                                                        <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="Pending" className="text-xs">Pending</SelectItem>
-                                                            <SelectItem value="Partially Paid" className="text-xs">Partially Paid</SelectItem>
-                                                            <SelectItem value="Paid" className="text-xs">Paid</SelectItem>
-                                                            <SelectItem value="Rejected" className="text-xs">Rejected</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            </div>
-                                            <DialogFooter>
-                                                <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>Cancel</Button>
-                                                <Button onClick={handlePaymentUpdate} disabled={updatePaymentMutation.isPending}>
-                                                    {updatePaymentMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                    Update Financials
-                                                </Button>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
+                                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                                    <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-bold">
+                                        Financial Overview
+                                    </CardTitle>
+                                    <Button size="sm" variant="outline" onClick={openPaymentModal} className="h-8 gap-1.5 text-xs">
+                                        <Banknote className="h-3.5 w-3.5 text-primary" /> Update Payment
+                                    </Button>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    <div className="space-y-2">
-                                        {isLoadingStudentData ? <Skeleton className="h-20 w-full" /> : studentInfo && (
-                                            <>
-                                                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Total Registration Fee:</span> <span className="font-semibold">LKR {studentInfo.studentBalance.TotalRegistrationFee.toLocaleString()}</span></div>
-                                                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Total Verified Payments:</span> <span className="font-semibold text-green-600">LKR {studentInfo.studentBalance.totalPaymentAmount.toLocaleString()}</span></div>
-                                                <div className="flex justify-between text-lg font-bold pt-2 border-t mt-2"><span className="text-muted-foreground">Student Balance:</span> <span className={cn(studentInfo.studentBalance.studentBalance > 0 ? 'text-destructive' : 'text-green-600')}>LKR {studentInfo.studentBalance.studentBalance.toLocaleString()}</span></div>
-                                            </>
-                                        )}
-                                    </div>
-                                    <div className="pt-4 border-t">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Booking Payment Verification</p>
+                                    {/* 1. Convocation Booking Financials */}
+                                    <div className="space-y-2 p-3 bg-muted/40 rounded-lg border">
+                                        <div className="flex items-center justify-between pb-1 border-b">
+                                            <span className="text-xs font-bold text-foreground">Convocation Booking Fees</span>
                                             <Badge className={cn(
-                                                "uppercase text-[10px]",
-                                                registration.payment_status?.toLowerCase() === 'paid' ? 'bg-green-600' : 
-                                                (registration.payment_status?.toLowerCase() === 'partially-paid' || registration.payment_status?.toLowerCase() === 'partially paid') ? 'bg-orange-500' : 
-                                                'bg-destructive'
-                                            )}>{registration.payment_status}</Badge>
+                                                "uppercase text-[9px] font-bold",
+                                                registration.payment_status?.toLowerCase() === 'paid' ? 'bg-green-600 text-white' : 
+                                                (registration.payment_status?.toLowerCase() === 'partially-paid' || registration.payment_status?.toLowerCase() === 'partially paid') ? 'bg-orange-500 text-white' : 
+                                                'bg-destructive text-white'
+                                            )}>{registration.payment_status || 'Pending'}</Badge>
                                         </div>
-                                        <p className="text-sm font-bold">Total Verified: LKR {totalPaidFromRecords.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-muted-foreground">Total Required Fee:</span>
+                                            <span className="font-mono font-semibold">LKR {viewTotalPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-green-600 font-medium">
+                                            <span>Verified Booking Paid:</span>
+                                            <span className="font-mono font-semibold">LKR {totalPaidFromRecords.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm font-bold pt-1.5 border-t border-dashed">
+                                            <span>Booking Due Balance:</span>
+                                            <span className={cn("font-mono", (viewTotalPayable - totalPaidFromRecords) > 0 ? "text-destructive" : "text-green-600")}>
+                                                LKR {Math.max(0, viewTotalPayable - totalPaidFromRecords).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
                                     </div>
+
+                                    {/* 2. Academic / Tuition Balance from LMS (Student Profile) */}
+                                    {isLoadingStudentData ? <Skeleton className="h-16 w-full" /> : studentInfo && (
+                                        <div className="space-y-1.5 p-3 rounded-lg border bg-background/50 text-xs">
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                                Student LMS Academic Balance
+                                            </p>
+                                            <div className="flex justify-between text-muted-foreground">
+                                                <span>Course Fee:</span>
+                                                <span className="font-mono font-medium text-foreground">LKR {studentInfo.studentBalance.TotalRegistrationFee.toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex justify-between text-muted-foreground">
+                                                <span>Course Paid:</span>
+                                                <span className="font-mono font-medium text-green-600">LKR {studentInfo.studentBalance.totalPaymentAmount.toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex justify-between font-semibold pt-1 border-t border-dashed">
+                                                <span>Academic Balance:</span>
+                                                <span className={cn("font-mono", studentInfo.studentBalance.studentBalance > 0 ? "text-destructive" : "text-green-600")}>
+                                                    LKR {studentInfo.studentBalance.studentBalance.toLocaleString()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
                                     
                                     <div className="pt-4 border-t space-y-3">
                                         <h4 className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-2">
@@ -916,8 +937,13 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                                 </CardContent>
                             </Card>
 
+                            {/* Verification Documents Card */}
                             <Card>
-                                <CardHeader><CardTitle className="text-base uppercase tracking-wider text-muted-foreground">Verification Documents</CardTitle></CardHeader>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-bold">
+                                        Verification Documents
+                                    </CardTitle>
+                                </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="space-y-3">
                                         <Label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-2">
@@ -985,9 +1011,10 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                             </Card>
                         </div>
 
+                        {/* 3. COURSE PERFORMANCE & ELIGIBILITY */}
                         <div className="space-y-4 pb-10">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold font-headline">Course Performance & Eligibility</h3>
+                                <h3 className="text-base font-semibold font-headline">Course Performance & Eligibility</h3>
                                 {isLoadingStudentData ? <Skeleton className="h-5 w-16" /> : studentInfo && <Badge variant="secondary" className="font-mono text-xs">{Object.keys(studentInfo.studentEnrollments).length} Total Enrollments</Badge>}
                             </div>
                             <div className="space-y-4">
@@ -1006,12 +1033,22 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                     </div>
                 </ScrollArea>
 
-                <DialogFooter className="p-4 bg-muted/20 border-t shrink-0 flex items-center justify-between">
+                {/* MAIN DIALOG FOOTER */}
+                <DialogFooter className="p-4 bg-muted/20 border-t shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="h-8 uppercase">Registration: {registration.registration_status}</Badge>
-                        {registration.ceremony_number && <Badge variant="default" className="h-8 bg-blue-600">Attendance #: {registration.ceremony_number}</Badge>}
+                        <Badge variant="outline" className="h-8 uppercase font-semibold">Registration: {registration.registration_status}</Badge>
+                        {registration.ceremony_number && <Badge variant="default" className="h-8 bg-blue-600 font-bold">Attendance #: {registration.ceremony_number}</Badge>}
                     </div>
                     <div className="flex items-center gap-2">
+                        <Button 
+                            variant="outline" 
+                            disabled={isDownloadingPdf}
+                            className="border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-medium"
+                            onClick={handleDownloadPdf}
+                        >
+                            {isDownloadingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin text-blue-500" /> : <FileText className="mr-2 h-4 w-4 text-blue-500" />}
+                            {isDownloadingPdf ? 'Downloading...' : 'Admission Slip'}
+                        </Button>
                         <Button 
                             variant="outline" 
                             className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
@@ -1020,43 +1057,580 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete Booking
                         </Button>
-                        <Dialog open={isConfirmAttendanceDialogOpen} onOpenChange={setIsConfirmAttendanceDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button className="bg-primary hover:bg-primary/90">
-                                    <UserCheck className="mr-2 h-4 w-4" />
-                                    Confirm & Assign Ceremony #
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Confirm Convocation Attendance</DialogTitle>
-                                    <DialogDescription>
-                                        Assign a ceremony number to this student. This will automatically update their registration status to <strong>Confirmed</strong>.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="py-4 space-y-2">
-                                    <Label>Ceremony Number</Label>
-                                    <input 
-                                        placeholder="Enter ceremony number (e.g., 402)" 
-                                        value={ceremonyNumber} 
-                                        onChange={e => setCeremonyNumber(e.target.value)} 
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    />
-                                </div>
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setIsConfirmAttendanceDialogOpen(false)}>Cancel</Button>
-                                    <Button onClick={handleAttendanceConfirmation} disabled={updateCeremonyMutation.isPending}>
-                                        {updateCeremonyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Confirm Attendance
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
+                        <Button className="bg-primary hover:bg-primary/90" onClick={openAttendanceModal}>
+                            <UserCheck className="mr-2 h-4 w-4" />
+                            Confirm & Assign Ceremony #
+                        </Button>
+                        <DialogClose asChild>
+                            <Button variant="secondary">Close</Button>
+                        </DialogClose>
                     </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
 
+        {/* ========================================================================= */}
+        {/* MODAL 1: EDIT BOOKING DETAILS DIALOG                                      */}
+        {/* ========================================================================= */}
+        <Dialog open={isEditBookingOpen} onOpenChange={setIsEditBookingOpen}>
+            <DialogContent className="max-w-xl w-[95vw] sm:w-full max-h-[90vh] flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-4 sm:p-6 pb-3 shrink-0 border-b">
+                    <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                        <Edit2 className="h-5 w-5 text-primary" />
+                        Edit Booking Details (#{registration.reference_number})
+                    </DialogTitle>
+                    <DialogDescription className="text-xs">
+                        Update ceremony package, session, student certificate name, and phone number.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold">Package</Label>
+                            <Select 
+                                value={String(editPackageId)} 
+                                onValueChange={(val) => setEditPackageId(val)}
+                            >
+                                <SelectTrigger className="h-9 text-xs bg-background"><SelectValue placeholder="Select package" /></SelectTrigger>
+                                <SelectContent>
+                                    {packages?.filter(p => String(p.convocation_id) === String(registration.convocation_id)).sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0)).map(p => (
+                                        <SelectItem key={p.package_id} value={String(p.package_id)} className="text-xs font-medium">
+                                            {p.package_name} - LKR {parseFloat(p.price).toLocaleString()}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold">{sessionInfo.label}</Label>
+                            {sessionInfo.hasMultipleSessions ? (
+                                <Select value={String(editSession)} onValueChange={(v) => setEditSession(v as '1' | '2')}>
+                                    <SelectTrigger className="h-9 text-xs bg-background"><SelectValue placeholder="Select session" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="1">Session 1</SelectItem>
+                                        <SelectItem value="2">Session 2</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <div className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+                                    <span className="font-medium text-foreground">Session 1</span>
+                                    <Badge variant="outline" className="text-[9px] font-mono">Single Session</Badge>
+                                </div>
+                            )}
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold">Name on Certificate</Label>
+                            <input 
+                                value={editName} 
+                                onChange={e => setEditName(e.target.value)} 
+                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder={studentInfo?.studentInfo.name_on_certificate || "Enter name..."}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold">Phone Number</Label>
+                            <input 
+                                value={editPhone} 
+                                onChange={e => setEditPhone(e.target.value)} 
+                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder={studentInfo?.studentInfo.telephone_1 || "Enter phone..."}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter className="p-4 bg-muted/20 border-t shrink-0 flex items-center justify-between">
+                    <Button variant="outline" onClick={() => setIsEditBookingOpen(false)}>Cancel</Button>
+                    <Button onClick={handleUpdate} disabled={updateMutation.isPending} className="bg-primary hover:bg-primary/90">
+                        {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Details
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* ========================================================================= */}
+        {/* MODAL 2: MANAGE ADD-ONS (SEATS & REFRESHMENTS) DIALOG                      */}
+        {/* ========================================================================= */}
+        <Dialog open={isAddonsDialogOpen} onOpenChange={setIsAddonsDialogOpen}>
+            <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-4 sm:p-6 pb-3 shrink-0 border-b">
+                    <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                        Manage Add-ons (#{registration.reference_number})
+                    </DialogTitle>
+                    <DialogDescription className="text-xs">
+                        Adjust guest seats and refreshment tokens for this booking pass.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Additional Guest Seats Card */}
+                                <div className="p-4 rounded-lg border bg-card space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Users className="w-4 h-4 text-blue-500" />
+                                            <span className="text-xs font-bold">Additional Guest Seats</span>
+                                        </div>
+                                        <Badge variant="outline" className="text-[10px] font-mono">
+                                            LKR {ceremonyParentSeatRate.toLocaleString()} / seat
+                                        </Badge>
+                                    </div>
+                                    
+                                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                size="icon" 
+                                                className="h-8 w-8 rounded-md"
+                                                onClick={() => setEditSeats(String(Math.max(0, (parseInt(editSeats, 10) || 0) - 1)))}
+                                                disabled={parseInt(editSeats, 10) <= 0}
+                                            >
+                                                <Minus className="h-3.5 w-3.5" />
+                                            </Button>
+                                            <div className="w-14 text-center font-bold text-sm font-mono border rounded-md py-1 bg-background">
+                                                {editSeats}
+                                            </div>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                size="icon" 
+                                                className="h-8 w-8 rounded-md"
+                                                onClick={() => setEditSeats(String(Math.min(10, (parseInt(editSeats, 10) || 0) + 1)))}
+                                                disabled={parseInt(editSeats, 10) >= 10}
+                                            >
+                                                <Plus className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </div>
+
+                                        {/* Quick Pills */}
+                                        <div className="flex items-center gap-1">
+                                            {[0, 1, 2, 3, 4, 5].map((num) => (
+                                                <button
+                                                    key={num}
+                                                    type="button"
+                                                    onClick={() => setEditSeats(String(num))}
+                                                    className={cn(
+                                                        "px-2 py-1 text-xs rounded border transition-colors font-medium",
+                                                        editSeats === String(num) 
+                                                            ? "bg-primary text-primary-foreground border-primary font-bold shadow-sm" 
+                                                            : "bg-background hover:bg-muted text-muted-foreground"
+                                                    )}
+                                                >
+                                                    {num}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-1 border-t">
+                                        <span>Seats Subtotal:</span>
+                                        <span className="font-mono font-bold text-foreground">
+                                            LKR {(parseInt(editSeats, 10) * ceremonyParentSeatRate).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Refreshment Tokens Card */}
+                                <div className="p-4 rounded-lg border bg-card space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Coffee className="w-4 h-4 text-orange-500" />
+                                            <span className="text-xs font-bold">Refreshment Tokens</span>
+                                        </div>
+                                        <Badge variant="outline" className="text-[10px] font-mono">
+                                            LKR {ceremonyRefreshTokenRate.toLocaleString()} / token
+                                        </Badge>
+                                    </div>
+                                    
+                                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                size="icon" 
+                                                className="h-8 w-8 rounded-md"
+                                                onClick={() => setEditTokens(String(Math.max(0, (parseInt(editTokens, 10) || 0) - 1)))}
+                                                disabled={parseInt(editTokens, 10) <= 0}
+                                            >
+                                                <Minus className="h-3.5 w-3.5" />
+                                            </Button>
+                                            <div className="w-14 text-center font-bold text-sm font-mono border rounded-md py-1 bg-background">
+                                                {editTokens}
+                                            </div>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                size="icon" 
+                                                className="h-8 w-8 rounded-md"
+                                                onClick={() => setEditTokens(String(Math.min(20, (parseInt(editTokens, 10) || 0) + 1)))}
+                                                disabled={parseInt(editTokens, 10) >= 20}
+                                            >
+                                                <Plus className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </div>
+
+                                        {/* Quick Pills */}
+                                        <div className="flex items-center gap-1">
+                                            {[0, 1, 2, 3, 4, 5, 10].map((num) => (
+                                                <button
+                                                    key={num}
+                                                    type="button"
+                                                    onClick={() => setEditTokens(String(num))}
+                                                    className={cn(
+                                                        "px-2 py-1 text-xs rounded border transition-colors font-medium",
+                                                        editTokens === String(num) 
+                                                            ? "bg-orange-500 text-white border-orange-500 font-bold shadow-sm" 
+                                                            : "bg-background hover:bg-muted text-muted-foreground"
+                                                    )}
+                                                >
+                                                    {num}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-1 border-t">
+                                        <span>Tokens Subtotal:</span>
+                                        <span className="font-mono font-bold text-foreground">
+                                            LKR {(parseInt(editTokens, 10) * ceremonyRefreshTokenRate).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                </div>
+                        </div>
+
+                    {/* Live Payment Summary Strip */}
+                    <div className="p-3.5 rounded-lg border bg-primary/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                            <span className="font-medium text-foreground">Package: LKR {(packages?.find(p => String(p.package_id) === String(editPackageId)) ? parseFloat(packages.find(p => String(p.package_id) === String(editPackageId))!.price) : 0).toLocaleString()}</span>
+                            {parseInt(editSeats, 10) > 0 && (
+                                <span>+ Seats ({editSeats}): LKR {(parseInt(editSeats, 10) * ceremonyParentSeatRate).toLocaleString()}</span>
+                            )}
+                            {parseInt(editTokens, 10) > 0 && (
+                                <span>+ Refreshments ({editTokens}): LKR {(parseInt(editTokens, 10) * ceremonyRefreshTokenRate).toLocaleString()}</span>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-xs font-semibold uppercase text-muted-foreground">Total Payable:</span>
+                            <span className="text-base font-mono font-bold text-primary">
+                                LKR {editTotalPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter className="p-4 bg-muted/20 border-t shrink-0 flex items-center justify-between">
+                    <Button variant="outline" onClick={() => setIsAddonsDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleUpdate} disabled={updateMutation.isPending} className="bg-primary hover:bg-primary/90">
+                        {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Add-ons
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* ========================================================================= */}
+        {/* MODAL 3: HONORS & MEDALS DIALOG                                           */}
+        {/* ========================================================================= */}
+        <Dialog open={isMedalsDialogOpen} onOpenChange={setIsMedalsDialogOpen}>
+            <DialogContent className="max-w-xl w-[95vw] sm:w-full max-h-[90vh] flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-4 sm:p-6 pb-3 shrink-0 border-b">
+                    <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                        <Award className="h-5 w-5 text-amber-500" />
+                        Honors & Medals (#{registration.reference_number})
+                    </DialogTitle>
+                    <DialogDescription className="text-xs">
+                        Assign or remove convocation honors, awards, and medals for this pass.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
+                    <div className="p-4 rounded-lg border bg-card space-y-3">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                                <Award className="w-4 h-4 text-amber-500" />
+                                <div>
+                                    <span className="text-xs font-bold">Select Medals to Award</span>
+                                    <p className="text-[11px] text-muted-foreground">Click medals to toggle assignment for this booking pass.</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Badge variant={editMedalTypeIds.length > 0 ? "default" : "outline"} className="text-[10px]">
+                                    {editMedalTypeIds.length} Selected
+                                </Badge>
+                                {editMedalTypeIds.length > 0 && (
+                                    <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-6 px-2 text-[10px] text-muted-foreground hover:text-destructive"
+                                        onClick={() => setEditMedalTypeIds([])}
+                                    >
+                                        Clear All
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 pt-2">
+                            {medalTypes && medalTypes.length > 0 ? (
+                                medalTypes.map((medal) => {
+                                    const isSelected = editMedalTypeIds.includes(String(medal.id));
+                                    return (
+                                        <button
+                                            key={medal.id}
+                                            type="button"
+                                            onClick={() => toggleMedal(String(medal.id))}
+                                            className={cn(
+                                                "flex items-center gap-2 px-3 py-2 rounded-md border text-xs font-semibold transition-all cursor-pointer",
+                                                isSelected
+                                                    ? cn(getMedalBadgeClass(medal.color), "shadow-sm ring-2 ring-primary/40 scale-[1.02]")
+                                                    : "bg-background/80 hover:bg-muted text-muted-foreground border-dashed hover:border-solid"
+                                            )}
+                                        >
+                                            <Award className={cn("w-3.5 h-3.5 shrink-0", isSelected ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground")} />
+                                            <span>{medal.name}</span>
+                                            {isSelected ? (
+                                                <Check className="w-3.5 h-3.5 ml-1 text-primary stroke-[3]" />
+                                            ) : (
+                                                <Plus className="w-3 h-3 ml-1 text-muted-foreground opacity-50" />
+                                            )}
+                                        </button>
+                                    );
+                                })
+                            ) : (
+                                <p className="text-xs text-muted-foreground italic">No medal types configured yet.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter className="p-4 bg-muted/20 border-t shrink-0 flex items-center justify-between">
+                    <Button variant="outline" onClick={() => setIsMedalsDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleUpdate} disabled={updateMutation.isPending} className="bg-primary hover:bg-primary/90">
+                        {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Honors
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* ========================================================================= */}
+        {/* MODAL 4: ASSIGN STUDENT COURSES DIALOG                                    */}
+        {/* ========================================================================= */}
+        <Dialog open={isCoursesDialogOpen} onOpenChange={setIsCoursesDialogOpen}>
+            <DialogContent className="max-w-3xl w-[95vw] sm:w-full max-h-[90vh] flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-4 sm:p-6 pb-3 shrink-0 border-b">
+                    <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                        <BookOpen className="h-5 w-5 text-primary" />
+                        Assign Student Courses (#{registration.reference_number})
+                    </DialogTitle>
+                    <DialogDescription className="text-xs">
+                        Select which enrolled courses and batches are represented in this convocation booking.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <ScrollArea className="flex-1 min-h-0 overflow-y-auto">
+                    <div className="p-4 sm:p-6 space-y-4">
+                        {/* Included Courses Checkbox Selector */}
+                        <div className="space-y-3 p-4 rounded-lg border bg-card">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
+                                    Assign Student Courses to this Booking
+                                </Label>
+                                <span className="text-[11px] text-muted-foreground">Toggle courses included in this ceremony</span>
+                            </div>
+
+                            {isLoadingStudentData ? <Skeleton className="h-20 w-full" /> : allEnrollmentsList.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                                    {allEnrollmentsList.map(enrollment => {
+                                        const parentId = String(enrollment.parent_course_id);
+                                        const isChecked = editCourseIds.includes(parentId);
+                                        const isBookedElsewhere = bookedElsewhereIds.has(parentId) || bookedElsewhereIds.has(String(enrollment.course_code));
+                                        const isOrderedElsewhere = orderedElsewhereIds.has(parentId) || orderedElsewhereIds.has(String(enrollment.course_code));
+                                        const isDisabled = isBookedElsewhere || isOrderedElsewhere;
+
+                                        return (
+                                            <div 
+                                                key={enrollment.id}
+                                                className={cn(
+                                                    "flex items-start gap-3 p-3 rounded-md border transition-colors",
+                                                    isChecked ? "bg-primary/5 border-primary/30" : "bg-background hover:bg-muted/40",
+                                                    isDisabled && !isChecked && "opacity-60 bg-muted/40"
+                                                )}
+                                            >
+                                                <Checkbox 
+                                                    id={`modal-course-${enrollment.id}`} 
+                                                    checked={isChecked}
+                                                    disabled={isDisabled}
+                                                    onCheckedChange={(checked) => {
+                                                        setEditCourseIds(prev => 
+                                                            checked ? [...prev, parentId] : prev.filter(id => id !== parentId)
+                                                        );
+                                                    }}
+                                                    className="mt-1"
+                                                />
+                                                <div className="flex-1 space-y-1">
+                                                    <Label htmlFor={`modal-course-${enrollment.id}`} className="text-xs font-bold leading-tight block cursor-pointer">
+                                                        {enrollment.parent_course_name}
+                                                    </Label>
+                                                    <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                                                        <span className="font-semibold text-foreground">Batch:</span>
+                                                        <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 bg-muted/60">{enrollment.course_code}</Badge>
+                                                        {enrollment.batch_name && <span className="truncate max-w-[200px]">({enrollment.batch_name})</span>}
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1.5 pt-1">
+                                                        {isChecked && <Badge variant="default" className="text-[9px] h-4 px-1 bg-green-100 text-green-700 border-green-200">Included</Badge>}
+                                                        {isBookedElsewhere && <Badge variant="secondary" className="text-[9px] h-4 px-1 bg-purple-100 text-purple-800">Booked Elsewhere</Badge>}
+                                                        {isOrderedElsewhere && <Badge variant="secondary" className="text-[9px] h-4 px-1 bg-amber-100 text-amber-800 border-amber-200">Already Ordered</Badge>}
+                                                        {!enrollment.certificate_eligibility && <Badge variant="destructive" className="text-[9px] h-4 px-1">Not Eligible</Badge>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-muted-foreground italic">No student enrollments found.</p>
+                            )}
+                        </div>
+                    </div>
+                </ScrollArea>
+
+                <DialogFooter className="p-4 bg-muted/20 border-t shrink-0 flex items-center justify-between">
+                    <Button variant="outline" onClick={() => setIsCoursesDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleUpdate} disabled={updateMutation.isPending} className="bg-primary hover:bg-primary/90">
+                        {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Course Assignments
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* ========================================================================= */}
+        {/* MODAL 2: UPDATE PAYMENT DIALOG                                            */}
+        {/* ========================================================================= */}
+        <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Banknote className="h-5 w-5 text-primary" />
+                        Update Payment Details
+                    </DialogTitle>
+                    <DialogDescription>Manually verify and record a verified payment amount for this booking.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Total Required Amount:</span>
+                            <div className="font-bold font-mono">
+                                LKR {viewTotalPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </div>
+                        </div>
+                        
+                        <div className="flex justify-between items-center text-sm text-green-600 border-t pt-2 border-dashed">
+                            <div className="flex items-center gap-2">
+                                <ListOrdered className="h-3.5 w-3.5" />
+                                <span>Already Verified:</span>
+                            </div>
+                            <div className="font-bold font-mono">
+                                LKR {totalPaidFromRecords.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-sm font-bold border-t pt-2 mt-2">
+                            <span className="text-muted-foreground">Remaining to Verify:</span>
+                            <div className="font-mono text-primary">
+                                LKR {remainingToVerify.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-3 bg-primary/5 rounded-lg flex justify-between items-center text-sm border border-primary/20">
+                        <div className="flex items-center gap-2 font-semibold">
+                            <Calculator className="h-4 w-4" />
+                            <span>Due Balance (Final):</span>
+                        </div>
+                        <div className={cn(
+                            "font-bold font-mono text-lg",
+                            balanceAfterCurrentCheck > 0 ? "text-destructive" : "text-green-600"
+                        )}>
+                            LKR {balanceAfterCurrentCheck.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2">
+                        <Label className="text-xs font-semibold">Verified Amount in CURRENT Slip (LKR)</Label>
+                        <input 
+                            type="number" 
+                            value={paymentAmount} 
+                            onChange={e => handleVerifiedAmountChange(e.target.value)} 
+                            placeholder="Type verified amount..."
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-xs font-semibold">New Payment Status</Label>
+                        <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+                            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Pending" className="text-xs">Pending</SelectItem>
+                                <SelectItem value="Partially Paid" className="text-xs">Partially Paid</SelectItem>
+                                <SelectItem value="Paid" className="text-xs">Paid</SelectItem>
+                                <SelectItem value="Rejected" className="text-xs">Rejected</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handlePaymentUpdate} disabled={updatePaymentMutation.isPending} className="bg-primary hover:bg-primary/90">
+                        {updatePaymentMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Update Financials
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* ========================================================================= */}
+        {/* MODAL 3: CONFIRM ATTENDANCE & CEREMONY # DIALOG                           */}
+        {/* ========================================================================= */}
+        <Dialog open={isConfirmAttendanceDialogOpen} onOpenChange={setIsConfirmAttendanceDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <UserCheck className="h-5 w-5 text-primary" />
+                        Confirm Convocation Attendance
+                    </DialogTitle>
+                    <DialogDescription>
+                        Assign a ceremony number to this student. This will automatically update their registration status to <strong>Confirmed</strong>.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-2">
+                    <Label className="text-xs font-semibold">Ceremony Number</Label>
+                    <input 
+                        placeholder="Enter ceremony number (e.g., 402)" 
+                        value={ceremonyNumber} 
+                        onChange={e => setCeremonyNumber(e.target.value)} 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsConfirmAttendanceDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleAttendanceConfirmation} disabled={updateCeremonyMutation.isPending} className="bg-primary hover:bg-primary/90">
+                        {updateCeremonyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Confirm Attendance
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* ========================================================================= */}
+        {/* MODAL 4: DELETE BOOKING ALERT DIALOG                                      */}
+        {/* ========================================================================= */}
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
@@ -1076,7 +1650,7 @@ export const RegistrationDetailDialog = ({ registration, open, onOpenChange, pac
                                 )}?
                             </div>
                             <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-md border border-destructive/20 space-y-1">
-                                <p className="font-bold">⚠️ Warning: This action is permanent and cannot be undone.</p>
+                                <p className="font-bold">Warning: This action is permanent and cannot be undone.</p>
                                 <p>This will permanently delete this booking registration from the database and remove the student's assigned ceremony pass.</p>
                             </div>
                         </div>

@@ -147,7 +147,11 @@ export default function StudentKycPage() {
     return <Preloader message="Checking document verification status..." />;
   }
 
-  const status = kycData?.status || 'not_submitted';
+  const userVer = (user?.verification_status || '').toLowerCase();
+  const docStatus = (kycData?.status || '').toLowerCase();
+  const kycUserVer = (kycData?.user_verification_status || '').toLowerCase();
+  const isVerifiedUser = userVer === 'verified' || userVer === 'approved' || docStatus === 'approved' || docStatus === 'verified' || kycUserVer === 'verified' || kycUserVer === 'approved';
+  const status = isVerifiedUser ? 'approved' : (kycData?.status || 'not_submitted');
   const isLockedForReview = status === 'pending';
 
   return (
@@ -467,7 +471,7 @@ export default function StudentKycPage() {
               <div className="space-y-4">
                 <div className="border-b pb-2">
                   <h2 className="text-base font-semibold flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-primary" /> 3. Birth Certificate (උප්පැන්න සහතිකය - Optional)
+                    <FileText className="h-4 w-4 text-primary" /> 3. Birth Certificate (à¶‹à¶´à·Šà¶´à·à¶±à·Šà¶± à·ƒà·„à¶­à·’à¶šà¶º - Optional)
                   </h2>
                 </div>
 

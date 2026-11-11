@@ -14,10 +14,13 @@ export const metadata: Metadata = {
     'Certificate course in pharmacy practice apply',
     'Diploma in pharmacy admission Sri Lanka',
   ],
+  alternates: {
+    canonical: 'https://pharmacollege.lk/apply',
+  },
   openGraph: {
     title: 'Apply Online | Ceylon Pharma College Admissions',
     description: 'Fast 3-step online application for pharmacy education in Sri Lanka.',
-    url: 'https://www.pharmacollege.lk/apply',
+    url: 'https://pharmacollege.lk/apply',
   },
 };
 

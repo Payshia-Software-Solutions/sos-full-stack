@@ -11,12 +11,12 @@ export const metadata: Metadata = {
     'Community pharmacy career network'
   ],
   alternates: {
-    canonical: 'https://www.pharmacollege.lk/alumni',
+    canonical: 'https://pharmacollege.lk/alumni',
   },
   openGraph: {
     title: 'Alumni Community & Network | Ceylon Pharma College',
     description: 'Connect with over 5,000 verified pharmacy professionals across Sri Lanka.',
-    url: 'https://www.pharmacollege.lk/alumni',
+    url: 'https://pharmacollege.lk/alumni',
     siteName: 'Ceylon Pharma College',
   },
 };

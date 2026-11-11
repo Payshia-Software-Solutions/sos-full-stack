@@ -39,7 +39,7 @@ export default function LanguageSwitcher({ className, variant = "pill" }: Langua
             type="button"
             onClick={() => setLanguage(item.code)}
             className={cn(
-              "px-2.5 py-1 rounded-full transition-all duration-200 text-[11px] md:text-xs font-bold leading-none select-none",
+              "px-2.5 py-1 rounded-full transition-all duration-200 text-xs font-bold leading-none select-none",
               isActive
                 ? isLight
                   ? "bg-primary text-primary-foreground shadow-sm scale-100"

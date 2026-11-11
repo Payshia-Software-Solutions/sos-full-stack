@@ -14,12 +14,12 @@ export const metadata: Metadata = {
     'Ceylon Pharma College student registry'
   ],
   alternates: {
-    canonical: 'https://www.pharmacollege.lk/certificates',
+    canonical: 'https://pharmacollege.lk/certificates',
   },
   openGraph: {
     title: 'Online Certificate & Qualification Verification | Ceylon Pharma College',
     description: 'Instant 24/7 verification registry for Ceylon Pharma College accredited credentials. Prevent counterfeit certificates with tamper-proof QR security.',
-    url: 'https://www.pharmacollege.lk/certificates',
+    url: 'https://pharmacollege.lk/certificates',
     siteName: 'Ceylon Pharma College',
     images: [
       {
@@ -44,11 +44,11 @@ export default function CertificatesPage() {
     '@type': 'WebPage',
     name: 'Online Certificate Verification Portal',
     description: 'Verify pharmacy credentials and certificate authenticity for Ceylon Pharma College graduates.',
-    url: 'https://www.pharmacollege.lk/certificates',
+    url: 'https://pharmacollege.lk/certificates',
     publisher: {
       '@type': 'EducationalOrganization',
       name: 'Ceylon Pharma College',
-      url: 'https://www.pharmacollege.lk',
+      url: 'https://pharmacollege.lk',
       logo: 'https://content-provider.pharmacollege.lk/website/meta-seo-image.webp',
     },
   };

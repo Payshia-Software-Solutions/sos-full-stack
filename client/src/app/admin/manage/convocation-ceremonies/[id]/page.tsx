@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller, FieldErrors } from 'react-hook-form';
@@ -410,7 +410,7 @@ export default function ManagePackagesPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {packages && packages.length > 0 ? packages.map(pkg => (
+                                    {packages && packages.length > 0 ? [...packages].sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0)).map(pkg => (
                                         <TableRow key={pkg.package_id}>
                                             <TableCell>
                                                 {pkg.cover_image ? (

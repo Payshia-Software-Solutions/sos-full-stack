@@ -91,7 +91,7 @@ export default function CertificatesClient() {
             </div>
 
             <div className="p-4 rounded-xl bg-card border border-border/80 shadow-sm flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0 mt-0.5">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5">
                 <Globe2 className="w-4 h-4" />
               </div>
               <div>
@@ -105,7 +105,7 @@ export default function CertificatesClient() {
             </div>
 
             <div className="p-4 rounded-xl bg-card border border-border/80 shadow-sm flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0 mt-0.5">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-700 dark:text-amber-400 shrink-0 mt-0.5">
                 <Building2 className="w-4 h-4" />
               </div>
               <div>
@@ -227,7 +227,7 @@ export default function CertificatesClient() {
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
-              <Button asChild size="sm" className="font-semibold text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Button asChild size="sm" className="font-semibold text-xs gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white">
                 <a href="tel:0715884884">
                   <Phone className="w-3.5 h-3.5" />
                   <span>0715 884 884</span>

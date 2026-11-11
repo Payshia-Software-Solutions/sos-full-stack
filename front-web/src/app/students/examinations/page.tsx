@@ -11,12 +11,12 @@ export const metadata: Metadata = {
     'Pharmacy grading scale'
   ],
   alternates: {
-    canonical: 'https://www.pharmacollege.lk/students/examinations',
+    canonical: 'https://pharmacollege.lk/students/examinations',
   },
   openGraph: {
     title: 'Examinations & Assessments | Ceylon Pharma College',
     description: 'Practical evaluation standards and examination policies.',
-    url: 'https://www.pharmacollege.lk/students/examinations',
+    url: 'https://pharmacollege.lk/students/examinations',
     siteName: 'Ceylon Pharma College',
   },
 };

@@ -140,7 +140,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                   <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-white/60 uppercase font-semibold">{isSinhala ? 'කාලය' : isTamil ? 'காலம்' : 'Duration'}</p>
+                  <p className="text-xs text-white/60 uppercase font-semibold">{isSinhala ? 'කාලය' : isTamil ? 'காலம்' : 'Duration'}</p>
                   <p className="font-bold text-white text-xs sm:text-sm">{durationText}</p>
                 </div>
               </div>
@@ -150,7 +150,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                   <Laptop className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-white/60 uppercase font-semibold">{isSinhala ? 'ක්‍රමවේදය' : isTamil ? 'முறை' : 'Mode'}</p>
+                  <p className="text-xs text-white/60 uppercase font-semibold">{isSinhala ? 'ක්‍රමවේදය' : isTamil ? 'முறை' : 'Mode'}</p>
                   <p className="font-bold text-white text-xs sm:text-sm">{isSinhala ? '100% Online Zoom' : isTamil ? '100% ஆன்லைன்' : '100% Online Zoom'}</p>
                 </div>
               </div>
@@ -160,7 +160,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                   <Package className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-white/60 uppercase font-semibold">{isSinhala ? 'පොත් කට්ටලය' : isTamil ? 'புத்தகங்கள்' : 'Study Pack'}</p>
+                  <p className="text-xs text-white/60 uppercase font-semibold">{isSinhala ? 'පොත් කට්ටලය' : isTamil ? 'புத்தகங்கள்' : 'Study Pack'}</p>
                   <p className="font-bold text-emerald-300 text-xs sm:text-sm">{isSinhala ? 'නිවසටම නොමිලේ' : isTamil ? 'வீட்டுக்கே இலவசம்' : 'Free Doorstep Pack'}</p>
                 </div>
               </div>
@@ -170,7 +170,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                   <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-white/60 uppercase font-semibold">{isSinhala ? 'ඇගයුම' : isTamil ? 'மதிப்பீடு' : 'Rating'}</p>
+                  <p className="text-xs text-white/60 uppercase font-semibold">{isSinhala ? 'ඇගයුම' : isTamil ? 'மதிப்பீடு' : 'Rating'}</p>
                   <p className="font-bold text-white text-xs sm:text-sm">4.9 / 5.0 (5,000+)</p>
                 </div>
               </div>
@@ -180,7 +180,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-white/60 uppercase font-semibold">{isSinhala ? 'ප්‍රතීතනය' : isTamil ? 'அங்கீகாரம்' : 'Credential'}</p>
+                  <p className="text-xs text-white/60 uppercase font-semibold">{isSinhala ? 'ප්‍රතීතනය' : isTamil ? 'அங்கீகாரம்' : 'Credential'}</p>
                   <p className="font-bold text-white text-xs sm:text-sm">ACTD & ISO</p>
                 </div>
               </div>
@@ -265,11 +265,11 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
               {/* SECTION B: Physical Printed Study Pack Feature Showcase */}
               <div className="rounded-2xl border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card to-teal-500/10 p-6 sm:p-8 shadow-md relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                  <Package className="w-32 h-32 text-emerald-600" />
+                  <Package className="w-32 h-32 text-emerald-700 dark:text-emerald-400" />
                 </div>
 
                 <div className="relative z-10">
-                  <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-1 mb-3 gap-1.5 inline-flex items-center">
+                  <Badge className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs px-3 py-1 mb-3 gap-1.5 inline-flex items-center">
                     <Truck className="w-3.5 h-3.5" />
                     <span>{isSinhala ? 'නොමිලේ නිවසටම ප්‍රවාහනය' : isTamil ? 'இலவச வீட்டு விநியோகம்' : 'Free Island-Wide Delivery'}</span>
                   </Badge>
@@ -286,7 +286,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {localizedData.studyPackItems.map((item, idx) => (
                       <div key={idx} className="p-4 rounded-xl bg-background/90 border border-emerald-500/20 shadow-sm flex items-start gap-3.5">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
                           {item.iconType === 'book' && <BookOpen className="w-5 h-5" />}
                           {item.iconType === 'workbook' && <FileCheck2 className="w-5 h-5" />}
                           {item.iconType === 'chart' && <Layers className="w-5 h-5" />}
@@ -374,7 +374,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {localizedData.whoCanJoin.map((item, i) => (
                     <div key={i} className="p-4 rounded-xl border border-border/70 bg-secondary/15 flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-5 h-5 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
                       <div>
                         <h3 className="font-headline font-bold text-sm text-foreground mb-1">{item.title}</h3>
                         <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
@@ -399,11 +399,11 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {localizedData.careers.map((career, i) => (
                     <div key={i} className="p-4 rounded-xl border border-border/70 bg-background flex items-start gap-3.5 hover:border-primary/40 transition-all">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
                         <Briefcase className="w-5 h-5" />
                       </div>
                       <div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-primary block mb-0.5">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-primary block mb-0.5">
                           {career.field}
                         </span>
                         <h3 className="font-headline font-bold text-sm text-foreground mb-1">{career.role}</h3>
@@ -483,7 +483,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                       priority
                     />
                     <div className="absolute top-3 left-3 z-10">
-                      <Badge className="bg-emerald-600 text-white font-semibold text-xs border-none shadow-md">
+                      <Badge className="bg-emerald-700 text-white font-semibold text-xs border-none shadow-md">
                         {course.skill_level || "Certificate"}
                       </Badge>
                     </div>
@@ -497,14 +497,14 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                   <CardContent className="p-6">
                     {/* Course Tuition */}
                     <div className="mb-5 pb-5 border-b border-border/80">
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold block mb-1">
+                      <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold block mb-1">
                         {isSinhala ? 'පාඨමාලා ගාස්තුව' : isTamil ? 'பாடநெறிக் கட்டணம்' : 'Course Tuition'}
                       </span>
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="text-3xl font-headline font-bold text-foreground">
                           {feeNumber > 0 ? `LKR ${feeNumber.toLocaleString()}` : "Contact for Fee"}
                         </span>
-                        <Badge variant="secondary" className="text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10">
+                        <Badge variant="secondary" className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10">
                           {isSinhala ? 'සීමිත ආසන' : isTamil ? 'வரையறுக்கப்பட்ட இடங்கள்' : 'Limited Seats'}
                         </Badge>
                       </div>
@@ -526,9 +526,9 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-2 text-foreground/90 font-medium">
-                          <Package className="w-4 h-4 text-emerald-600" /> {isSinhala ? 'මුද්‍රිත පොත්:' : 'Study Pack:'}
+                          <Package className="w-4 h-4 text-emerald-700 dark:text-emerald-400" /> {isSinhala ? 'මුද්‍රිත පොත්:' : 'Study Pack:'}
                         </span>
-                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">{isSinhala ? 'නිවසටම නොමිලේ' : 'Free Doorstep'}</span>
+                        <span className="font-semibold text-emerald-700 dark:text-emerald-400">{isSinhala ? 'නිවසටම නොමිලේ' : 'Free Doorstep'}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-2 text-foreground/90 font-medium">
@@ -540,7 +540,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                         <span className="flex items-center gap-2 text-foreground/90 font-medium">
                           <CalendarDays className="w-4 h-4 text-primary" /> {isSinhala ? 'ලියාපදිංචිය:' : 'Intake:'}
                         </span>
-                        <span className="font-semibold text-amber-600 dark:text-amber-400">{isSinhala ? 'දැන් විවෘතයි' : 'Now Open'}</span>
+                        <span className="font-semibold text-amber-700 dark:text-amber-400">{isSinhala ? 'දැන් විවෘතයි' : 'Now Open'}</span>
                       </div>
                     </div>
 
@@ -558,7 +558,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                       rel="noopener noreferrer"
                       className="w-full mt-3 font-semibold text-xs flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-emerald-600/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all text-center"
                     >
-                      <MessageCircle className="w-4 h-4 shrink-0 text-emerald-600" />
+                      <MessageCircle className="w-4 h-4 shrink-0 text-emerald-700 dark:text-emerald-400" />
                       <span>{isSinhala ? 'WhatsApp මගින් ක්ෂණික විමසීම්' : isTamil ? 'WhatsApp மூலம் விசாரிக்கவும்' : 'Inquire via WhatsApp'}</span>
                     </a>
 
@@ -575,8 +575,8 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
 
                     {/* Trust Footnote */}
                     <div className="mt-4 pt-3 border-t border-border/50 text-center">
-                      <p className="text-[11px] text-muted-foreground flex items-center justify-center gap-1.5 font-medium">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5 font-medium">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                         <span>{isSinhala ? 'ක්ෂණික LMS පිවිසුම සහ නිල රිසිට්පත' : 'Instant LMS Access & Official Receipt'}</span>
                       </p>
                     </div>
@@ -589,12 +589,12 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
                     <Lock className="w-4 h-4 text-primary" />
                     <span>{isSinhala ? '24/7 සත්‍යාපනය කළ හැකි සහතිකය' : '24/7 Verifiable Credential'}</span>
                   </div>
-                  <p className="leading-relaxed text-[11px]">
+                  <p className="leading-relaxed text-xs">
                     {isSinhala 
                       ? 'අපගේ සෑම සහතිකයකටම අනන්‍ය වූ QR කේතයක් පවතින අතර pharmacollege.lk/certificates මගින් රෝහල් වලට සෘජුවම තහවුරු කරගත හැක.'
                       : 'Every certificate carries an individual QR code and verification ID verifiable worldwide on pharmacollege.lk/certificates.'}
                   </p>
-                  <Link href="/certificates" className="text-primary hover:underline text-[11px] font-semibold inline-flex items-center gap-1">
+                  <Link href="/certificates" className="text-primary hover:underline text-xs font-semibold inline-flex items-center gap-1">
                     <span>{isSinhala ? 'සහතිකපත් සත්‍යාපන ද්වාරය බලන්න' : 'View Verification Portal'}</span>
                     <ArrowRight className="w-3 h-3" />
                   </Link>
@@ -632,7 +632,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
             </div>
 
             <div className="p-6 rounded-2xl bg-card border border-border/80 shadow-sm relative group hover:border-primary/50 transition-all">
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-lg mb-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-center justify-center font-bold text-lg mb-4">
                 2
               </div>
               <h3 className="font-headline font-bold text-lg text-foreground mb-2">
@@ -644,7 +644,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
             </div>
 
             <div className="p-6 rounded-2xl bg-card border border-border/80 shadow-sm relative group hover:border-primary/50 transition-all">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg mb-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold text-lg mb-4">
                 3
               </div>
               <h3 className="font-headline font-bold text-lg text-foreground mb-2">
@@ -672,7 +672,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
       {/* 4. Mobile Floating Sticky Bottom Conversion Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-md border-t border-border lg:hidden flex items-center justify-between gap-3 shadow-2xl">
         <div>
-          <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
+          <span className="text-xs text-muted-foreground uppercase font-semibold block">
             {isSinhala ? 'ගාස්තුව' : 'Fee'}
           </span>
           <span className="text-base font-bold text-foreground">
@@ -685,7 +685,7 @@ export default function CourseDetailClient({ course, slug }: CourseDetailClientP
             href={`https://wa.me/94715884884?text=${encodeURIComponent(whatsappMessage)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-3 rounded-xl bg-emerald-600/10 text-emerald-600 border border-emerald-600/30 flex items-center justify-center"
+            className="p-3 rounded-xl bg-emerald-600/10 text-emerald-700 dark:text-emerald-400 border border-emerald-600/30 flex items-center justify-center"
             aria-label="WhatsApp Inquiry"
           >
             <MessageCircle className="w-5 h-5" />

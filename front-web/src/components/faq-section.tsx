@@ -202,7 +202,7 @@ export default function FAQSection() {
                 {labels.stillQuestions}
               </p>
               <div className="flex flex-col gap-2 pt-1">
-                <Button asChild size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs gap-2 h-9">
+                <Button asChild size="sm" className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs gap-2 h-9">
                   <a href={`https://wa.me/94715884884?text=${encodeURIComponent(getWaText())}`} target="_blank" rel="noopener noreferrer">
                     <MessageCircle className="w-4 h-4" />
                     <span>{labels.waBtn}</span>

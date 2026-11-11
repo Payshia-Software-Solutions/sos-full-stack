@@ -1,6 +1,12 @@
 <?php
 // controllers/ConvocationRegistrationController.php
 
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use Dompdf\Dompdf;
+use Dompdf\Options;
+use chillerlan\QRCode\QRCode;
+
 define('PARENT_SEAT_RATE', 750);
 
 require_once './models/ConvocationRegistration.php';
@@ -218,6 +224,81 @@ class ConvocationRegistrationController
         $convocationId = !empty($data['convocation_id']) ? $data['convocation_id'] : null;
         $session = !empty($data['session']) ? (int)$data['session'] : 1;
 
+        // 0. Verify Student KYC Verification Status
+        $isKycVerified = false;
+        try {
+            $identifiers = [$studentNumber];
+            $noSlash = str_replace('/', '', $studentNumber);
+            if (!empty($noSlash)) $identifiers[] = $noSlash;
+            if (preg_match('/^([A-Za-z]+)(\d{2})(\d{3,})$/', $studentNumber, $m)) {
+                $identifiers[] = $m[1] . '/' . $m[2] . '/' . $m[3];
+            }
+            $identifiers = array_values(array_unique(array_filter($identifiers)));
+            $placeholders = implode(',', array_fill(0, count($identifiers), '?'));
+
+            // 1. Check users table verification_status
+            $userStmt = $this->pdo->prepare("
+                SELECT verification_status 
+                FROM users 
+                WHERE username IN ($placeholders) OR userid IN ($placeholders)
+                LIMIT 1
+            ");
+            $userStmt->execute(array_merge($identifiers, $identifiers));
+            $userRow = $userStmt->fetch(PDO::FETCH_ASSOC);
+            if ($userRow) {
+                $uStatus = strtolower(trim($userRow['verification_status'] ?? ''));
+                if ($uStatus === 'verified' || $uStatus === 'approved') {
+                    $isKycVerified = true;
+                }
+            }
+
+            // 2. Check student_document_verifications table status
+            if (!$isKycVerified) {
+                $docStmt = $this->pdo->prepare("
+                    SELECT status 
+                    FROM student_document_verifications 
+                    WHERE student_id IN ($placeholders) 
+                    ORDER BY id DESC LIMIT 1
+                ");
+                $docStmt->execute($identifiers);
+                $docRow = $docStmt->fetch(PDO::FETCH_ASSOC);
+                if ($docRow) {
+                    $dStatus = strtolower(trim($docRow['status'] ?? ''));
+                    if ($dStatus === 'approved' || $dStatus === 'verified') {
+                        $isKycVerified = true;
+                    }
+                }
+            }
+
+            // 3. Check user_full_details table verification_status
+            if (!$isKycVerified) {
+                $ufdStmt = $this->pdo->prepare("
+                    SELECT verification_status 
+                    FROM user_full_details 
+                    WHERE username IN ($placeholders) OR student_id IN ($placeholders) 
+                    LIMIT 1
+                ");
+                $ufdStmt->execute(array_merge($identifiers, $identifiers));
+                $ufdRow = $ufdStmt->fetch(PDO::FETCH_ASSOC);
+                if ($ufdRow) {
+                    $ufdStatus = strtolower(trim($ufdRow['verification_status'] ?? ''));
+                    if ($ufdStatus === 'verified' || $ufdStatus === 'approved') {
+                        $isKycVerified = true;
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            // Silently log or continue
+        }
+
+        if (!$isKycVerified) {
+            http_response_code(403);
+            echo json_encode([
+                'error' => 'Student Document Verification (KYC) must be approved before you can register for a convocation ceremony. Please complete your identity verification first.'
+            ]);
+            return;
+        }
+
         // 1. Check for Duplicate Active Booking
         if ($convocationId) {
             $existing = $this->model->getActiveRegistrationByStudentAndConvocation($studentNumber, $convocationId);
@@ -235,6 +316,14 @@ class ConvocationRegistrationController
         if ($convocationId) {
             $convocation = $this->convocationModel->getConvocationById($convocationId);
             if ($convocation) {
+                $configuredSessions = (int)($convocation['session_count'] ?? 1);
+                if ($session > $configuredSessions) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'error' => "Session {$session} is not available for this ceremony. Only {$configuredSessions} session(s) configured."
+                    ]);
+                    return;
+                }
                 $maxSeats = ($session === 2) ? (int)($convocation['session_2'] ?? 0) : (int)($convocation['student_seats'] ?? 0);
                 if ($maxSeats > 0) {
                     $currentRegistered = $this->model->getSessionCount($convocationId, $session);
@@ -328,7 +417,15 @@ class ConvocationRegistrationController
             if ($convocationId) {
                 $convocation = $this->convocationModel->getConvocationById($convocationId);
                 if ($convocation) {
-                    $maxSeats = ($session === 2) ? (int)($convocation['session_2'] ?? 0) : (int)($convocation['student_seats'] ?? 0);
+                    $configuredSessions = (int)($convocation['session_count'] ?? 1);
+                if ($session > $configuredSessions) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'error' => "Session {$session} is not available for this ceremony. Only {$configuredSessions} session(s) configured."
+                    ]);
+                    return;
+                }
+                $maxSeats = ($session === 2) ? (int)($convocation['session_2'] ?? 0) : (int)($convocation['student_seats'] ?? 0);
                     if ($maxSeats > 0) {
                         $currentCount = $this->model->getSessionCount($convocationId, $session);
                         if ($currentCount >= $maxSeats) {
@@ -353,7 +450,9 @@ class ConvocationRegistrationController
                 $paymentSlipPath,
                 $data['additional_seats'] ?? 0,
                 $session,
-                $convocationId
+                $convocationId,
+                $data['refreshment_tokens'] ?? 0,
+                (!empty($data['medal_type_id']) && $data['medal_type_id'] !== 'none') ? (is_array($data['medal_type_id']) ? implode(',', array_filter($data['medal_type_id'])) : trim((string)$data['medal_type_id'])) : null
             );
 
             $this->pdo->commit();
@@ -405,7 +504,9 @@ class ConvocationRegistrationController
             $updated_data['registration_status'],
             $updated_data['convocation_id'],
             $updated_data['session'],
-            $updated_data['additional_seats']
+            $updated_data['additional_seats'],
+            $updated_data['refreshment_tokens'] ?? 0,
+            (!empty($updated_data['medal_type_id']) && $updated_data['medal_type_id'] !== 'none') ? (is_array($updated_data['medal_type_id']) ? implode(',', array_filter($updated_data['medal_type_id'])) : trim((string)$updated_data['medal_type_id'])) : null
         );
 
         if ($success) {
@@ -494,6 +595,55 @@ class ConvocationRegistrationController
         }
     }
 
+    public function updateRefreshmentTokens($reference_number)
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $tokens = $_POST['refreshment_tokens'] ?? $input['refreshment_tokens'] ?? null;
+        if ($tokens === null) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Missing required refreshment_tokens field']);
+            return;
+        }
+
+        $refreshment_tokens = (int)$tokens;
+
+        $updated = $this->model->updateRefreshmentTokens($reference_number, $refreshment_tokens);
+        if ($updated) {
+            http_response_code(200);
+            echo json_encode([
+                'status' => 'Success',
+                'message' => 'Refreshment tokens updated to ' . $refreshment_tokens,
+                'reference_number' => $reference_number,
+            ]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to update refreshment tokens']);
+        }
+    }
+
+    public function updateMedalType($reference_number)
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $rawMedal = $_POST['medal_type_id'] ?? $input['medal_type_id'] ?? null;
+        if (is_array($rawMedal)) {
+            $rawMedal = implode(',', array_filter($rawMedal));
+        }
+        $medal_type_id = (!empty($rawMedal) && $rawMedal !== 'none') ? trim((string)$rawMedal) : null;
+
+        $updated = $this->model->updateMedalType($reference_number, $medal_type_id);
+        if ($updated) {
+            http_response_code(200);
+            echo json_encode([
+                'status' => 'Success',
+                'message' => 'Medal type updated',
+                'reference_number' => $reference_number,
+                'medal_type_id' => $medal_type_id
+            ]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to update medal type']);
+        }
+    }
 
     public function updatePackages($reference_number)
     {
@@ -634,12 +784,12 @@ class ConvocationRegistrationController
 
 
     /**
-     * Send the appropriate ceremony‑related SMS and return a JSON status block.
+     * Send the appropriate ceremonyâ€‘related SMS and return a JSON status block.
      *
      * Contract:
-     *   - Success  → HTTP 200 + { status: "success", ...extraInfo }
-     *   - Business error (e.g. missing data) → HTTP 400 + { status: "error", message: "..." }
-     *   - System/runtime error              → HTTP 500 + { status: "error", message: "..." }
+     *   - Success  â†’ HTTP 200 + { status: "success", ...extraInfo }
+     *   - Business error (e.g. missing data) â†’ HTTP 400 + { status: "error", message: "..." }
+     *   - System/runtime error              â†’ HTTP 500 + { status: "error", message: "..." }
      *
      * @param string $reference_number
      * @return void  (prints/echoes JSON + sets http_response_code)
@@ -816,7 +966,7 @@ class ConvocationRegistrationController
             );
         }
 
-        // 🔔 Trigger SMS logic cleanly
+        // ðŸ”” Trigger SMS logic cleanly
         $smsResult = $this->notifyCeremonyNumber($reference_number);
 
         http_response_code(200);
@@ -902,7 +1052,19 @@ class ConvocationRegistrationController
             throw new RuntimeException('Package not found');
         }
 
-        $convocationBalance = ($package['price'] + ($registration['additional_seats'] * PARENT_SEAT_RATE)) - $registration['payment_amount'];
+        $ceremony = !empty($registration['convocation_id']) ? $this->convocationModel->getConvocationById($registration['convocation_id']) : null;
+        $seatRate = (isset($ceremony['parent_seat_price']) && $ceremony['parent_seat_price'] !== null)
+            ? (float)$ceremony['parent_seat_price']
+            : (defined('PARENT_SEAT_RATE') ? PARENT_SEAT_RATE : 750);
+        $tokenRate = (isset($ceremony['refreshment_token_price']) && $ceremony['refreshment_token_price'] !== null)
+            ? (float)$ceremony['refreshment_token_price']
+            : 0;
+
+        $totalPayable = (float)$package['price']
+            + (((int)($registration['additional_seats'] ?? 0)) * $seatRate)
+            + (((int)($registration['refreshment_tokens'] ?? 0)) * $tokenRate);
+
+        $convocationBalance = $totalPayable - (float)$registration['payment_amount'];
         $courseBalance      = $this->CcEvaluationController->model->GetStudentBalance($studentNumber)['studentBalance'] ?? 0;
 
         return [
@@ -925,7 +1087,19 @@ class ConvocationRegistrationController
             throw new RuntimeException('Package not found');
         }
 
-        $convocationBalance = ($package['price'] + ($registration['additional_seats'] * PARENT_SEAT_RATE)) - $registration['payment_amount'];
+        $ceremony = !empty($registration['convocation_id']) ? $this->convocationModel->getConvocationById($registration['convocation_id']) : null;
+        $seatRate = (isset($ceremony['parent_seat_price']) && $ceremony['parent_seat_price'] !== null)
+            ? (float)$ceremony['parent_seat_price']
+            : (defined('PARENT_SEAT_RATE') ? PARENT_SEAT_RATE : 750);
+        $tokenRate = (isset($ceremony['refreshment_token_price']) && $ceremony['refreshment_token_price'] !== null)
+            ? (float)$ceremony['refreshment_token_price']
+            : 0;
+
+        $totalPayable = (float)$package['price']
+            + (((int)($registration['additional_seats'] ?? 0)) * $seatRate)
+            + (((int)($registration['refreshment_tokens'] ?? 0)) * $tokenRate);
+
+        $convocationBalance = $totalPayable - (float)$registration['payment_amount'];
         $courseBalance      = $this->CcEvaluationController->model->GetStudentBalance($student_number)['studentBalance'] ?? 0;
 
         return [
@@ -1034,4 +1208,541 @@ class ConvocationRegistrationController
     }
 }
 
+    public function downloadBookingSummaryPdf($id)
+    {
+        try {
+            $registration = null;
+            if (is_numeric($id)) {
+                $registration = $this->model->getRegistrationById($id);
+                if (!$registration) {
+                    $registration = $this->model->getRegistrationByReference($id);
+                }
+            } else {
+                $registrations = $this->model->getRegistrationByStudentNumber($id);
+                if (!empty($registrations)) {
+                    $registration = $registrations[0];
+                }
+            }
+
+            if (!$registration) {
+                http_response_code(404);
+                header('Content-Type: application/json');
+                echo json_encode(['error' => 'Convocation registration not found']);
+                return;
+            }
+
+            $studentNumber = $registration['student_number'];
+            $user = $this->userFullDetailsController->model->getUserByUserName($studentNumber);
+            $ceremony = !empty($registration['convocation_id']) ? $this->convocationModel->getConvocationById($registration['convocation_id']) : null;
+            $pkg = !empty($registration['package_id']) ? $this->packageController->model->getPackageById($registration['package_id']) : null;
+
+            // Rates & Totals
+            $seatRate = (isset($ceremony['parent_seat_price']) && $ceremony['parent_seat_price'] !== null)
+                ? (float)$ceremony['parent_seat_price']
+                : (defined('PARENT_SEAT_RATE') ? PARENT_SEAT_RATE : 750.00);
+            $tokenRate = (isset($ceremony['refreshment_token_price']) && $ceremony['refreshment_token_price'] !== null)
+                ? (float)$ceremony['refreshment_token_price']
+                : 0.00;
+
+            $pkgPrice = (float)($pkg['price'] ?? 0);
+            $additionalSeats = (int)($registration['additional_seats'] ?? 0);
+            $additionalSeatsSubtotal = $additionalSeats * $seatRate;
+            $tokens = (int)($registration['refreshment_tokens'] ?? 0);
+            $tokensSubtotal = $tokens * $tokenRate;
+
+            $totalPayable = $pkgPrice + $additionalSeatsSubtotal + $tokensSubtotal;
+            $paidAmount = (float)($registration['payment_amount'] ?? 0);
+            $dueBalance = max(0, $totalPayable - $paidAmount);
+
+            // Course names
+            $courseNames = [];
+            if (!empty($registration['course_id'])) {
+                $cIds = array_map('trim', explode(',', $registration['course_id']));
+                foreach ($cIds as $cid) {
+                    if (is_numeric($cid)) {
+                        $st = $this->pdo->prepare("SELECT course_name FROM parent_main_course WHERE id = ?");
+                        $st->execute([$cid]);
+                        $cn = $st->fetchColumn();
+                        if ($cn) {
+                            $courseNames[] = $cn;
+                            continue;
+                        }
+                        $st = $this->pdo->prepare("SELECT course_name, course_code FROM course WHERE id = ?");
+                        $st->execute([$cid]);
+                        $cRow = $st->fetch(PDO::FETCH_ASSOC);
+                        if ($cRow) {
+                            $courseNames[] = $cRow['course_name'] . ($cRow['course_code'] ? ' (' . $cRow['course_code'] . ')' : '');
+                            continue;
+                        }
+                    }
+                    $courseNames[] = $cid;
+                }
+            }
+            if (empty($courseNames)) {
+                $courseNames[] = 'Pharmacy Practice Program';
+            }
+
+            // Package included items
+            $pkgFeatures = [];
+            if (!empty($pkg['student_seat'])) $pkgFeatures[] = 'Student Seat';
+            if (!empty($pkg['graduation_cloth'])) $pkgFeatures[] = 'Graduation Cloak';
+            if (!empty($pkg['garland'])) $pkgFeatures[] = 'Garland';
+            if (!empty($pkg['scroll'])) $pkgFeatures[] = 'Scroll';
+            if (!empty($pkg['certificate_file'])) $pkgFeatures[] = 'Certificate File';
+            if (!empty($pkg['photo_package'])) $pkgFeatures[] = 'Graduation Hat';
+            if (!empty($pkg['video_360'])) $pkgFeatures[] = '360 Video';
+            if (!empty($pkg['refreshments'])) $pkgFeatures[] = 'Refreshments';
+
+            $pkgFeaturesHtml = '';
+            if (!empty($pkgFeatures)) {
+                $pkgFeaturesHtml .= '<table style="width: 100%; margin-top: 6px; border: none; font-size: 9.5px; color: #475569;">';
+                $chunks = array_chunk($pkgFeatures, 2);
+                foreach ($chunks as $chunk) {
+                    $pkgFeaturesHtml .= '<tr>';
+                    $pkgFeaturesHtml .= '<td style="padding: 2.5px 0; border: none; width: 50%;"><span style="color: #0f766e; font-weight: bold;">&bull;</span> ' . htmlspecialchars($chunk[0]) . '</td>';
+                    $pkgFeaturesHtml .= '<td style="padding: 2.5px 0; border: none; width: 50%;">' . (isset($chunk[1]) ? '<span style="color: #0f766e; font-weight: bold;">&bull;</span> ' . htmlspecialchars($chunk[1]) : '') . '</td>';
+                    $pkgFeaturesHtml .= '</tr>';
+                }
+                $pkgFeaturesHtml .= '</table>';
+            }
+
+            $refNumber = $registration['reference_number'] ?: $registration['registration_id'];
+            $logoPath = __DIR__ . '/../assets/Ceylon-Pharma-College_LOGO.png';
+            $logoSrc = file_exists($logoPath) ? ('data:image/png;base64,' . base64_encode(file_get_contents($logoPath))) : '';
+
+            $warningSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="#fef08a" stroke="#a16207" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+            $warningIcon = 'data:image/svg+xml;base64,' . base64_encode($warningSvg);
+
+
+            $heldDateFormatted = !empty($ceremony['held_on']) ? date('l, d F Y', strtotime($ceremony['held_on'])) : 'To Be Announced';
+            $regDateFormatted = !empty($registration['registered_at']) ? date('d M Y, h:i A', strtotime($registration['registered_at'])) : date('d M Y');
+
+            $statusColor = ($registration['payment_status'] === 'paid' || $registration['payment_status'] === 'verified') ? '#15803d' : (($dueBalance <= 0) ? '#15803d' : '#b45309');
+            $statusText = strtoupper($registration['payment_status'] ?? 'PENDING');
+            if ($statusText === 'PARTIALLY-PAID') $statusText = 'PARTIALLY PAID';
+
+            $sessionDisplay = 'Session ' . ($registration['session'] ?? 1);
+
+            $ceremonyNum = !empty($registration['ceremony_number']) ? htmlspecialchars($registration['ceremony_number']) : 'Pending Verification';
+            $nameOnCert = htmlspecialchars($registration['name_on_certificate'] ?? $user['name_on_certificate'] ?? $user['full_name'] ?? 'N/A');
+            $fullName = htmlspecialchars($user['full_name'] ?? $nameOnCert);
+            $phone = htmlspecialchars($registration['telephone_1'] ?? $user['telephone_1'] ?? 'N/A');
+            $nic = htmlspecialchars($user['nic'] ?? 'N/A');
+
+            $medalsRaw = !empty($registration['medal_name']) ? trim($registration['medal_name']) : '';
+            $medalsHtml = '';
+            if (!empty($medalsRaw)) {
+                $medalParts = array_map('trim', explode(',', $medalsRaw));
+                $badges = [];
+                foreach ($medalParts as $m) {
+                    if (!empty($m)) {
+                        $badges[] = '<span style="display: inline-block; background-color: #fef3c7; color: #92400e; border: 1.5px solid #f59e0b; padding: 3px 10px; border-radius: 4px; font-weight: 700; font-size: 10.5px; margin-right: 6px;">&#9733; ' . htmlspecialchars($m) . '</span>';
+                    }
+                }
+                $medalsHtml = implode(' ', $badges);
+            } else {
+                $medalsHtml = '<span style="color: #64748b; font-size: 10px; font-style: italic;">Standard Graduand (No special academic awards assigned)</span>';
+            }
+            $email = htmlspecialchars($user['e_mail'] ?? 'N/A');
+
+            $vipSeatsCount = !empty($pkg['vip_seat']) ? (int)$pkg['vip_seat'] : 0;
+
+            $html = '
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Convocation Admission #' . $refNumber . '</title>
+<style>
+    @page {
+        margin: 8mm 11mm 8mm 11mm;
+    }
+    body {
+        font-family: "DejaVu Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 11px;
+        color: #1e293b;
+        line-height: 1.35;
+        margin: 0;
+        padding: 0;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .header-table {
+        border-bottom: 2px solid #0f766e;
+        padding-bottom: 6px;
+        margin-bottom: 8px;
+    }
+    .doc-type {
+        font-size: 16px;
+        font-weight: 800;
+        color: #0f766e;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+    .inst-sub {
+        font-size: 9.5px;
+        color: #64748b;
+        margin-top: 2px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+    }
+    .ref-badge {
+        text-align: right;
+    }
+    .ref-title {
+        font-size: 9px;
+        color: #64748b;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    .ref-no {
+        font-size: 24px;
+        font-weight: 900;
+        color: #0f766e;
+        letter-spacing: 1.5px;
+        line-height: 1.1;
+    }
+    .disclaimer-box {
+        background-color: #fefce8;
+        border: 1.5px dashed #ca8a04;
+        border-radius: 6px;
+        padding: 7px 11px;
+        margin-bottom: 8px;
+    }
+    .disclaimer-title {
+        font-size: 10px;
+        font-weight: 800;
+        color: #a16207;
+        margin-bottom: 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+    .disclaimer-body {
+        font-size: 8.5px;
+        color: #854d0e;
+        line-height: 1.35;
+    }
+    .section-head {
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #0f766e;
+        border-bottom: 1.5px solid #cbd5e1;
+        padding-bottom: 3px;
+        margin-bottom: 6px;
+    }
+    .info-table {
+        margin-bottom: 8px;
+    }
+    .info-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 8px 11px;
+        vertical-align: top;
+    }
+    .data-label {
+        font-size: 8.5px;
+        color: #64748b;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        margin-bottom: 1px;
+    }
+    .data-val {
+        font-size: 11px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .breakdown-table {
+        margin-top: 3px;
+        margin-bottom: 8px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+    }
+    .breakdown-table th {
+        background: #f1f5f9;
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #334155;
+        padding: 6px 9px;
+        text-align: left;
+        border-bottom: 1.5px solid #cbd5e1;
+    }
+    .breakdown-table td {
+        padding: 6px 9px;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 9.5px;
+    }
+    .breakdown-table tr:last-child td {
+        border-bottom: none;
+    }
+    .text-right {
+        text-align: right;
+    }
+    .notes-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 8px 11px;
+        vertical-align: top;
+        margin-top: 6px;
+    }
+    .notes-title {
+        font-size: 9.5px;
+        font-weight: 800;
+        color: #1e293b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    .notes-list {
+        margin: 0;
+        padding-left: 15px;
+        font-size: 8px;
+        color: #475569;
+        line-height: 1.4;
+    }
+    .notes-list li {
+        padding-bottom: 2px;
+    }
+    .footer {
+        border-top: 1px solid #e2e8f0;
+        padding-top: 5px;
+        margin-top: 8px;
+        font-size: 7.5px;
+        color: #94a3b8;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+
+    <!-- Header -->
+    <table class="header-table">
+        <tr>
+            ' . (!empty($logoSrc) ? '
+            <td style="vertical-align: middle; width: 175px; padding-right: 14px;">
+                <img src="' . $logoSrc . '" style="width: 170px; height: auto;" alt="Ceylon Pharma College" />
+            </td>' : '') . '
+            <td style="vertical-align: middle;">
+                <div class="doc-type">Convocation Admission</div>
+                <div class="inst-sub">Convocation Management System</div>
+            </td>
+            <td class="ref-badge" style="vertical-align: middle; width: 180px;">
+                <div class="ref-title">Ceremony Number</div>
+                <div class="ref-no">' . (!empty($registration['ceremony_number']) ? htmlspecialchars($registration['ceremony_number']) : 'Pending') . '</div>
+                <div style="font-size: 10px; color: #64748b; font-weight: 700; margin-top: 2px;">Booking Ref: #' . $refNumber . '</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Prominent Disclaimer -->
+    <div class="disclaimer-box">
+        <div class="disclaimer-title">
+            <img src="' . $warningIcon . '" style="width: 11px; height: 11px; vertical-align: -1px; margin-right: 3px;" alt="Warning" />
+            IMPORTANT NOTICE &bull; FOR INFORMATION PURPOSES ONLY
+        </div>
+        <div class="disclaimer-body">
+            <strong>THIS SLIP IS NOT AN ADMISSION PASS AND CANNOT BE USED FOR CONVOCATION VENUE ENTRY.</strong><br>
+            This document confirms your registration, selected ceremony package, add-ons, and payment settlement status. Official physical venue entrance passes, guest tickets, and academic regalia tokens are issued exclusively at the Convocation Helpdesk / Verification Counter upon full payment settlement and identity verification.
+        </div>
+    </div>
+
+    <!-- 2 Column Details: Student Info & Ceremony Info -->
+    <table class="info-table" style="width: 100%;">
+        <tr>
+            <!-- Left: Student Info -->
+            <td style="width: 49%; vertical-align: top; padding-right: 6px;">
+                <div class="info-card">
+                    <div class="section-head">Student Information</div>
+                    <table style="width: 100%;">
+                        <tr>
+                            <td style="width: 50%; padding-bottom: 7px;">
+                                <div class="data-label">Student ID / Reg No</div>
+                                <div class="data-val">' . htmlspecialchars($registration['student_number']) . '</div>
+                            </td>
+                            <td style="width: 50%; padding-bottom: 7px;">
+                                <div class="data-label">NIC / Passport</div>
+                                <div class="data-val">' . $nic . '</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <div class="data-label">Name on Certificate</div>
+                                <div class="data-val" style="font-size: 12px; color: #0f766e;">' . $nameOnCert . '</div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+
+            <!-- Right: Ceremony Info -->
+            <td style="width: 51%; vertical-align: top; padding-left: 6px;">
+                <div class="info-card">
+                    <div class="section-head">Ceremony &amp; Allocation Details</div>
+                    <table style="width: 100%;">
+                        <tr>
+                            <td colspan="2" style="padding-bottom: 7px;">
+                                <div class="data-label">Convocation Event</div>
+                                <div class="data-val">' . htmlspecialchars($ceremony['convocation_name'] ?? 'Annual Convocation') . '</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="width: 50%; padding-bottom: 7px;">
+                                <div class="data-label">Ceremony Date</div>
+                                <div class="data-val">' . $heldDateFormatted . '</div>
+                            </td>
+                            <td style="width: 50%; padding-bottom: 7px;">
+                                <div class="data-label">Allocated Session</div>
+                                <div class="data-val">' . $sessionDisplay . '</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="width: 50%;">
+                                <div class="data-label">Booking Reference</div>
+                                <div class="data-val" style="color: #0f766e; font-size: 12px; font-weight: 700;">#' . $refNumber . '</div>
+                            </td>
+                            <td style="width: 50%;">
+                                <div class="data-label">Registration Date</div>
+                                <div class="data-val">' . $regDateFormatted . '</div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Dedicated Academic Honors & Awards Card -->
+    <div style="background: #fffdf5; border: 1px solid #fde68a; border-left: 4.5px solid #f59e0b; border-radius: 6px; padding: 7px 12px; margin-bottom: 10px;">
+        <table style="width: 100%; border: none;">
+            <tr>
+                <td style="width: 190px; vertical-align: middle; border: none;">
+                    <div style="font-size: 9.5px; color: #b45309; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">Academic Honors / Medals:</div>
+                </td>
+                <td style="vertical-align: middle; border: none;">
+                    ' . $medalsHtml . '
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Academic Program -->
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 7px 12px; margin-bottom: 10px;">
+        <span style="font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: 800;">Included Academic Program(s): </span>
+        <span style="font-size: 11px; font-weight: 800; color: #0f172a;">' . htmlspecialchars(implode(', ', $courseNames)) . '</span>
+    </div>
+
+    <!-- Entitlements & Allocation Table -->
+    <table class="breakdown-table">
+        <thead>
+            <tr>
+                <th style="width: 72%;">Item / Entitlement</th>
+                <th style="width: 28%;" class="text-right">Allocated Quantity</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <strong style="color: #0f172a; font-size: 11px;">Ceremony Package: ' . htmlspecialchars($pkg['package_name'] ?? 'Package') . '</strong>
+                    ' . $pkgFeaturesHtml . '
+                </td>
+                <td class="text-right"><strong style="color: #0f766e; font-size: 11.5px;">1 Graduand Pass</strong></td>
+            </tr>
+            ' . ($vipSeatsCount > 0 ? '
+            <tr>
+                <td>
+                    <strong style="color: #b45309; font-size: 11px;">VIP Guest Seats (Included in Package)</strong>
+                    <div style="font-size: 8.5px; color: #64748b;">Special front-row VIP reserved auditorium seating</div>
+                </td>
+                <td class="text-right"><strong style="color: #b45309; font-size: 11.5px;">' . $vipSeatsCount . ' VIP Seat(s)</strong></td>
+            </tr>' : '') . '
+            <tr>
+                <td>
+                    <strong style="color: #0f172a; font-size: 11px;">Additional Guest Seats</strong>
+                    <div style="font-size: 8.5px; color: #64748b;">Reserved auditorium seats for guests / parents</div>
+                </td>
+                <td class="text-right"><strong style="color: #0f766e; font-size: 11.5px;">' . $additionalSeats . ' Seat(s)</strong></td>
+            </tr>
+            <tr>
+                <td>
+                    <strong style="color: #0f172a; font-size: 11px;">Refreshment Tokens</strong>
+                    <div style="font-size: 8.5px; color: #64748b;">Special refreshment meal packs for guests</div>
+                </td>
+                <td class="text-right"><strong style="color: #0f766e; font-size: 11.5px;">' . $tokens . ' Token(s)</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Instructions & Verification Guidelines -->
+    <div class="notes-card">
+        <div class="notes-title">Instructions &amp; Verification Guidelines</div>
+        <ol class="notes-list">
+            <li><strong>Confirmation:</strong> All details must be carefully checked and final attendance confirmed at least <strong>07 days before the ceremony</strong>.</li>
+            <li><strong>Identity Verification:</strong> Present this slip at the Verification Counter to collect your Graduation Cloak, Visitor Pass, Garland, Medal and Refreshment Pass.</li>
+            <li><strong>Registration:</strong> Registration must be completed at least <strong>30 minutes before the scheduled ceremony time</strong>.</li>
+            <li><strong>Dress Code:</strong> All graduands and guests must attend the ceremony wearing the prescribed formal attire.</li>
+            <li><strong>Important Notice:</strong> This slip contains seat reservation and registration details only. It is <strong>NOT a valid venue entry pass</strong>. An official entry pass must be obtained from the Verification Counter.</li>
+        </ol>
+    </div>
+
+    <!-- Inspirational Quote Banner (User requested) -->
+    <div style="margin-top: 10px; margin-bottom: 6px; padding: 8px 14px; background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 6px; text-align: center;">
+        <div style="font-size: 10.5px; font-weight: 900; color: #0f766e; letter-spacing: 1px; text-transform: uppercase;">
+            THIS IS NOT THE END. IT&#39;S THE BEGINNING OF SOMETHING GREATER.
+        </div>
+        <div style="font-size: 9px; color: #475569; margin-top: 3px; font-style: italic;">
+            Celebrate Your Achievement. Believe in Yourself. Keep Growing.
+        </div>
+        <div style="font-size: 9px; font-weight: 800; color: #0f172a; margin-top: 3px; letter-spacing: 1.5px;">
+            CEYLON PHARMA COLLEGE &bull; PLAY. LEARN. GROW.
+        </div>
+    </div>
+
+    <!-- Footer: Contact Details & Official Links -->
+    <div class="footer">
+        <div style="font-size: 8.5px; color: #334155; margin-bottom: 2px;">
+            Inquiries &amp; Assistance: <strong style="color: #0f766e;">071 5 884 884</strong> &bull; Website: <a href="https://www.pharmacollege.lk" style="color: #0f766e; text-decoration: none; font-weight: bold;">www.pharmacollege.lk</a>
+        </div>
+        <div style="font-size: 7.5px; color: #94a3b8;">
+            Ceylon Pharma College &bull; Convocation Management System &bull; Generated: ' . date('Y-m-d H:i:s') . '
+        </div>
+    </div>
+
+</body>
+</html>
+';
+
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'DejaVu Sans');
+
+
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            $filename = 'Convocation_Admission_' . $refNumber . '.pdf';
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+            $dompdf->stream($filename, ["Attachment" => true]);
+            exit;
+
+        } catch (Exception $e) {
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Error generating PDF: ' . $e->getMessage()]);
+        }
+    }
 }

@@ -6,9 +6,10 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/_next/'],
+        // /_next/ must stay crawlable: it serves the JS/CSS Google needs to render pages
+        disallow: ['/api/'],
       },
     ],
-    sitemap: 'https://www.pharmacollege.lk/sitemap.xml',
+    sitemap: 'https://pharmacollege.lk/sitemap.xml',
   };
 }

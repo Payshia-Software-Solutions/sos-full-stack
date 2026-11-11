@@ -5,10 +5,14 @@ $pdo = $GLOBALS['pdo'];
 $kycController = new StudentDocumentVerificationController($pdo);
 
 return [
+    'GET /student-kyc/status/{student_number}/' => [$kycController, 'getStatusByStudent'],
+    'GET /student-kyc/status/{studentId}/' => [$kycController, 'getStatusByStudent'],
     'GET /student-kyc/status/{username}/' => [$kycController, 'getStatusByStudent'],
     'POST /student-kyc/submit/' => [$kycController, 'submitDocuments'],
     'GET /admin/student-kyc/' => [$kycController, 'getAllRecords'],
     'GET /admin/student-kyc/{id}/' => [$kycController, 'getRecordById'],
     'POST /admin/student-kyc/{id}/verify/' => [$kycController, 'verifyRecord'],
+    'POST /admin/student-kyc/user-status/{student_number}/' => [$kycController, 'updateUserVerificationStatus'],
+    'POST /admin/student-kyc/user-status/{studentId}/' => [$kycController, 'updateUserVerificationStatus'],
     'POST /admin/student-kyc/user-status/{username}/' => [$kycController, 'updateUserVerificationStatus'],
 ];

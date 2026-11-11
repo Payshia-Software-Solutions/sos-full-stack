@@ -72,8 +72,8 @@ const ContactDetails = () => {
               </p>
             ))}
           </div>
-          <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400 shrink-0" />
             <span>Mon - Sun: 8:30 AM - 6:30 PM</span>
           </div>
         </div>
@@ -89,12 +89,12 @@ const ContactDetails = () => {
               <div key={location.name} className="p-4 rounded-xl border border-border/60 bg-muted/20 hover:border-primary/40 transition-colors">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <h4 className="font-semibold text-sm text-foreground">{t(location.name as any)}</h4>
-                  <Badge variant="outline" className="text-[10px] py-0 px-1.5">
+                  <Badge variant="outline" className="text-xs py-0 px-1.5">
                     {location.tag}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mb-1 leading-relaxed">{t(location.address as any)}</p>
-                <p className="text-[11px] text-muted-foreground/80 mb-2">{location.desc}</p>
+                <p className="text-xs text-muted-foreground/80 mb-2">{location.desc}</p>
                 <a
                   href={location.mapLink}
                   target="_blank"
@@ -151,7 +151,7 @@ export default function ContactClient() {
 
           <div className="max-w-3xl">
             <Badge variant="outline" className="mb-3 px-3 py-1 font-semibold text-primary border-primary/30 gap-1.5 inline-flex items-center">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
               <span>{language === 'si' ? 'ශිෂ්‍ය සහාය සහ විමසීම්' : 'Student Support & Inquiries'}</span>
             </Badge>
 
@@ -182,7 +182,7 @@ export default function ContactClient() {
               </div>
               <p className="text-xs text-muted-foreground font-medium">Direct Admissions</p>
               <p className="font-bold font-mono text-base text-foreground mt-0.5">0715 884 884</p>
-              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">Call Us Directly</p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1 font-medium">Call Us Directly</p>
             </a>
 
             {/* WhatsApp Card */}
@@ -192,12 +192,12 @@ export default function ContactClient() {
               rel="noopener noreferrer"
               className="p-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/60 hover:shadow-lg transition-all group"
             >
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                 <MessageCircle className="w-5 h-5" />
               </div>
               <p className="text-xs text-muted-foreground font-medium">WhatsApp Support</p>
               <p className="font-bold text-base text-foreground mt-0.5">Chat Online</p>
-              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">Instant Response</p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1 font-medium">Instant Response</p>
             </a>
 
             {/* Email Card */}
@@ -205,12 +205,12 @@ export default function ContactClient() {
               href="mailto:info@pharmacollege.lk"
               className="p-5 rounded-2xl border border-border/80 bg-card hover:border-primary/60 hover:shadow-lg transition-all group"
             >
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                 <Mail className="w-5 h-5" />
               </div>
               <p className="text-xs text-muted-foreground font-medium">Email Inquiries</p>
               <p className="font-bold text-sm text-foreground mt-0.5 truncate">info@pharmacollege.lk</p>
-              <p className="text-[11px] text-muted-foreground mt-1">Official Support</p>
+              <p className="text-xs text-muted-foreground mt-1">Official Support</p>
             </a>
           </div>
         </div>

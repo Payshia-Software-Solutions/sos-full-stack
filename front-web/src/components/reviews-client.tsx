@@ -57,7 +57,7 @@ export default function ReviewsClient() {
                 <GoogleLogoIcon className="w-9 h-9" />
               </div>
               <div>
-                <div className="flex items-center justify-center sm:justify-start gap-1 text-amber-500 mb-1">
+                <div className="flex items-center justify-center sm:justify-start gap-1 text-amber-700 dark:text-amber-400 mb-1">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
                   ))}
