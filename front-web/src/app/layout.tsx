@@ -41,7 +41,7 @@ const notoTamil = Noto_Sans_Tamil({
 const siteConfig = {
   name: 'Ceylon Pharma College',
   description: 'Ceylon Pharma College offers ACTD-accredited and ISO 9001:2015 certified practical pharmacy education in Sri Lanka. Interactive classes, educational games, and printed study packs.',
-  url: 'https://www.pharmacollege.lk',
+  url: 'https://pharmacollege.lk',
   ogImage: 'https://content-provider.pharmacollege.lk/website/meta-seo-image.webp',
   tagline: "Practical Pharmacy Courses in Sri Lanka | Play. Learn. Grow.",
 };
@@ -87,14 +87,9 @@ export const metadata: Metadata = {
     images: [siteConfig.ogImage],
     creator: "@ceylonpharma",
   },
-  alternates: {
-    canonical: '/',
-    languages: {
-      'en-US': '/en',
-      'si-LK': '/si',
-      'ta-LK': '/ta',
-    },
-  },
+  // No site-wide canonical/hreflang here: a layout-level canonical is inherited by every
+  // page that lacks its own (pointing them all at the homepage), and /en, /si, /ta routes
+  // do not exist (language switching is client-side). Each page sets its own canonical.
   icons: {
     icon: [
       { url: 'https://content-provider.pharmacollege.lk/website/app-icon/favicon.ico', type: 'image/x-icon' },
@@ -124,7 +119,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`!scroll-smooth ${poppins.variable} ${roboto.variable} ${notoSinhala.variable} ${notoTamil.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`motion-safe:scroll-smooth ${poppins.variable} ${roboto.variable} ${notoSinhala.variable} ${notoTamil.variable}`} suppressHydrationWarning>
       <body className="font-body antialiased">
         <ThemeProvider
           attribute="class"

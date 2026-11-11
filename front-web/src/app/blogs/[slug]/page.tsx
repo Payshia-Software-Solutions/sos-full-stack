@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArrowLeft, Calendar, User, Search } from "lucide-react";
 import { LMS_API_URL } from "@/lib/config";
 import InteractiveArticleBody from "@/components/interactive-article-body";
@@ -59,13 +60,19 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
       : `https://content-provider.pharmacollege.lk/content-provider/uploads/blogs/${blog.image_url}`
     : "https://content-provider.pharmacollege.lk/website/meta-seo-image.webp";
 
+  const canonicalUrl = `https://pharmacollege.lk/blogs/${encodeURIComponent(slug)}`;
+
   return {
     title: `${blog.title} | Ceylon Pharma College Blog`,
     description: cleanDescription,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title: blog.title,
       description: cleanDescription,
       type: "article",
+      url: canonicalUrl,
       images: [
         {
           url: imageUrl,
@@ -92,15 +99,8 @@ export default async function SingleBlogPage({ params }: BlogPageProps) {
   ]);
 
   if (!blog) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center px-4 bg-gray-50 dark:bg-zinc-950">
-        <h1 className="text-3xl font-bold mb-4">Article Not Found</h1>
-        <p className="text-muted-foreground mb-8">The article you are looking for does not exist or has been removed.</p>
-        <Link href="/blogs" className="inline-flex items-center text-primary font-medium hover:underline">
-          <ArrowLeft className="mr-2 w-4 h-4" /> Back to Blogs
-        </Link>
-      </div>
-    );
+    // Real 404 status instead of a 200 "Article Not Found" page (soft 404)
+    notFound();
   }
 
   const recentBlogs = allBlogs.filter((b: any) => b.slug !== slug).slice(0, 4);
@@ -172,7 +172,7 @@ export default async function SingleBlogPage({ params }: BlogPageProps) {
                         <Link 
                           key={trimmed}
                           href={`/blogs?tag=${encodeURIComponent(trimmed)}`}
-                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors"
+                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 dark:text-emerald-400 text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors"
                         >
                           {trimmed}
                         </Link>
@@ -231,7 +231,7 @@ export default async function SingleBlogPage({ params }: BlogPageProps) {
                           <h4 className="font-semibold text-sm text-foreground line-clamp-2 leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                             <Link href={`/blogs/${item.slug}`}>{item.title}</Link>
                           </h4>
-                          <span className="text-[10px] text-muted-foreground block mt-1">
+                          <span className="text-xs text-muted-foreground block mt-1">
                             {new Date(item.created_at || Date.now()).toLocaleDateString()}
                           </span>
                         </div>

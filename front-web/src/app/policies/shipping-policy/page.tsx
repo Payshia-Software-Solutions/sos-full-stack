@@ -5,12 +5,12 @@ export const metadata: Metadata = {
   title: 'මුද්‍රිත පොත් බෙදාහැරීමේ ප්‍රතිපත්තිය | Study Pack Shipping Policy | Ceylon Pharma College',
   description: 'Information regarding free doorstep courier delivery of printed pharmacy workbooks, revision packs, and course study materials across Sri Lanka.',
   alternates: {
-    canonical: 'https://www.pharmacollege.lk/policies/shipping-policy',
+    canonical: 'https://pharmacollege.lk/policies/shipping-policy',
   },
   openGraph: {
     title: 'මුද්‍රිත පොත් බෙදාහැරීමේ ප්‍රතිපත්තිය | Study Pack Shipping Policy | Ceylon Pharma College',
     description: 'Information regarding free doorstep courier delivery of printed pharmacy workbooks, revision packs, and course study materials across Sri Lanka.',
-    url: 'https://www.pharmacollege.lk/policies/shipping-policy',
+    url: 'https://pharmacollege.lk/policies/shipping-policy',
     siteName: 'Ceylon Pharma College',
   },
 };

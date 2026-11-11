@@ -14,12 +14,12 @@ export const metadata: Metadata = {
     'Pharmacy course inquiries Sri Lanka'
   ],
   alternates: {
-    canonical: 'https://www.pharmacollege.lk/contact',
+    canonical: 'https://pharmacollege.lk/contact',
   },
   openGraph: {
     title: 'Contact Ceylon Pharma College | Admissions & Student Support',
     description: 'Admissions hotlines, campus locations, and student counseling channels for Ceylon Pharma College.',
-    url: 'https://www.pharmacollege.lk/contact',
+    url: 'https://pharmacollege.lk/contact',
     siteName: 'Ceylon Pharma College',
     images: [
       {
@@ -44,11 +44,11 @@ export default function ContactPage() {
     '@type': 'ContactPage',
     name: 'Contact Ceylon Pharma College',
     description: 'Official contact information and campus locations for Ceylon Pharma College.',
-    url: 'https://www.pharmacollege.lk/contact',
+    url: 'https://pharmacollege.lk/contact',
     mainEntity: {
       '@type': 'EducationalOrganization',
       name: 'Ceylon Pharma College',
-      url: 'https://www.pharmacollege.lk',
+      url: 'https://pharmacollege.lk',
       telephone: '+94715884884',
       email: 'info@pharmacollege.lk',
       address: [

@@ -10,19 +10,22 @@ import {
     submitSecondPayment, 
     getConvocationStudentCeremonyNumber,
     getConvocationSlipDownloadUrl,
-    downloadConvocationSlipPdf 
+    downloadConvocationSlipPdf,
+    getConvocationCeremonies
 } from '@/lib/actions/certificates';
 import { getStudentKycStatus } from '@/lib/actions/kyc';
 import { getParentCourses } from '@/lib/actions/courses';
+import { getStudentFullInfo } from '@/lib/actions/users';
 import { getPaymentRequestsByReference } from '@/lib/api';
-import type { ConvocationRegistration, ParentCourse, ConvocationPackage, PaymentRequest } from '@/lib/types';
+import type { ConvocationRegistration, ParentCourse, ConvocationPackage, PaymentRequest, ConvocationCeremony, StudentEnrollment, FullStudentData } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, ListOrdered, PlusCircle, ArrowLeft, ArrowRight, GraduationCap, Banknote, Calendar, Users, Wallet, Upload, CheckCircle, Award, Sparkles, ScrollText, FileText, Video, Coffee, Loader2, ExternalLink, Paperclip, Hourglass, ShieldAlert } from 'lucide-react';
+import { AlertCircle, ListOrdered, PlusCircle, ArrowLeft, ArrowRight, GraduationCap, Banknote, Calendar, Users, Wallet, Upload, CheckCircle, Award, Sparkles, ScrollText, FileText, Video, Coffee, Loader2, ExternalLink, Paperclip, Hourglass, ShieldAlert, QrCode } from 'lucide-react';
+
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -87,9 +90,25 @@ const ViewSlipDialog = ({ slipPath, title, trigger }: { slipPath: string | null;
     );
 };
 
-const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: ConvocationRegistration, courseNameMap: Map<string, string>, allPackages: ConvocationPackage[] }) => {
+const ConvocationPass = ({ 
+    booking, 
+    courseNameMap, 
+    allPackages,
+    ceremonies,
+    enrollments,
+    parentCourses
+}: { 
+    booking: ConvocationRegistration; 
+    courseNameMap: Map<string, string>; 
+    allPackages: ConvocationPackage[];
+    ceremonies?: ConvocationCeremony[];
+    enrollments: StudentEnrollment[];
+    parentCourses: ParentCourse[];
+}) => {
     const { user } = useAuth();
     const [isDownloadingPass, setIsDownloadingPass] = useState(false);
+    const [qrLoadError, setQrLoadError] = useState(false);
+
     const handleDownloadPass = async () => {
         try {
             setIsDownloadingPass(true);
@@ -120,13 +139,44 @@ const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: Con
         return null;
     }
 
-    const courseList = booking.course_id
+    const resolvedCourses = (booking.course_id || '')
         .split(',')
         .map(id => id.trim())
         .filter(Boolean)
-        .map(id => courseNameMap.get(id) || `Course (ID: ${id})`);
+        .map(trimmedId => {
+            const matched = enrollments.find(e => 
+                String(e.parent_course_id) === trimmedId || 
+                String(e.id) === trimmedId || 
+                String(e.course_code).toLowerCase() === trimmedId.toLowerCase()
+            );
+            const parentCourse = parentCourses.find(c => String(c.id) === trimmedId);
+            const courseName = matched?.parent_course_name || parentCourse?.course_name || courseNameMap.get(trimmedId) || `Course ${trimmedId}`;
+            const batchCode = matched?.course_code;
+            const batchName = matched?.batch_name;
+            return { id: trimmedId, courseName, batchCode, batchName };
+        });
         
     const pkg = allPackages.find(p => String(p.package_id) === String(booking.package_id));
+    const ceremony = ceremonies?.find(c => String(c.id) === String(booking.convocation_id));
+
+    let convocationDateDisplay = '';
+    if (ceremony?.held_on) {
+        try {
+            const d = new Date(ceremony.held_on);
+            if (!isNaN(d.getTime())) {
+                convocationDateDisplay = format(d, 'MMM d, yyyy');
+            }
+        } catch {
+            convocationDateDisplay = ceremony.held_on;
+        }
+    }
+    if (!convocationDateDisplay && booking.registered_at) {
+        try {
+            convocationDateDisplay = format(new Date(booking.registered_at), 'MMM d, yyyy');
+        } catch {
+            convocationDateDisplay = 'TBA';
+        }
+    }
 
     return (
         <div className="w-full relative overflow-hidden rounded-2xl shadow-xl border border-primary/20 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground mb-6 transition-all hover:shadow-2xl hover:scale-[1.01] duration-300 animate-in fade-in slide-in-from-bottom-4">
@@ -166,9 +216,23 @@ const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: Con
                                 
                                 <div>
                                     <p className="text-primary-foreground/70 text-[10px] font-bold uppercase tracking-wider mb-1 mt-4">Programme(s)</p>
-                                    <div className="space-y-1">
-                                        {courseList.map((name, idx) => (
-                                            <p key={idx} className="text-[15px] font-medium leading-tight">{name}</p>
+                                    <div className="space-y-1.5">
+                                        {resolvedCourses.map((c, idx) => (
+                                            <div key={idx} className="flex flex-col gap-0.5">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <p className="text-[15px] font-bold leading-tight">{c.courseName}</p>
+                                                    {c.batchCode && (
+                                                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/20 text-yellow-300 border border-white/20">
+                                                            {c.batchCode}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {c.batchName && (
+                                                    <p className="text-xs text-primary-foreground/80 font-medium">
+                                                        {c.batchName}
+                                                    </p>
+                                                )}
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
@@ -176,12 +240,20 @@ const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: Con
                         </div>
                         
                         {/* Desktop QR Code -> Top Right */}
-                        <div className="shrink-0 bg-white p-2.5 rounded-xl shadow-inner hidden sm:block mt-8">
-                            <img 
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(booking.reference_number)}`} 
-                                alt="Booking QR Code" 
-                                className="w-24 h-24 object-contain"
-                            />
+                        <div className="shrink-0 bg-white p-2.5 rounded-xl shadow-inner hidden sm:block mt-8 text-center min-w-[104px]">
+                            {!qrLoadError ? (
+                                <img 
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(booking.reference_number)}`} 
+                                    alt="Booking QR Code" 
+                                    className="w-24 h-24 object-contain"
+                                    onError={() => setQrLoadError(true)}
+                                />
+                            ) : (
+                                <div className="w-24 h-24 flex flex-col items-center justify-center bg-gray-50 rounded border border-dashed border-gray-300">
+                                    <QrCode className="w-12 h-12 text-primary" />
+                                    <span className="text-[9px] font-mono font-bold text-gray-600 mt-1">#{booking.reference_number}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                     
@@ -213,18 +285,26 @@ const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: Con
                             </div>
                         )}
                         <div>
-                            <p className="text-primary-foreground/70 text-[10px] uppercase font-bold tracking-wider mb-1">Date</p>
-                            <p className="font-semibold text-md">{format(new Date(booking.registered_at), 'MMM d, yyyy')}</p>
+                            <p className="text-primary-foreground/70 text-[10px] uppercase font-bold tracking-wider mb-1">Convocation Date</p>
+                            <p className="font-semibold text-md text-yellow-300 drop-shadow-sm">{convocationDateDisplay}</p>
                         </div>
 
                         {/* Mobile QR Code -> Bottom Center */}
                         <div className="w-full sm:hidden flex justify-center mt-2">
-                            <div className="bg-white p-2.5 rounded-xl shadow-inner">
-                                <img 
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(booking.reference_number)}`} 
-                                    alt="Booking QR Code" 
-                                    className="w-20 h-20 object-contain"
-                                />
+                            <div className="bg-white p-2.5 rounded-xl shadow-inner text-center">
+                                {!qrLoadError ? (
+                                    <img 
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(booking.reference_number)}`} 
+                                        alt="Booking QR Code" 
+                                        className="w-20 h-20 object-contain"
+                                        onError={() => setQrLoadError(true)}
+                                    />
+                                ) : (
+                                    <div className="w-20 h-20 flex flex-col items-center justify-center bg-gray-50 rounded border border-dashed border-gray-300">
+                                        <QrCode className="w-10 h-10 text-primary" />
+                                        <span className="text-[9px] font-mono font-bold text-gray-600 mt-0.5">#{booking.reference_number}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -263,7 +343,21 @@ const ConvocationPass = ({ booking, courseNameMap, allPackages }: { booking: Con
     );
 };
 
-const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: ConvocationRegistration, courseNameMap: Map<string, string>, allPackages: ConvocationPackage[] }) => {
+const BookingDetailCard = ({ 
+    booking, 
+    courseNameMap, 
+    allPackages,
+    ceremonies,
+    enrollments,
+    parentCourses
+}: { 
+    booking: ConvocationRegistration; 
+    courseNameMap: Map<string, string>; 
+    allPackages: ConvocationPackage[];
+    ceremonies: ConvocationCeremony[];
+    enrollments: StudentEnrollment[];
+    parentCourses: ParentCourse[];
+}) => {
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const [bank, setBank] = useState('');
@@ -312,22 +406,62 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
         return balanceSlips.some(p => p.payment_status === 'Pending');
     }, [balanceSlips]);
 
-    const courseList = useMemo(() => {
-        return booking.course_id
+    const resolvedCourses = useMemo(() => {
+        return (booking.course_id || '')
             .split(',')
             .map(id => id.trim())
             .filter(Boolean)
-            .map(id => courseNameMap.get(id) || `Course (ID: ${id})`);
-    }, [booking.course_id, courseNameMap]);
+            .map(trimmedId => {
+                const matched = enrollments.find(e => 
+                    String(e.parent_course_id) === trimmedId || 
+                    String(e.id) === trimmedId || 
+                    String(e.course_code).toLowerCase() === trimmedId.toLowerCase()
+                );
+                const parentCourse = parentCourses.find(c => String(c.id) === trimmedId);
+                const courseName = matched?.parent_course_name || parentCourse?.course_name || courseNameMap.get(trimmedId) || `Course ${trimmedId}`;
+                const batchCode = matched?.course_code;
+                const batchName = matched?.batch_name;
+                return { id: trimmedId, courseName, batchCode, batchName };
+            });
+    }, [booking.course_id, enrollments, parentCourses, courseNameMap]);
 
     const pkg = allPackages.find(p => String(p.package_id) === String(booking.package_id));
     
-    const totalPayable = useMemo(() => {
-        const pkgPrice = pkg ? parseFloat(pkg.price) : 0;
-        const seatPrice = (parseInt(booking.additional_seats, 10) || 0) * PARENT_SEAT_RATE;
-        const tokenPrice = (parseInt(booking.refreshment_tokens || '0', 10) || 0) * 800;
-        return pkgPrice + seatPrice + tokenPrice;
-    }, [pkg, booking.additional_seats, booking.refreshment_tokens]);
+    const ceremony = useMemo(() => {
+        return ceremonies?.find(c => String(c.id) === String(booking.convocation_id));
+    }, [ceremonies, booking.convocation_id]);
+
+    const convocationDateDetail = useMemo(() => {
+        if (!ceremony?.held_on) return null;
+        try {
+            const d = new Date(ceremony.held_on);
+            if (!isNaN(d.getTime())) {
+                return format(d, 'PPP');
+            }
+        } catch {
+            // fallback
+        }
+        return ceremony.held_on;
+    }, [ceremony?.held_on]);
+
+    const seatRate = useMemo(() => {
+        if (!ceremony?.parent_seat_price) return PARENT_SEAT_RATE;
+        const rate = parseFloat(ceremony.parent_seat_price);
+        return isNaN(rate) ? PARENT_SEAT_RATE : rate;
+    }, [ceremony]);
+
+    const tokenRate = useMemo(() => {
+        if (!ceremony?.refreshment_token_price) return 0;
+        const rate = parseFloat(ceremony.refreshment_token_price);
+        return isNaN(rate) ? 0 : rate;
+    }, [ceremony]);
+
+    const numSeats = parseInt(booking.additional_seats, 10) || 0;
+    const numTokens = parseInt(booking.refreshment_tokens || '0', 10) || 0;
+    const pkgPrice = pkg ? parseFloat(pkg.price) : 0;
+    const seatsTotal = numSeats * seatRate;
+    const tokensTotal = numTokens * tokenRate;
+    const totalPayable = pkgPrice + seatsTotal + tokensTotal;
 
     const alreadyPaid = parseFloat(booking.payment_amount) || 0;
     const dueBalance = Math.max(0, totalPayable - alreadyPaid);
@@ -371,9 +505,19 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
             <CardHeader className="bg-muted/30 pb-4">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                     <div>
-                        <CardTitle className="text-lg">Booking ID: {booking.reference_number}</CardTitle>
-                        <CardDescription className="flex items-center gap-1.5">
-                            <Calendar className="h-3 w-3" /> {format(new Date(booking.registered_at), 'PPP')}
+                        <CardTitle className="text-lg">
+                            {ceremony?.convocation_name ? `${ceremony.convocation_name}` : `Booking ID: #${booking.reference_number}`}
+                        </CardTitle>
+                        <CardDescription className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                            <span className="font-mono text-xs font-semibold text-foreground/80">Ref: #{booking.reference_number}</span>
+                            {convocationDateDetail && (
+                                <span className="flex items-center gap-1.5 font-semibold text-primary">
+                                    <Calendar className="h-3.5 w-3.5 text-primary" /> Convocation: {convocationDateDetail}
+                                </span>
+                            )}
+                            <span className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                                Registered: {format(new Date(booking.registered_at), 'PPP')}
+                            </span>
                         </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
@@ -398,12 +542,24 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
                     <div className="space-y-6">
                         <div className="space-y-4">
                             <div className="space-y-1">
-                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Enrolled Course(s)</Label>
-                                <div className="space-y-1 mt-1">
-                                    {courseList.map((name, idx) => (
-                                        <div key={idx} className="flex items-center gap-2 text-sm font-medium leading-relaxed">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                                            {name}
+                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Enrolled Course(s) &amp; Batch</Label>
+                                <div className="space-y-2 mt-1">
+                                    {resolvedCourses.map((c, idx) => (
+                                        <div key={idx} className="flex flex-col gap-0.5 p-2 rounded-lg bg-muted/40 border border-muted-foreground/10">
+                                            <div className="flex items-center gap-2 flex-wrap text-sm font-semibold text-foreground">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                                                <span>{c.courseName}</span>
+                                                {c.batchCode && (
+                                                    <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
+                                                        {c.batchCode}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            {c.batchName && (
+                                                <p className="text-xs text-muted-foreground pl-3.5 font-normal">
+                                                    {c.batchName}
+                                                </p>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -506,7 +662,24 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
                     <div className="space-y-4 p-4 rounded-xl bg-muted/20 border border-muted-foreground/10">
                         <h4 className="font-bold text-sm flex items-center gap-2"><Banknote className="h-4 w-4" /> Financial Summary</h4>
                         <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>Package Fee ({pkg?.package_name || 'Ceremony Package'}):</span>
+                                <span className="font-mono text-foreground">LKR {pkgPrice.toLocaleString()}</span>
+                            </div>
+                            {numSeats > 0 && (
+                                <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>Guest Seats ({numSeats} &times; LKR {seatRate.toLocaleString()}):</span>
+                                    <span className="font-mono text-foreground">LKR {seatsTotal.toLocaleString()}</span>
+                                </div>
+                            )}
+                            {numTokens > 0 && (
+                                <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>Refreshments ({numTokens} &times; LKR {tokenRate.toLocaleString()}):</span>
+                                    <span className="font-mono text-foreground">LKR {tokensTotal.toLocaleString()}</span>
+                                </div>
+                            )}
+                            <Separator className="my-1" />
+                            <div className="flex justify-between font-semibold">
                                 <span className="text-muted-foreground">Total Required:</span>
                                 <span className="font-mono">LKR {totalPayable.toLocaleString()}</span>
                             </div>
@@ -514,12 +687,26 @@ const BookingDetailCard = ({ booking, courseNameMap, allPackages }: { booking: C
                                 <span className="flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5" /> Already Paid:</span>
                                 <span className="font-mono">- LKR {alreadyPaid.toLocaleString()}</span>
                             </div>
-                            <Separator />
-                            <div className="flex justify-between text-lg font-bold">
+                            <Separator className="my-1" />
+                            <div className="flex justify-between text-base font-bold">
                                 <span>Due Balance:</span>
-                                <span className={cn(dueBalance > 0 ? "text-destructive" : "text-green-600")}>LKR {dueBalance.toLocaleString()}</span>
+                                <span className={cn(dueBalance > 0 ? "text-destructive" : "text-green-600")}>
+                                    LKR {dueBalance.toLocaleString()}
+                                </span>
                             </div>
                         </div>
+
+                        {dueBalance <= 0 && (
+                            <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3 text-center mt-2">
+                                <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-400 font-bold text-xs uppercase tracking-wide">
+                                    <CheckCircle className="w-4 h-4" />
+                                    Payment Settled in Full
+                                </div>
+                                <p className="text-[11px] text-green-800/80 dark:text-green-300/80 mt-1">
+                                    Your convocation registration fee is fully settled.
+                                </p>
+                            </div>
+                        )}
 
                         {dueBalance > 0 && (
                             <div className="pt-4 border-t border-dashed mt-4 space-y-4">
@@ -607,6 +794,24 @@ export default function ConvocationBookingHistoryPage() {
         staleTime: 1000 * 60 * 10,
     });
 
+    const { data: ceremonies, isLoading: isLoadingCeremonies } = useQuery<ConvocationCeremony[]>({
+        queryKey: ['convocationCeremonies'],
+        queryFn: getConvocationCeremonies,
+        staleTime: 1000 * 60 * 15,
+    });
+
+    const { data: studentFullData, isLoading: isLoadingStudentData } = useQuery<FullStudentData>({
+        queryKey: ['studentFullDetails', user?.username],
+        queryFn: () => getStudentFullInfo(user!.username!),
+        enabled: !!user?.username,
+        staleTime: 1000 * 60 * 10,
+    });
+
+    const enrollments = useMemo<StudentEnrollment[]>(() => {
+        if (!studentFullData?.studentEnrollments) return [];
+        return Object.values(studentFullData.studentEnrollments);
+    }, [studentFullData]);
+
     const { data: kycDetails } = useQuery({
         queryKey: ['studentKycStatus', user?.username],
         queryFn: () => getStudentKycStatus(user?.username || ''),
@@ -625,10 +830,14 @@ export default function ConvocationBookingHistoryPage() {
 
     const courseNameMap = useMemo(() => {
         if (!allCourses) return new Map<string, string>();
-        return new Map(allCourses.map(course => [course.id, course.course_name]));
+        const map = new Map<string, string>();
+        allCourses.forEach(course => {
+            map.set(String(course.id), course.course_name);
+        });
+        return map;
     }, [allCourses]);
 
-    const isLoading = isLoadingBookings || isLoadingCourses || isLoadingPackages;
+    const isLoading = isLoadingBookings || isLoadingCourses || isLoadingPackages || isLoadingCeremonies;
     
     return (
         <div className="p-4 md:p-8 space-y-8 pb-20">
@@ -705,6 +914,9 @@ export default function ConvocationBookingHistoryPage() {
                                     booking={booking} 
                                     courseNameMap={courseNameMap} 
                                     allPackages={allPackages || []} 
+                                    ceremonies={ceremonies || []}
+                                    enrollments={enrollments}
+                                    parentCourses={allCourses || []}
                                 />
                             ))}
                         </div>
@@ -715,6 +927,9 @@ export default function ConvocationBookingHistoryPage() {
                                     booking={booking} 
                                     courseNameMap={courseNameMap} 
                                     allPackages={allPackages || []} 
+                                    ceremonies={ceremonies || []}
+                                    enrollments={enrollments}
+                                    parentCourses={allCourses || []}
                                 />
                             ))}
                         </div>

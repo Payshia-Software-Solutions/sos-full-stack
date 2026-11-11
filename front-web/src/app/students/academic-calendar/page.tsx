@@ -11,12 +11,12 @@ export const metadata: Metadata = {
     'Ceylon Pharma College semester calendar'
   ],
   alternates: {
-    canonical: 'https://www.pharmacollege.lk/students/academic-calendar',
+    canonical: 'https://pharmacollege.lk/students/academic-calendar',
   },
   openGraph: {
     title: 'Academic Calendar | Ceylon Pharma College',
     description: 'Lecture schedules, semester dates, and examination timelines.',
-    url: 'https://www.pharmacollege.lk/students/academic-calendar',
+    url: 'https://pharmacollege.lk/students/academic-calendar',
     siteName: 'Ceylon Pharma College',
   },
 };

@@ -46,7 +46,7 @@ export default function CsrProjectPage(props: { params: Promise<{ slug: string }
                 <h1 className="text-4xl md:text-5xl font-headline font-bold drop-shadow-lg">
                     {t(project.titleKey as any)}
                 </h1>
-                <p className="mt-2 text-lg text-primary-foreground/90">{new Date(project.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p className="mt-2 text-lg text-white/90">{new Date(project.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
             </div>
         </section>
 
@@ -106,10 +106,10 @@ export default function CsrProjectPage(props: { params: Promise<{ slug: string }
             </div>
         </section>
         
-        <section className="py-16 md:py-24 text-center bg-primary text-primary-foreground">
+        <section className="py-16 md:py-24 text-center bg-emerald-800 text-white">
             <div className="container mx-auto px-4 md:px-6">
               <h2 className="text-3xl font-headline font-bold">{t('csrPartnerTitle')}</h2>
-              <p className="mt-2 max-w-xl mx-auto text-primary-foreground/90">
+              <p className="mt-2 max-w-xl mx-auto text-white/90">
                 {t('csrPartnerSubtitle')}
               </p>
               <div className="mt-8 flex justify-center">

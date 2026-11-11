@@ -73,8 +73,8 @@ export default function TranslationToolbar({
             <span className="text-xs font-bold text-foreground block">
               Translate Article / Syllabus
             </span>
-            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-500" /> Powered by AI
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-amber-700 dark:text-amber-400" /> Powered by AI
             </span>
           </div>
         </div>
@@ -128,7 +128,7 @@ export default function TranslationToolbar({
       </div>
 
       {errorMsg && (
-        <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+        <p className="mt-2 text-xs text-amber-700 dark:text-amber-400 font-medium">
           {errorMsg}
         </p>
       )}

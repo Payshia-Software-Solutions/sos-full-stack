@@ -11,12 +11,12 @@ export const metadata: Metadata = {
     'Ceylon Pharma College community service'
   ],
   alternates: {
-    canonical: 'https://www.pharmacollege.lk/csr',
+    canonical: 'https://pharmacollege.lk/csr',
   },
   openGraph: {
     title: 'CSR & Community Healthcare Initiatives | Ceylon Pharma College',
     description: 'Dedicated community health empowerment and safe medicine use projects by Ceylon Pharma College.',
-    url: 'https://www.pharmacollege.lk/csr',
+    url: 'https://pharmacollege.lk/csr',
     siteName: 'Ceylon Pharma College',
   },
 };

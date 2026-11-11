@@ -141,7 +141,7 @@ export default function FeaturedCourses({ courses }: FeaturedCoursesProps) {
               >
                 {/* Most Popular Highlight Pill */}
                 {isPopular && (
-                  <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-zinc-950 font-bold text-[11px] shadow-lg tracking-wide">
+                  <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-zinc-950 font-bold text-xs shadow-lg tracking-wide">
                     <span>🔥</span>
                     <span>{localizedContent.popularBadge}</span>
                   </div>
@@ -168,10 +168,10 @@ export default function FeaturedCourses({ courses }: FeaturedCoursesProps) {
                   
                   {/* Category & Rating */}
                   <div className="flex items-center justify-between text-xs mb-2 gap-2">
-                    <span className="font-semibold text-primary uppercase tracking-wider text-[11px]">
+                    <span className="font-semibold text-primary uppercase tracking-wider text-xs">
                       {course.category || "Certificate"}
                     </span>
-                    <div className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                    <div className="flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
                       <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                       <span>4.9</span>
                       <span className="text-muted-foreground font-normal">({studentCount})</span>
@@ -207,7 +207,7 @@ export default function FeaturedCourses({ courses }: FeaturedCoursesProps) {
                   <div className="mt-auto pt-4 border-t border-border flex flex-col gap-3">
                     <div className="flex items-baseline justify-between gap-2">
                       <div>
-                        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider block">
+                        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider block">
                           {localizedContent.feeLabel}
                         </span>
                         <div className="flex items-baseline gap-1">
@@ -217,7 +217,7 @@ export default function FeaturedCourses({ courses }: FeaturedCoursesProps) {
                         </div>
                       </div>
                       
-                      <span className="text-[10px] font-mono font-medium text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded shrink-0">
+                      <span className="text-xs font-mono font-medium text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded shrink-0">
                         {course.course_code}
                       </span>
                     </div>

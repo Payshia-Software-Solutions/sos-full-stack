@@ -1,3 +1,7 @@
 *.sql
 *.tmp
 
+
+# secrets and local tooling
+.env
+.superpowers/

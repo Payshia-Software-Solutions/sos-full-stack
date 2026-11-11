@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Calendar, User, X, Search, Sparkles, ChevronRight, BookOpen, Clock } from "lucide-react";
@@ -12,16 +12,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTranslation } from "@/context/language-context";
 
-function BlogsListContent({ initialBlogs = [] }: { initialBlogs?: any[] }) {
+interface BlogsClientProps {
+  initialBlogs?: any[];
+  // Read from searchParams on the server so this page is not forced into
+  // client-side rendering by useSearchParams (keeps article links in the HTML for crawlers).
+  initialSearch?: string;
+  tagFilter?: string;
+}
+
+export default function BlogsClient({ initialBlogs = [], initialSearch = "", tagFilter = "" }: BlogsClientProps) {
   const [blogs, setBlogs] = useState<any[]>(initialBlogs);
   const [loading, setLoading] = useState(initialBlogs.length === 0);
-  const searchParams = useSearchParams();
   const router = useRouter();
   const { t, language } = useTranslation();
   const isSinhala = language === 'si';
 
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
-  const tagFilter = searchParams.get("tag") || "";
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
 
   useEffect(() => {
     const fetchBlogs = async () => {
@@ -190,7 +196,7 @@ function BlogsListContent({ initialBlogs = [] }: { initialBlogs?: any[] }) {
                           {blog.published_date || "Recent"}
                         </span>
                         <span>•</span>
-                        <span className="text-[11px] bg-secondary px-2 py-0.5 rounded">
+                        <span className="text-xs bg-secondary px-2 py-0.5 rounded">
                           {blog.category?.split(',')[0] || "Pharmacy"}
                         </span>
                       </div>
@@ -220,13 +226,5 @@ function BlogsListContent({ initialBlogs = [] }: { initialBlogs?: any[] }) {
         </div>
       </section>
     </div>
-  );
-}
-
-export default function BlogsClient({ initialBlogs = [] }: { initialBlogs?: any[] }) {
-  return (
-    <Suspense fallback={<div className="container mx-auto px-4 py-20 text-center">Loading articles...</div>}>
-      <BlogsListContent initialBlogs={initialBlogs} />
-    </Suspense>
   );
 }

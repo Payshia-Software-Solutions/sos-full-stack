@@ -12,10 +12,13 @@ export const metadata: Metadata = {
     'Pharmacy assistant course Sri Lanka',
     'Ceylon Pharma College courses',
   ],
+  alternates: {
+    canonical: 'https://pharmacollege.lk/courses',
+  },
   openGraph: {
     title: 'Pharmacy Courses in Sri Lanka | Ceylon Pharma College',
     description: 'Practical pharmacy education with interactive online classes and certificate verification.',
-    url: 'https://www.pharmacollege.lk/courses',
+    url: 'https://pharmacollege.lk/courses',
   },
 };
 

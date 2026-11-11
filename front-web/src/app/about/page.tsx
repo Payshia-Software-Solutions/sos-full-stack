@@ -16,12 +16,12 @@ export const metadata: Metadata = {
     'Pharmacy practical training institute'
   ],
   alternates: {
-    canonical: 'https://www.pharmacollege.lk/about',
+    canonical: 'https://pharmacollege.lk/about',
   },
   openGraph: {
     title: 'About Ceylon Pharma College | Practical Pharmacy Education in Sri Lanka',
     description: 'Practical pharmaceutical training with simulation software, home-delivered printed study packs, and international ACTD/ISO accreditation.',
-    url: 'https://www.pharmacollege.lk/about',
+    url: 'https://pharmacollege.lk/about',
     siteName: 'Ceylon Pharma College',
     images: [
       {
@@ -46,11 +46,11 @@ export default function AboutPage() {
     '@type': 'AboutPage',
     name: 'About Ceylon Pharma College',
     description: 'Ceylon Pharma College offers ACTD-accredited and ISO 9001:2015 certified practical pharmacy education in Sri Lanka.',
-    url: 'https://www.pharmacollege.lk/about',
+    url: 'https://pharmacollege.lk/about',
     mainEntity: {
       '@type': 'EducationalOrganization',
       name: 'Ceylon Pharma College',
-      url: 'https://www.pharmacollege.lk',
+      url: 'https://pharmacollege.lk',
       logo: 'https://content-provider.pharmacollege.lk/website/meta-seo-image.webp',
       telephone: '+94715884884',
       email: 'info@pharmacollege.lk',
