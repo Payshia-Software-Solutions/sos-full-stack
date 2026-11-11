@@ -104,7 +104,7 @@ export function GradePaymentGate({
         className
       )}
     >
-      <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400">
+      <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-700 dark:text-amber-400">
         <Lock className="w-6 h-6" />
       </div>
 

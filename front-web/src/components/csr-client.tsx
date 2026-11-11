@@ -132,7 +132,7 @@ export default function CsrClient() {
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute top-3 left-3">
-                    <Badge className="bg-emerald-600 text-white font-semibold text-xs border-none shadow-md">
+                    <Badge className="bg-emerald-700 text-white font-semibold text-xs border-none shadow-md">
                       {p.tag}
                     </Badge>
                   </div>

@@ -625,7 +625,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                   >
                     {s.num < step ? <Check className="w-4 h-4" /> : s.num}
                   </button>
-                  <span className={`text-[11px] font-medium text-center transition-colors px-1 whitespace-nowrap sm:whitespace-normal ${
+                  <span className={`text-xs font-medium text-center transition-colors px-1 whitespace-nowrap sm:whitespace-normal ${
                     s.num === step ? 'text-primary font-bold' : s.num < step ? 'text-foreground' : 'text-muted-foreground'
                   }`}>
                     {s.label}
@@ -643,7 +643,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
           <div className="flex flex-col items-center text-center">
             
             {/* Alert Icon Badge */}
-            <div className="w-14 h-14 rounded-full bg-amber-500/15 border-2 border-amber-500/30 flex items-center justify-center mb-4 text-amber-600 dark:text-amber-400">
+            <div className="w-14 h-14 rounded-full bg-amber-500/15 border-2 border-amber-500/30 flex items-center justify-center mb-4 text-amber-700 dark:text-amber-400">
               <AlertCircle className="w-7 h-7" />
             </div>
 
@@ -676,7 +676,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                 href={errorWhatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition-all hover:scale-[1.01] active:scale-[0.99]"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm shadow-md transition-all hover:scale-[1.01] active:scale-[0.99]"
               >
                 <MessageCircle className="w-5 h-5 shrink-0" />
                 <span>{language === 'si' ? 'WhatsApp මගින් ක්ෂණිකව විමසන්න (071 588 4884)' : 'Inquire via WhatsApp (071 588 4884)'}</span>
@@ -741,7 +741,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                     <div>
                       <div className="flex justify-between items-start gap-2 mb-2">
                         {course.badge && (
-                          <Badge className="bg-primary/90 text-primary-foreground text-[10px] font-semibold">
+                          <Badge className="bg-primary/90 text-primary-foreground text-xs font-semibold">
                             {course.badge}
                           </Badge>
                         )}
@@ -761,7 +761,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
 
                     <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between">
                       <div>
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground block font-medium">Course Fee</span>
+                        <span className="text-xs uppercase tracking-wider text-muted-foreground block font-medium">Course Fee</span>
                         <span className="font-bold text-base text-foreground">
                           LKR {parseFloat(String(course.course_fee || 0)).toLocaleString()}
                         </span>
@@ -779,7 +779,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
             {/* Selected Course Live Intake Perks Banner */}
             <div className="p-4 sm:p-5 rounded-xl bg-gradient-to-r from-emerald-950/10 via-teal-950/5 to-cyan-950/10 border border-emerald-500/20 text-foreground">
               <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <Sparkles className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                 <h4 className="font-bold text-sm text-emerald-800 dark:text-emerald-300">
                   {selectedCourse.course_name} — {language === 'si' ? 'පාඨමාලා වරප්‍රසාද' : 'Intake Benefits'}
                 </h4>
@@ -787,15 +787,15 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
               
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
                   <span>{language === 'si' ? '100% Online • සජීවී Zoom + පටිගත කිරීම්' : '100% Online • Live Zoom + Recordings'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
                   <span>{language === 'si' ? 'මුද්‍රිත පොත් කට්ටලය නිවසටම නොමිලේ' : 'Free Printed Study Pack Delivery'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
                   <span>{language === 'si' ? 'පහසු වාරික ක්‍රම (Monthly Installments)' : 'Flexible Installment Plans Available'}</span>
                 </div>
               </div>
@@ -914,7 +914,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                 onChange={(e) => setNameWithInitials(e.target.value)}
                 className={fieldErrors.nameWithInitials ? 'border-destructive' : ''}
               />
-              <p className="text-[11px] text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {language === 'si' ? 'විභාග සහ පැමිණීමේ ලේඛන සඳහා යොදා ගැනේ (උදා: K. A. Perera).' : 'Used for LMS index and attendance rosters.'}
               </p>
               {fieldErrors.nameWithInitials && <p className="text-xs text-destructive mt-1 font-medium">{fieldErrors.nameWithInitials}</p>}
@@ -933,7 +933,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                 onChange={(e) => setNameOnCertificate(e.target.value)}
                 className={fieldErrors.nameOnCertificate ? 'border-destructive' : ''}
               />
-              <p className="text-[11px] text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {language === 'si' ? 'ඔබගේ නිල සහතික පත්‍රයේ මුද්‍රණය කෙරෙන නිවැරදි නම (Capital Letters වලින් වුවද ඇතුළත් කළ හැක).' : 'Your graduation diploma and transcripts will be printed with this official name.'}
               </p>
               {fieldErrors.nameOnCertificate && <p className="text-xs text-destructive mt-1 font-medium">{fieldErrors.nameOnCertificate}</p>}
@@ -956,7 +956,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
               {/* NIC Derivation Notice Banner */}
               {nicParsedInfo?.valid && (
                 <div className="mt-2 p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
                   <span>
                     <strong>✓ NIC Auto-Detected:</strong> DOB: {nicParsedInfo.birthday} • Gender: {nicParsedInfo.gender}
                   </span>
@@ -1060,7 +1060,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                   🇱🇰 +94
                 </span>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {language === 'si' 
                   ? 'ලියාපදිංචි වූ වහාම ඔබගේ Reference ID අංකය ඇතුළත් ස්වයංක්‍රීය SMS පණිවිඩයක් මෙම අංකයට යොමු කෙරේ.' 
                   : 'Automated SMS confirmation with your Reference ID will be dispatched to this number.'}
@@ -1072,7 +1072,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <Label htmlFor="whatsapp" className="font-semibold text-sm flex items-center gap-1.5">
-                  <MessageCircle className="w-4 h-4 text-emerald-600" />
+                  <MessageCircle className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                   <span>{language === 'si' ? 'WhatsApp අංකය (WhatsApp Number) *' : 'WhatsApp Number *'}</span>
                 </Label>
                 {phone && (
@@ -1156,7 +1156,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                   <span>{language === 'si' ? 'නගරය (City) *' : 'City *'}</span>
                 </Label>
                 {district && (
-                  <Badge variant="secondary" className="text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
+                  <Badge variant="secondary" className="text-xs font-medium bg-primary/10 text-primary border border-primary/20">
                     {district} District
                   </Badge>
                 )}
@@ -1231,7 +1231,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
               {/* Automatic Backward District Confirmation Notice */}
               {city && district && (
                 <div className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
                   <span>
                     <strong>{city}</strong> — {district} District (දිස්ත්‍රික්කය ස්වයංක්‍රීයව හඳුනාගැනිණි)
                   </span>
@@ -1241,9 +1241,9 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
               {/* Cities Dropdown Results */}
               {cityDropdownOpen && (
                 <div className="absolute left-0 right-0 top-full mt-1.5 max-h-60 overflow-y-auto bg-card border border-border rounded-xl shadow-2xl z-40 p-1.5 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground border-b border-border/60 flex justify-between items-center">
+                  <div className="px-2.5 py-1.5 text-xs font-semibold text-muted-foreground border-b border-border/60 flex justify-between items-center">
                     <span>{citySearch ? `"${citySearch}" සෙවීම් ප්‍රතිඵල` : 'ප්‍රධාන නගර (Popular Cities)'}</span>
-                    <span className="text-[10px] text-primary">Database Verified</span>
+                    <span className="text-xs text-primary">Database Verified</span>
                   </div>
 
                   {displayedCities.length > 0 ? (
@@ -1269,7 +1269,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                             <span className="font-medium">
                               {c.name_en} {c.name_si ? `(${c.name_si})` : ''}
                             </span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${isMatch ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'}`}>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${isMatch ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'}`}>
                               {cityDistrict}
                             </span>
                           </button>
@@ -1396,7 +1396,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
             
             {/* SMS Dispatch Confirmation Notice */}
             <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex items-center gap-3 text-xs sm:text-sm text-emerald-900 dark:text-emerald-200">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <CheckCircle2 className="w-5 h-5 text-emerald-700 dark:text-emerald-400 shrink-0" />
               <div>
                 <strong>{language === 'si' ? 'SMS පණිවිඩය සාර්ථකව යවන ලදී:' : 'Automated SMS Dispatched:'}</strong>{' '}
                 {language === 'si' 
@@ -1417,14 +1417,14 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                 <Button 
                   asChild 
                   size="lg" 
-                  className="w-full h-auto py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex flex-col items-center justify-center gap-1 shadow-lg shadow-emerald-950/20 hover:scale-105 transition-all text-center"
+                  className="w-full h-auto py-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold flex flex-col items-center justify-center gap-1 shadow-lg shadow-emerald-950/20 hover:scale-105 transition-all text-center"
                 >
                   <a href={whatsappInquiryUrl} target="_blank" rel="noopener noreferrer">
                     <div className="flex items-center gap-2">
                       <MessageCircle className="w-5 h-5 shrink-0" />
                       <span>{language === 'si' ? 'WhatsApp Desk වෙත යොමු වන්න' : 'Chat on WhatsApp'}</span>
                     </div>
-                    <span className="text-[11px] font-normal opacity-90 block">
+                    <span className="text-xs font-normal opacity-90 block">
                       {language === 'si' ? 'ගෙවීම් රිසිට්පත එවන්න' : 'Send Payment Slip'}
                     </span>
                   </a>
@@ -1442,7 +1442,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                       <Phone className="w-5 h-5 shrink-0" />
                       <span>0715 884 884</span>
                     </div>
-                    <span className="text-[11px] font-normal text-muted-foreground block">
+                    <span className="text-xs font-normal text-muted-foreground block">
                       {language === 'si' ? 'ශිෂ්‍ය උපදේශක ඇමතුම' : 'Direct Admissions Call'}
                     </span>
                   </a>
@@ -1460,7 +1460,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                       <Download className="w-5 h-5 shrink-0 text-primary" />
                       <span>{language === 'si' ? 'විෂය නිර්දේශය බලන්න' : 'View Syllabus / Brochure'}</span>
                     </div>
-                    <span className="text-[11px] font-normal text-muted-foreground block">
+                    <span className="text-xs font-normal text-muted-foreground block">
                       {selectedCourse.course_duration} Program Details
                     </span>
                   </Link>
@@ -1482,16 +1482,16 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
                 <div className="p-3 bg-card rounded-xl border">
-                  <span className="text-muted-foreground block text-[11px]">Bank Name</span>
+                  <span className="text-muted-foreground block text-xs">Bank Name</span>
                   <span className="font-bold text-foreground">Bank Of Ceylon (BOC)</span>
                 </div>
                 <div className="p-3 bg-card rounded-xl border">
-                  <span className="text-muted-foreground block text-[11px]">Account Name</span>
+                  <span className="text-muted-foreground block text-xs">Account Name</span>
                   <span className="font-bold text-foreground">Ceylon Pharma College Pvt Ltd</span>
                 </div>
                 <div className="p-3 bg-card rounded-xl border flex items-center justify-between">
                   <div>
-                    <span className="text-muted-foreground block text-[11px]">Account Number</span>
+                    <span className="text-muted-foreground block text-xs">Account Number</span>
                     <span className="font-bold font-mono text-base text-primary">89090906</span>
                   </div>
                   <button
@@ -1505,7 +1505,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                 </div>
                 <div className="p-3 bg-card rounded-xl border flex items-center justify-between">
                   <div>
-                    <span className="text-muted-foreground block text-[11px]">Branch</span>
+                    <span className="text-muted-foreground block text-xs">Branch</span>
                     <span className="font-bold text-foreground">Pelmadulla Branch</span>
                   </div>
                   <button
@@ -1519,7 +1519,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                 </div>
               </div>
 
-              <p className="text-[11px] text-muted-foreground text-center">
+              <p className="text-xs text-muted-foreground text-center">
                 {language === 'si' 
                   ? 'බැංකුවට ගොස් මුදල් තැන්පත් කිරීමේදී හෝ Online Banking මගින් මුදල් මාරු කිරීමේදී Remark / Reference ලෙස ඔබගේ ජංගම දුරකථන අංකය හෝ Reference ID එක යොදන්න.' 
                   : 'When transferring, use your phone number or Reference ID as the deposit payment remark.'}
@@ -1549,7 +1549,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
 
               {slipUploadSuccess ? (
                 <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 flex items-start gap-3 animate-in fade-in">
-                  <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-6 h-6 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-bold text-sm">
                       {language === 'si' ? '✓ ඔබගේ ගෙවීම් රිසිට්පත සාර්ථකව පද්ධතියට ලැබිණි!' : '✓ Payment Slip Successfully Submitted!'}
@@ -1612,12 +1612,12 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                       {slipPreviewUrl ? (
                         <div className="flex flex-col items-center gap-2">
                           <img src={slipPreviewUrl} alt="Slip Preview" className="max-h-48 rounded-lg shadow-sm border object-contain" />
-                          <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
                             <Check className="w-3.5 h-3.5" /> {slipFile?.name} (Click to change)
                           </span>
                         </div>
                       ) : slipFile ? (
-                        <div className="flex items-center justify-center gap-2 text-xs font-semibold text-emerald-600">
+                        <div className="flex items-center justify-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                           <FileCheck2 className="w-5 h-5" />
                           <span>{slipFile.name} (Ready to upload)</span>
                         </div>
@@ -1627,7 +1627,7 @@ export default function ApplyFlow({ initialCourses }: ApplyFlowProps) {
                           <p className="text-xs font-medium text-foreground">
                             {language === 'si' ? 'රිසිට්පත තෝරාගැනීමට මෙතැන Click කරන්න හෝ Drag & Drop කරන්න' : 'Click to select slip file or drag & drop here'}
                           </p>
-                          <p className="text-[11px] text-muted-foreground">PNG, JPG, JPEG හෝ PDF (Max 10MB)</p>
+                          <p className="text-xs text-muted-foreground">PNG, JPG, JPEG හෝ PDF (Max 10MB)</p>
                         </div>
                       )}
                     </div>

@@ -34,7 +34,7 @@ const TopBar = () => {
             <Mail className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
             <span>info@pharmacollege.lk</span>
           </a>
-          <span className="hidden 2xl:inline-flex items-center gap-1.5 text-emerald-200/90 text-[11px]">
+          <span className="hidden 2xl:inline-flex items-center gap-1.5 text-emerald-200/90 text-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
             ACTD Accredited • ISO 9001:2015 Certified
           </span>
@@ -60,7 +60,7 @@ const TopBar = () => {
             className="inline-flex items-center gap-1.5 font-bold text-amber-300 hover:text-amber-200 transition-colors"
           >
             <span>{t('login')}</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">LMS</span>
+            <span className="text-xs px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">LMS</span>
           </a>
           <Link 
             href="/contact" 
@@ -241,7 +241,7 @@ export default function Header() {
 
           {/* Mobile Language Switcher */}
           <div className="lg:hidden">
-            <LanguageSwitcher variant="light" className="text-[10px]" />
+            <LanguageSwitcher variant="light" className="text-xs" />
           </div>
 
           {/* Mobile Hamburger Drawer */}

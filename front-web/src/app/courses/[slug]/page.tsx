@@ -4,6 +4,8 @@ import Script from "next/script";
 import { getCachedCourses, FALLBACK_COURSES, Course } from "@/lib/courses-data";
 import { getCourseTranslation } from "@/lib/course-translations";
 import CourseDetailClient from "@/components/course-detail-client";
+import CoursePageView from "@/components/course-page/course-page-view";
+import { buildFaqJsonLd, getCoursePage } from "@/lib/course-page";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -39,8 +41,9 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
   const enData = getCourseTranslation(params.slug, 'en');
   const pageTitle = `${course.course_name} | Ceylon Pharma College Sri Lanka`;
-  const pageDescription = enData.subtitle || course.course_description;
-  const canonicalUrl = `https://www.pharmacollege.lk/courses/${course.slug}`;
+  const cmsPage = await getCoursePage(params.slug);
+  const pageDescription = cmsPage?.content.en.hero?.promise || enData.subtitle || course.course_description;
+  const canonicalUrl = `https://pharmacollege.lk/courses/${course.slug}`;
   const imgUrl = course.course_img?.startsWith('http')
     ? course.course_img
     : `https://content-provider.pharmacollege.lk/courses/${course.course_code}/${course.course_img}`;
@@ -93,6 +96,9 @@ export default async function CourseDetailPage(props: PageProps) {
     notFound();
   }
 
+  const cmsPage = await getCoursePage(params.slug);
+  const faqJsonLd = cmsPage ? buildFaqJsonLd(cmsPage.content.en) : null;
+
   const feeNumber = typeof course.course_fee === 'number'
     ? course.course_fee
     : parseFloat(course.course_fee) || 0;
@@ -106,7 +112,7 @@ export default async function CourseDetailPage(props: PageProps) {
     provider: {
       '@type': 'EducationalOrganization',
       name: 'Ceylon Pharma College',
-      sameAs: 'https://www.pharmacollege.lk',
+      sameAs: 'https://pharmacollege.lk',
       logo: 'https://content-provider.pharmacollege.lk/website/meta-seo-image.webp',
     },
     hasCourseInstance: {
@@ -122,7 +128,7 @@ export default async function CourseDetailPage(props: PageProps) {
       priceCurrency: 'LKR',
       availability: 'https://schema.org/InStock',
       validFrom: new Date().toISOString(),
-      url: `https://www.pharmacollege.lk/courses/${course.slug}`,
+      url: `https://pharmacollege.lk/courses/${course.slug}`,
     },
     educationalCredentialAwarded: 'ACTD Accredited Certificate in Pharmacy Practice (ISO 9001:2015)',
   };
@@ -134,9 +140,22 @@ export default async function CourseDetailPage(props: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(courseSchema) }}
       />
-      <main>
-        <CourseDetailClient course={course} slug={params.slug} />
-      </main>
+      {faqJsonLd && (
+        <Script
+          id={`faq-schema-${course.course_code}`}
+          type="application/ld+json"
+          // "<" is escaped so admin-entered text can never close the script tag.
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c") }}
+        />
+      )}
+      {cmsPage ? (
+        <CoursePageView data={cmsPage} course={course} />
+      ) : (
+        // No published CMS content for this course (or the API is unreachable): keep the existing page.
+        <main>
+          <CourseDetailClient course={course} slug={params.slug} />
+        </main>
+      )}
     </>
   );
 }

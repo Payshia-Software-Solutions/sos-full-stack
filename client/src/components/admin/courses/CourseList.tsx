@@ -6,6 +6,7 @@ import type { ParentCourse } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Settings, BookOpen } from 'lucide-react';
+import { coverUrl } from '@/components/admin/course-page/CoverCard';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +28,7 @@ export function CourseList({ courses, onDelete }: CourseListProps) {
                         {course.course_img ? (
                              <div className="relative aspect-video rounded-t-lg -mt-6 -mx-6 mb-4 overflow-hidden">
                                 <Image 
-                                    src={`https://content-provider.pharmacollege.lk/${course.course_img}`} 
+                                    src={coverUrl(course.course_code, course.course_img) ?? ''} 
                                     alt={course.course_name} 
                                     fill 
                                     style={{ objectFit: 'cover' }} 
@@ -47,7 +48,10 @@ export function CourseList({ courses, onDelete }: CourseListProps) {
                             {course.mini_description || 'No mini description available.'}
                         </p>
                     </CardContent>
-                    <CardFooter className="p-4 flex justify-end gap-2 border-t mt-auto">
+                    <CardFooter className="p-4 flex flex-wrap justify-end gap-2 border-t mt-auto">
+                        <Button variant="outline" asChild>
+                            <Link href={`/admin/manage/courses/page-content/${encodeURIComponent(course.course_code)}`}>Page content</Link>
+                        </Button>
                         <Button variant="outline" asChild>
                             <Link href={`/admin/manage/batches?courseId=${course.id}`}>Manage Batches</Link>
                         </Button>

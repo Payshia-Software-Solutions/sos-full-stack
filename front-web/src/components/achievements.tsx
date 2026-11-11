@@ -161,14 +161,14 @@ export default function Achievements() {
             <div className="p-3 sm:p-3.5 bg-background border-t border-border/70 flex items-center justify-between gap-3 shrink-0">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <Badge variant="secondary" className="text-[10px] font-semibold bg-primary/10 text-primary border-primary/20 py-0">
+                  <Badge variant="secondary" className="text-xs font-semibold bg-primary/10 text-primary border-primary/20 py-0">
                     {getTag(selectedVideo)}
                   </Badge>
-                  <span className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                  <span className="flex items-center gap-1 text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                     <Clock className="w-2.5 h-2.5" />
                     <span>{selectedVideo.duration}</span>
                   </span>
-                  <span className="text-[10px] font-semibold text-primary flex items-center gap-1">
+                  <span className="text-xs font-semibold text-primary flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                     <span>{isSinhala ? 'දැනට ධාවනය වේ' : 'Now Playing'}</span>
                   </span>
@@ -203,7 +203,7 @@ export default function Achievements() {
                 <Film className="w-3.5 h-3.5 text-primary" />
                 <span>{isSinhala ? 'වීඩියෝ මාලාව (5)' : 'Video Playlist (5)'}</span>
               </span>
-              <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              <span className="text-xs font-mono font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                 {selectedIndex + 1} / {videos.length}
               </span>
             </div>
@@ -250,7 +250,7 @@ export default function Achievements() {
                       </div>
 
                       {/* Duration */}
-                      <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[8px] font-mono px-1 rounded">
+                      <span className="absolute bottom-1 right-1 bg-black/80 text-white text-xs font-mono px-1 rounded">
                         {video.duration}
                       </span>
                     </div>
@@ -259,13 +259,13 @@ export default function Achievements() {
                     <div className="flex flex-col flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-0.5">
                         <span className={cn(
-                          "text-[9px] font-bold uppercase tracking-wider truncate",
+                          "text-xs font-bold uppercase tracking-wider truncate",
                           isCurrent ? "text-primary font-bold" : "text-muted-foreground"
                         )}>
                           {getTag(video)}
                         </span>
                         {isCurrent && (
-                          <span className="text-[8px] font-bold text-primary bg-primary/15 px-1 py-0.2 rounded border border-primary/25 shrink-0">
+                          <span className="text-xs font-bold text-primary bg-primary/15 px-1 py-0.2 rounded border border-primary/25 shrink-0">
                             PLAYING
                           </span>
                         )}

@@ -830,20 +830,20 @@ export default function CreateConvocationBookingPage() {
                                         <RadioGroup
                                             value={additionalSeats}
                                             onValueChange={setAdditionalSeats}
-                                            className="flex gap-2"
+                                            className="grid grid-cols-6 gap-2"
                                         >
-                                            {['0', '1', '2'].map((seatVal) => (
-                                                <div key={seatVal} className="flex-1">
+                                            {['0', '1', '2', '3', '4', '5'].map((seatVal) => (
+                                                <div key={seatVal} className="min-w-0">
                                                     <RadioGroupItem value={seatVal} id={`seats-${seatVal}`} className="sr-only" />
                                                     <Label
                                                         htmlFor={`seats-${seatVal}`}
                                                         className={cn(
-                                                            "flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-card p-3 hover:bg-accent cursor-pointer transition-all h-16",
+                                                            "flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-card px-1 py-2 hover:bg-accent cursor-pointer transition-all h-16",
                                                             additionalSeats === seatVal && "border-primary bg-primary/5 text-primary font-bold"
                                                         )}
                                                     >
                                                         <span className="text-xl font-bold">{seatVal}</span>
-                                                        <span className="text-[10px] uppercase font-semibold">{seatVal === '1' ? 'Seat' : 'Seats'}</span>
+                                                        <span className="text-[9px] uppercase font-semibold truncate max-w-full">{seatVal === '1' ? 'Seat' : 'Seats'}</span>
                                                     </Label>
                                                 </div>
                                             ))}
@@ -859,20 +859,20 @@ export default function CreateConvocationBookingPage() {
                                         <RadioGroup
                                             value={refreshmentTokens}
                                             onValueChange={setRefreshmentTokens}
-                                            className="flex gap-2 flex-wrap"
+                                            className="grid grid-cols-7 gap-1.5"
                                         >
-                                            {['0', '1', '2', '3'].map((tokenVal) => (
-                                                <div key={tokenVal} className="flex-1">
+                                            {['0', '1', '2', '3', '4', '5', '6'].map((tokenVal) => (
+                                                <div key={tokenVal} className="min-w-0">
                                                     <RadioGroupItem value={tokenVal} id={`tokens-${tokenVal}`} className="sr-only" />
                                                     <Label
                                                         htmlFor={`tokens-${tokenVal}`}
                                                         className={cn(
-                                                            "flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-card p-3 hover:bg-accent cursor-pointer transition-all h-16",
+                                                            "flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-card px-1 py-2 hover:bg-accent cursor-pointer transition-all h-16",
                                                             refreshmentTokens === tokenVal && "border-primary bg-primary/5 text-primary font-bold"
                                                         )}
                                                     >
                                                         <span className="text-xl font-bold">{tokenVal}</span>
-                                                        <span className="text-[10px] uppercase font-semibold">{tokenVal === '1' ? 'Token' : 'Tokens'}</span>
+                                                        <span className="text-[9px] uppercase font-semibold truncate max-w-full">{tokenVal === '1' ? 'Token' : 'Tokens'}</span>
                                                     </Label>
                                                 </div>
                                             ))}

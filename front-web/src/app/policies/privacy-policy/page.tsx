@@ -6,12 +6,12 @@ export const metadata: Metadata = {
   title: 'රහස්‍යතා ප්‍රතිපත්තිය | Privacy Policy | Ceylon Pharma College',
   description: 'Official Privacy Policy for Ceylon Pharma College (PVT) LTD. Learn how we collect, safeguard, and use personal data across our website and mobile applications.',
   alternates: {
-    canonical: 'https://www.pharmacollege.lk/policies/privacy-policy',
+    canonical: 'https://pharmacollege.lk/policies/privacy-policy',
   },
   openGraph: {
     title: 'රහස්‍යතා ප්‍රතිපත්තිය | Privacy Policy | Ceylon Pharma College',
     description: 'Official Privacy Policy for Ceylon Pharma College (PVT) LTD. Learn how we collect, safeguard, and use personal data across our website and mobile applications.',
-    url: 'https://www.pharmacollege.lk/policies/privacy-policy',
+    url: 'https://pharmacollege.lk/policies/privacy-policy',
     siteName: 'Ceylon Pharma College',
   },
 };
@@ -21,12 +21,12 @@ export default function PrivacyPolicyPage() {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'Privacy Policy | Ceylon Pharma College',
-    url: 'https://www.pharmacollege.lk/policies/privacy-policy',
+    url: 'https://pharmacollege.lk/policies/privacy-policy',
     description: 'Privacy Policy and Data Protection guidelines for Ceylon Pharma College website and mobile applications.',
     publisher: {
       '@type': 'EducationalOrganization',
       name: 'Ceylon Pharma College (PVT) LTD',
-      url: 'https://www.pharmacollege.lk',
+      url: 'https://pharmacollege.lk',
       telephone: '+94715884884',
       email: 'info@pharmacollege.lk',
       address: {

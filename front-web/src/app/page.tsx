@@ -29,12 +29,12 @@ export const metadata: Metadata = {
     'Pharmacy training Colombo'
   ],
   alternates: {
-    canonical: 'https://www.pharmacollege.lk',
+    canonical: 'https://pharmacollege.lk',
   },
   openGraph: {
     title: 'Ceylon Pharma College | Practical Pharmacy Courses in Sri Lanka',
     description: 'Practical pharmacy courses with simulation games, printed study packs, and ISO 9001:2015 / ACTD accredited credentials.',
-    url: 'https://www.pharmacollege.lk',
+    url: 'https://pharmacollege.lk',
     siteName: 'Ceylon Pharma College',
     images: [
       {
@@ -54,7 +54,7 @@ export default async function Home() {
     '@context': 'https://schema.org',
     '@type': 'EducationalOrganization',
     name: 'Ceylon Pharma College',
-    url: 'https://www.pharmacollege.lk',
+    url: 'https://pharmacollege.lk',
     logo: 'https://content-provider.pharmacollege.lk/website/meta-seo-image.webp',
     description: 'Ceylon Pharma College is an ACTD-accredited institution with an ISO 9001:2015 certified Quality Management System providing practical pharmaceutical education in Sri Lanka.',
     address: {
@@ -72,7 +72,7 @@ export default async function Home() {
         provider: {
           '@type': 'Organization',
           name: 'Ceylon Pharma College',
-          sameAs: 'https://www.pharmacollege.lk',
+          sameAs: 'https://pharmacollege.lk',
         },
       })),
     },

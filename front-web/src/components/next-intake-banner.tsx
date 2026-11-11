@@ -82,7 +82,7 @@ export default function NextIntakeBanner() {
             
             <div className="lg:col-span-8 space-y-4">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge className="bg-amber-500 hover:bg-amber-600 text-black font-bold uppercase text-[11px] tracking-wider px-3 py-1 gap-1">
+                <Badge className="bg-amber-500 hover:bg-amber-600 text-black font-bold uppercase text-xs tracking-wider px-3 py-1 gap-1">
                   <Flame className="w-3.5 h-3.5 fill-black" /> {content.badge}
                 </Badge>
                 <span className="text-xs text-teal-200/90 font-medium flex items-center gap-1.5">

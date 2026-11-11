@@ -15,12 +15,12 @@ export const metadata: Metadata = {
     'Healthcare education articles'
   ],
   alternates: {
-    canonical: 'https://www.pharmacollege.lk/blogs',
+    canonical: 'https://pharmacollege.lk/blogs',
   },
   openGraph: {
     title: 'Pharmacy Practice & Healthcare Blog | Ceylon Pharma College',
     description: 'Practical clinical insights, medicine dispensing safety, and pharmacy career guides in Sri Lanka.',
-    url: 'https://www.pharmacollege.lk/blogs',
+    url: 'https://pharmacollege.lk/blogs',
     siteName: 'Ceylon Pharma College',
     images: [
       {
@@ -54,19 +54,24 @@ async function getInitialBlogs() {
   return [];
 }
 
-export default async function BlogsPage() {
-  const blogs = await getInitialBlogs();
+export default async function BlogsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ search?: string | string[]; tag?: string | string[] }>;
+}) {
+  const [blogs, params] = await Promise.all([getInitialBlogs(), searchParams]);
+  const first = (v?: string | string[]) => (Array.isArray(v) ? v[0] : v) || '';
 
   const blogListSchema = {
     '@context': 'https://schema.org',
     '@type': 'Blog',
     name: 'Ceylon Pharma College Articles & Blog',
     description: 'Articles on pharmacy practice, medicine dispensing, and healthcare education in Sri Lanka.',
-    url: 'https://www.pharmacollege.lk/blogs',
+    url: 'https://pharmacollege.lk/blogs',
     publisher: {
       '@type': 'EducationalOrganization',
       name: 'Ceylon Pharma College',
-      url: 'https://www.pharmacollege.lk',
+      url: 'https://pharmacollege.lk',
       logo: 'https://content-provider.pharmacollege.lk/website/meta-seo-image.webp',
     },
   };
@@ -78,7 +83,7 @@ export default async function BlogsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(blogListSchema) }}
       />
-      <BlogsClient initialBlogs={blogs} />
+      <BlogsClient initialBlogs={blogs} initialSearch={first(params.search)} tagFilter={first(params.tag)} />
     </>
   );
 }

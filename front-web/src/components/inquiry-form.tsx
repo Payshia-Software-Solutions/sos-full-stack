@@ -103,7 +103,7 @@ Message: ${state.data?.message || ''}`
           {isSuccess ? (
             /* Clear Visual Success State Screen */
             <div className="py-8 px-4 text-center space-y-5 animate-in fade-in zoom-in-95 duration-300">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 mx-auto flex items-center justify-center">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
 
@@ -121,7 +121,7 @@ Message: ${state.data?.message || ''}`
               {/* Direct WhatsApp Immediate Channel */}
               <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 max-w-md mx-auto text-xs text-left space-y-2">
                 <p className="font-semibold text-foreground flex items-center gap-1.5">
-                  <MessageCircle className="w-4 h-4 text-emerald-600" />
+                  <MessageCircle className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                   <span>{isSinhala ? 'ක්ෂණිකව ප්‍රතිචාර අවශ්‍යද?' : 'Need an instant answer?'}</span>
                 </p>
                 <p className="text-muted-foreground">
@@ -240,7 +240,7 @@ Message: ${state.data?.message || ''}`
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-emerald-600 transition-colors"
                 >
-                  <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  <MessageCircle className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                   <span>{isSinhala ? 'හෝ WhatsApp මඟින් කෙලින්ම විමසන්න' : 'Prefer instant messaging? Chat with us on WhatsApp'}</span>
                 </a>
               </div>
