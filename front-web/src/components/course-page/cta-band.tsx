@@ -18,7 +18,7 @@ export default function CtaBand({ doc, phone, labels, applyHref, whatsappHref }:
 
   return (
     <section id="fees" className="scroll-mt-40 bg-emerald-800 text-white">
-      <div className="container mx-auto max-w-6xl px-4 py-14 text-center md:px-6 md:py-20">
+      <div className="container mx-auto px-4 py-14 text-center md:px-6 md:py-20">
         {cta.title && <h2 className="text-3xl md:text-5xl font-headline font-bold leading-tight tracking-tight">{cta.title}</h2>}
         {cta.subtitle && <p className="mx-auto mt-4 max-w-2xl text-base md:text-lg text-white/90 leading-relaxed">{cta.subtitle}</p>}
         {cta.tagline && <p className="mt-3 text-lg font-semibold text-amber-300">{cta.tagline}</p>}
