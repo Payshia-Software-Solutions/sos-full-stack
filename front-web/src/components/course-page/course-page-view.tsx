@@ -73,7 +73,7 @@ export default function CoursePageView({ data, course }: { data: CoursePageData;
       />
       <SectionTabs tabs={tabs} ariaLabel={labels.tabsLabel} />
 
-      <div className="container mx-auto max-w-6xl px-4 md:px-6">
+      <div className="container mx-auto px-4 md:px-6">
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-14">
           <div className="min-w-0">
             <OverviewSection block={doc.overview} entry={doc.facts?.entry_requirements} entryLabel={labels.entry} />
@@ -106,7 +106,7 @@ export default function CoursePageView({ data, course }: { data: CoursePageData;
       </div>
 
       {showCta && <CtaBand doc={doc} phone={phone} labels={labels} applyHref={applyHref} whatsappHref={whatsappHref} />}
-      <div className="container mx-auto max-w-6xl px-4 md:px-6">
+      <div className="container mx-auto px-4 md:px-6">
         <RefundPolicySection policy={refund} fallbackTitle={labels.refundPolicy} />
       </div>
     </main>

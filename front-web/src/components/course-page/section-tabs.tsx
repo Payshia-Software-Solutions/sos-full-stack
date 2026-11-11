@@ -43,7 +43,7 @@ export default function SectionTabs({ tabs, ariaLabel }: { tabs: SectionTab[]; a
       style={{ top }}
       className="sticky z-40 border-b border-border bg-background/95 backdrop-blur"
     >
-      <ul className="container mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 md:px-6">
+      <ul className="container mx-auto flex gap-1 overflow-x-auto px-4 md:px-6">
         {tabs.map((tab) => (
           <li key={tab.id} className="shrink-0">
             <a
