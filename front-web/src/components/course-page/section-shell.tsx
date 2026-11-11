@@ -9,18 +9,16 @@ interface SectionShellProps {
 }
 
 // One page section: anchor target for the sticky tabs, consistent spacing and heading.
+// The page view provides the column width, so sections do not add their own container.
 export function SectionShell({ id, title, tone = "plain", children }: SectionShellProps) {
   return (
-    <section
-      id={id}
-      className={cn("scroll-mt-32 py-10 md:py-14", tone === "tinted" && "bg-card/60 border-y border-border/50")}
-    >
-      <div className="container mx-auto px-4 md:px-6 max-w-4xl">
-        {title && (
-          <h2 className="text-2xl md:text-3xl font-headline font-bold text-foreground leading-tight mb-5">{title}</h2>
-        )}
-        {children}
-      </div>
+    <section id={id} className={cn("scroll-mt-40 py-12 md:py-16", tone === "tinted" && "border-t border-border/70")}>
+      {title && (
+        <h2 className="mb-6 text-2xl md:text-3xl lg:text-4xl font-headline font-bold tracking-tight text-foreground leading-tight">
+          {title}
+        </h2>
+      )}
+      {children}
     </section>
   );
 }

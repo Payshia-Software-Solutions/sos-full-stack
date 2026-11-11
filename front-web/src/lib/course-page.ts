@@ -16,6 +16,7 @@ export interface CoursePageDoc {
   learn?: { title?: string; intro?: string; items?: string[]; closing?: string };
   modules?: { title?: string; items?: { title?: string; description?: string }[] };
   assessment?: { title?: string; intro?: string; items?: string[]; note?: string };
+  certification?: { title?: string; intro?: string; items?: string[]; note?: string };
   schedule?: { title?: string; note?: string; recordings?: string };
   lecturers?: { title?: string; items?: { name?: string; qualifications?: string; photo_url?: string }[] };
   faq?: { title?: string; items?: { question?: string; answer?: string }[] };

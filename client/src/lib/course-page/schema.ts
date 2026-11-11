@@ -113,6 +113,13 @@ export const BLOCKS: BlockSpec[] = [
     lists: [{ key: 'items', label: 'Assessment types', type: 'strings', itemLabel: 'Type' }],
   },
   {
+    id: 'certification',
+    title: 'Certification',
+    hint: 'What students receive on completion: certificate, study pack and how it is awarded.',
+    fields: [text('title', 'Title'), area('intro', 'Intro'), area('note', 'Closing note')],
+    lists: [{ key: 'items', label: 'Certification points', type: 'strings', itemLabel: 'Point' }],
+  },
+  {
     id: 'schedule',
     title: 'Schedule',
     hint: 'Class day and time are edited under Key facts.',

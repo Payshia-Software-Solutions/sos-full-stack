@@ -17,9 +17,9 @@ export default function LecturersSection({ block }: { block: CoursePageDoc["lect
   const items = block?.items ?? [];
   return (
     <SectionShell id="lecturers" title={block?.title} tone="tinted">
-      <ul className="grid gap-4 md:grid-cols-2">
+      <ul className="grid gap-4">
         {items.map((person, i) => (
-          <li key={i} className="flex gap-4 rounded-xl border border-border bg-background p-4">
+          <li key={i} className="flex gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
             {person.photo_url && /^https?:\/\//i.test(person.photo_url) ? (
               // Plain <img>: the URL is typed or pasted by admin and may be on a host next/image does not allow.
               // eslint-disable-next-line @next/next/no-img-element

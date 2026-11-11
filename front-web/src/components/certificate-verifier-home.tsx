@@ -216,7 +216,7 @@ export default function CertificateVerifierHome() {
   return (
     <section 
       id="certificate-verification" 
-      className="bg-primary py-16 md:py-24 text-primary-foreground relative overflow-hidden"
+      className="bg-emerald-800 py-16 md:py-24 text-white relative overflow-hidden"
     >
       <div className="container mx-auto px-4 md:px-6 text-center relative z-10">
         
@@ -233,7 +233,7 @@ export default function CertificateVerifierHome() {
         </div>
 
         {/* Illuminated Critical Selling Point Trust Pill */}
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-amber-300 mb-4 shadow-sm">
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-black/25 backdrop-blur-md border border-white/20 text-xs font-semibold text-amber-300 mb-4 shadow-sm">
           <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
           <span>
             {isSinhala 
@@ -252,7 +252,7 @@ export default function CertificateVerifierHome() {
 
         {/* Subtitle */}
         <p className={cn(
-          "mt-4 text-base md:text-lg text-primary-foreground/90 max-w-2xl mx-auto",
+          "mt-4 text-base md:text-lg text-white/90 max-w-2xl mx-auto",
           isSinhala ? "leading-[1.75]" : "leading-relaxed"
         )}>
           {t('certVerifierSubtitle')}
@@ -265,7 +265,7 @@ export default function CertificateVerifierHome() {
               name="certificateNumber" 
               placeholder={isSinhala ? 'ශිෂ්‍ය අංකය (උදා: PA24600), සහතික අංකය හෝ නම' : 'ENTER STUDENT INDEX (E.G. PA24600), CERT ID OR NAME'} 
               aria-label={t('certVerifierButton')}
-              className="h-14 w-full rounded-xl border-2 border-primary-foreground/50 bg-primary-foreground/95 pl-14 pr-14 text-base text-primary placeholder:text-primary/65 focus:border-primary-foreground focus:bg-primary-foreground focus:ring-2 focus:ring-primary-foreground/50 uppercase font-mono font-medium shadow-lg"
+              className="h-14 w-full rounded-xl border-2 border-white/50 bg-white/95 pl-14 pr-14 text-base text-emerald-900 placeholder:text-emerald-800/70 focus:border-primary-foreground focus:bg-primary-foreground focus:ring-2 focus:ring-primary-foreground/50 uppercase font-mono font-medium shadow-lg"
               onChange={(e) => {
                 setQuery(e.target.value.toUpperCase());
                 if (selectedStudentData) setSelectedStudentData(null);
@@ -278,21 +278,21 @@ export default function CertificateVerifierHome() {
 
           {/* Clean Example Search Hint */}
           {!query && (
-            <p className="text-xs text-primary-foreground/85 pt-2 text-center font-body">
+            <p className="text-xs text-white/85 pt-2 text-center font-body">
               <span className="font-medium">{isSinhala ? 'උදාහරණ (e.g.): ' : 'Examples: '}</span>
-              <span className="font-mono text-primary-foreground/95">PA24600</span>
+              <span className="font-mono text-white/95">PA24600</span>
               <span className="mx-1.5 opacity-60">•</span>
-              <span className="font-mono text-primary-foreground/95">CREF4307</span>
+              <span className="font-mono text-white/95">CREF4307</span>
               <span className="mx-1.5 opacity-60">•</span>
-              <span className="font-mono text-primary-foreground/95">Kasun</span>
+              <span className="font-mono text-white/95">Kasun</span>
               <span className="mx-1.5 opacity-60">•</span>
-              <span className="font-mono text-primary-foreground/95">Dilshan</span>
+              <span className="font-mono text-white/95">Dilshan</span>
             </p>
           )}
 
           {/* Details Loading Spinner */}
           {detailsLoading && (
-            <div className="mt-6 flex flex-col justify-center items-center gap-2 text-primary-foreground/90 py-6">
+            <div className="mt-6 flex flex-col justify-center items-center gap-2 text-white/90 py-6">
               <Loader2 className="h-7 w-7 animate-spin" />
               <p className="text-sm font-medium">
                 {isSinhala ? 'සත්‍යාපිත ශිෂ්‍ය තොරතුරු පූරණය වෙමින් පවතී...' : 'Loading verified credentials...'}
@@ -301,18 +301,18 @@ export default function CertificateVerifierHome() {
           )}
 
           {detailsError && (
-            <div className="mt-4 p-4 rounded-xl bg-destructive/20 border border-destructive/40 text-primary-foreground text-xs text-center">
+            <div className="mt-4 p-4 rounded-xl bg-destructive/20 border border-destructive/40 text-white text-xs text-center">
               {detailsError}
             </div>
           )}
 
           {/* Empty State when searched but nothing found */}
           {query.trim().length >= 2 && !searchLoading && filteredStudents.length === 0 && !selectedStudentData && (
-            <div className="mt-4 p-5 rounded-xl bg-background/15 border border-primary-foreground/20 text-center text-primary-foreground space-y-2 backdrop-blur-sm animate-in fade-in-50">
+            <div className="mt-4 p-5 rounded-xl bg-background/15 border border-white/20 text-center text-white space-y-2 backdrop-blur-sm animate-in fade-in-50">
               <p className="font-semibold text-sm">
                 {isSinhala ? 'සිසුන් හෝ සහතිකපත් හමු නොවීය (No matching records)' : 'No matching student or certificate found'}
               </p>
-              <p className="text-xs text-primary-foreground/80 leading-relaxed max-w-md mx-auto">
+              <p className="text-xs text-white/80 leading-relaxed max-w-md mx-auto">
                 {isSinhala 
                   ? 'කරුණාකර නිවැරදි ශිෂ්‍ය අංකය (උදා: PA24600 හෝ PA/24/600), සහතික අංකය (උදා: CREF4307) හෝ නම පරීක්ෂා කර නැවත උත්සාහ කරන්න.' 
                   : 'Please verify your Student Index (e.g. PA24600), Certificate ID (e.g. CREF4307), or Name and try again.'}
@@ -323,7 +323,7 @@ export default function CertificateVerifierHome() {
           {/* Search Results Dropdown List with Strict Left Alignment */}
           {filteredStudents.length > 0 && !selectedStudentData && !detailsLoading && (
             <div className="mt-4 space-y-2.5 max-h-80 overflow-y-auto animate-in fade-in-50 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden text-left">
-              <p className="text-xs font-semibold text-primary-foreground/85 px-1 text-left">
+              <p className="text-xs font-semibold text-white/85 px-1 text-left">
                 {isSinhala ? `ගැලපෙන සිසුන් ${filteredStudents.length} ක් හමුවිය:` : `Found ${filteredStudents.length} matching record(s):`}
               </p>
               {filteredStudents.map((student) => (
@@ -341,7 +341,7 @@ export default function CertificateVerifierHome() {
                         {student.name_on_certificate}
                       </p>
                       {student.certificate_id && (
-                        <span className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-500/20">
+                        <span className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-500/20">
                           {student.certificate_id}
                         </span>
                       )}
@@ -367,7 +367,7 @@ export default function CertificateVerifierHome() {
             <div className="mt-4 p-5 rounded-2xl bg-background text-foreground shadow-2xl border border-border/80 space-y-4 animate-in fade-in-50 text-left">
               <div className="flex items-center justify-between pb-3 border-b border-border/60">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <CheckCircle2 className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
                   <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
                     {isSinhala ? 'සත්‍යාපිත උපාධිධාරී ශිෂ්‍යයා (Officially Verified)' : 'Officially Verified Graduate'}
                   </span>
@@ -394,7 +394,7 @@ export default function CertificateVerifierHome() {
 
               {/* Completed Enrollments */}
               <div className="space-y-2 pt-2 border-t border-border/60">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">
                   {isSinhala ? 'සම්පූර්ණ කරන ලද පාඨමාලා:' : 'Completed Enrollments:'}
                 </p>
                 {Object.values(selectedStudentData.studentEnrollments || {}).map((enrollment) => (
@@ -406,7 +406,7 @@ export default function CertificateVerifierHome() {
                       <p className="text-xs font-semibold text-foreground truncate">
                         {enrollment.parent_course_name}
                       </p>
-                      <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                      <p className="text-xs text-muted-foreground font-mono mt-0.5">
                         {enrollment.batch_name} ({enrollment.course_code})
                       </p>
                     </div>
@@ -425,7 +425,7 @@ export default function CertificateVerifierHome() {
         </div>
 
         {/* Description Paragraph from Image 2 */}
-        <p className="mt-10 max-w-3xl mx-auto text-primary-foreground/85 text-xs sm:text-sm font-body leading-relaxed">
+        <p className="mt-10 max-w-3xl mx-auto text-white/85 text-xs sm:text-sm font-body leading-relaxed">
           {t('certVerifierDescription')}
         </p>
 

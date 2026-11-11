@@ -29,7 +29,7 @@ export default function MobileStickyCTA() {
           href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-3 rounded-full shadow-2xl transition-all duration-300 hover:scale-105 group"
+          className="flex items-center gap-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm px-4 py-3 rounded-full shadow-2xl transition-all duration-300 hover:scale-105 group"
           aria-label="Chat on WhatsApp"
         >
           <span className="relative flex h-3 w-3">
@@ -48,7 +48,7 @@ export default function MobileStickyCTA() {
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 flex flex-col items-center justify-center py-1.5 px-2 rounded-lg bg-emerald-600 text-white text-[11px] font-semibold transition-transform active:scale-95"
+            className="flex-1 flex flex-col items-center justify-center py-1.5 px-2 rounded-lg bg-emerald-700 text-white text-xs font-semibold transition-transform active:scale-95"
             aria-label="WhatsApp"
           >
             <MessageCircle className="w-4 h-4 mb-0.5" />
@@ -57,7 +57,7 @@ export default function MobileStickyCTA() {
 
           <a
             href={callUrl}
-            className="flex-1 flex flex-col items-center justify-center py-1.5 px-2 rounded-lg bg-secondary text-foreground text-[11px] font-semibold border border-border transition-transform active:scale-95"
+            className="flex-1 flex flex-col items-center justify-center py-1.5 px-2 rounded-lg bg-secondary text-foreground text-xs font-semibold border border-border transition-transform active:scale-95"
             aria-label="Call Now"
           >
             <Phone className="w-4 h-4 mb-0.5 text-primary" />
@@ -66,7 +66,7 @@ export default function MobileStickyCTA() {
 
           <Link
             href={applyUrl}
-            className="flex-1 flex flex-col items-center justify-center py-1.5 px-2 rounded-lg bg-primary text-primary-foreground text-[11px] font-bold shadow-md transition-transform active:scale-95"
+            className="flex-1 flex flex-col items-center justify-center py-1.5 px-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow-md transition-transform active:scale-95"
             aria-label="Apply Now"
           >
             <GraduationCap className="w-4 h-4 mb-0.5 text-amber-300" />

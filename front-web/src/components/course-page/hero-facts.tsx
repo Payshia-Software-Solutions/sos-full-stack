@@ -19,16 +19,8 @@ interface HeroFactsProps {
   whatsappHref: string;
 }
 
-function Tile({ label, value, className = "" }: { label: string; value: string; className?: string }) {
-  return (
-    <div className={`rounded-xl border border-border bg-background p-3.5 ${className}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 text-base font-bold text-foreground leading-snug">{value}</p>
-    </div>
-  );
-}
-
-// First screen: name, promise, the decision facts, and Apply / WhatsApp.
+// First screen: name, promise, the key facts strip, and Apply / WhatsApp.
+// All text comes from the course page content (CMS) and the course record; only the layout is fixed here.
 export default function HeroFacts({ doc, labels, courseName, coverUrl, feeText, durationText, applyHref, whatsappHref }: HeroFactsProps) {
   const [coverFailed, setCoverFailed] = useState(false);
   const hero = doc.hero ?? {};
@@ -37,86 +29,120 @@ export default function HeroFacts({ doc, labels, courseName, coverUrl, feeText, 
     (v): v is string => Boolean(v)
   );
   const schedule = [facts.class_day, facts.class_time].filter(Boolean).join(" · ");
+  const hasCover = Boolean(coverUrl) && !coverFailed;
+  const tiles = [
+    feeText ? { label: labels.fee, value: feeText } : null,
+    durationText ? { label: labels.duration, value: durationText } : null,
+    facts.medium ? { label: labels.medium, value: facts.medium } : null,
+    facts.mode ? { label: labels.mode, value: facts.mode } : null,
+  ].filter((t): t is { label: string; value: string } => t !== null);
+  const applyLabel = feeText ? `${labels.applyNow} — ${feeText}` : labels.applyNow;
 
   return (
-    <section className="bg-emerald-800 text-white">
-      <div className="container mx-auto px-4 md:px-6 max-w-4xl py-8 md:py-12">
-        <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-          <div>
-          {hero.eyebrow && (
-            <p className="inline-block rounded-full border border-white/30 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-300">
-              {hero.eyebrow}
-            </p>
-          )}
-          <h1 className="mt-3 text-3xl md:text-5xl font-headline font-bold leading-tight">{hero.title || courseName}</h1>
-          {hero.headline && <p className="mt-3 text-xl md:text-2xl font-semibold text-amber-300 leading-snug">{hero.headline}</p>}
-          {hero.promise && <p className="mt-3 text-base md:text-lg text-white/90 leading-relaxed max-w-2xl">{hero.promise}</p>}
+    <>
+    <section className="relative bg-emerald-800 text-white">
+      <div className="container mx-auto max-w-6xl px-4 md:px-6 pt-12 pb-20 md:pt-16 md:pb-24 lg:pt-20">
+        <div className="grid items-center gap-10 lg:grid-cols-12 lg:gap-14">
+          <div className={hasCover ? "lg:col-span-7" : "lg:col-span-12"}>
+            <div className="flex flex-wrap gap-2">
+              {hero.eyebrow && (
+                <span className="rounded-full border border-white/30 bg-white/5 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
+                  {hero.eyebrow}
+                </span>
+              )}
+              {facts.next_intake && (
+                <span className="rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-emerald-950">
+                  {labels.nextIntake}: {facts.next_intake}
+                </span>
+              )}
+            </div>
+            <h1 className="mt-5 text-4xl md:text-5xl lg:text-6xl font-headline font-bold leading-[1.08] tracking-tight">
+              {hero.title || courseName}
+            </h1>
+            {hero.headline && (
+              <p className="mt-4 text-xl md:text-2xl font-semibold text-amber-300 leading-snug">{hero.headline}</p>
+            )}
+            {hero.promise && (
+              <p className="mt-4 max-w-xl text-base md:text-lg text-emerald-50/90 leading-relaxed">{hero.promise}</p>
+            )}
+
+            {checklist.length > 0 && (
+              <ul className="mt-6 grid gap-x-6 gap-y-2.5 sm:grid-cols-2 text-sm md:text-base text-emerald-50/90">
+                {checklist.map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" aria-hidden="true" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href={applyHref}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-amber-400 px-7 text-base font-bold text-emerald-950 shadow-lg shadow-black/20 transition-colors hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                <GraduationCap className="h-5 w-5" aria-hidden="true" />
+                {applyLabel}
+              </Link>
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-white/50 px-7 text-base font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                <MessageCircle className="h-5 w-5" aria-hidden="true" />
+                {labels.whatsapp}
+              </a>
+            </div>
           </div>
-          {coverUrl && !coverFailed && (
-            <div className="relative aspect-video w-full max-w-md overflow-hidden rounded-2xl lg:max-w-none border border-white/25 bg-emerald-900 shadow-xl">
-              <Image
-                src={coverUrl}
-                alt={`${courseName} cover`}
-                fill
-                priority
-                sizes="(min-width: 1024px) 300px, 100vw"
-                className="object-cover"
-                onError={() => setCoverFailed(true)}
-              />
+
+          {hasCover && (
+            <div className="relative lg:col-span-5 pb-10 lg:pb-12">
+              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl border border-white/25 bg-emerald-900 shadow-2xl shadow-black/30">
+                <Image
+                  src={coverUrl as string}
+                  alt={`${courseName} cover`}
+                  fill
+                  priority
+                  sizes="(min-width: 1024px) 40vw, 100vw"
+                  className="object-cover"
+                  onError={() => setCoverFailed(true)}
+                />
+              </div>
+              {facts.next_intake && (
+                <div className="absolute -bottom-2 left-4 right-4 flex items-center gap-4 rounded-2xl bg-white p-4 text-emerald-950 shadow-xl sm:left-[-24px] sm:right-auto sm:w-[280px]">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-900">
+                    <CalendarDays className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800/70">{labels.nextIntake}</p>
+                    <p className="text-lg font-bold leading-snug">{facts.next_intake}</p>
+                    {schedule && <p className="text-sm font-medium text-emerald-900/80">{schedule}</p>}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-        </div>
-
-        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3">
-          {facts.next_intake && (
-            <div className="col-span-2 md:col-span-3 rounded-xl border border-amber-300 bg-amber-100 p-4 text-amber-950">
-              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide">
-                <CalendarDays className="h-4 w-4" aria-hidden="true" />
-                {labels.nextIntake}
-              </p>
-              <p className="mt-1 text-xl md:text-2xl font-bold leading-snug">{facts.next_intake}</p>
-              {schedule && <p className="mt-0.5 text-sm font-medium">{schedule}</p>}
-            </div>
-          )}
-          {feeText && <Tile label={labels.fee} value={feeText} />}
-          {durationText && <Tile label={labels.duration} value={durationText} />}
-          {facts.medium && <Tile label={labels.medium} value={facts.medium} />}
-          {facts.mode && <Tile label={labels.mode} value={facts.mode} className="col-span-2 md:col-span-1" />}
-          {facts.entry_requirements && (
-            <Tile label={labels.entry} value={facts.entry_requirements} className="col-span-2" />
-          )}
-        </div>
-
-        {checklist.length > 0 && (
-          <ul className="mt-5 grid gap-2 sm:grid-cols-2 text-sm md:text-base text-white/90">
-            {checklist.map((item) => (
-              <li key={item} className="flex items-start gap-2">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" aria-hidden="true" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-          <Link
-            href={applyHref}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-amber-400 px-6 text-base font-bold text-emerald-950 transition-colors hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-          >
-            <GraduationCap className="h-5 w-5" aria-hidden="true" />
-            {labels.applyNow}
-          </Link>
-          <a
-            href={whatsappHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-white/50 px-6 text-base font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-          >
-            <MessageCircle className="h-5 w-5" aria-hidden="true" />
-            {labels.whatsapp}
-          </a>
         </div>
       </div>
+
     </section>
+      {tiles.length > 0 && (
+        <div className="container relative z-10 mx-auto max-w-6xl px-4 md:px-6 -mt-14 md:-mt-16">
+          <dl className="grid grid-cols-2 overflow-hidden rounded-2xl bg-white text-emerald-950 shadow-2xl shadow-black/15 md:flex md:flex-nowrap">
+            {tiles.map((tile, i) => (
+              <div
+                key={tile.label}
+                className={`p-5 md:p-6 md:flex-auto md:whitespace-nowrap ${i % 2 === 0 ? "border-r" : ""} md:border-r last:border-r-0 border-b md:border-b-0 border-emerald-900/10`}
+              >
+                <dt className="text-[11px] md:text-xs font-bold uppercase tracking-wider text-emerald-800/70">{tile.label}</dt>
+                <dd className="mt-1.5 text-lg md:text-xl font-extrabold leading-snug">{tile.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+    </>
   );
 }

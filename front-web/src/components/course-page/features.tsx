@@ -14,8 +14,8 @@ export default function FeaturesSection({ block }: { block: CoursePageDoc["featu
           {items.map((item, i) => {
             const Icon = iconFor(item.icon);
             return (
-              <li key={i} className="flex gap-4 rounded-xl border border-border bg-background p-4">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <li key={i} className="flex gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Icon className="h-6 w-6" aria-hidden="true" />
                 </span>
                 <div>

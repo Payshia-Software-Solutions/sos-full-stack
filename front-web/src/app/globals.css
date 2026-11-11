@@ -10,19 +10,20 @@
     --card-foreground: 173 100% 10%;
     --popover: 173 50% 96%;
     --popover-foreground: 173 100% 10%;
-    --primary: 161 100% 36%;
-    --primary-foreground: 161 100% 95%;
+    /* Darkened from 36% for WCAG AA: white on primary ~5.4:1, primary text on background ~4.7:1 */
+    --primary: 161 100% 24%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 173 20% 85%;
     --secondary-foreground: 173 100% 20%;
     --muted: 173 20% 88%;
-    --muted-foreground: 173 15% 45.1%;
+    --muted-foreground: 173 20% 34%; /* was 45.1% (3.6:1); now ~5.4:1 on background */
     --accent: 217 91% 60%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 173 20% 80%;
     --input: 173 20% 85%;
-    --ring: 161 100% 36%;
+    --ring: 161 100% 24%;
     --radius: 0.5rem;
   }
 
@@ -33,8 +34,10 @@
     --card-foreground: 173 20% 94%;
     --popover: 173 15% 15%;
     --popover-foreground: 173 20% 94%;
-    --primary: 161 100% 25%;
-    --primary-foreground: 161 100% 95%;
+    /* Lighter primary in dark mode so primary text stays readable on dark surfaces;
+       foreground flips to dark green so button labels keep AA contrast */
+    --primary: 161 100% 40%;
+    --primary-foreground: 161 100% 8%;
     --secondary: 173 10% 25%;
     --secondary-foreground: 173 20% 94%;
     --muted: 173 10% 25%;
@@ -45,7 +48,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 173 10% 25%;
     --input: 173 10% 25%;
-    --ring: 161 100% 30%;
+    --ring: 161 100% 45%;
   }
 }
 
@@ -188,4 +191,29 @@ html[data-lang="ta"] .leading-tight {
 html[lang="ta"] .leading-snug,
 html[data-lang="ta"] .leading-snug {
   line-height: 1.44 !important;
+}
+
+
+/* Mobile: keep page content (footer links, copyright) clear of the fixed bottom quick-actions bar (md:hidden) */
+@media (max-width: 767px) {
+  body {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Respect users who ask the OS to reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Loading spinners still need to show activity */
+  .animate-spin {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
+  }
 }

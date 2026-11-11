@@ -27,6 +27,7 @@ class CoursePageSchema
         'learn' => ['scalars' => ['title', 'intro', 'closing'], 'strings' => 'items'],
         'modules' => ['scalars' => ['title'], 'objects' => ['items' => ['title', 'description']]],
         'assessment' => ['scalars' => ['title', 'intro', 'note'], 'strings' => 'items'],
+        'certification' => ['scalars' => ['title', 'intro', 'note'], 'strings' => 'items'],
         'schedule' => ['scalars' => ['title', 'note', 'recordings']],
         'lecturers' => ['scalars' => ['title'], 'objects' => ['items' => ['name', 'qualifications', 'photo_url']]],
         'faq' => ['scalars' => ['title'], 'objects' => ['items' => ['question', 'answer']]],

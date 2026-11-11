@@ -43,15 +43,17 @@ export default function SectionTabs({ tabs, ariaLabel }: { tabs: SectionTab[]; a
       style={{ top }}
       className="sticky z-40 border-b border-border bg-background/95 backdrop-blur"
     >
-      <ul className="container mx-auto flex max-w-4xl gap-1 overflow-x-auto px-4 py-2 md:px-6">
+      <ul className="container mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 md:px-6">
         {tabs.map((tab) => (
           <li key={tab.id} className="shrink-0">
             <a
               href={`#${tab.id}`}
               aria-current={active === tab.id ? "true" : undefined}
               className={cn(
-                "inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold transition-colors",
-                active === tab.id ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
+                "inline-flex h-14 items-center border-b-[3px] px-4 text-sm md:text-[15px] font-semibold transition-colors whitespace-nowrap",
+                active === tab.id
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               )}
             >
               {tab.label}

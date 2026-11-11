@@ -254,7 +254,7 @@ export default function WhyChooseUs() {
                 <p className="text-xs text-muted-foreground mt-1 font-medium">{content.stat1}</p>
               </div>
               <div>
-                <p className="text-2xl sm:text-3xl font-headline font-bold text-amber-500">830+</p>
+                <p className="text-2xl sm:text-3xl font-headline font-bold text-amber-700 dark:text-amber-400">830+</p>
                 <p className="text-xs text-muted-foreground mt-1 font-medium">{content.stat2}</p>
               </div>
               <div>

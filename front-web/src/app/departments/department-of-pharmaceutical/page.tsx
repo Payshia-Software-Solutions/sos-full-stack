@@ -5,12 +5,12 @@ export const metadata: Metadata = {
   title: 'ඖෂධවේදී අධ්‍යයන අංශය | Department of Pharmaceutical Sciences | Ceylon Pharma College',
   description: 'Explore programs, practical pharmacology modules, and professional dispensing qualifications offered by the Department of Pharmaceutical Sciences at Ceylon Pharma College.',
   alternates: {
-    canonical: 'https://www.pharmacollege.lk/departments/department-of-pharmaceutical',
+    canonical: 'https://pharmacollege.lk/departments/department-of-pharmaceutical',
   },
   openGraph: {
     title: 'ඖෂධවේදී අධ්‍යයන අංශය | Department of Pharmaceutical Sciences | Ceylon Pharma College',
     description: 'Explore programs, practical pharmacology modules, and professional dispensing qualifications offered by the Department of Pharmaceutical Sciences at Ceylon Pharma College.',
-    url: 'https://www.pharmacollege.lk/departments/department-of-pharmaceutical',
+    url: 'https://pharmacollege.lk/departments/department-of-pharmaceutical',
     siteName: 'Ceylon Pharma College',
   },
 };

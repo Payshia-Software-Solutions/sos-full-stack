@@ -13,12 +13,12 @@ export const metadata: Metadata = {
     'Pharmacy assistant graduate testimonials'
   ],
   alternates: {
-    canonical: 'https://www.pharmacollege.lk/reviews',
+    canonical: 'https://pharmacollege.lk/reviews',
   },
   openGraph: {
     title: 'Student Reviews & Success Stories | Ceylon Pharma College',
     description: 'Read how 5,000+ alumni transformed their healthcare careers through Ceylon Pharma College practical training.',
-    url: 'https://www.pharmacollege.lk/reviews',
+    url: 'https://pharmacollege.lk/reviews',
     siteName: 'Ceylon Pharma College',
     images: [
       {
@@ -42,7 +42,7 @@ export default function ReviewsPage() {
     '@context': 'https://schema.org',
     '@type': 'EducationalOrganization',
     name: 'Ceylon Pharma College',
-    url: 'https://www.pharmacollege.lk',
+    url: 'https://pharmacollege.lk',
     aggregateRating: {
       '@type': 'AggregateRating',
       ratingValue: '4.9',

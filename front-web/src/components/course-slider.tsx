@@ -136,7 +136,7 @@ export default function CourseSlider({ initialCourses }: CourseSliderProps) {
                                 <Clock className="w-3.5 h-3.5 text-primary" /> {course.course_duration}
                               </span>
                               <span>•</span>
-                              <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                              <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
                                 Live Zoom + Recorded
                               </span>
                             </div>
@@ -152,7 +152,7 @@ export default function CourseSlider({ initialCourses }: CourseSliderProps) {
 
                             <div className="mt-5 pt-4 border-t border-border/70 flex items-center justify-between">
                               <div>
-                                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block font-medium">Fee</span>
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground block font-medium">Fee</span>
                                 <span className="font-bold text-base font-body text-foreground">
                                   LKR {feeNumber.toLocaleString()}
                                 </span>

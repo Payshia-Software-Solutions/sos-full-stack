@@ -16,6 +16,7 @@ export interface CoursePageLabels {
   tabOverview: string;
   tabAudience: string;
   tabModules: string;
+  tabCertification: string;
   tabLecturers: string;
   tabFaq: string;
   tabFees: string;
@@ -41,6 +42,7 @@ export const LABELS: Record<PageLanguage, CoursePageLabels> = {
     tabOverview: "Overview",
     tabAudience: "Who it's for",
     tabModules: "Modules",
+    tabCertification: "Certification",
     tabLecturers: "Lecturers",
     tabFaq: "FAQ",
     tabFees: "Fees",
@@ -64,6 +66,7 @@ export const LABELS: Record<PageLanguage, CoursePageLabels> = {
     tabOverview: "දළ විශ්ලේෂණය",
     tabAudience: "කා සඳහාද",
     tabModules: "මොඩියුල",
+    tabCertification: "සහතිකය",
     tabLecturers: "කථිකාචාර්යවරු",
     tabFaq: "නිතර අසන ප්‍රශ්න",
     tabFees: "ගාස්තු",
@@ -87,6 +90,7 @@ export const LABELS: Record<PageLanguage, CoursePageLabels> = {
     tabOverview: "கண்ணோட்டம்",
     tabAudience: "யாருக்கு",
     tabModules: "பாடத் தொகுதிகள்",
+    tabCertification: "சான்றிதழ்",
     tabLecturers: "விரிவுரையாளர்கள்",
     tabFaq: "அடிக்கடி கேட்கப்படும் கேள்விகள்",
     tabFees: "கட்டணம்",

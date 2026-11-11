@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useTranslation } from '@/context/language-context';
@@ -8,6 +9,21 @@ import { ChevronDown, BookOpen, GraduationCap, MessageCircle, ShieldCheck, Award
 export default function Hero() {
   const { t, language } = useTranslation();
   const isSinhala = language === 'si';
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Respect prefers-reduced-motion: keep the poster frame instead of a looping background video
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const apply = () => {
+      if (mq.matches) video.pause();
+      else video.play().catch(() => {});
+    };
+    apply();
+    mq.addEventListener?.('change', apply);
+    return () => mq.removeEventListener?.('change', apply);
+  }, []);
 
   const whatsappMessage = 
     language === 'si'
@@ -20,6 +36,7 @@ export default function Hero() {
     <section className="relative w-full min-h-[calc(100vh-7rem)] flex items-center justify-center overflow-hidden">
       {/* Background Video with Poster Fallback */}
       <video 
+        ref={videoRef}
         autoPlay 
         loop 
         muted 
@@ -97,7 +114,7 @@ export default function Hero() {
             </div>
             <div className="min-w-0 flex-1 overflow-hidden">
               <p className="font-bold text-sm sm:text-base md:text-lg leading-tight text-white truncate">{t('statStudents')}</p>
-              <p className="text-[10px] sm:text-[11px] xl:text-xs text-white/85 mt-0.5 leading-snug whitespace-normal break-words line-clamp-2">{t('statStudentsLabel')}</p>
+              <p className="text-xs xl:text-xs text-white/85 mt-0.5 leading-snug whitespace-normal break-words line-clamp-2">{t('statStudentsLabel')}</p>
             </div>
           </div>
 
@@ -107,7 +124,7 @@ export default function Hero() {
             </div>
             <div className="min-w-0 flex-1 overflow-hidden">
               <p className="font-bold text-sm sm:text-base md:text-lg leading-tight text-white truncate">{t('statAccredited')}</p>
-              <p className="text-[10px] sm:text-[11px] xl:text-xs text-white/85 mt-0.5 leading-snug whitespace-normal break-words line-clamp-2">{t('statAccreditedLabel')}</p>
+              <p className="text-xs xl:text-xs text-white/85 mt-0.5 leading-snug whitespace-normal break-words line-clamp-2">{t('statAccreditedLabel')}</p>
             </div>
           </div>
 
@@ -117,7 +134,7 @@ export default function Hero() {
             </div>
             <div className="min-w-0 flex-1 overflow-hidden">
               <p className="font-bold text-sm sm:text-base md:text-lg leading-tight text-white truncate">{t('statIso')}</p>
-              <p className="text-[10px] sm:text-[11px] xl:text-xs text-white/85 mt-0.5 leading-snug whitespace-normal break-words line-clamp-2">{t('statIsoLabel')}</p>
+              <p className="text-xs xl:text-xs text-white/85 mt-0.5 leading-snug whitespace-normal break-words line-clamp-2">{t('statIsoLabel')}</p>
             </div>
           </div>
 
@@ -127,7 +144,7 @@ export default function Hero() {
             </div>
             <div className="min-w-0 flex-1 overflow-hidden">
               <p className="font-bold text-sm sm:text-base md:text-lg leading-tight text-white truncate">{t('statLearning')}</p>
-              <p className="text-[10px] sm:text-[11px] xl:text-xs text-white/85 mt-0.5 leading-snug whitespace-normal break-words line-clamp-2">{t('statLearningLabel')}</p>
+              <p className="text-xs xl:text-xs text-white/85 mt-0.5 leading-snug whitespace-normal break-words line-clamp-2">{t('statLearningLabel')}</p>
             </div>
           </div>
         </div>

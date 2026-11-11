@@ -9,7 +9,7 @@ export default function ModulesSection({ block }: { block: CoursePageDoc["module
   return (
     <SectionShell id="modules" title={block?.title}>
       {items.length > 0 && (
-        <Accordion type="single" collapsible className="w-full rounded-xl border border-border bg-card px-4">
+        <Accordion type="single" collapsible className="w-full rounded-2xl border border-border bg-card px-5 md:px-6">
           {items.map((item, i) => (
             <AccordionItem key={i} value={`module-${i}`}>
               <AccordionTrigger className="gap-3 py-4 text-left text-base font-semibold hover:no-underline">

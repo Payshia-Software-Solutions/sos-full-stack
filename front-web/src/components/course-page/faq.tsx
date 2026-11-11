@@ -8,7 +8,7 @@ export default function FaqSection({ block }: { block: CoursePageDoc["faq"] }) {
   const items = (block?.items ?? []).filter((i) => i.question);
   return (
     <SectionShell id="faq" title={block?.title} tone="tinted">
-      <Accordion type="single" collapsible className="w-full rounded-xl border border-border bg-background px-4">
+      <Accordion type="single" collapsible className="w-full rounded-2xl border border-border bg-card px-5 md:px-6">
         {items.map((item, i) => (
           <AccordionItem key={i} value={`faq-${i}`}>
             <AccordionTrigger className="py-4 text-left text-base font-semibold hover:no-underline">{item.question}</AccordionTrigger>

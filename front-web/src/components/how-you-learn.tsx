@@ -231,10 +231,10 @@ export default function HowYouLearn() {
         </div>
 
         {/* Bottom Banner */}
-        <div className="mt-14 rounded-2xl bg-primary text-primary-foreground p-8 md:p-10 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="mt-14 rounded-2xl bg-emerald-800 text-white p-8 md:p-10 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-2 text-center md:text-left">
             <h4 className="text-2xl font-headline font-bold">{content.bannerTitle}</h4>
-            <p className="text-primary-foreground/80 text-sm max-w-xl font-body">
+            <p className="text-white/80 text-sm max-w-xl font-body">
               {content.bannerDesc}
             </p>
           </div>

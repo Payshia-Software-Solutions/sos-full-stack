@@ -61,7 +61,7 @@ export default function WhyChooseUsAbout() {
           <div className="mt-6 space-y-2.5">
             {benefits.map((b, i) => (
               <div key={i} className="flex items-center gap-3 text-sm text-foreground/90 font-body">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
                 <span>{b}</span>
               </div>
             ))}
@@ -74,7 +74,7 @@ export default function WhyChooseUsAbout() {
               <p className="text-xs text-muted-foreground mt-1 font-medium">{t('whyChooseUsStat1')}</p>
             </div>
             <div>
-              <p className="text-3xl sm:text-4xl font-headline font-bold text-amber-500">6+</p>
+              <p className="text-3xl sm:text-4xl font-headline font-bold text-amber-700 dark:text-amber-400">6+</p>
               <p className="text-xs text-muted-foreground mt-1 font-medium uppercase">{t('whyChooseUsStat2')}</p>
             </div>
             <div className="hidden sm:block">
