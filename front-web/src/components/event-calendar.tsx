@@ -1,33 +1,17 @@
 "use client";
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Calendar } from "lucide-react";
+import { Calendar, MapPin, Clock } from "lucide-react";
 import { Button } from "./ui/button";
 import { useTranslation } from "@/context/language-context";
 import Link from "next/link";
+import { formatEventDate, formatEventTime, type PublicEvent } from "@/lib/events";
 
-const events = [
-  {
-    title: "Special Intake Orientation Webinar",
-    date: "2026-10-10",
-    description: "Introductory live orientation for newly enrolled students covering the LMS portal, interactive games, course milestones, and study schedule.",
-    link: "/contact"
-  },
-  {
-    title: "Practical Pharmacy Skills Workshop",
-    date: "2026-11-15",
-    description: "Hands-on virtual simulation workshop on prescription validation, dosage calculation, and patient counselling techniques.",
-    link: "/courses"
-  },
-  {
-    title: "Annual Certificate Awarding Ceremony",
-    date: "2026-12-20",
-    description: "Grand graduation ceremony honouring certified pharmacy practice graduates with participation from healthcare industry leaders.",
-    link: "/alumni"
-  }
-];
+interface EventCalendarProps {
+  events: PublicEvent[];
+}
 
-export default function EventCalendar() {
+export default function EventCalendar({ events }: EventCalendarProps) {
   const { t, language } = useTranslation();
   const isSinhala = language === 'si';
 
@@ -46,29 +30,43 @@ export default function EventCalendar() {
           </p>
         </div>
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-          {events.map((event) => (
-            <Card key={event.title} className="flex flex-col bg-background hover:shadow-xl transition-shadow duration-300">
-              <CardHeader className="flex-row items-center gap-4">
-                <div className="bg-primary/10 p-3 rounded-md shrink-0">
-                  <Calendar className="h-6 w-6 text-primary" />
+          {events.map((event) => {
+            const time = formatEventTime(event.start_time, event.end_time);
+            return (
+              <Card key={event.id} className="flex flex-col bg-background hover:shadow-xl transition-shadow duration-300">
+                <CardHeader className="flex-row items-center gap-4">
+                  <div className="bg-primary/10 p-3 rounded-md shrink-0">
+                    <Calendar className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="font-headline text-lg">{event.title}</CardTitle>
+                    <CardDescription className="font-body">
+                      {formatEventDate(event.event_date)}
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-grow space-y-2">
+                  {(time || event.location) && (
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      {time && <p className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {time}</p>}
+                      {event.location && <p className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {event.location}</p>}
+                    </div>
+                  )}
+                  {event.summary && <p className="font-body text-sm text-muted-foreground">{event.summary}</p>}
+                </CardContent>
+                <div className="p-6 pt-0">
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/events/${event.slug}`}>{t('eventsLearnMore')}</Link>
+                  </Button>
                 </div>
-                <div>
-                  <CardTitle className="font-headline text-lg">{event.title}</CardTitle>
-                  <CardDescription className="font-body">
-                    {new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <p className="font-body text-sm text-muted-foreground">{event.description}</p>
-              </CardContent>
-              <div className="p-6 pt-0">
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={event.link}>{t('eventsLearnMore')}</Link>
-                </Button>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
+        </div>
+        <div className="mt-10 text-center">
+          <Link href="/events" className="text-sm font-semibold text-primary hover:underline">
+            View all events →
+          </Link>
         </div>
       </div>
     </section>

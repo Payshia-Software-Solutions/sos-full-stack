@@ -158,6 +158,7 @@ $mediMindLevelMedicineRoutes = require './routes/MediMind/MediMindLevelMedicineR
 $mediMindCourseLevelRoutes = require './routes/MediMind/MediMindCourseLevelRoutes.php';
 $birthdaySettingsRoutes = require './routes/BirthdaySettingsRoutes.php';
 $blogRoutes = require './routes/BlogRoutes.php';
+$eventRoutes = require './routes/EventRoutes.php';
 $coursePageRoutes = require './routes/Course/CoursePageRoutes.php';
 $pharmaReaderRoutes = require './routes/pharmaReaderRoutes.php';
 $smsTemplateRoutes = require './routes/smsTemplateRoutes.php';
@@ -310,6 +311,7 @@ $routes = array_merge(
     $convocationMedalTypeRoutes,
     $convocationStudentInfoRoutes,
     $blogRoutes,
+    $eventRoutes,
     $coursePageRoutes,
     $pharmaReaderRoutes,
     $smsTemplateRoutes,
@@ -337,6 +339,30 @@ $routes['GET /run-announcements-migration/'] = function () use ($pdo) {
             `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
         echo json_encode(['success' => true, 'message' => 'Announcements table created successfully.']);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+};
+
+$routes['GET /run-events-migration/'] = function () use ($pdo) {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `upcoming_events` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `title` VARCHAR(255) NOT NULL,
+            `slug` VARCHAR(255) NOT NULL UNIQUE,
+            `event_date` DATE NOT NULL,
+            `start_time` VARCHAR(20) DEFAULT NULL,
+            `end_time` VARCHAR(20) DEFAULT NULL,
+            `location` VARCHAR(255) DEFAULT NULL,
+            `summary` TEXT DEFAULT NULL,
+            `description` LONGTEXT DEFAULT NULL,
+            `image_url` TEXT DEFAULT NULL,
+            `registration_url` VARCHAR(500) DEFAULT NULL,
+            `status` VARCHAR(20) NOT NULL DEFAULT 'published',
+            `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+        echo json_encode(['success' => true, 'message' => 'upcoming_events table created successfully.']);
     } catch (PDOException $e) {
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }

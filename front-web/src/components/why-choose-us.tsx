@@ -250,7 +250,7 @@ export default function WhyChooseUs() {
             {/* Trust Stats Bar */}
             <div className="mt-8 pt-6 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
               <div>
-                <p className="text-2xl sm:text-3xl font-headline font-bold text-primary">4,700+</p>
+                <p className="text-2xl sm:text-3xl font-headline font-bold text-primary">5,000+</p>
                 <p className="text-xs text-muted-foreground mt-1 font-medium">{content.stat1}</p>
               </div>
               <div>
