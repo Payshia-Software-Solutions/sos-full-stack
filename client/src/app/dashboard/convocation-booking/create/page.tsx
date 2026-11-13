@@ -178,7 +178,7 @@ export default function CreateConvocationBookingPage() {
     if (!certificateOrders) return new Set<string>();
     const ids = new Set<string>();
     certificateOrders
-      .filter(order => order.certificate_status === 'Pending' || order.certificate_status === 'Printed')
+      .filter(order => !['Cancelled', 'Canceled', 'Rejected'].includes((order.certificate_status || '').trim()))
       .forEach(order => {
         order.course_code.split(',').forEach(id => {
           if (id.trim()) ids.add(id.trim());
@@ -610,8 +610,13 @@ export default function CreateConvocationBookingPage() {
                 {allEnrollments.map(enrollment => {
                     const isEligible = enrollment.certificate_eligibility;
                     const hasActiveOrder = activeOrderedCourseIds.has(enrollment.parent_course_id) || activeOrderedCourseIds.has(enrollment.course_code);
-                    const isBookedForConvocation = activeBookedCourseIds.has(enrollment.parent_course_id);
+                    const isBookedForConvocation = activeBookedCourseIds.has(String(enrollment.parent_course_id)) || activeBookedCourseIds.has(String(enrollment.course_code));
                     const isDisabled = !isEligible || hasActiveOrder || isBookedForConvocation;
+                    const lockReason = isBookedForConvocation
+                        ? 'Already included in a convocation booking. A course can only be booked once.'
+                        : hasActiveOrder
+                            ? 'A certificate order for this course is pending or printed. Booking is locked until it is completed.'
+                            : null;
 
                     return (
                         <Collapsible key={enrollment.id} className="p-4 border rounded-xl has-[:disabled]:bg-muted/50 has-[:disabled]:opacity-60 transition-all bg-card">
@@ -627,6 +632,9 @@ export default function CreateConvocationBookingPage() {
                                         {enrollment.parent_course_name}
                                     </Label>
                                     <p className="text-xs text-muted-foreground mt-0.5">{enrollment.course_code}</p>
+                                    {lockReason && (
+                                        <p className="text-xs text-amber-700 mt-1">{lockReason}</p>
+                                    )}
                                 </div>
                                 {isBookedForConvocation ? (
                                     <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200">Booked</Badge>
