@@ -24,7 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, ListOrdered, PlusCircle, ArrowLeft, ArrowRight, GraduationCap, Banknote, Calendar, Users, Wallet, Upload, CheckCircle, Award, Sparkles, ScrollText, FileText, Video, Coffee, Loader2, ExternalLink, Paperclip, Hourglass, ShieldAlert, QrCode } from 'lucide-react';
+import { AlertCircle, ListOrdered, PlusCircle, ArrowLeft, ArrowRight, GraduationCap, Banknote, Calendar, Users, Wallet, Upload, CheckCircle, Award, Sparkles, ScrollText, FileText, Video, Coffee, Loader2, ExternalLink, Paperclip, Hourglass, ShieldAlert, QrCode, ChevronDown } from 'lucide-react';
 
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -134,8 +134,18 @@ const ConvocationPass = ({
             ? booking.ceremony_number
             : null;
 
-    // Only show pass if there is an effective ceremony number
-    if ((isLoading && !effectiveCeremonyNumber) || !effectiveCeremonyNumber) {
+    // Show the pass (and its PDF) for every active booking. Ceremony numbers are assigned by the
+    // admin later, so a missing number shows "Pending assignment" instead of hiding the ticket.
+    if (isLoading) {
+        return null;
+    }
+    const isInactiveBooking = ['rejected', 'canceled'].includes((booking.registration_status || '').trim().toLowerCase());
+    if (isInactiveBooking) {
+        return null;
+    }
+    // Closed ceremonies (accept_booking off) keep the record only: no ticket and no admission PDF
+    const passCeremony = ceremonies?.find(c => String(c.id) === String(booking.convocation_id));
+    if (passCeremony && String(passCeremony.accept_booking) !== '1') {
         return null;
     }
 
@@ -319,9 +329,15 @@ const ConvocationPass = ({
                     <p className="text-primary-foreground/80 text-xs uppercase font-bold tracking-[0.2em] mb-3 text-center">Ceremony No.</p>
                     
                     <div className="bg-white/10 rounded-2xl p-6 border border-white/20 shadow-inner w-full flex items-center justify-center min-h-[120px]">
-                        <span className="font-mono text-7xl font-black text-yellow-300 tracking-tighter drop-shadow-md">
-                            {effectiveCeremonyNumber}
-                        </span>
+                        {effectiveCeremonyNumber ? (
+                            <span className="font-mono text-7xl font-black text-yellow-300 tracking-tighter drop-shadow-md">
+                                {effectiveCeremonyNumber}
+                            </span>
+                        ) : (
+                            <span className="text-base font-semibold text-yellow-200/90 text-center">
+                                Pending assignment
+                            </span>
+                        )}
                     </div>
                     
                     <div className="mt-6 text-center">
@@ -365,6 +381,7 @@ const BookingDetailCard = ({
     const [slip, setSlip] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDownloadingDetail, setIsDownloadingDetail] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(true);
 
     const handleDownloadDetail = async () => {
         try {
@@ -430,6 +447,9 @@ const BookingDetailCard = ({
     const ceremony = useMemo(() => {
         return ceremonies?.find(c => String(c.id) === String(booking.convocation_id));
     }, [ceremonies, booking.convocation_id]);
+
+    // Closed ceremonies (accept_booking off) show the record only, no admission slip download
+    const isCeremonyOpen = !ceremony || String(ceremony.accept_booking) === '1';
 
     const convocationDateDetail = useMemo(() => {
         if (!ceremony?.held_on) return null;
@@ -502,7 +522,11 @@ const BookingDetailCard = ({
 
     return (
         <Card className="shadow-lg border-primary/10 overflow-hidden">
-            <CardHeader className="bg-muted/30 pb-4">
+            <CardHeader
+                className="bg-muted/30 pb-4 cursor-pointer select-none"
+                onClick={() => setIsExpanded(v => !v)}
+                aria-expanded={isExpanded}
+            >
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                     <div>
                         <CardTitle className="text-lg">
@@ -521,11 +545,11 @@ const BookingDetailCard = ({
                         </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
-                        {isFullyPaid && (
-                            <Button 
-                                size="sm" 
-                                variant="outline" 
-                                onClick={handleDownloadDetail}
+                        {isFullyPaid && isCeremonyOpen && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => { e.stopPropagation(); handleDownloadDetail(); }}
                                 disabled={isDownloadingDetail}
                                 className="h-8 gap-1.5 text-xs border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-medium"
                             >
@@ -534,9 +558,11 @@ const BookingDetailCard = ({
                             </Button>
                         )}
                         {getStatusBadge(booking.registration_status)}
+                        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", isExpanded ? "rotate-180" : "")} />
                     </div>
                 </div>
             </CardHeader>
+            {isExpanded && (
             <CardContent className="pt-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-6">
@@ -570,7 +596,7 @@ const BookingDetailCard = ({
                                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">Session</Label>
                                     <p className="text-sm font-semibold">Session {booking.session}</p>
                                 </div>
-                                {pkg?.vip_seat && parseInt(pkg.vip_seat, 10) > 0 && (
+                                {Number(pkg?.vip_seat ?? 0) > 0 && (
                                     <div className="space-y-1">
                                         <Label className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">VIP Seats</Label>
                                         <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">{pkg.vip_seat}</p>
@@ -750,7 +776,7 @@ const BookingDetailCard = ({
                             </div>
                         )}
 
-                        {isFullyPaid && (
+                        {isFullyPaid && isCeremonyOpen && (
                             <div className="pt-4 border-t border-dashed mt-4 space-y-2">
                                 <Button 
                                     onClick={handleDownloadDetail}
@@ -768,6 +794,7 @@ const BookingDetailCard = ({
                     </div>
                 </div>
             </CardContent>
+            )}
         </Card>
     );
 };

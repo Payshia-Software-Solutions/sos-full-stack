@@ -191,6 +191,84 @@ class ConvocationRegistrationController
         }
     }
 
+    /**
+     * Expand course identifiers (course.id, course.parent_course_id, course.course_code)
+     * so that the same course is matched whichever form the booking or order stored.
+     */
+    private function expandCourseTokens(array $tokens)
+    {
+        $tokens = array_values(array_unique(array_filter(array_map(fn($t) => trim((string)$t), $tokens), fn($t) => $t !== '')));
+        if (empty($tokens)) return [];
+
+        $expanded = $tokens;
+        $in = implode(',', array_fill(0, count($tokens), '?'));
+        $stmt = $this->pdo->prepare("
+            SELECT id, parent_course_id, course_code
+            FROM course
+            WHERE id IN ($in) OR course_code IN ($in)
+        ");
+        $stmt->execute(array_merge($tokens, $tokens));
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            foreach (['id', 'parent_course_id', 'course_code'] as $k) {
+                if (!empty($row[$k])) $expanded[] = trim((string)$row[$k]);
+            }
+        }
+        return array_values(array_unique($expanded));
+    }
+
+    /**
+     * Returns a conflict description if any requested course is already in an active
+     * convocation booking (any ceremony) or has a certificate order that is not cancelled
+     * (pending, printed, dispatched by courier, or delivered).
+     */
+    private function findCourseConflict($studentNumber, array $requestedIds)
+    {
+        $bookStmt = $this->pdo->prepare("
+            SELECT reference_number, course_id
+            FROM convocation_registrations
+            WHERE student_number = ? AND registration_status NOT IN ('rejected', 'canceled', 'Rejected', 'Canceled')
+        ");
+        $bookStmt->execute([$studentNumber]);
+        $bookings = $bookStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $orderStmt = $this->pdo->prepare("
+            SELECT id, course_code
+            FROM cc_certificate_order
+            WHERE created_by = ? AND certificate_status NOT IN ('Cancelled', 'Canceled', 'Rejected')
+        ");
+        $orderStmt->execute([$studentNumber]);
+        $orders = $orderStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Map every expanded identifier of an existing booking/order to its reason
+        $existingMap = [];
+        foreach ($bookings as $b) {
+            $tokens = array_filter(array_map('trim', explode(',', (string)$b['course_id'])));
+            foreach ($this->expandCourseTokens($tokens) as $key) {
+                $existingMap[$key] = $existingMap[$key] ?? ['type' => 'booking', 'reference' => $b['reference_number']];
+            }
+        }
+        foreach ($orders as $o) {
+            $tokens = array_filter(array_map('trim', explode(',', (string)$o['course_code'])));
+            foreach ($this->expandCourseTokens($tokens) as $key) {
+                $existingMap[$key] = $existingMap[$key] ?? ['type' => 'order', 'reference' => $o['id']];
+            }
+        }
+        if (empty($existingMap)) return null;
+
+        foreach ($this->expandCourseTokens($requestedIds) as $key) {
+            if (isset($existingMap[$key])) {
+                $hit = $existingMap[$key];
+                if ($hit['type'] === 'booking') {
+                    $message = "Course {$key} is already included in your convocation booking (Ref #{$hit['reference']}). A course can only be booked once.";
+                } else {
+                    $message = "Course {$key} already has a certificate order (Order #{$hit['reference']}). A course with a certificate order cannot be booked for convocation.";
+                }
+                return ['course' => $key, 'type' => $hit['type'], 'reference' => $hit['reference'], 'message' => $message];
+            }
+        }
+        return null;
+    }
+
     // POST create a new registration (no reference_number in input)
     public function createRegistration()
     {
@@ -310,6 +388,17 @@ class ConvocationRegistrationController
                 ]);
                 return;
             }
+        }
+
+        // 1b. Block courses already booked in ANY ceremony or with a pending/printed certificate order
+        $courseConflict = $this->findCourseConflict($studentNumber, $courseIds);
+        if ($courseConflict) {
+            http_response_code(409);
+            echo json_encode([
+                'error' => $courseConflict['message'],
+                'conflict' => $courseConflict
+            ]);
+            return;
         }
 
         // 2. Check Session Capacity Limits
