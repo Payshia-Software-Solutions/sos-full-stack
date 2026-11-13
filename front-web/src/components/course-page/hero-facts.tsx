@@ -41,7 +41,7 @@ export default function HeroFacts({ doc, labels, courseName, coverUrl, feeText, 
   return (
     <>
     <section className="relative bg-emerald-800 text-white">
-      <div className="container mx-auto max-w-6xl px-4 md:px-6 pt-12 pb-20 md:pt-16 md:pb-24 lg:pt-20">
+      <div className="container mx-auto px-4 md:px-6 pt-12 pb-20 md:pt-16 md:pb-24 lg:pt-20">
         <div className="grid items-center gap-10 lg:grid-cols-12 lg:gap-14">
           <div className={hasCover ? "lg:col-span-7" : "lg:col-span-12"}>
             <div className="flex flex-wrap gap-2">
@@ -129,7 +129,7 @@ export default function HeroFacts({ doc, labels, courseName, coverUrl, feeText, 
 
     </section>
       {tiles.length > 0 && (
-        <div className="container relative z-10 mx-auto max-w-6xl px-4 md:px-6 -mt-14 md:-mt-16">
+        <div className="container relative z-10 mx-auto px-4 md:px-6 -mt-14 md:-mt-16">
           <dl className="grid grid-cols-2 overflow-hidden rounded-2xl bg-white text-emerald-950 shadow-2xl shadow-black/15 md:flex md:flex-nowrap">
             {tiles.map((tile, i) => (
               <div

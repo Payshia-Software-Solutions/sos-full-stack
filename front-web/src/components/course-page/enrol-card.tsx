@@ -24,7 +24,7 @@ export default function EnrolCard({ labels, nextIntake, feeText, durationText, m
   const telHref = phone ? `tel:${phone.replace(/[^\d+]/g, "")}` : null;
 
   return (
-    <aside className="rounded-3xl border border-border bg-card p-6 shadow-xl shadow-emerald-950/5 lg:sticky lg:top-40">
+    <aside className="rounded-3xl border border-border bg-card p-6 shadow-xl shadow-emerald-950/5 lg:sticky lg:top-[13.5rem]">
       {nextIntake && (
         <div className="rounded-xl bg-amber-100 p-4 text-amber-950">
           <p className="text-[11px] font-bold uppercase tracking-wider">{labels.nextIntake}</p>
