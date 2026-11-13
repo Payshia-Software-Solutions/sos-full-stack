@@ -12,6 +12,8 @@ import EventCalendar from '@/components/event-calendar';
 import FAQSection from '@/components/faq-section';
 import BottomCTA from '@/components/bottom-cta';
 import { getCachedCourses } from '@/lib/courses-data';
+import { getEvents, isUpcomingEvent } from '@/lib/events';
+import { getCoursePage } from '@/lib/course-page';
 import Script from 'next/script';
 
 
@@ -49,6 +51,13 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   const courses = await getCachedCourses();
+  // Banner intake date comes from the Certificate Course page (CMS facts.next_intake)
+  const certificateCoursePage = await getCoursePage('certificate-course-in-pharmacy-practice');
+  const nextIntake = certificateCoursePage?.content.en.facts?.next_intake?.trim() || null;
+  const upcomingEvents = (await getEvents())
+    .filter(isUpcomingEvent)
+    .sort((a, b) => String(a.event_date).localeCompare(String(b.event_date)))
+    .slice(0, 3);
 
   const organizationSchema = {
     '@context': 'https://schema.org',
@@ -111,10 +120,10 @@ export default async function Home() {
         <CertificateVerifierHome />
 
         {/* 9. Next Intake Announcement & Early Enrollment */}
-        <NextIntakeBanner />
+        <NextIntakeBanner intake={nextIntake} />
 
         {/* 9. Upcoming Workshops & Events */}
-        <EventCalendar />
+        <EventCalendar events={upcomingEvents} />
 
         {/* 10. Frequently Asked Questions (FAQ) */}
         <FAQSection />

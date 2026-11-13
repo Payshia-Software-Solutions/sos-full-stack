@@ -599,7 +599,7 @@ const BookingDetailCard = ({
                                 {Number(pkg?.vip_seat ?? 0) > 0 && (
                                     <div className="space-y-1">
                                         <Label className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">VIP Seats</Label>
-                                        <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">{pkg.vip_seat}</p>
+                                        <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">{pkg?.vip_seat}</p>
                                     </div>
                                 )}
                                 <div className="space-y-1">
