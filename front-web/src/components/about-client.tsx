@@ -8,9 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   BookOpen, 
   Target, 
-  Users, 
-  GraduationCap, 
-  Award, 
+  Users,
+  Award,
   ShieldCheck, 
   ChevronRight, 
   CheckCircle2, 
@@ -34,65 +33,6 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-
-const lecturePanel = [
-  { 
-    name: "Mr. Dilip Fonseka", 
-    role: "Course Director & Senior Pharmacist", 
-    qualification: "B.Pharm (Hons), Registered Pharmacist",
-    field: "Pharmacy Practice, Prescription Analysis & Dispensing Regulations", 
-    tag: "Course Director",
-    experience: "15+ Years Clinical Experience"
-  },
-  { 
-    name: "Dr. Vajira Senevirathna", 
-    role: "Medical Consultant & Senior Lecturer", 
-    qualification: "MBBS, MD Clinical Pharmacology",
-    field: "Clinical Pharmacology, Therapeutics & Drug Interactions", 
-    tag: "Medical Consultant",
-    experience: "Senior Healthcare Specialist"
-  },
-  { 
-    name: "Prof. Vishan Rudrigoo", 
-    role: "Visiting Professor", 
-    qualification: "Ph.D., M.Sc. Pharmaceutical Sciences",
-    field: "Pharmaceutical Quality Systems & Formulation Science", 
-    tag: "Visiting Professor",
-    experience: "International Academic Consultant"
-  },
-  { 
-    name: "Ms. Dilshani Gunasekara", 
-    role: "Senior Lecturer", 
-    qualification: "B.Pharm, Senior Community Pharmacist",
-    field: "Community Pharmacy Management & Patient Counselling", 
-    tag: "Senior Lecturer",
-    experience: "Retail Pharmacy Leader"
-  },
-  { 
-    name: "Ms. Nilanka Senevirathna", 
-    role: "Lecturer in Pharmacy Calculations", 
-    qualification: "B.Sc. Pharmaceutical Chemistry",
-    field: "Medical Terminology, Dosage Calculations & Posology", 
-    tag: "Lecturer",
-    experience: "Academic Mentor"
-  },
-  { 
-    name: "Ms. Hansi Senevirathna", 
-    role: "Lecturer in Ethics & Safety", 
-    qualification: "B.Sc. Nursing & Healthcare Ethics",
-    field: "Patient Safety Protocols & Healthcare Professional Ethics", 
-    tag: "Lecturer",
-    experience: "Clinical Safety Officer"
-  },
-  { 
-    name: "Mr. Thilina Doloswala", 
-    role: "Lead Educational Systems Specialist", 
-    qualification: "B.Sc. IT, EdTech & LMS Architecture",
-    field: "Interactive Educational Tech, Simulation Games & Digital Learning", 
-    tag: "EdTech Lead",
-    experience: "LMS Systems Architect"
-  },
-];
 
 const milestones = [
   {
@@ -493,62 +433,6 @@ export default function AboutClient() {
                   </p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 6. Lecturer Panel */}
-      <section className="py-16 md:py-24 bg-card/40 border-y border-border/40">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <Badge variant="outline" className="mb-2 px-3 py-1 font-semibold text-primary border-primary/30">
-              Experienced Faculty
-            </Badge>
-            <h2 className={`text-3xl md:text-4xl font-headline font-bold text-foreground ${
-              isSinhala ? 'leading-[1.35]' : 'leading-tight'
-            }`}>
-              {t('lecturePanelTitle')}
-            </h2>
-            <div className="w-20 h-1 bg-primary mx-auto mt-3 mb-4 rounded-full" />
-            <p className={`text-muted-foreground font-body text-sm md:text-base ${
-              isSinhala ? 'leading-[1.75]' : 'leading-relaxed'
-            }`}>
-              {t('lecturePanelSubtitle')}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {lecturePanel.map((lecturer) => (
-              <Card key={lecturer.name} className="rounded-2xl border border-border/80 bg-card hover:shadow-xl hover:border-primary/50 transition-all duration-300 flex flex-col">
-                <CardContent className="p-6 flex flex-col flex-grow">
-                  <div className="flex items-start gap-4 mb-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-teal-500/20 text-primary flex items-center justify-center shrink-0 border border-primary/30 shadow-sm">
-                      <GraduationCap className="w-6 h-6" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <Badge variant="secondary" className="text-xs font-semibold text-primary bg-primary/10 mb-1">
-                        {lecturer.tag}
-                      </Badge>
-                      <h3 className="font-headline font-bold text-base text-foreground truncate">
-                        {lecturer.name}
-                      </h3>
-                      <p className="text-xs text-primary font-semibold line-clamp-1">
-                        {lecturer.role}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-border/60 space-y-1.5 text-xs text-muted-foreground flex-grow">
-                    <p className="font-medium text-foreground/90">{lecturer.qualification}</p>
-                    <p className="leading-relaxed font-body">{lecturer.field}</p>
-                  </div>
-
-                  <div className="mt-4 pt-2.5 border-t border-border/40 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                    ✓ {lecturer.experience}
-                  </div>
-                </CardContent>
-              </Card>
             ))}
           </div>
         </div>

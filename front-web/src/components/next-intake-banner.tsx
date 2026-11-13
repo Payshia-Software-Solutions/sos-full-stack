@@ -6,10 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useTranslation } from "@/context/language-context";
 
-export default function NextIntakeBanner() {
+interface NextIntakeBannerProps {
+  // Next intake date from the Certificate Course page (facts.next_intake). Hidden when not set.
+  intake?: string | null;
+}
+
+export default function NextIntakeBanner({ intake }: NextIntakeBannerProps) {
   const { language } = useTranslation();
   const isSinhala = language === 'si';
-  const currentMonthYear = new Date().toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
   const getWhatsAppMessage = () => {
     if (language === 'si') {
@@ -24,7 +28,7 @@ export default function NextIntakeBanner() {
   const content = {
     si: {
       badge: "නව බඳවා ගැනීම් විවෘතයි",
-      intake: `නව කණ්ඩායම: ${currentMonthYear}`,
+      intakeLabel: "නව කණ්ඩායම",
       title: "ඉදිරි ඖෂධවේදී පුහුණු කණ්ඩායම සඳහා ඔබගේ ආසනය වෙන්කරවා ගන්න",
       desc: "ඖෂධවේදී භාවිතය පිළිබඳ සහතික පත්‍ර පාඨමාලාව (CCPP) සඳහා දැන් ලියාපදිංචිය විවෘතයි. සති අන්ත සජීවී Zoom දේශන, නිවසටම ලැබෙන පොත් කට්ටලය සහ WinPharma පරිගණක පුහුණුව සහිතයි.",
       bullet1: "සති අන්ත සජීවී දේශන",
@@ -35,7 +39,7 @@ export default function NextIntakeBanner() {
     },
     ta: {
       badge: "சேர்க்கை திறக்கப்பட்டுள்ளது",
-      intake: `புதிய சேர்க்கை: ${currentMonthYear}`,
+      intakeLabel: "புதிய சேர்க்கை",
       title: "வரவிருக்கும் மருந்தியல் பயிற்சி குழுவில் உங்கள் இடத்தை உறுதி செய்யுங்கள்",
       desc: "மருந்தியல் நடைமுறை சான்றிதழ் படிப்புக்கான (CCPP) சேர்க்கை இப்போது திறக்கப்பட்டுள்ளது. வார இறுதி நேரலை Zoom வகுப்புகள், வீட்டு விநியோக புத்தக தொகுப்பு மற்றும் WinPharma நடைமுறை பயிற்சிகள்.",
       bullet1: "வார இறுதி நேரலை வகுப்புகள்",
@@ -46,7 +50,7 @@ export default function NextIntakeBanner() {
     },
     en: {
       badge: "Admissions Open",
-      intake: `New Intake: ${currentMonthYear}`,
+      intakeLabel: "New Intake",
       title: "Secure Your Seat for the Upcoming Pharmacy Practice Batch",
       desc: "Registration is currently open for the Certificate Course in Pharmacy Practice. Classes are held on weekends with home-delivered printed materials and interactive simulations. Limited seats per intake.",
       bullet1: "Weekend Live Sessions",
@@ -57,7 +61,7 @@ export default function NextIntakeBanner() {
     },
   }[language] || {
     badge: "Admissions Open",
-    intake: `New Intake: ${currentMonthYear}`,
+    intakeLabel: "New Intake",
     title: "Secure Your Seat for the Upcoming Pharmacy Practice Batch",
     desc: "Registration is currently open for the Certificate Course in Pharmacy Practice. Classes are held on weekends with home-delivered printed materials and interactive simulations. Limited seats per intake.",
     bullet1: "Weekend Live Sessions",
@@ -85,9 +89,11 @@ export default function NextIntakeBanner() {
                 <Badge className="bg-amber-500 hover:bg-amber-600 text-black font-bold uppercase text-xs tracking-wider px-3 py-1 gap-1">
                   <Flame className="w-3.5 h-3.5 fill-black" /> {content.badge}
                 </Badge>
-                <span className="text-xs text-teal-200/90 font-medium flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-amber-400" /> {content.intake}
-                </span>
+                {intake && (
+                  <span className="text-xs text-teal-200/90 font-medium flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-amber-400" /> {content.intakeLabel}: {intake}
+                  </span>
+                )}
               </div>
 
               <h2 className={`text-2xl md:text-4xl font-headline font-bold text-white tracking-tight ${
