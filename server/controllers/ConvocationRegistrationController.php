@@ -192,44 +192,33 @@ class ConvocationRegistrationController
     }
 
     /**
-     * Expand course identifiers (course.id, course.parent_course_id, course.course_code)
-     * so that the same course is matched whichever form the booking or order stored.
-     */
-    private function expandCourseTokens(array $tokens)
-    {
-        $tokens = array_values(array_unique(array_filter(array_map(fn($t) => trim((string)$t), $tokens), fn($t) => $t !== '')));
-        if (empty($tokens)) return [];
-
-        $expanded = $tokens;
-        $in = implode(',', array_fill(0, count($tokens), '?'));
-        $stmt = $this->pdo->prepare("
-            SELECT id, parent_course_id, course_code
-            FROM course
-            WHERE id IN ($in) OR course_code IN ($in)
-        ");
-        $stmt->execute(array_merge($tokens, $tokens));
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            foreach (['id', 'parent_course_id', 'course_code'] as $k) {
-                if (!empty($row[$k])) $expanded[] = trim((string)$row[$k]);
-            }
-        }
-        return array_values(array_unique($expanded));
-    }
-
-    /**
      * Returns a conflict description if any requested course is already in an active
      * convocation booking (any ceremony) or has a certificate order that is not cancelled
      * (pending, printed, dispatched by courier, or delivered).
+     *
+     * Everything is compared as parent_main_course id (the id the client sends as parent_course_id).
+     * Bookings store that id. Certificate orders store course codes, which are resolved to their
+     * parent id through the course table. Ids are never matched against course.id.
      */
     private function findCourseConflict($studentNumber, array $requestedIds)
     {
+        $requested = array_values(array_unique(array_filter(array_map(fn($v) => trim((string)$v), $requestedIds), fn($v) => $v !== '')));
+        if (empty($requested)) return null;
+
+        // parent id => reason, for everything the student already has
+        $existing = [];
+
         $bookStmt = $this->pdo->prepare("
             SELECT reference_number, course_id
             FROM convocation_registrations
             WHERE student_number = ? AND registration_status NOT IN ('rejected', 'canceled', 'Rejected', 'Canceled')
         ");
         $bookStmt->execute([$studentNumber]);
-        $bookings = $bookStmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($bookStmt->fetchAll(PDO::FETCH_ASSOC) as $b) {
+            foreach (array_filter(array_map('trim', explode(',', (string)$b['course_id']))) as $parentId) {
+                $existing[$parentId] = $existing[$parentId] ?? ['type' => 'booking', 'reference' => $b['reference_number']];
+            }
+        }
 
         $orderStmt = $this->pdo->prepare("
             SELECT id, course_code
@@ -239,32 +228,48 @@ class ConvocationRegistrationController
         $orderStmt->execute([$studentNumber]);
         $orders = $orderStmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Map every expanded identifier of an existing booking/order to its reason
-        $existingMap = [];
-        foreach ($bookings as $b) {
-            $tokens = array_filter(array_map('trim', explode(',', (string)$b['course_id'])));
-            foreach ($this->expandCourseTokens($tokens) as $key) {
-                $existingMap[$key] = $existingMap[$key] ?? ['type' => 'booking', 'reference' => $b['reference_number']];
-            }
-        }
+        $codes = [];
         foreach ($orders as $o) {
-            $tokens = array_filter(array_map('trim', explode(',', (string)$o['course_code'])));
-            foreach ($this->expandCourseTokens($tokens) as $key) {
-                $existingMap[$key] = $existingMap[$key] ?? ['type' => 'order', 'reference' => $o['id']];
+            foreach (array_filter(array_map('trim', explode(',', (string)$o['course_code']))) as $code) {
+                $codes[$code] = true;
             }
         }
-        if (empty($existingMap)) return null;
-
-        foreach ($this->expandCourseTokens($requestedIds) as $key) {
-            if (isset($existingMap[$key])) {
-                $hit = $existingMap[$key];
-                if ($hit['type'] === 'booking') {
-                    $message = "Course {$key} is already included in your convocation booking (Ref #{$hit['reference']}). A course can only be booked once.";
-                } else {
-                    $message = "Course {$key} already has a certificate order (Order #{$hit['reference']}). A course with a certificate order cannot be booked for convocation.";
+        if (!empty($codes)) {
+            $codeList = array_keys($codes);
+            $in = implode(',', array_fill(0, count($codeList), '?'));
+            $codeStmt = $this->pdo->prepare("SELECT course_code, parent_course_id FROM course WHERE course_code IN ($in)");
+            $codeStmt->execute($codeList);
+            $parentByCode = [];
+            foreach ($codeStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                if (!empty($row['parent_course_id'])) {
+                    $parentByCode[$row['course_code']] = (string)$row['parent_course_id'];
                 }
-                return ['course' => $key, 'type' => $hit['type'], 'reference' => $hit['reference'], 'message' => $message];
             }
+            foreach ($orders as $o) {
+                foreach (array_filter(array_map('trim', explode(',', (string)$o['course_code']))) as $code) {
+                    if (!isset($parentByCode[$code])) continue;
+                    $parentId = $parentByCode[$code];
+                    $existing[$parentId] = $existing[$parentId] ?? ['type' => 'order', 'reference' => $o['id']];
+                }
+            }
+        }
+
+        if (empty($existing)) return null;
+
+        foreach ($requested as $parentId) {
+            if (!isset($existing[$parentId])) continue;
+            $hit = $existing[$parentId];
+
+            $nameStmt = $this->pdo->prepare("SELECT course_name FROM parent_main_course WHERE id = ?");
+            $nameStmt->execute([$parentId]);
+            $courseName = $nameStmt->fetchColumn() ?: "Course {$parentId}";
+
+            if ($hit['type'] === 'booking') {
+                $message = "{$courseName} is already included in your convocation booking (Ref #{$hit['reference']}). A course can only be booked once.";
+            } else {
+                $message = "{$courseName} already has a certificate order (Order #{$hit['reference']}). A course with a certificate order cannot be booked for convocation.";
+            }
+            return ['course' => $courseName, 'type' => $hit['type'], 'reference' => $hit['reference'], 'message' => $message];
         }
         return null;
     }
